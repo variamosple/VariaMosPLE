@@ -1,0 +1,120 @@
+/*!
+ * Copyright 2021 VariaMos PLE. 
+ */
+
+/* btn-darkVariamos
+---------------------------- */
+.btn-darkVariamos {
+  color: #ffff;
+  background-color: #6faadd;
+  border-color: #428dcf;
+}
+.btn-darkVariamos:focus {
+  color: #ffff;
+  background-color: #428dcf;
+  border-color: #22486a;
+}
+.btn-darkVariamos:hover {
+  color: #ffff;
+  background-color: #428dcf;
+  border-color: #22486a;
+}
+.btn-darkVariamos:active {
+  color: #ffff;
+  background-color: #428dcf;
+  border-color: #22486a;
+}
+
+/* btn-lightVariamos
+---------------------------- */
+.btn-lightVariamos {
+  color: #000;
+  background-color: #b8daed3b;
+  border-color: #6c8b99;
+}
+.btn-lightVariamos:focus {
+  color: #ffff;
+  background-color: #8ab5c7;
+  border-color: #6c8b99;
+}
+.btn-lightVariamos:hover {
+  color: #ffff;
+  background-color: #8ab5c7;
+  border-color: #6c8b99;
+}
+.btn-lightVariamos:active {
+  color: #ffff;
+  background-color: #8ab5c7;
+  border-color: #6c8b99;
+}
+
+/* bg-variamos blue light dark
+---------------------------- */
+
+.bg-blue-Variamos {
+  background-color: #428dcf;
+}
+
+.bg-lightblue-Variamos {
+  background-color: #b8daed3b;
+}
+
+.bg-darkblue-Variamos {
+  background-color: #22486a;
+}
+
+.border-title-lighblue-variamos {
+  border-bottom: 5px solid #8ab5c7;
+  border-right: 5px solid #8ab5c769;
+}
+.border-title-darkblue-variamos {
+  border-bottom: 5px solid #22486a;
+  border-right: 5px solid #22486a;
+}
+
+.list-group-item.active {
+  color: #000;
+  background-color: #b8daed3b;
+  border-color: #8ab5c7;
+  border-bottom: 5px solid #8ab5c7;
+  border-right: 5px solid #8ab5c769;
+}
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap");
+.outer {
+
+  top: 30%;
+  left: 40%;
+}
+ul {
+  list-style: none;
+}
+#ul {
+  margin: 0;
+  padding: 0;
+}
+.fa-plus-square {
+  cursor: pointer;
+  user-select: none;
+}
+.fa-plus-square::before {
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.nested {
+  display: none;
+}
+.active {
+  display: block;
+}
+
+
+#hiddenProject {
+  cursor: pointer;
+  user-select: none;
+}
+
+.p-1{
+  padding: .1rem!important;
+}
