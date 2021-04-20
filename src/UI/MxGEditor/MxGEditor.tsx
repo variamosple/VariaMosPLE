@@ -13,7 +13,7 @@ class MxGEditor extends Component<Props, State> {
     render() {
         return (
             <div>
-                Coco working
+                working
             </div>
         )
     }

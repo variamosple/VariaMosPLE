@@ -2,8 +2,10 @@ import React, { Component } from "react";
 import DiagramEditor from "../DiagramEditor/DiagramEditor";
 import ElementsPannel from "../DiagramEditor/ElementsPannel";
 import PropiertiesPannel from "../DiagramEditor/PropiertiesPannel";
+import ProjectManagement from "../ProjectManagement/ProjectManagement";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import NavBar from "./navBar";
+
 
 interface Props {}
 interface State {}
@@ -15,7 +17,7 @@ class DashBoard extends Component<Props, State> {
     return (
       <div className="container-fluid">
         <NavBar />
-
+        <ProjectManagement />
         <div className="row p-1 align-items-center" style={{ height: "92vh" }}>
           <TreeExplorer />
 

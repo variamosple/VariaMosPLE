@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="../src/Addons/images/favicon.ico" />
+    <link rel="icon" href="favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="apple-touch-icon" href="../src/Addons/images/favicon.ico" />
+    <link rel="apple-touch-icon" href="favicon.ico" />
 
     <!-- Bootstrap CSS -->
     <link
@@ -37,6 +37,7 @@
 
     <script>
       $(document).ready(function () {
+        // START ********** TOGGLE TREE
         document.getElementById("projectManagement").click();
 
         var toggler = document.getElementsByClassName("fa-plus-square");
@@ -50,7 +51,9 @@
             this.classList.toggle("fa-minus-square-o");
           });
         }
+        // END ********** TOGGLE TREE
 
+        // START ********** SPLIT EDITOR SPACE
         document
           .getElementById("hiddenProject")
           .addEventListener("click", function () {
@@ -66,6 +69,76 @@
               document.getElementById("TreePannel").removeAttribute("hidden");
             }
           });
+        // END  ********** SPLIT EDITOR SPACE
+
+        //START ***************** Code for Right Clic
+        const findTypeSelect = (term, targeSelect) => {
+          if (targeSelect.includes(term)) {
+            return targeSelect;
+          }
+        };
+
+        $("#TreePannel")
+          .on("contextmenu", function (e) {
+            var top = e.pageY - 10;
+            var left = e.pageX + 30;
+            $("#context-menu")
+              .css({
+                display: "block",
+                top: top,
+                left: left,
+              })
+              .addClass("show");
+
+            const targeSelect = e.target.classList.toString();
+
+            $("#newModel").removeAttr("hidden");
+            $("#newApplication").removeAttr("hidden");
+            $("#newAdaptation").removeAttr("hidden");
+            $("#newProducLine").removeAttr("hidden");
+            $("#context-menu").removeAttr("hidden");
+
+            switch (targeSelect) {
+              case findTypeSelect("lps", targeSelect):
+                $("#newModel").attr("hidden", "hidden");
+                $("#newApplication").attr("hidden", "hidden");
+                $("#newAdaptation").attr("hidden", "hidden");
+
+                break;
+              case findTypeSelect("domainE", targeSelect):
+                $("#newApplication").attr("hidden", "hidden");
+                $("#newAdaptation").attr("hidden", "hidden");
+                $("#newProducLine").attr("hidden", "hidden");
+
+                break;
+              case findTypeSelect("appE", targeSelect):
+                $("#newAdaptation").attr("hidden", "hidden");
+                $("#newProducLine").attr("hidden", "hidden");
+                break;
+              case findTypeSelect("aeApp", targeSelect):
+                $("#newApplication").attr("hidden", "hidden");
+                $("#newProducLine").attr("hidden", "hidden");
+                break;
+              case findTypeSelect("aeContext", targeSelect):
+                $("#newApplication").attr("hidden", "hidden");
+                $("#newAdaptation").attr("hidden", "hidden");
+                $("#newProducLine").attr("hidden", "hidden");
+                break;
+              default:
+                $("#context-menu").attr("hidden", "hidden");
+                break;
+            }
+
+            return false; //blocks default Webbrowser right click menu
+          })
+          .on("click", function () {
+            $("#context-menu").removeClass("show").hide();
+          });
+
+        // $("#context-menu a").on("click", function () {
+        //   $(this).parent().removeClass("show").hide();
+        // });
+        //End***************** Code for Right Clic
       });
     </script>
   </body>

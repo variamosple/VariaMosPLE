@@ -118,3 +118,17 @@ ul {
 .p-1{
   padding: .1rem!important;
 }
+
+
+.fa-plus-square{
+  color: #428dcf;
+  cursor: pointer;
+}
+
+.fa-minus-square:active{
+  background-color: #b8daed3b;
+}
+
+.fa-plus-square:active{
+  background-color: #b8daed3b;
+}

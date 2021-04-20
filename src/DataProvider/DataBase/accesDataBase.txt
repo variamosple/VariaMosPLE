@@ -1,0 +1,16 @@
+// user: postgres
+// password: admin
+// puerto: 5432
+
+
+// host=variamosdbsvr.postgres.database.azure.com 
+// port=5432 
+// dbname={your_database} 
+// user=adminpg@variamosdbsvr 
+// password={your_password} 
+// sslmode=require
+
+// user: adminpg
+// pwd: D6w9yRIWw7r92opvkVzp
+
+// psql --host=variamosdbsvr.postgres.database.azure.com --port=5432 --username=myadmin@mydemoserver --dbname=postgres

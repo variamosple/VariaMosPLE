@@ -1,11 +1,39 @@
 import React, { Component } from "react";
 import "../../Addons/Library/VariaMosStyle/variamos.css";
+import {
+  initializerProject,
+  myProject,
+} from "../../Domain/ProjectManagement/UseCases/initializer";
+import {
+  deleteProject
+} from "../../Domain/ProjectManagement/UseCases/ProjectManagement";
+import TreeExplorer from "../TreeExplorer/TreeExplorer";
 
-interface Props {}
-interface State {}
 
-class ProjectManagement extends Component<Props, State> {
-  state = {};
+
+let classActive: string = myProject.projectEnable ? "":"active";
+let classActiveShow: string = myProject.projectEnable ? "":"show active";
+
+class ProjectManagement extends Component {
+  constructor(props: any) {
+    super(props);
+    this.state = {
+    };
+
+    this.handleUpdateNameProject = this.handleUpdateNameProject.bind(this);
+    this.handleUpdateNameProductLine = this.handleUpdateNameProductLine.bind(
+      this
+    );
+  }
+
+  handleUpdateNameProject(event: any) {
+    myProject.projectName = event.target.value;
+    TreeExplorer.bind(myProject);
+  }
+
+  handleUpdateNameProductLine(event: any) {
+    myProject.productLines[0].productLineName = event.target.value;
+  }
 
   render() {
     return (
@@ -29,8 +57,24 @@ class ProjectManagement extends Component<Props, State> {
                 <div className="row">
                   <div className="col-4">
                     <div className="list-group" id="list-tab" role="tablist">
+                      {myProject.projectEnable === true && (
+                        <a
+                          className="list-group-item list-group-item-action active"
+                          id="list-mProject-list"
+                          data-bs-toggle="list"
+                          href="#list-mProject"
+                          role="tab"
+                          aria-controls="mProject"
+                        >
+                          My Project
+                        </a>
+                      )}
+
                       <a
-                        className="list-group-item list-group-item-action active"
+                        className={
+                          "list-group-item list-group-item-action " +
+                          classActive
+                        }
                         id="list-nProject-list"
                         data-bs-toggle="list"
                         href="#list-nProject"
@@ -63,18 +107,66 @@ class ProjectManagement extends Component<Props, State> {
                   </div>
                   <div className="col-8">
                     <div className="tab-content" id="nav-tabContent">
+                      {myProject.projectEnable === true && (
+                        <div
+                          className="tab-pane fade show active"
+                          id="list-mProject"
+                          role="tabpanel"
+                          aria-labelledby="list-mProject-list"
+                        >
+                          <div className="form-floating">
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="floatingInput"
+                              placeholder="VariaMosProject"
+                              value={myProject.projectName}
+                              onChange={this.handleUpdateNameProject}
+                            />
+                            <label htmlFor="floatingInput">
+                              Enter Project Name
+                            </label>
+                          </div>
+                          <br />
+                          <div className="row justify-content-center">
+                            <div className="col-4">
+                              <button
+                                type="button"
+                                className="btn form-control btn-darkVariamos"
+                                data-bs-dismiss="modal"
+                                onClick={() => this.handleUpdateNameProject}
+                              >
+                                Save Project
+                              </button>
+                            </div>
+                            <div className="col-4">
+                              <button
+                                type="button"
+                                className="btn form-control btn-darkVariamos"
+                                data-bs-dismiss="modal"
+                                onClick={() => deleteProject()}
+                              >
+                                Delete Project
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div
-                        className="tab-pane fade show active"
+                        className={"tab-pane fade " + classActiveShow}
                         id="list-nProject"
                         role="tabpanel"
                         aria-labelledby="list-nProject-list"
                       >
                         <div className="form-floating">
                           <input
-                            type="email"
+                            type="text"
                             className="form-control"
                             id="floatingInput"
                             placeholder="VariaMosProject"
+                            // value={myProject.projectName}
+                            onChange={this.handleUpdateNameProject}
                           />
                           <label htmlFor="floatingInput">
                             Enter Project Name
@@ -85,10 +177,12 @@ class ProjectManagement extends Component<Props, State> {
                           <div className="col-md">
                             <div className="form-floating">
                               <input
-                                type="email"
+                                type="text"
                                 className="form-control"
                                 id="floatingInputGrid"
                                 placeholder="VariaMosProductLineE"
+                                // value={myProject.productLine[0].productLineName}
+                                onChange={this.handleUpdateNameProductLine}
                               />
                               <label htmlFor="floatingInputGrid">
                                 Enter Product Line Name
@@ -101,6 +195,7 @@ class ProjectManagement extends Component<Props, State> {
                           type="button"
                           className="btn form-control btn-darkVariamos"
                           data-bs-dismiss="modal"
+                          onClick={() => initializerProject(myProject.projectName,myProject.productLines[0].productLineName,true)}
                         >
                           Create Project
                         </button>
