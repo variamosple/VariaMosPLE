@@ -1,10 +1,18 @@
 import React, { Component } from "react";
+import ProjectService from "../../Infraestructure/project/ProjectService";
+import MxPalette from "../MxPalette/MxPalette";
 
-interface Props {}
+interface Props {
+  projectService: ProjectService
+}
 interface State {}
 
 class ElementsPannel extends Component<Props, State> {
   state = {};
+
+  constructor(props: Props) {
+      super(props); 
+  }
 
   render() {
     return (
@@ -15,7 +23,7 @@ class ElementsPannel extends Component<Props, State> {
               Elements
             </div>
             <div className="card-body">
-              <h5 className="card-title">...</h5>
+              <MxPalette projectService={this.props.projectService} />
             </div>
           </div>
         </div>

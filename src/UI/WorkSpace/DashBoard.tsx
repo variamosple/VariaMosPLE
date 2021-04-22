@@ -5,6 +5,7 @@ import PropiertiesPannel from "../DiagramEditor/PropiertiesPannel";
 import ProjectManagement from "../ProjectManagement/ProjectManagement";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import NavBar from "./navBar";
+import ProjectService from "../../Infraestructure/project/ProjectService";
 
 
 interface Props {}
@@ -12,6 +13,14 @@ interface State {}
 
 class DashBoard extends Component<Props, State> {
   state = {};
+  projectService: ProjectService = new ProjectService();
+
+  constructor(props: Props) {
+    super(props);
+  }
+
+  componentDidMount() {
+  }
 
   render() {
     return (
@@ -19,13 +28,11 @@ class DashBoard extends Component<Props, State> {
         <NavBar />
         <ProjectManagement />
         <div className="row p-1 align-items-center" style={{ height: "92vh" }}>
-          <TreeExplorer />
-
-          <DiagramEditor />
-
+          <TreeExplorer /> 
+          <DiagramEditor   projectService={this.projectService}/> 
           <div className="col-sm-2 p-1 h-100">
-            <ElementsPannel />
-            <PropiertiesPannel />
+            <ElementsPannel   projectService={this.projectService}/>
+            <PropiertiesPannel   projectService={this.projectService}/>
           </div>
         </div>
       </div>
