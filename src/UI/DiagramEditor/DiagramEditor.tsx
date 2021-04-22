@@ -1,11 +1,18 @@
 import React, { Component } from "react";
+import ProjectService from "../../Infraestructure/project/ProjectService";
 import MxGEditor from "../MxGEditor/MxGEditor";
 
-interface Props {}
+interface Props {
+  projectService: ProjectService
+}
 interface State {}
 
 class DiagramEditor extends Component<Props, State> {
   state = {};
+
+  constructor(props:Props){
+    super(props);
+  }
 
   render() {
     return (
@@ -20,7 +27,7 @@ class DiagramEditor extends Component<Props, State> {
               Editor Space
             </div>
             <div className="card-body">
-              <MxGEditor />
+              <MxGEditor projectService={this.props.projectService} />
             </div>
             <div className="card-footer text-muted"></div>
           </div>

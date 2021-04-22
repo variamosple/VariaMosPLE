@@ -1,6 +1,9 @@
 import React, { Component } from "react";
+import ProjectService from "../../Infraestructure/project/ProjectService";
 
-interface Props {}
+interface Props {
+  projectService: ProjectService
+}
 interface State {}
 
 class PropiertiesPannel extends Component<Props, State> {
