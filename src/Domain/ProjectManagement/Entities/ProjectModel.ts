@@ -85,7 +85,7 @@ export class cModel {
   constructor(
     modelName: string,
     modelType?: eModelType,
-    elements?: cElement[],
+    elements: cElement[]=[],
     modelTypeEngineering?: eTypeEngineering
   ) {
     this.modelName = modelName;
@@ -96,15 +96,19 @@ export class cModel {
 }
 
 export class cElement {
-  elementName: string;
-  properties: cPropertie[];
-  constructor(elementName: string, properties: cPropertie[]) {
-    this.elementName = elementName;
+  id: string;
+  type: string;
+  name: string;
+  properties: cProperty[];
+  constructor(name: string, type: string, properties: cProperty[] = []) {
+    this.id= generateId();
+    this.type=type;
+    this.name = name;
     this.properties = properties;
   }
 }
 
-class cPropertie {
+export class cProperty {
   propertieName: string;
   constructor(propertieName: string) {
     this.propertieName = propertieName;
@@ -122,3 +126,14 @@ enum eModelType {
   feature,
   iStar,
 }
+ 
+function generateId(): string {
+  var dt = new Date().getTime();
+  var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = (dt + Math.random()*16)%16 | 0;
+      dt = Math.floor(dt/16);
+      return (c=='x' ? r :(r&0x3|0x8)).toString(16);
+  });
+  return uuid;
+}
+

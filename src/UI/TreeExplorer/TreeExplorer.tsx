@@ -1,15 +1,27 @@
 import React, { Component} from "react";
 import {
   cProductLine,
-} from "../../Domain/ProjectManagement/Entities/ProjectModel";
-import { myProject } from "../../Domain/ProjectManagement/UseCases/initializer";
+} from "../../Domain/ProjectManagement/Entities/ProjectModel"; 
 import RightClic from "./RightClic";
+import ProjectService from "../../Infraestructure/project/ProjectService";
 
-interface Props {}
+interface Props {
+  projectService: ProjectService
+}
 interface State {}
 
 class TreeExplorer extends Component<Props, State> {
   state = {};
+
+
+  constructor(props: any) {
+    super(props); 
+    this.btnSave_onClick=this.btnSave_onClick.bind(this);
+  }
+
+  btnSave_onClick(e: any){
+   this.props.projectService.saveProject();
+  }
 
   render() {
     return (
@@ -18,13 +30,12 @@ class TreeExplorer extends Component<Props, State> {
         <div className="col-sm-12 p-1 h-100">
           <div className="col-sm-12 h-100">
             <div className="card h-100 shadow-sm p-1 bg-body rounded">
-              <div className="card-header text-center bg-lightblue-Variamos border-title-lighblue-variamos">
-                {/* My Project  */}
-                {myProject.projectName}
+              <div className="card-header text-center bg-lightblue-Variamos border-title-lighblue-variamos"> 
+                {this.props.projectService.project.projectName}
               </div>
               <div className="card-body">
                 <ul id="ul">
-                  {myProject.productLines.map((pl: cProductLine, i: number) => (
+                  {this.props.projectService.project.productLines.map((pl: cProductLine, i: number) => (
                     <div>
                       <li key={i}>
                         <span className="fa fa-plus-square lps">
@@ -102,7 +113,7 @@ class TreeExplorer extends Component<Props, State> {
                 </ul>
               </div>
               <div className="card-footer text-muted d-inline-block">
-                <div className="btn btn-darkVariamos">Export Project</div>
+                <button className="btn btn-darkVariamos" onClick={this.btnSave_onClick}>Export Project</button>
               </div>
             </div>
           </div>
