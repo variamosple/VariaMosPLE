@@ -26,9 +26,9 @@ class DashBoard extends Component<Props, State> {
     return (
       <div className="container-fluid">
         <NavBar />
-        <ProjectManagement />
+        <ProjectManagement  projectService={this.projectService}/>
         <div className="row p-1 align-items-center" style={{ height: "92vh" }}>
-          <TreeExplorer /> 
+          <TreeExplorer  projectService={this.projectService}/> 
           <DiagramEditor   projectService={this.projectService}/> 
           <div className="col-sm-2 p-1 h-100">
             <ElementsPannel   projectService={this.projectService}/>

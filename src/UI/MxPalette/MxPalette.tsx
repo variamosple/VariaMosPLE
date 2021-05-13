@@ -3,24 +3,42 @@ import React, { Component } from "react";
 import mx from "../MxGEditor/mxgraph";
 import { mxGraph, mxGraphModel } from "mxgraph";
 import ProjectService from "../../Infraestructure/project/ProjectService";
+import { cMyProject, cModel,cElement, cProperty } from "../../Domain/ProjectManagement/Entities/ProjectModel";
 
 interface Props {
   projectService: ProjectService;
 }
-interface State {}
+interface State {
+  loquesea:string
+}
 
 export default class MxPalette extends Component<Props, State> {
-  state = {};
+  state = {
+    loquesea:"asdf",
+    var2:2
+  };
   containerRef: any;
+  currentModel? : cModel ;
 
   constructor(props: Props) {
     super(props);
     this.containerRef = React.createRef();
     this.callbackGetStyle = this.callbackGetStyle.bind(this);
+
+    this.button_onClick=this.button_onClick.bind(this);
+  }
+
+  button_onClick(e:any){  
+     let msg= this.props.projectService.test();
+     this.setState(
+       {
+        loquesea:msg
+       }
+     )
   }
 
   componentDidMount() {
-    this.createPalette("statesLanguage");
+    this.createPalette("FeaturesLanguage");
   }
 
   createPalette(modelName: string) {
@@ -46,26 +64,36 @@ export default class MxPalette extends Component<Props, State> {
   }
 
   addingVertex(graph: any, vertex: any, cell: any) {
+    const me = this;
+    let type = vertex.getAttribute("type");
+    let name = type + " 1";
+  
+    let element=new cElement(name, type);
+    this.currentModel?.elements?.push(element);
+ 
     graph.getModel().beginUpdate();
     let newCells = graph.importCells([vertex], 0, 0, cell);
-    newCells.children = null;
+    newCells[0].setAttribute("uid", element.id);
+    newCells[0].setAttribute("label", element.name);
+    newCells[0].setAttribute("title", element.name);
+    newCells[0].setAttribute("name", element.name);
     graph.setSelectionCells(newCells);
-    let type = vertex.getAttribute("type");
-    let name = type + "1";
     let g = vertex.geometry;
-    //   this.currentModel.addChild(
-    //     new Element(type, name, g.x, g.y, g.width, g.height)
-    //   );
-
+  
     // var v2 = graph.insertVertex(newCells[0], null, "World!", 0, 0, 20, 20);
     // newCells[0].collapsed = false;
     graph.getModel().endUpdate();
   }
 
-  callbackGetStyle(definition: any): any {
-    const me = this;
-    let modelName = "FeaturesLanguage";
-    let graph = this.props.projectService.getGraph();
+  callbackGetStyle(languageDefinition: any): any {
+    const me = this; 
+    let graph = this.props.projectService.getGraph(); 
+    if( me.props.projectService.project?.productLines){
+      if( me.props.projectService.project?.productLines[0].domainEngineering?.models){
+        me.currentModel=me.props.projectService.project?.productLines[0].domainEngineering?.models[0];
+      }
+    }
+
     let divToolbar: any = document.getElementById("graph_palette");
     if (divToolbar) {
       divToolbar.innerHTML = "";
@@ -74,8 +102,11 @@ export default class MxPalette extends Component<Props, State> {
 
     let key: any = "";
 
-    for (key in definition[0].style.elements) {
-      const element = definition[0].style.elements[key];
+    for (key in languageDefinition.style.elements) {
+      const element = languageDefinition.style.elements[key];
+      if (!element.label) {
+        element.label=key;
+      }
       let vertexToClone = this.createVertex(key, element);
       let drapAndDropCreation = function (graph: any, evt: any, cell: any) {
         try {
@@ -93,9 +124,9 @@ export default class MxPalette extends Component<Props, State> {
       let mdiv = document.createElement("div");
       let mspan: HTMLElement = document.createElement("span"); //tooltip
       mspan.classList.add("csstooltiptext2");
-      let url = "assets/images/models/" + modelName + "/" + key + ".png";
-      let img = toolbar.addMode("Label", url, drapAndDropCreation);
-      mspan.innerText = key;
+      let url = "assets/images/models/" + languageDefinition.name + "/" + key + ".png";
+      let img = toolbar.addMode(element.label, url, drapAndDropCreation);
+      // mspan.innerText = key;
 
       mx.mxUtils.makeDraggable(img, graph, drapAndDropCreation);
 
@@ -132,7 +163,7 @@ export default class MxPalette extends Component<Props, State> {
       <div className="MxPalette">
         <div ref={this.containerRef} className="MxPalette" id="graph_palette">
           MxPalette
-        </div>
+        </div> 
       </div>
     );
   }

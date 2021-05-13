@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 
-interface Props {}
+interface Props { 
+}
 interface State {}
 
 class RightClic extends Component<Props, State> {
