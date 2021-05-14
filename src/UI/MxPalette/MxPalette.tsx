@@ -4,6 +4,7 @@ import mx from "../MxGEditor/mxgraph";
 import { mxGraph, mxGraphModel } from "mxgraph";
 import ProjectService from "../../Infraestructure/project/ProjectService";
 import { cMyProject, cModel,cElement, cProperty } from "../../Domain/ProjectManagement/Entities/ProjectModel";
+import { setTimeout } from "node:timers";
 
 interface Props {
   projectService: ProjectService;
@@ -38,7 +39,10 @@ export default class MxPalette extends Component<Props, State> {
   }
 
   componentDidMount() {
-    this.createPalette("FeaturesLanguage");
+    let me=this;
+    window.setTimeout(function(){
+      me.createPalette("FeaturesLanguage");
+    }, 3000);
   }
 
   createPalette(modelName: string) {
@@ -102,8 +106,8 @@ export default class MxPalette extends Component<Props, State> {
 
     let key: any = "";
 
-    for (key in languageDefinition.style.elements) {
-      const element = languageDefinition.style.elements[key];
+    for (key in languageDefinition.concreteSyntax.elements) {
+      const element = languageDefinition.concreteSyntax.elements[key];
       if (!element.label) {
         element.label=key;
       }
