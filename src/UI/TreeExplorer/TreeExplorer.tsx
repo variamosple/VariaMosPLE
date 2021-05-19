@@ -15,8 +15,8 @@ class TreeExplorer extends Component<Props, State> {
   constructor(props: any) {
     super(props);
     this.btnSave_onClick = this.btnSave_onClick.bind(this);
-    this.projectService_addNewProductLineListener =
-      this.projectService_addNewProductLineListener.bind(this);
+    this.projectService_addListener =
+      this.projectService_addListener.bind(this);
     this.lps_onClick = this.lps_onClick.bind(this);
   }
 
@@ -25,15 +25,19 @@ class TreeExplorer extends Component<Props, State> {
     e.target.classList.toggle("fa-minus-square-o");
   }
 
-  projectService_addNewProductLineListener(e: any) {
+  projectService_addListener(e: any) {
     this.forceUpdate();
   }
 
   componentDidMount() {
     let me = this;
     me.props.projectService.addNewProductLineListener(
-      this.projectService_addNewProductLineListener
+      this.projectService_addListener
     );
+
+    // me.props.projectService.addNewModelListener(
+    //   this.projectService_addListener
+    // );
   }
 
   btnSave_onClick(e: any) {
@@ -41,7 +45,7 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   render() {
-    
+
     return (
       <div id="TreePannel" className="col-sm-2 distribution-variamos h-100">
         <TreeMenu />
@@ -49,7 +53,7 @@ class TreeExplorer extends Component<Props, State> {
           <div className="col-sm-12 h-100">
             <div className="card h-100 shadow-sm bg-body rounded">
               <div className="card-header text-center">
-                &nbsp; {this.props.projectService.project.projectName}
+                &nbsp; {this.props.projectService.project.name}
               </div>
               <div className="card-body bg-white-Variamos">
                 <ul id="ul">
@@ -61,7 +65,7 @@ class TreeExplorer extends Component<Props, State> {
                             className="fa fa-plus-square lps"
                             onClick={this.lps_onClick}
                           >
-                            {pl.productLineName}
+                            {pl.name}
                           </span>
                           <ul className="nested">
                             <li>

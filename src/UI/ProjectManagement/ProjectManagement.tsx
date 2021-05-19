@@ -46,7 +46,7 @@ class ProjectManagement extends Component<Props, State> {
 
   btnCreateProject_onClick(event: any) {
     this._project = this.props.projectService.project;
-    this._project.projectName = this.state.projectName;
+    this._project.name = this.state.projectName;
 
     this.props.projectService.project = this._project;
 
@@ -83,7 +83,7 @@ class ProjectManagement extends Component<Props, State> {
                 <div className="row">
                   <div className="col-4">
                     <div className="list-group" id="list-tab" role="tablist">
-                      {this.props.projectService.project.projectEnable ===
+                      {this.props.projectService.project.enable ===
                         true && (
                         <a
                           className="list-group-item list-group-item-action active"
@@ -134,7 +134,7 @@ class ProjectManagement extends Component<Props, State> {
                   </div>
                   <div className="col-8">
                     <div className="tab-content" id="nav-tabContent">
-                      {this.props.projectService.project.projectEnable ===
+                      {this.props.projectService.project.enable ===
                         true && (
                         <div
                           className="tab-pane fade show active"
@@ -149,7 +149,7 @@ class ProjectManagement extends Component<Props, State> {
                               id="floatingInput"
                               placeholder="VariaMosProject"
                               value={
-                                this.props.projectService.project.projectName
+                                this.props.projectService.project.name
                               }
                               onChange={(e) =>
                                 this.handleUpdateNameProductLine(e)

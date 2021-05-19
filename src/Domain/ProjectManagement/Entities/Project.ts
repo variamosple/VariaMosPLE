@@ -2,11 +2,11 @@ import { ProductLine } from "./ProductLine";
 
 
 export class Project {
-  projectName: string = "My Project";
-  projectEnable: boolean = false;
+  name: string = "My Project";
+  enable: boolean = false;
   productLines: ProductLine[] = [];
 
-  constructor(projectName: string) {
-    this.projectName = projectName;
+  constructor(name: string) {
+    this.name = name;
   }
 }

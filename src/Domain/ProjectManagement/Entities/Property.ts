@@ -1,6 +1,6 @@
 export class Property {
-    propertieName: string;
-    constructor(propertieName: string) {
-      this.propertieName = propertieName;
+    name: string;
+    constructor(name: string) {
+      this.name = name;
     }
   }

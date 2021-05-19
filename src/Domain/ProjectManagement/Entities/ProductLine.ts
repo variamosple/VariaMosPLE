@@ -2,16 +2,16 @@ import { ApplicationEngineering } from "./ApplicationEngineering";
 import { DomainEngineering } from "./DomainEngineering";
 
 export class ProductLine {
-  productLineName: string;
+  name: string;
   domainEngineering?: DomainEngineering;
   applicationEngineering?: ApplicationEngineering;
 
   constructor(
-    productLineName: string,
+    name: string,
     domainEngineering?: DomainEngineering,
     applicationEngineering?: ApplicationEngineering
   ) {
-    this.productLineName = productLineName;
+    this.name = name;
     this.domainEngineering = domainEngineering;
     this.applicationEngineering = applicationEngineering;
   }
