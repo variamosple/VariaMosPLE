@@ -16,10 +16,10 @@ export default class ProjectManager {
   }
 
   createLps(Project: Project, ProducLineName: string): ProductLine {
-    let productLine :ProductLine=new ProductLine(ProducLineName)
+    let productLine: ProductLine = new ProductLine(ProducLineName);
     productLine.domainEngineering = new DomainEngineering();
     productLine.applicationEngineering = new ApplicationEngineering();
-    Project.productLines.push(productLine);  
+    Project.productLines.push(productLine);
     return productLine;
   }
 
