@@ -41,6 +41,7 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   render() {
+    
     return (
       <div id="TreePannel" className="col-sm-2 distribution-variamos h-100">
         <TreeMenu />
