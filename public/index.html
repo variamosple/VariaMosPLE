@@ -24,6 +24,11 @@
       href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css"
     />
 
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css"
+    />
+
     <title>VariaMos PLE</title>
   </head>
   <body>
@@ -37,35 +42,22 @@
 
     <script>
       $(document).ready(function () {
-        // START ********** TOGGLE TREE
+
         document.getElementById("projectManagement").click();
-
-        var toggler = document.getElementsByClassName("fa-plus-square");
-        var i;
-
-        for (i = 0; i < toggler.length; i++) {
-          toggler[i].addEventListener("click", function () {
-            this.parentElement
-              .querySelector(".nested")
-              .classList.toggle("active");
-            this.classList.toggle("fa-minus-square-o");
-          });
-        }
-        // END ********** TOGGLE TREE
 
         // START ********** SPLIT EDITOR SPACE
         document
           .getElementById("hiddenProject")
           .addEventListener("click", function () {
-            if (this.classList.contains("fa-arrow-circle-o-left")) {
-              this.classList.remove("fa-arrow-circle-o-left");
-              this.classList.add("fa-arrow-circle-o-right");
+            if (this.classList.contains("bi-box-arrow-left")) {
+              this.classList.remove("bi-box-arrow-left");
+              this.classList.add("bi-box-arrow-right");
               document
                 .getElementById("TreePannel")
                 .setAttribute("hidden", "hidden");
             } else {
-              this.classList.remove("fa-arrow-circle-o-right");
-              this.classList.add("fa-arrow-circle-o-left");
+              this.classList.remove("bi-box-arrow-right");
+              this.classList.add("bi-box-arrow-left");
               document.getElementById("TreePannel").removeAttribute("hidden");
             }
           });

@@ -1,30 +1,52 @@
-import { getLanguages, getLanguagesNative } from "../../DataProvider/Services/languageService";
-import { cMyProject } from "../../Domain/ProjectManagement/Entities/ProjectModel";
-
-import {
-  initializerProject,
-  myProject,
-} from "../../Domain/ProjectManagement/UseCases/initializer";
+import { getLanguages } from "../../DataProvider/Services/languageService";
+import { ProductLine } from "../../Domain/ProjectManagement/Entities/ProductLine";
+import { Project } from "../../Domain/ProjectManagement/Entities/Project";
 
 import ProjectManager from "../../Domain/ProjectManagement/UseCases/ProjectManager";
 
 export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
-  private _project: cMyProject = new cMyProject("Project 1");
-  private languages:any;
+  private _project: Project = this.createProject("");
+  private languages: any;
 
-  constructor() { 
+  private NewProductLineListeners:any=[];
+ 
+  constructor() {
     let me = this;
-    this.createProject("Project 1", "Lps 1");
-    let fun= function(data:any){
-      me.languages=data;
-    }
+    let fun = function (data: any) {
+      me.languages = data;
+    };
     getLanguages(fun);
   }
 
-  createProject(projectName: string, productLineName: string) {
-    this._project = this.projectManager.createProject(projectName, productLineName);
+  addNewProductLineListener(listener:any){
+    this.NewProductLineListeners.push(listener);
+  }
+
+  removeNewProductLineListener(listener:any){
+    this.NewProductLineListeners[listener]=null;
+  }
+
+  raiseEventNewProductLine(productLine:ProductLine){
+    let me=this;
+    let e={
+      target: me,
+      project: me._project,
+      productLine: productLine
+    }
+    for (let index = 0; index < me.NewProductLineListeners.length; index++) {
+       let callback= this.NewProductLineListeners[index]; 
+       callback(e);
+    }
+  }
+
+  createProject(projectName: string): Project {
+    return this.projectManager.createProject(projectName);
+  }
+
+  createLPS(project: Project, productLineName: string) {
+    return this.projectManager.createLps(project, productLineName);
   }
 
   setGraph(graph: any) {
@@ -35,11 +57,11 @@ export default class ProjectService {
     return this.graph;
   }
 
-  public get project(): cMyProject {
+  public get project(): Project {
     return this._project;
   }
 
-  public set project(value: cMyProject) {
+  public set project(value: Project) {
     this._project = value;
   }
 
@@ -47,31 +69,31 @@ export default class ProjectService {
     //open file
   }
 
-  getStyleDefinition(language: string, callBack: any) { 
-    if(this.languages){
+  getStyleDefinition(language: string, callBack: any) {
+    if (this.languages) {
       for (let index = 0; index < this.languages.length; index++) {
-        if(this.languages[index].name==language){
+        if (this.languages[index].name === language) {
           callBack(this.languages[index]);
-        } 
+        }
       }
     }
   }
 
-  getLanguagesByType(language: string ) { 
-    if(this.languages){
+  getLanguagesByType(language: string) {
+    if (this.languages) {
       for (let index = 0; index < this.languages.length; index++) {
-        if(this.languages[index].name==language){
+        if (this.languages[index].name === language) {
           return this.languages[index];
-        } 
+        }
       }
     }
   }
 
-  test() {
-    return "Mundo 2";
+  saveProject(): void {
+    this.projectManager.saveProject(this._project);
   }
 
-  saveProject(): void { 
-    this.projectManager.saveProject(this._project); 
+  deleteProject(): void {
+    this.projectManager.deleteProject();
   }
 }

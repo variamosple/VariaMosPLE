@@ -1,36 +1,64 @@
 import React, { Component } from "react";
-import "../../Addons/Library/VariaMosStyle/variamos.css"; 
-import {deleteProject} from "../../Domain/ProjectManagement/UseCases/ProjectManagement";
+import ReactDOM from "react-dom";
+import "../../Addons/Library/VariaMosStyle/variamos.css";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import ProjectService from "../../Infraestructure/project/ProjectService";
+import { Project } from "../../Domain/ProjectManagement/Entities/Project";
 
 interface Props {
-  projectService: ProjectService
+  projectService: ProjectService;
 }
-interface State {}
- 
+interface State {
+  projectName: string;
+  productLineName: string;
+}
+
 let classActive: string = "active";
 let classActiveShow: string = "show active";
 
 class ProjectManagement extends Component<Props, State> {
+  _project?: Project;
+
   constructor(props: any) {
     super(props);
     this.state = {
+      productLineName: "",
+      projectName: "",
     };
 
     this.handleUpdateNameProject = this.handleUpdateNameProject.bind(this);
-    this.handleUpdateNameProductLine = this.handleUpdateNameProductLine.bind(
-      this
-    );
+    this.handleUpdateNameProductLine =
+      this.handleUpdateNameProductLine.bind(this);
+    this.btnCreateProject_onClick = this.btnCreateProject_onClick.bind(this);
   }
 
   handleUpdateNameProject(event: any) {
-    this.props.projectService.project.projectName = event.target.value;
-    TreeExplorer.bind(this.props.projectService.project);
+    this.setState({
+      projectName: event.target.value,
+    });
   }
 
   handleUpdateNameProductLine(event: any) {
-    this.props.projectService.project.productLines[0].productLineName = event.target.value;
+    this.setState({
+      productLineName: event.target.value,
+    });
+  }
+
+  btnCreateProject_onClick(event: any) {
+    this._project = this.props.projectService.project;
+    this._project.projectName = this.state.projectName;
+
+    this.props.projectService.project = this._project;
+
+    let productLine = this.props.projectService.createLPS(
+      this.props.projectService.project,
+      this.state.productLineName
+    );
+
+    this.props.projectService.raiseEventNewProductLine(productLine);
+
+    this.props.projectService.saveProject();
+   
   }
 
   render() {
@@ -55,7 +83,8 @@ class ProjectManagement extends Component<Props, State> {
                 <div className="row">
                   <div className="col-4">
                     <div className="list-group" id="list-tab" role="tablist">
-                      {this.props.projectService.project.projectEnable === true && (
+                      {this.props.projectService.project.projectEnable ===
+                        true && (
                         <a
                           className="list-group-item list-group-item-action active"
                           id="list-mProject-list"
@@ -105,7 +134,8 @@ class ProjectManagement extends Component<Props, State> {
                   </div>
                   <div className="col-8">
                     <div className="tab-content" id="nav-tabContent">
-                      {this.props.projectService.project.projectEnable === true && (
+                      {this.props.projectService.project.projectEnable ===
+                        true && (
                         <div
                           className="tab-pane fade show active"
                           id="list-mProject"
@@ -118,8 +148,12 @@ class ProjectManagement extends Component<Props, State> {
                               className="form-control"
                               id="floatingInput"
                               placeholder="VariaMosProject"
-                              value={this.props.projectService.project.projectName}
-                              onChange={this.handleUpdateNameProject}
+                              value={
+                                this.props.projectService.project.projectName
+                              }
+                              onChange={(e) =>
+                                this.handleUpdateNameProductLine(e)
+                              }
                             />
                             <label htmlFor="floatingInput">
                               Enter Project Name
@@ -142,7 +176,9 @@ class ProjectManagement extends Component<Props, State> {
                                 type="button"
                                 className="btn form-control btn-darkVariamos"
                                 data-bs-dismiss="modal"
-                                onClick={() => deleteProject()}
+                                onClick={() =>
+                                  this.props.projectService.deleteProject()
+                                }
                               >
                                 Delete Project
                               </button>
@@ -164,7 +200,7 @@ class ProjectManagement extends Component<Props, State> {
                             id="floatingInput"
                             placeholder="VariaMosProject"
                             // value={this.props.projectService.project.projectName}
-                            onChange={this.handleUpdateNameProject}
+                            onChange={(e) => this.handleUpdateNameProject(e)}
                           />
                           <label htmlFor="floatingInput">
                             Enter Project Name
@@ -180,7 +216,9 @@ class ProjectManagement extends Component<Props, State> {
                                 id="floatingInputGrid"
                                 placeholder="VariaMosProductLineE"
                                 // value={this.props.projectService.project.productLine[0].productLineName}
-                                onChange={this.handleUpdateNameProductLine}
+                                onChange={(e) =>
+                                  this.handleUpdateNameProductLine(e)
+                                }
                               />
                               <label htmlFor="floatingInputGrid">
                                 Enter Product Line Name
@@ -191,9 +229,9 @@ class ProjectManagement extends Component<Props, State> {
                         <br />
                         <button
                           type="button"
-                          className="btn form-control btn-darkVariamos"
+                          className="btn form-control btn-Variamos"
                           data-bs-dismiss="modal"
-                          onClick={() => this.props.projectService.project}
+                          onClick={this.btnCreateProject_onClick}
                         >
                           Create Project
                         </button>
@@ -218,7 +256,7 @@ class ProjectManagement extends Component<Props, State> {
                         <br />
                         <button
                           type="button"
-                          className="btn btn-darkVariamos h-100"
+                          className="btn btn-Variamos h-100"
                         >
                           Import
                         </button>

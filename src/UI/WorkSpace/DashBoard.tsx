@@ -15,9 +15,9 @@ class DashBoard extends Component<Props, State> {
   state = {};
   projectService: ProjectService = new ProjectService();
 
-  constructor(props: Props) {
-    super(props);
-  }
+  // constructor(props: Props) {
+  //   super(props);
+  // }
 
   componentDidMount() {
   }
@@ -27,10 +27,10 @@ class DashBoard extends Component<Props, State> {
       <div className="container-fluid">
         <NavBar />
         <ProjectManagement  projectService={this.projectService}/>
-        <div className="row p-1 align-items-center" style={{ height: "92vh" }}>
+        <div className="row align-items-center" style={{ height: "92vh" }}>
           <TreeExplorer  projectService={this.projectService}/> 
           <DiagramEditor   projectService={this.projectService}/> 
-          <div className="col-sm-2 p-1 h-100">
+          <div className="col-sm-2 distribution-variamos h-100">
             <ElementsPannel   projectService={this.projectService}/>
             <PropiertiesPannel   projectService={this.projectService}/>
           </div>

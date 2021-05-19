@@ -27,19 +27,19 @@ class navBar extends Component<Props, State> {
             </a>
             <div className="row align-items-center">
               <ul className="list-inline">
-                <li className="list-inline-item bg-light p-1">
+                <li className="list-inline-item">
                   <a
-                    className="btn btn-darkVariamos"
+                    className="nav-bar-variamos"
                     href="https://variamos.com/home/variamos-web/"
                     target="_blanck"
                   >
                     Home
                   </a>
                 </li>
-                <li className="list-inline-item bg-light p-1">
+                <li className="list-inline-item">
                   <button
                     type="button"
-                    className="btn btn-darkVariamos"
+                    className="nav-bar-variamos"
                     data-bs-toggle="modal"
                     data-bs-target="#staticBackdrop"
                     id="projectManagement"
@@ -47,14 +47,25 @@ class navBar extends Component<Props, State> {
                     Project Management
                   </button>
                 </li>
-                <li className="list-inline-item bg-light p-1">
+                <li className="list-inline-item">
                   <a
-                    className="btn btn-darkVariamos"
+                    className="nav-bar-variamos"
                     href="https://github.com/VariaMosORG/VariaMos/wiki"
                     target="_blanck"
                   >
                     Docs
                   </a>
+                </li>
+                <li className="list-inline-item">
+                  <button
+                    type="button"
+                    className="nav-bar-variamos"
+                    data-bs-toggle="modal"
+                    data-bs-target="#staticBackdrop"
+                    id="exportProject"
+                  >
+                    Export Project
+                  </button>
                 </li>
               </ul>
             </div>

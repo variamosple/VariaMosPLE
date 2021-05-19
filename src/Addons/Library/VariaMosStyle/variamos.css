@@ -4,6 +4,29 @@
 
 /* btn-darkVariamos
 ---------------------------- */
+.btn-Variamos {
+  color: #ffff;
+  background-color: #428dcf;
+  border-color: #428dcf;
+}
+.btn-Variamos:focus {
+  color: #ffff;
+  background-color: #22486a;
+  border-color: #22486a;
+}
+.btn-Variamos:hover {
+  color: #ffff;
+  background-color: #22486a;
+  border-color: #22486a;
+}
+.btn-Variamos:active {
+  color: #ffff;
+  background-color: #22486a;
+  border-color: #22486a;
+}
+
+/* btn-darkVariamos
+---------------------------- */
 .btn-darkVariamos {
   color: #ffff;
   background-color: #6faadd;
@@ -63,6 +86,10 @@
   background-color: #22486a;
 }
 
+.bg-white-Variamos {
+  background-color: #e0e0e01c;
+}
+
 .border-title-lighblue-variamos {
   border-bottom: 5px solid #8ab5c7;
   border-right: 5px solid #8ab5c769;
@@ -73,16 +100,15 @@
 }
 
 .list-group-item.active {
-  color: #000;
-  background-color: #b8daed3b;
+  color: white;
+  background-color: #428dcf;
   border-color: #8ab5c7;
-  border-bottom: 5px solid #8ab5c7;
-  border-right: 5px solid #8ab5c769;
+  border-bottom: 5px solid #22486a;
+  /* border-right: 5px solid #8ab5c769; */
 }
 
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap");
 .outer {
-
   top: 30%;
   left: 40%;
 }
@@ -109,26 +135,58 @@ ul {
   display: block;
 }
 
-
 #hiddenProject {
   cursor: pointer;
   user-select: none;
 }
 
-.p-1{
-  padding: .1rem!important;
+.p-1 {
+  padding: 0.1rem !important;
 }
 
-
-.fa-plus-square{
+.fa-plus-square {
   color: #428dcf;
   cursor: pointer;
 }
 
-.fa-minus-square:active{
+.fa-minus-square:active {
   background-color: #b8daed3b;
 }
 
-.fa-plus-square:active{
+.fa-plus-square:active {
   background-color: #b8daed3b;
+}
+
+.nav-bar-variamos {
+  text-decoration: none;
+  color: #428dcf;
+  background-color: white;
+  border: none;
+  padding-right: 15px;
+}
+
+.nav-bar-variamos:hover {
+  text-decoration: none;
+  color: #22486a;
+  border: none;
+  font-size: 120%;
+}
+
+.distribution-variamos {
+  padding: 0.05em;
+  border: none;
+}
+
+.card {
+  border: 1px rgba(0, 0, 0, 0.125);
+}
+
+.card-header {
+  background-color: #428dcf;
+  color: white;
+}
+
+.dropdown-item:active {
+  background-color: #428dcf;
+  color: white;
 }

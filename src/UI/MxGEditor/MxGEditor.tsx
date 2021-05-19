@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 
 
 import mx from "./mxgraph";
-import { mxGraph, mxGraphModel } from "mxgraph";
+import { mxGraph } from "mxgraph";
 import ProjectService from '../../Infraestructure/project/ProjectService';
 
 interface Props {
@@ -31,7 +31,7 @@ export default class MxGEditor extends Component<Props, State> {
   LoadGraph(graph: mxGraph) { 
     mx.mxEvent.disableContextMenu(this.graphContainerRef.current);  
     new mx.mxRubberband(graph);  
-    var parent = graph.getDefaultParent(); 
+    // var parent = graph.getDefaultParent(); 
     graph.setPanning(true);
     graph.setTooltips(true);
     graph.setConnectable(true);

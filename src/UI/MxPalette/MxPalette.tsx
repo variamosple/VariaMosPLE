@@ -1,48 +1,39 @@
 import React, { Component } from "react";
-
 import mx from "../MxGEditor/mxgraph";
-import { mxGraph, mxGraphModel } from "mxgraph";
+// import { mxGraph, mxGraphModel } from "mxgraph";
 import ProjectService from "../../Infraestructure/project/ProjectService";
-import { cMyProject, cModel,cElement, cProperty } from "../../Domain/ProjectManagement/Entities/ProjectModel";
-import { setTimeout } from "node:timers";
+
+import { Model } from "../../Domain/ProjectManagement/Entities/Model";
+import { Element } from "../../Domain/ProjectManagement/Entities/Element";
 
 interface Props {
   projectService: ProjectService;
 }
 interface State {
-  loquesea:string
 }
 
 export default class MxPalette extends Component<Props, State> {
-  state = {
-    loquesea:"asdf",
-    var2:2
-  };
+ 
   containerRef: any;
-  currentModel? : cModel ;
+  currentModel? : Model ;
 
   constructor(props: Props) {
     super(props);
     this.containerRef = React.createRef();
     this.callbackGetStyle = this.callbackGetStyle.bind(this);
-
-    this.button_onClick=this.button_onClick.bind(this);
+    this.projectService_addNewProductLineListener=this.projectService_addNewProductLineListener.bind(this);
   }
 
-  button_onClick(e:any){  
-     let msg= this.props.projectService.test();
-     this.setState(
-       {
-        loquesea:msg
-       }
-     )
+  projectService_addNewProductLineListener(e:any){ 
+     this.forceUpdate();
   }
 
   componentDidMount() {
     let me=this;
-    window.setTimeout(function(){
-      me.createPalette("FeaturesLanguage");
-    }, 3000);
+    // window.setTimeout(function(){
+    //   me.createPalette("FeaturesLanguage");
+    // }, 3000);
+    me.props.projectService.addNewProductLineListener(this.projectService_addNewProductLineListener);
   }
 
   createPalette(modelName: string) {
@@ -68,11 +59,11 @@ export default class MxPalette extends Component<Props, State> {
   }
 
   addingVertex(graph: any, vertex: any, cell: any) {
-    const me = this;
+    // const me = this;
     let type = vertex.getAttribute("type");
     let name = type + " 1";
   
-    let element=new cElement(name, type);
+    let element:any=new Element(name, type);
     this.currentModel?.elements?.push(element);
  
     graph.getModel().beginUpdate();
@@ -82,7 +73,7 @@ export default class MxPalette extends Component<Props, State> {
     newCells[0].setAttribute("title", element.name);
     newCells[0].setAttribute("name", element.name);
     graph.setSelectionCells(newCells);
-    let g = vertex.geometry;
+    // let g = vertex.geometry;
   
     // var v2 = graph.insertVertex(newCells[0], null, "World!", 0, 0, 20, 20);
     // newCells[0].collapsed = false;

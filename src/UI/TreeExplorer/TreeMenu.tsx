@@ -4,7 +4,7 @@ interface Props {
 }
 interface State {}
 
-class RightClic extends Component<Props, State> {
+class TreeMenu extends Component<Props, State> {
   state = {};
 
   render() {
@@ -51,4 +51,4 @@ class RightClic extends Component<Props, State> {
   }
 }
 
-export default RightClic;
+export default TreeMenu;
