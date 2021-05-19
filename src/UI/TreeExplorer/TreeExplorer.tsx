@@ -35,9 +35,9 @@ class TreeExplorer extends Component<Props, State> {
       this.projectService_addListener
     );
 
-    // me.props.projectService.addNewModelListener(
-    //   this.projectService_addListener
-    // );
+    me.props.projectService.addNewApplicationListener(
+      this.projectService_addListener
+    );
   }
 
   btnSave_onClick(e: any) {

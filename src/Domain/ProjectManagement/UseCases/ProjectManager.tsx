@@ -27,12 +27,14 @@ export default class ProjectManager {
     Project: Project,
     ApplicationName: string,
     ProductLine: number
-  ): Project {
+  ): Application {
+    let application: Application = new Application(ApplicationName);
+
     Project.productLines[ProductLine].applicationEngineering?.applications.push(
-      new Application(ApplicationName)
+      application
     );
 
-    return Project;
+    return application;
   }
 
   createAdaptation(
@@ -40,12 +42,13 @@ export default class ProjectManager {
     AdaptationName: string,
     ProductLine: number,
     Application: number
-  ): Project {
+  ): Adaptation {
+    let adaptation: Adaptation = new Adaptation(AdaptationName);
     Project.productLines[ProductLine].applicationEngineering?.applications[
       Application
-    ].adaptations?.push(new Adaptation(AdaptationName));
+    ].adaptations?.push(adaptation);
 
-    return Project;
+    return adaptation;
   }
 
   createDomainEngineeringModel(

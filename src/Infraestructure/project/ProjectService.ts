@@ -1,4 +1,5 @@
 import { getLanguages } from "../../DataProvider/Services/languageService";
+import { Application } from "../../Domain/ProjectManagement/Entities/Application";
 import { ProductLine } from "../../Domain/ProjectManagement/Entities/ProductLine";
 import { Project } from "../../Domain/ProjectManagement/Entities/Project";
 
@@ -16,6 +17,18 @@ export class NewProductLineEventArg {
   }
 }
 
+export class NewApplicationEventArg {
+  public target: any;
+  public project: Project;
+  public application: Application;
+
+  constructor(target: any, project: Project, application: Application) {
+    this.target = target;
+    this.project = project;
+    this.application = application;
+  }
+}
+
 export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
@@ -23,7 +36,8 @@ export default class ProjectService {
   private languages: any;
 
   private NewProductLineListeners: any = [];
-
+  private NewApplicationListeners: any = [];
+  
   constructor() {
     let me = this;
     let fun = function (data: any) {
@@ -36,7 +50,7 @@ export default class ProjectService {
     return this.projectManager.createProject(projectName);
   }
 
-  // Product Line functions_ START***********
+  //Product Line functions_ START***********
   createLPS(project: Project, productLineName: string) {
     return this.projectManager.createLps(project, productLineName);
   }
@@ -57,7 +71,38 @@ export default class ProjectService {
       callback(e);
     }
   }
-  // Product Line functions_ END***********
+  //Product Line functions_ END***********
+
+  //Application functions_ START***********
+  createApplication(
+    project: Project,
+    applicationName: string,
+    productLineId: number
+  ) {
+    return this.projectManager.createApplication(
+      project,
+      applicationName,
+      productLineId
+    );
+  }
+
+  addNewApplicationListener(listener: any) {
+    this.NewApplicationListeners.push(listener);
+  }
+
+  removeNewApplicationListener(listener: any) {
+    this.NewApplicationListeners[listener] = null;
+  }
+
+  raiseEventApplication(application: Application) {
+    let me = this;
+    let e = new NewApplicationEventArg(me, me._project, application);
+    for (let index = 0; index < me.NewApplicationListeners.length; index++) {
+      let callback = this.NewApplicationListeners[index];
+      callback(e);
+    }
+  }
+  //Application functions_ END***********
 
   setGraph(graph: any) {
     this.graph = graph;

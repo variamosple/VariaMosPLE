@@ -55,10 +55,17 @@ class ProjectManagement extends Component<Props, State> {
       this.state.productLineName
     );
 
+    let application = this.props.projectService.createApplication(
+      this.props.projectService.project,
+      "New Application",
+      0
+    );
+
     this.props.projectService.raiseEventNewProductLine(productLine);
+    this.props.projectService.raiseEventApplication(application);
+
 
     this.props.projectService.saveProject();
-   
   }
 
   render() {
@@ -83,8 +90,7 @@ class ProjectManagement extends Component<Props, State> {
                 <div className="row">
                   <div className="col-4">
                     <div className="list-group" id="list-tab" role="tablist">
-                      {this.props.projectService.project.enable ===
-                        true && (
+                      {this.props.projectService.project.enable === true && (
                         <a
                           className="list-group-item list-group-item-action active"
                           id="list-mProject-list"
@@ -134,8 +140,7 @@ class ProjectManagement extends Component<Props, State> {
                   </div>
                   <div className="col-8">
                     <div className="tab-content" id="nav-tabContent">
-                      {this.props.projectService.project.enable ===
-                        true && (
+                      {this.props.projectService.project.enable === true && (
                         <div
                           className="tab-pane fade show active"
                           id="list-mProject"
@@ -148,9 +153,7 @@ class ProjectManagement extends Component<Props, State> {
                               className="form-control"
                               id="floatingInput"
                               placeholder="VariaMosProject"
-                              value={
-                                this.props.projectService.project.name
-                              }
+                              value={this.props.projectService.project.name}
                               onChange={(e) =>
                                 this.handleUpdateNameProductLine(e)
                               }
