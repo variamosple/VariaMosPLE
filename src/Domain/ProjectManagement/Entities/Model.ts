@@ -1,13 +1,13 @@
 export class Model {
   name: string;
-  type?: languageType;
-  elements?: Element[];
+  type?: string;
+  elements: Element[] = [];
   typeEngineering?: typeEngineering;
   diagram?: any;
 
   constructor(
     name: string,
-    type?: languageType,
+    type?: string,
     elements: Element[] = [],
     typeEngineering?: typeEngineering,
     diagram?: any
@@ -21,11 +21,11 @@ export class Model {
 }
 
 //Generar clase y/o generar parametro cómo string y traer tipo de la base de datos. LanguageModelTypeName
-enum languageType {
-  architecture,
-  feature,
-  iStar,
-}
+// enum languageType {
+//   architecture,
+//   feature,
+//   iStar,
+// }
 
 enum typeEngineering {
   domainEngineering,

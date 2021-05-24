@@ -1,5 +1,7 @@
 import { getLanguages } from "../../DataProvider/Services/languageService";
+import { Adaptation } from "../../Domain/ProjectManagement/Entities/Adaptation";
 import { Application } from "../../Domain/ProjectManagement/Entities/Application";
+import { Model } from "../../Domain/ProjectManagement/Entities/Model";
 import { ProductLine } from "../../Domain/ProjectManagement/Entities/ProductLine";
 import { Project } from "../../Domain/ProjectManagement/Entities/Project";
 
@@ -29,6 +31,30 @@ export class NewApplicationEventArg {
   }
 }
 
+export class NewAdaptationEventArg {
+  public target: any;
+  public project: Project;
+  public adaptation: Adaptation;
+
+  constructor(target: any, project: Project, adaptation: Adaptation) {
+    this.target = target;
+    this.project = project;
+    this.adaptation = adaptation;
+  }
+}
+
+export class NewModelEventArg {
+  public target: any;
+  public project: Project;
+  public model: Model;
+
+  constructor(target: any, project: Project, model: Model) {
+    this.target = target;
+    this.project = project;
+    this.model = model;
+  }
+}
+
 export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
@@ -37,6 +63,11 @@ export default class ProjectService {
 
   private NewProductLineListeners: any = [];
   private NewApplicationListeners: any = [];
+  private NewAdaptationListeners: any = [];
+  private NewDomainEngineeringModelListeners: any = [];
+  private NewApplicationModelListeners: any = [];
+  private NewAdaptationModelListeners: any = [];
+  
   
   constructor() {
     let me = this;
@@ -103,6 +134,157 @@ export default class ProjectService {
     }
   }
   //Application functions_ END***********
+
+  //Adaptation functions_ START***********
+  createAdaptation(
+    project: Project,
+    adaptationName: string,
+    productLineId: number,
+    applicationId: number
+  ) {
+    return this.projectManager.createAdaptation(
+      project,
+      adaptationName,
+      productLineId,
+      applicationId
+    );
+  }
+
+  addNewAdaptationListener(listener: any) {
+    this.NewAdaptationListeners.push(listener);
+  }
+
+  removeNewAdaptationListener(listener: any) {
+    this.NewAdaptationListeners[listener] = null;
+  }
+
+  raiseEventAdaptation(adaptation: Adaptation) {
+    let me = this;
+    let e = new NewAdaptationEventArg(me, me._project, adaptation);
+    for (let index = 0; index < me.NewAdaptationListeners.length; index++) {
+      let callback = this.NewAdaptationListeners[index];
+      callback(e);
+    }
+  }
+  //Adaptation functions_ END***********
+
+  //createDomainEngineeringModel functions_ START***********
+  createDomainEngineeringModel(
+    project: Project,
+    languageType: string,
+    productLineId: number
+  ) {
+    return this.projectManager.createDomainEngineeringModel(
+      project,
+      languageType,
+      productLineId
+    );
+  }
+
+  addNewDomainEngineeringModelListener(listener: any) {
+    this.NewDomainEngineeringModelListeners.push(listener);
+  }
+
+  removeNewDomainEngineeringModelListener(listener: any) {
+    this.NewDomainEngineeringModelListeners[listener] = null;
+  }
+
+  raiseEventDomainEngineeringModel(model: Model) {
+    let me = this;
+    let e = new NewModelEventArg(me, me._project, model);
+    for (
+      let index = 0;
+      index < me.NewDomainEngineeringModelListeners.length;
+      index++
+    ) {
+      let callback = this.NewDomainEngineeringModelListeners[index];
+      callback(e);
+    }
+  }
+  //createDomainEngineeringModel functions_ END***********
+
+  //createApplicationModel functions_ START***********
+  createApplicationModel(
+    project: Project,
+    languageType: string,
+    productLineId: number,
+    applicationId: number
+  ) {
+    return this.projectManager.createApplicationModel(
+      project,
+      languageType,
+      productLineId,
+      applicationId
+    );
+  }
+
+  addNewApplicationModelListener(listener: any) {
+    this.NewApplicationModelListeners.push(listener);
+  }
+
+  removeNewApplicationModelListener(listener: any) {
+    this.NewApplicationModelListeners[listener] = null;
+  }
+
+  raiseEventApplicationModelModel(model: Model) {
+    let me = this;
+    let e = new NewModelEventArg(me, me._project, model);
+    for (
+      let index = 0;
+      index < me.NewApplicationModelListeners.length;
+      index++
+    ) {
+      let callback = this.NewApplicationModelListeners[index];
+      callback(e);
+    }
+  }
+  //createApplicationModel functions_ END***********
+
+
+
+  //createAdaptationModel functions_ START***********
+  createAdaptationModel(
+    project: Project,
+    languageType: string,
+    productLineId: number,
+    applicationId: number,
+    adaptationId: number
+  ) {
+    return this.projectManager.createAdaptationModel(
+      project,
+      languageType,
+      productLineId,
+      applicationId,
+      adaptationId
+    );
+  }
+
+  addNewAdaptationModelListener(listener: any) {
+    this.NewAdaptationModelListeners.push(listener);
+  }
+
+  removeNewAdaptationModelListener(listener: any) {
+    this.NewAdaptationModelListeners[listener] = null;
+  }
+
+  raiseEventAdaptationModelModel(model: Model) {
+    let me = this;
+    let e = new NewModelEventArg(me, me._project, model);
+    for (
+      let index = 0;
+      index < me.NewAdaptationModelListeners.length;
+      index++
+    ) {
+      let callback = this.NewAdaptationModelListeners[index];
+      callback(e);
+    }
+  }
+  //createAdaptationModel functions_ END***********
+
+  
+  //createApplicationEngineeringModel functions_ START***********
+
+  //createApplicationEngineeringModel functions_ END***********
 
   setGraph(graph: any) {
     this.graph = graph;

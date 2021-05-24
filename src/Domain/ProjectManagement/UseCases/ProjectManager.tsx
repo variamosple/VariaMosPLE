@@ -55,20 +55,19 @@ export default class ProjectManager {
     Project: Project,
     LanguageType: string,
     ProductLine: number
-  ): Project {
-    let modelName = this.findLanguage(LanguageType);
+  ): Model {
+    // let modelName = this.findLanguage(LanguageType);
 
-    Project.productLines[ProductLine].domainEngineering?.models?.push(
-      new Model(modelName)
-    );
+    let model: Model = new Model(LanguageType);
+    Project.productLines[ProductLine].domainEngineering?.models?.push(model);
 
     //Ejecutar el consumo de mxGraph.
 
-    return Project;
+    return model;
   }
 
   findLanguage(LanguageType: string) {
-    return "FeatureModel";
+    return LanguageType;
   }
 
   createApplicationEngineeringModel(
@@ -92,16 +91,18 @@ export default class ProjectManager {
     LanguageType: string,
     ProductLine: number,
     Application: number
-  ): Project {
-    let modelName = this.findLanguage(LanguageType);
+  ): Model {
+    // let modelName = this.findLanguage(LanguageType);
+
+    let model: Model = new Model(LanguageType);
 
     Project.productLines[ProductLine].applicationEngineering?.applications[
       Application
-    ].models?.push(new Model(modelName));
+    ].models?.push(model);
 
     //Ejecutar el consumo de mxGraph.
 
-    return Project;
+    return model;
   }
 
   createAdaptationModel(
@@ -110,16 +111,18 @@ export default class ProjectManager {
     ProductLine: number,
     Application: number,
     Adaptation: number
-  ): Project {
-    let modelName = this.findLanguage(LanguageType);
+  ): Model {
+    // let modelName = this.findLanguage(LanguageType);
+
+    let model: Model = new Model(LanguageType);
 
     Project.productLines[ProductLine].applicationEngineering?.applications[
       Application
-    ].adaptations[Adaptation].models?.push(new Model(modelName));
+    ].adaptations[Adaptation].models?.push(model);
 
     //Ejecutar el consumo de mxGraph.
 
-    return Project;
+    return model;
   }
 
   saveProject(myProject: Project): void {

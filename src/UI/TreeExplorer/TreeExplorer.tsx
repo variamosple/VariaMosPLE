@@ -38,6 +38,22 @@ class TreeExplorer extends Component<Props, State> {
     me.props.projectService.addNewApplicationListener(
       this.projectService_addListener
     );
+
+    me.props.projectService.addNewApplicationModelListener(
+      this.projectService_addListener
+    );
+
+    me.props.projectService.addNewAdaptationListener(
+      this.projectService_addListener
+    );
+
+    me.props.projectService.addNewAdaptationModelListener(
+      this.projectService_addListener
+    );
+
+    me.props.projectService.addNewDomainEngineeringModelListener(
+      this.projectService_addListener
+    );
   }
 
   btnSave_onClick(e: any) {
@@ -45,10 +61,9 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   render() {
-
     return (
       <div id="TreePannel" className="col-sm-2 distribution-variamos h-100">
-        <TreeMenu />
+        <TreeMenu projectService={this.props.projectService} />
         <div className="col-sm-12 h-100">
           <div className="col-sm-12 h-100">
             <div className="card h-100 shadow-sm bg-body rounded">

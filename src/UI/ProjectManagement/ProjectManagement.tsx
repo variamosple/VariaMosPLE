@@ -1,7 +1,5 @@
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
 import "../../Addons/Library/VariaMosStyle/variamos.css";
-import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import ProjectService from "../../Infraestructure/project/ProjectService";
 import { Project } from "../../Domain/ProjectManagement/Entities/Project";
 
@@ -54,16 +52,7 @@ class ProjectManagement extends Component<Props, State> {
       this.props.projectService.project,
       this.state.productLineName
     );
-
-    let application = this.props.projectService.createApplication(
-      this.props.projectService.project,
-      "New Application",
-      0
-    );
-
     this.props.projectService.raiseEventNewProductLine(productLine);
-    this.props.projectService.raiseEventApplication(application);
-
 
     this.props.projectService.saveProject();
   }

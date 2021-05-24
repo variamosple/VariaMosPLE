@@ -2,7 +2,7 @@ import { ProductLine } from "./ProductLine";
 
 
 export class Project {
-  name: string = "My Project";
+  name: string;
   enable: boolean = false;
   productLines: ProductLine[] = [];
 
