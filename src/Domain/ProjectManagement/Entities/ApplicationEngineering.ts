@@ -1,5 +1,5 @@
 import { Application } from "./Application";
-import { Model } from "./Model";
+import { Model } from "../../LanguageManagement/Entities/Model";
 
 export class ApplicationEngineering {
     models: Model[] = [];

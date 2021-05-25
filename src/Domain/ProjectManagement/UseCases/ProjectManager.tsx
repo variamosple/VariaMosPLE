@@ -2,7 +2,7 @@ import { Adaptation } from "../Entities/Adaptation";
 import { Application } from "../Entities/Application";
 import { ApplicationEngineering } from "../Entities/ApplicationEngineering";
 import { DomainEngineering } from "../Entities/DomainEngineering";
-import { Model } from "../Entities/Model";
+import { Model } from "../../LanguageManagement/Entities/Model";
 import { ProductLine } from "../Entities/ProductLine";
 import { Project } from "../Entities/Project";
 

@@ -1,7 +1,7 @@
-import { getLanguages } from "../../DataProvider/Services/languageService";
+import LanguageService from "../../DataProvider/Services/languageService";
 import { Adaptation } from "../../Domain/ProjectManagement/Entities/Adaptation";
 import { Application } from "../../Domain/ProjectManagement/Entities/Application";
-import { Model } from "../../Domain/ProjectManagement/Entities/Model";
+import { Model } from "../../Domain/LanguageManagement/Entities/Model";
 import { ProductLine } from "../../Domain/ProjectManagement/Entities/ProductLine";
 import { Project } from "../../Domain/ProjectManagement/Entities/Project";
 
@@ -58,6 +58,7 @@ export class NewModelEventArg {
 export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
+  private languageService: LanguageService = new LanguageService();
   private _project: Project = this.createProject("");
   private languages: any;
 
@@ -67,14 +68,13 @@ export default class ProjectService {
   private NewDomainEngineeringModelListeners: any = [];
   private NewApplicationModelListeners: any = [];
   private NewAdaptationModelListeners: any = [];
-  
-  
+
   constructor() {
     let me = this;
     let fun = function (data: any) {
       me.languages = data;
     };
-    getLanguages(fun);
+    this.languageService.getLanguages(fun);
   }
 
   createProject(projectName: string): Project {
@@ -240,8 +240,6 @@ export default class ProjectService {
   }
   //createApplicationModel functions_ END***********
 
-
-
   //createAdaptationModel functions_ START***********
   createAdaptationModel(
     project: Project,
@@ -281,7 +279,6 @@ export default class ProjectService {
   }
   //createAdaptationModel functions_ END***********
 
-  
   //createApplicationEngineeringModel functions_ START***********
 
   //createApplicationEngineeringModel functions_ END***********

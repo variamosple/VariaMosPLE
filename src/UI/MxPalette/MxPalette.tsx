@@ -3,8 +3,8 @@ import mx from "../MxGEditor/mxgraph";
 // import { mxGraph, mxGraphModel } from "mxgraph";
 import ProjectService from "../../Infraestructure/project/ProjectService";
 
-import { Model } from "../../Domain/ProjectManagement/Entities/Model";
-import { Element } from "../../Domain/ProjectManagement/Entities/Element";
+import { Model } from "../../Domain/LanguageManagement/Entities/Model";
+import { Element } from "../../Domain/LanguageManagement/Entities/Element";
 
 interface Props {
   projectService: ProjectService;
