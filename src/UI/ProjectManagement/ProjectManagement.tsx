@@ -43,10 +43,7 @@ class ProjectManagement extends Component<Props, State> {
   }
 
   btnCreateProject_onClick(event: any) {
-    this._project = this.props.projectService.project;
-    this._project.name = this.state.projectName;
-
-    this.props.projectService.project = this._project;
+    this.props.projectService.project.name = this.state.projectName;
 
     let productLine = this.props.projectService.createLPS(
       this.props.projectService.project,

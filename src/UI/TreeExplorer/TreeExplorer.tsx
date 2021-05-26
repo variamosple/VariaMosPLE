@@ -18,9 +18,75 @@ class TreeExplorer extends Component<Props, State> {
     this.projectService_addListener =
       this.projectService_addListener.bind(this);
     this.lps_onClick = this.lps_onClick.bind(this);
+    this.updateLpSelected = this.updateLpSelected.bind(this);
+    this.updateApplicationSelected = this.updateApplicationSelected.bind(this);
+    this.updateAdaptationSelected = this.updateAdaptationSelected.bind(this);
+
+    this.btn_viewDomainModel = this.btn_viewDomainModel.bind(this);
+    this.btn_viewApplicationEngModel =
+      this.btn_viewApplicationEngModel.bind(this);
+    this.btn_viewApplicationModel = this.btn_viewApplicationModel.bind(this);
+    this.btn_viewAdaptationModel = this.btn_viewAdaptationModel.bind(this);
   }
 
-  lps_onClick(e: any) {
+  btn_viewDomainModel(idPl: number, idDomainModel: number) {
+    this.props.projectService.modelDomainSelected(idPl, idDomainModel);
+  }
+
+  btn_viewApplicationModel(
+    idPl: number,
+    idApplication: number,
+    idApplicationModel: number
+  ) {
+    this.props.projectService.modelApplicationSelected(
+      idPl,
+      idApplication,
+      idApplicationModel
+    );
+  }
+
+  btn_viewAdaptationModel(
+    idPl: number,
+    idApplication: number,
+    idAdaptation: number,
+    idAdaptationModel: number
+  ) {
+    this.props.projectService.modelAdaptationSelected(
+      idPl,
+      idApplication,
+      idAdaptation,
+      idAdaptationModel
+    );
+  }
+
+  btn_viewApplicationEngModel(idPl: number, idApplicationEngModel: number) {
+    this.props.projectService.modelApplicationEngSelected(
+      idPl,
+      idApplicationEngModel
+    );
+  }
+
+  updateLpSelected(idPl: number) {
+    this.props.projectService.updateLpSelected(idPl);
+  }
+
+  updateApplicationSelected(idPl: number, idApplication: number) {
+    this.props.projectService.updateApplicationSelected(idPl, idApplication);
+  }
+
+  updateAdaptationSelected(
+    idPl: number,
+    idApplication: number,
+    idAdaptation: number
+  ) {
+    this.props.projectService.updateAdaptationSelected(
+      idPl,
+      idApplication,
+      idAdaptation
+    );
+  }
+
+  lps_onClick(e: any, i: number) {
     e.target.parentElement.querySelector(".nested").classList.toggle("active");
     e.target.classList.toggle("fa-minus-square-o");
   }
@@ -73,12 +139,13 @@ class TreeExplorer extends Component<Props, State> {
               <div className="card-body bg-white-Variamos">
                 <ul id="ul">
                   {this.props.projectService.project.productLines.map(
-                    (pl: ProductLine, i: number) => (
+                    (pl: ProductLine, idPl: number) => (
                       <div>
-                        <li key={i}>
+                        <li key={idPl}>
                           <span
                             className="fa fa-plus-square lps"
-                            onClick={this.lps_onClick}
+                            onClick={() => this.lps_onClick(window.event, idPl)}
+                            onAuxClick={() => this.updateLpSelected(idPl)}
                           >
                             {pl.name}
                           </span>
@@ -86,15 +153,28 @@ class TreeExplorer extends Component<Props, State> {
                             <li>
                               <span
                                 className="fa fa-plus-square domainE"
-                                onClick={this.lps_onClick}
+                                onAuxClick={() => this.updateLpSelected(idPl)}
+                                onClick={() =>
+                                  this.lps_onClick(window.event, idPl)
+                                }
                               >
                                 Domain Engineering
                               </span>
                               <ul className="nested">
                                 {pl.domainEngineering?.models?.map(
-                                  (domainModel) => (
+                                  (domainModel, idDomainModel: number) => (
                                     <div>
-                                      <li>{domainModel.name}</li>
+                                      <li
+                                        key={idDomainModel}
+                                        onClick={() =>
+                                          this.btn_viewDomainModel(
+                                            idPl,
+                                            idDomainModel
+                                          )
+                                        }
+                                      >
+                                        {domainModel.name}
+                                      </li>
                                     </div>
                                   )
                                 )}
@@ -103,49 +183,124 @@ class TreeExplorer extends Component<Props, State> {
                             <li>
                               <span
                                 className="fa fa-plus-square appE"
-                                onClick={this.lps_onClick}
+                                onAuxClick={() => this.updateLpSelected(idPl)}
+                                onClick={() =>
+                                  this.lps_onClick(window.event, idPl)
+                                }
                               >
                                 Application Engineering
                               </span>
                               <ul className="nested">
                                 {pl.applicationEngineering?.models?.map(
-                                  (appEModel) => (
+                                  (
+                                    appEModel,
+                                    idApplicationEngModel: number
+                                  ) => (
                                     <div>
-                                      <li>{appEModel.name}</li>
+                                      <li
+                                        key={idApplicationEngModel}
+                                        onClick={() =>
+                                          this.btn_viewApplicationEngModel(
+                                            idPl,
+                                            idApplicationEngModel
+                                          )
+                                        }
+                                      >
+                                        {appEModel.name}
+                                      </li>
                                     </div>
                                   )
                                 )}
                                 <li>
                                   {pl.applicationEngineering?.applications?.map(
-                                    (aeApp) => (
+                                    (aeApp, idApplication: number) => (
                                       <div>
                                         <span
+                                          key={idApplication}
                                           className="fa fa-plus-square aeApp"
-                                          onClick={this.lps_onClick}
+                                          onAuxClick={() =>
+                                            this.updateApplicationSelected(
+                                              idPl,
+                                              idApplication
+                                            )
+                                          }
+                                          onClick={() =>
+                                            this.lps_onClick(
+                                              window.event,
+                                              idApplication
+                                            )
+                                          }
                                         >
                                           {aeApp.applicationName}
                                         </span>
                                         <ul className="nested">
-                                          {aeApp.models?.map((aeApp) => (
-                                            <div>
-                                              <li>{aeApp.name}</li>
-                                            </div>
-                                          ))}
+                                          {aeApp.models?.map(
+                                            (
+                                              aeApp,
+                                              idApplicationModel: number
+                                            ) => (
+                                              <div>
+                                                <li
+                                                  key={idApplicationModel}
+                                                  onClick={() =>
+                                                    this.btn_viewApplicationModel(
+                                                      idPl,
+                                                      idApplication,
+                                                      idApplicationModel
+                                                    )
+                                                  }
+                                                >
+                                                  {aeApp.name}
+                                                </li>
+                                              </div>
+                                            )
+                                          )}
                                           {aeApp.adaptations?.map(
-                                            (aeCotext) => (
+                                            (
+                                              aeCotext,
+                                              idAdaptation: number
+                                            ) => (
                                               <div>
                                                 <li>
                                                   <span
+                                                    key={idAdaptation}
                                                     className="fa fa-plus-square aeContext"
-                                                    onClick={this.lps_onClick}
+                                                    onAuxClick={() =>
+                                                      this.updateAdaptationSelected(
+                                                        idPl,
+                                                        idApplication,
+                                                        idAdaptation
+                                                      )
+                                                    }
+                                                    onClick={() =>
+                                                      this.lps_onClick(
+                                                        window.event,
+                                                        idAdaptation
+                                                      )
+                                                    }
                                                   >
                                                     {aeCotext.adaptationName}
                                                   </span>
                                                   <ul className="nested">
                                                     {aeCotext.models?.map(
-                                                      (aeCotextModel) => (
+                                                      (
+                                                        aeCotextModel,
+                                                        idAdaptationModel: number
+                                                      ) => (
                                                         <div>
-                                                          <li>
+                                                          <li
+                                                            key={
+                                                              idAdaptationModel
+                                                            }
+                                                            onClick={() =>
+                                                              this.btn_viewAdaptationModel(
+                                                                idPl,
+                                                                idApplication,
+                                                                idAdaptation,
+                                                                idAdaptationModel
+                                                              )
+                                                            }
+                                                          >
                                                             {aeCotextModel.name}
                                                           </li>
                                                         </div>

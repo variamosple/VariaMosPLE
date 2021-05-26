@@ -1,24 +1,24 @@
 import axios from "axios";
+import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 
 export default class LanguageService {
   apiVariamos = axios.create({
     baseURL: "http://variamosmicroservice.eastus.azurecontainer.io:4000/",
   });
 
-  getLanguages(callBack: any) {
-    this.getLanguagesRest(callBack);
-  }
-
-  getLanguagesRest(callBack: any) {
+  getLanguagesDetail(): Language[] {
+    let languages: Language[] = [];
     try {
       this.apiVariamos.get("/languagesDetail").then((res) => {
-        callBack(res.data);
+        languages = Object.assign(languages, res.data);
       });
     } catch (error) {
       console.log("Error " + error);
     }
+    return languages;
   }
-  getLanguagesAvailable(callBack: any) {
+
+  getLanguages(callBack: any) {
     try {
       this.apiVariamos.get("/languages").then((res) => {
         callBack(res.data);
@@ -28,22 +28,22 @@ export default class LanguageService {
     }
   }
 
-  getLanguagesNative(method: string, url: string, languageName: string) {
-    var xhr = new XMLHttpRequest();
-    xhr.open(method, url, true);
-    return new Promise((resolve, reject) => {
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState !== 4) return;
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(xhr);
-        } else {
-          reject({
-            status: xhr.status,
-            statusText: xhr.statusText,
-          });
-        }
-      };
-      xhr.send(languageName);
-    });
-  }
+  // getLanguagesNative(method: string, url: string, languageName: string) {
+  //   var xhr = new XMLHttpRequest();
+  //   xhr.open(method, url, true);
+  //   return new Promise((resolve, reject) => {
+  //     xhr.onreadystatechange = function () {
+  //       if (xhr.readyState !== 4) return;
+  //       if (xhr.status >= 200 && xhr.status < 300) {
+  //         resolve(xhr);
+  //       } else {
+  //         reject({
+  //           status: xhr.status,
+  //           statusText: xhr.statusText,
+  //         });
+  //       }
+  //     };
+  //     xhr.send(languageName);
+  //   });
+  // }
 }

@@ -6,6 +6,9 @@ import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/Produc
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import { NewModelEventArg } from "./Events/NewModelEventArg";
 import ProjectManager from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
+import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
+import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
+import { idText } from "typescript";
 
 export class NewProductLineEventArg {
   public target: any;
@@ -43,13 +46,28 @@ export class NewAdaptationEventArg {
   }
 }
 
+export class SelectedModelEventArg {
+  public target: any;
+  public model: Model;
+
+  constructor(target: any, model: Model) {
+    this.target = target;
+    this.model = model;
+  }
+}
+
 export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
+  private languageUseCases: LanguageUseCases = new LanguageUseCases();
   private languageService: LanguageService = new LanguageService();
-
+  private _languages: Language[] = this.getLanguages();
   private _project: Project = this.createProject("");
-  private languages: any;
+  private languages_: any;
+  private _productLineSelected: number = 0;
+  private _applicationSelected: number = 0;
+  private _adaptationSelected: number = 0;
+  private _modelSelected: number = 0;
 
   private newProductLineListeners: any = [];
   private newApplicationListeners: any = [];
@@ -57,13 +75,99 @@ export default class ProjectService {
   private newDomainEngineeringModelListeners: any = [];
   private newApplicationModelListeners: any = [];
   private newAdaptationModelListeners: any = [];
+  private selectedModelListeners: any = [];
 
   constructor() {
     let me = this;
     let fun = function (data: any) {
-      me.languages = data;
+      me.languages_ = data;
     };
     this.languageService.getLanguages(fun);
+  }
+
+  public get languages(): Language[] {
+    return this._languages;
+  }
+
+  modelDomainSelected(idPl: number, idDomainModel: number) {
+    let modelSelected =
+      this._project.productLines[idPl].domainEngineering?.models[idDomainModel];
+    this.raiseEventSelectedModel(modelSelected);
+  }
+  modelApplicationEngSelected(idPl: number, idApplicationEngModel: number) {
+    let modelSelected =
+      this._project.productLines[idPl].applicationEngineering?.models[
+        idApplicationEngModel
+      ];
+    this.raiseEventSelectedModel(modelSelected);
+  }
+  modelApplicationSelected(
+    idPl: number,
+    idApplication: number,
+    idApplicationModel: number
+  ) {
+    let modelSelected =
+      this._project.productLines[idPl].applicationEngineering?.applications[
+        idApplication
+      ].models[idApplicationModel];
+    this.raiseEventSelectedModel(modelSelected);
+  }
+  modelAdaptationSelected(
+    idPl: number,
+    idApplication: number,
+    idAdaptation: number,
+    idAdaptationModel: number
+  ) {
+    let modelSelected =
+      this._project.productLines[idPl].applicationEngineering?.applications[
+        idApplication
+      ].adaptations[idAdaptation].models[idAdaptationModel];
+    this.raiseEventSelectedModel(modelSelected);
+  }
+
+  addSelectedModelListener(listener: any) {
+    this.selectedModelListeners.push(listener);
+  }
+
+  removeSelectedModelListener(listener: any) {
+    this.selectedModelListeners[listener] = null;
+  }
+
+  raiseEventSelectedModel(model: Model | undefined) {
+    if (model) {
+      let me = this;
+      let e = new SelectedModelEventArg(me, model);
+      for (let index = 0; index < me.selectedModelListeners.length; index++) {
+        let callback = this.selectedModelListeners[index];
+        callback(e);
+      }
+    }
+  }
+  //Search Model functions_ END***********
+
+  updateAdaptationSelected(
+    idPl: number,
+    idApplication: number,
+    idAdaptation: number
+  ) {
+    this._productLineSelected = idPl;
+    this._applicationSelected = idApplication;
+    this._adaptationSelected = idAdaptation;
+  }
+  updateApplicationSelected(idPl: number, idApplication: number) {
+    this._productLineSelected = idPl;
+    this._applicationSelected = idApplication;
+  }
+  updateLpSelected(idPl: number) {
+    this._productLineSelected = idPl;
+  }
+
+  getLanguages(): Language[] {
+    return this.languageUseCases.getLanguages();
+  }
+
+  getLanguagesByType(languageType: string, _languages: Language[]): Language[] {
+    return this.languageUseCases.getLanguagesByType(languageType, _languages);
   }
 
   createProject(projectName: string): Project {
@@ -94,15 +198,11 @@ export default class ProjectService {
   //Product Line functions_ END***********
 
   //Application functions_ START***********
-  createApplication(
-    project: Project,
-    applicationName: string,
-    productLineId: number
-  ) {
+  createApplication(project: Project, applicationName: string) {
     return this.projectManager.createApplication(
       project,
       applicationName,
-      productLineId
+      this._productLineSelected
     );
   }
 
@@ -125,17 +225,12 @@ export default class ProjectService {
   //Application functions_ END***********
 
   //Adaptation functions_ START***********
-  createAdaptation(
-    project: Project,
-    adaptationName: string,
-    productLineId: number,
-    applicationId: number
-  ) {
+  createAdaptation(project: Project, adaptationName: string) {
     return this.projectManager.createAdaptation(
       project,
       adaptationName,
-      productLineId,
-      applicationId
+      this._productLineSelected,
+      this._applicationSelected
     );
   }
 
@@ -158,15 +253,11 @@ export default class ProjectService {
   //Adaptation functions_ END***********
 
   //createDomainEngineeringModel functions_ START***********
-  createDomainEngineeringModel(
-    project: Project,
-    languageType: string,
-    productLineId: number
-  ) {
+  createDomainEngineeringModel(project: Project, languageType: string) {
     return this.projectManager.createDomainEngineeringModel(
       project,
       languageType,
-      productLineId
+      this._productLineSelected
     );
   }
 
@@ -193,17 +284,12 @@ export default class ProjectService {
   //createDomainEngineeringModel functions_ END***********
 
   //createApplicationModel functions_ START***********
-  createApplicationModel(
-    project: Project,
-    languageType: string,
-    productLineId: number,
-    applicationId: number
-  ) {
+  createApplicationModel(project: Project, languageType: string) {
     return this.projectManager.createApplicationModel(
       project,
       languageType,
-      productLineId,
-      applicationId
+      this._productLineSelected,
+      this._applicationSelected
     );
   }
 
@@ -230,19 +316,13 @@ export default class ProjectService {
   //createApplicationModel functions_ END***********
 
   //createAdaptationModel functions_ START***********
-  createAdaptationModel(
-    project: Project,
-    languageType: string,
-    productLineId: number,
-    applicationId: number,
-    adaptationId: number
-  ) {
+  createAdaptationModel(project: Project, languageType: string) {
     return this.projectManager.createAdaptationModel(
       project,
       languageType,
-      productLineId,
-      applicationId,
-      adaptationId
+      this._productLineSelected,
+      this._applicationSelected,
+      this._adaptationSelected
     );
   }
 
@@ -302,15 +382,15 @@ export default class ProjectService {
     }
   }
 
-  getLanguagesByType(language: string) {
-    if (this.languages) {
-      for (let index = 0; index < this.languages.length; index++) {
-        if (this.languages[index].name === language) {
-          return this.languages[index];
-        }
-      }
-    }
-  }
+  // getLanguagesByType(language: string) {
+  //   if (this.languages) {
+  //     for (let index = 0; index < this.languages.length; index++) {
+  //       if (this.languages[index].name === language) {
+  //         return this.languages[index];
+  //       }
+  //     }
+  //   }
+  // }
 
   saveProject(): void {
     this.projectManager.saveProject(this._project);

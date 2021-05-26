@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import ProjectService from "../../Application/Project/ProjectService";
+import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 
 interface Props {
   projectService: ProjectService;
@@ -18,6 +19,7 @@ class TreeMenu extends Component<Props, State> {
     this.addNewDomainEModel = this.addNewDomainEModel.bind(this);
     this.addNewApplicationModel = this.addNewApplicationModel.bind(this);
     this.addNewAdaptationModel = this.addNewAdaptationModel.bind(this);
+    this.addNewEModel = this.addNewEModel.bind(this);
   }
 
   addNewProductLine() {
@@ -32,8 +34,7 @@ class TreeMenu extends Component<Props, State> {
   addNewApplication() {
     let application = this.props.projectService.createApplication(
       this.props.projectService.project,
-      "New Application Test",
-      0
+      "New Application Test"
     );
     this.props.projectService.raiseEventApplication(application);
   }
@@ -41,49 +42,53 @@ class TreeMenu extends Component<Props, State> {
   addNewAdaptation() {
     let adaptation = this.props.projectService.createAdaptation(
       this.props.projectService.project,
-      "New Adaptation",
-      0,
-      0
+      "New Adaptation"
     );
     this.props.projectService.raiseEventAdaptation(adaptation);
   }
 
-  addNewDomainEModel() {
+  addNewEModel(language: Language) {
+    switch (language.type) {
+      case "DOMAIN":
+        this.addNewDomainEModel(language.name);
+        break;
+      case "APPLICATION":
+        this.addNewApplicationModel(language.name);
+        break;
+      case "ADAPTATION":
+        this.addNewAdaptationModel(language.name);
+        break;
+
+      default:
+        console.log("Type language not found");
+        break;
+    }
+  }
+
+  addNewDomainEModel(languageName: string) {
     let domainEngineeringModel =
       this.props.projectService.createDomainEngineeringModel(
         this.props.projectService.project,
-        "Features",
-        0
+        languageName
       );
 
-    domainEngineeringModel =
-      this.props.projectService.createDomainEngineeringModel(
-        this.props.projectService.project,
-        "Components",
-        0
-      );
     this.props.projectService.raiseEventDomainEngineeringModel(
       domainEngineeringModel
     );
   }
 
-  addNewApplicationModel() {
+  addNewApplicationModel(languageName: string) {
     let applicationModel = this.props.projectService.createApplicationModel(
       this.props.projectService.project,
-      "ApplicationModel",
-      0,
-      0
+      languageName
     );
     this.props.projectService.raiseEventApplicationModelModel(applicationModel);
   }
 
-  addNewAdaptationModel() {
+  addNewAdaptationModel(languageName: string) {
     let adaptationModel = this.props.projectService.createAdaptationModel(
       this.props.projectService.project,
-      "AdaptationModel",
-      0,
-      0,
-      0
+      languageName
     );
     this.props.projectService.raiseEventAdaptationModelModel(adaptationModel);
   }
@@ -94,36 +99,26 @@ class TreeMenu extends Component<Props, State> {
         <ul className="dropdown-menu" id="context-menu">
           <li>
             <span className="dropdown-item" id="newModel">
-              New Model &raquo;
+              New Model
+              <i className="bi bi-chevron-compact-right float-end"></i>
             </span>
             <ul className="submenu dropdown-menu">
-              <li>
-                <span
-                  className="dropdown-item"
-                  id="newDomainModel"
-                  onClick={this.addNewDomainEModel}
-                >
-                  New Domain Model
-                </span>
-              </li>
-              <li>
-                <span
-                  className="dropdown-item"
-                  id="newDomainModel"
-                  onClick={this.addNewApplicationModel}
-                >
-                  New Application Model
-                </span>
-              </li>
-              <li>
-                <span
-                  className="dropdown-item"
-                  id="newDomainModel"
-                  onClick={this.addNewAdaptationModel}
-                >
-                  New Adaptation Model
-                </span>
-              </li>
+              {this.props.projectService.languages.map(
+                (language: Language, i: number) => (
+                  <div>
+                    {/* Validar si en el lugar seleccionado ya existe el lenguage */}
+                    <li>
+                      <span
+                        className={"dropdown-item type_" + language}
+                        key={i}
+                        onClick={() => this.addNewEModel(language)}
+                      >
+                        {language.name + " Model"}
+                      </span>
+                    </li>
+                  </div>
+                )
+              )}
             </ul>
           </li>
           <li>

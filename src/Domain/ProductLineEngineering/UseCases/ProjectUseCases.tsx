@@ -6,31 +6,31 @@ import { Model } from "../Entities/Model";
 import { ProductLine } from "../Entities/ProductLine";
 import { Project } from "../Entities/Project";
 
-export default class ProjectManager {
+export default class ProjectUseCases {
   // constructor() {
   // }
 
-  createProject(ProjectName: string): Project {
-    let project = new Project(ProjectName);
+  createProject(projectName: string): Project {
+    let project = new Project(projectName);
     return project;
   }
 
-  createLps(Project: Project, ProducLineName: string): ProductLine {
-    let productLine: ProductLine = new ProductLine(ProducLineName);
+  createLps(project: Project, producLineName: string): ProductLine {
+    let productLine: ProductLine = new ProductLine(producLineName);
     productLine.domainEngineering = new DomainEngineering();
     productLine.applicationEngineering = new ApplicationEngineering();
-    Project.productLines.push(productLine);
+    project.productLines.push(productLine);
     return productLine;
   }
 
   createApplication(
-    Project: Project,
-    ApplicationName: string,
-    ProductLine: number
+    project: Project,
+    applicationName: string,
+    productLine: number
   ): Application {
-    let application: Application = new Application(ApplicationName);
+    let application: Application = new Application(applicationName);
 
-    Project.productLines[ProductLine].applicationEngineering?.applications.push(
+    project.productLines[productLine].applicationEngineering?.applications.push(
       application
     );
 
@@ -38,66 +38,63 @@ export default class ProjectManager {
   }
 
   createAdaptation(
-    Project: Project,
-    AdaptationName: string,
-    ProductLine: number,
-    Application: number
+    project: Project,
+    adaptationName: string,
+    productLine: number,
+    application: number
   ): Adaptation {
-    let adaptation: Adaptation = new Adaptation(AdaptationName);
-    Project.productLines[ProductLine].applicationEngineering?.applications[
-      Application
+    let adaptation: Adaptation = new Adaptation(adaptationName);
+    project.productLines[productLine].applicationEngineering?.applications[
+      application
     ].adaptations?.push(adaptation);
 
     return adaptation;
   }
 
   createDomainEngineeringModel(
-    Project: Project,
-    LanguageType: string,
-    ProductLine: number
+    project: Project,
+    languageType: string,
+    productLine: number
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(LanguageType);
-    Project.productLines[ProductLine].domainEngineering?.models?.push(model);
+    let model: Model = new Model(languageType);
+    project.productLines[productLine].domainEngineering?.models?.push(model);
 
     //Ejecutar el consumo de mxGraph.
 
     return model;
   }
 
-  findLanguage(LanguageType: string) {
-    return LanguageType;
-  }
-
   createApplicationEngineeringModel(
-    Project: Project,
-    LanguageType: string,
-    ProductLine: number
-  ): Project {
-    let modelName = this.findLanguage(LanguageType);
+    project: Project,
+    languageType: string,
+    productLine: number
+  ): Model {
+    // let modelName = this.findLanguage(LanguageType);
+    let model: Model = new Model(languageType);
 
-    Project.productLines[ProductLine].applicationEngineering?.models?.push(
-      new Model(modelName)
+    project.productLines[productLine].applicationEngineering?.models?.push(
+      model
     );
 
     //Ejecutar el consumo de mxGraph.
 
-    return Project;
+    return model;
   }
 
   createApplicationModel(
-    Project: Project,
-    LanguageType: string,
-    ProductLine: number,
-    Application: number
+    project: Project,
+    languageType: string,
+    productLine: number,
+    application: number
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(LanguageType);
+    let model: Model = new Model(languageType);
 
-    Project.productLines[ProductLine].applicationEngineering?.applications[
-      Application
+    project.productLines[productLine].applicationEngineering?.applications[
+      application
     ].models?.push(model);
 
     //Ejecutar el consumo de mxGraph.
@@ -106,19 +103,19 @@ export default class ProjectManager {
   }
 
   createAdaptationModel(
-    Project: Project,
-    LanguageType: string,
-    ProductLine: number,
-    Application: number,
-    Adaptation: number
+    project: Project,
+    languageType: string,
+    productLine: number,
+    application: number,
+    adaptation: number
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(LanguageType);
+    let model: Model = new Model(languageType);
 
-    Project.productLines[ProductLine].applicationEngineering?.applications[
-      Application
-    ].adaptations[Adaptation].models?.push(model);
+    project.productLines[productLine].applicationEngineering?.applications[
+      application
+    ].adaptations[adaptation].models?.push(model);
 
     //Ejecutar el consumo de mxGraph.
 
