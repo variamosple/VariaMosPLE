@@ -3,7 +3,7 @@ import React, { Component } from 'react'
 
 import mx from "./mxgraph";
 import { mxGraph } from "mxgraph";
-import ProjectService from '../../Infraestructure/Project/ProjectService';
+import ProjectService from '../../Application/Project/ProjectService';
 
 interface Props {
    projectService:ProjectService

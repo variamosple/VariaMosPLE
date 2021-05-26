@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import ProjectService from "../../Infraestructure/Project/ProjectService";
+import ProjectService from "../../Application/Project/ProjectService";
 import MxPalette from "../MxPalette/MxPalette";
 
 interface Props {

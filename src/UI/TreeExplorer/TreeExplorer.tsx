@@ -1,7 +1,7 @@
 import React, { Component } from "react";
-import { ProductLine } from "../../Domain/ProjectManagement/Entities/ProductLine";
+import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import TreeMenu from "./TreeMenu";
-import ProjectService from "../../Infraestructure/Project/ProjectService";
+import ProjectService from "../../Application/Project/ProjectService";
 
 interface Props {
   projectService: ProjectService;

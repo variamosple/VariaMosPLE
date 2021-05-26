@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import "../../Addons/Library/VariaMosStyle/variamos.css";
-import ProjectService from "../../Infraestructure/Project/ProjectService";
-import { Project } from "../../Domain/ProjectManagement/Entities/Project";
+import ProjectService from "../../Application/Project/ProjectService";
+import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 
 interface Props {
   projectService: ProjectService;

@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import ProjectService from "../../Infraestructure/Project/ProjectService";
+import ProjectService from "../../Application/Project/ProjectService";
 
 interface Props {
   projectService: ProjectService;
@@ -52,14 +52,14 @@ class TreeMenu extends Component<Props, State> {
     let domainEngineeringModel =
       this.props.projectService.createDomainEngineeringModel(
         this.props.projectService.project,
-        "FeatureModel",
+        "Features",
         0
       );
 
     domainEngineeringModel =
       this.props.projectService.createDomainEngineeringModel(
         this.props.projectService.project,
-        "ComponentModel",
+        "Components",
         0
       );
     this.props.projectService.raiseEventDomainEngineeringModel(

@@ -1,5 +1,5 @@
-import { Model } from "../../../Domain/ProjectManagement/Entities/Model";
-import { Project } from "../../../Domain/ProjectManagement/Entities/Project";
+import { Model } from "../../../Domain/ProductLineEngineering/Entities/Model";
+import { Project } from "../../../Domain/ProductLineEngineering/Entities/Project";
 
 export class NewModelEventArg {
     public target: any;
