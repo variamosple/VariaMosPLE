@@ -1,10 +1,10 @@
 import React, { Component } from "react";
 import mx from "../MxGEditor/mxgraph";
 // import { mxGraph, mxGraphModel } from "mxgraph";
-import ProjectService from "../../Infraestructure/project/ProjectService";
+import ProjectService from "../../Application/Project/ProjectService";
 
-import { Model } from "../../Domain/LanguageManagement/Entities/Model";
-import { Element } from "../../Domain/LanguageManagement/Entities/Element";
+import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 
 interface Props {
   projectService: ProjectService;

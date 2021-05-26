@@ -5,7 +5,7 @@ import PropiertiesPannel from "../DiagramEditor/PropiertiesPannel";
 import ProjectManagement from "../ProjectManagement/ProjectManagement";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import NavBar from "./navBar";
-import ProjectService from "../../Infraestructure/project/ProjectService";
+import ProjectService from "../../Application/Project/ProjectService";
 
 
 interface Props {}

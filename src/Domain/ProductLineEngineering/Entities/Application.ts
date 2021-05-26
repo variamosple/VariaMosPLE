@@ -1,5 +1,5 @@
 import { Adaptation } from "./Adaptation";
-import { Model } from "../../LanguageManagement/Entities/Model";
+import { Model } from "./Model";
 
 export class Application {
     applicationName: string;

@@ -2,7 +2,7 @@ import { Adaptation } from "../Entities/Adaptation";
 import { Application } from "../Entities/Application";
 import { ApplicationEngineering } from "../Entities/ApplicationEngineering";
 import { DomainEngineering } from "../Entities/DomainEngineering";
-import { Model } from "../../LanguageManagement/Entities/Model";
+import { Model } from "../Entities/Model";
 import { ProductLine } from "../Entities/ProductLine";
 import { Project } from "../Entities/Project";
 
@@ -125,9 +125,9 @@ export default class ProjectManager {
     return model;
   }
 
-  saveProject(myProject: Project): void {
+  saveProject(project: Project): void {
     // Save data to sessionStorage
-    sessionStorage.setItem("Project", JSON.stringify(myProject));
+    sessionStorage.setItem("Project", JSON.stringify(project));
   }
 
   deleteProject() {

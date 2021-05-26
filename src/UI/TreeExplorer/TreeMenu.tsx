@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import ProjectService from "../../Infraestructure/project/ProjectService";
+import ProjectService from "../../Infraestructure/Project/ProjectService";
 
 interface Props {
   projectService: ProjectService;
