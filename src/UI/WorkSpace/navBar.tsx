@@ -1,11 +1,24 @@
 import React, { Component } from "react";
 import VariaMosLogo from "../../Addons/images/VariaMosLogo.png";
+import ProjectService from "../../Application/Project/ProjectService";
 
-interface Props {}
+interface Props {
+  projectService: ProjectService;
+}
 interface State {}
 
 class navBar extends Component<Props, State> {
   state = {};
+
+  constructor(props: any) {
+    super(props);
+
+    this.exportProject = this.exportProject.bind(this);
+  }
+
+  exportProject() {
+    this.props.projectService.exportProject();
+  }
 
   render() {
     return (
@@ -60,9 +73,8 @@ class navBar extends Component<Props, State> {
                   <button
                     type="button"
                     className="nav-bar-variamos"
-                    data-bs-toggle="modal"
-                    data-bs-target="#staticBackdrop"
                     id="exportProject"
+                    onClick={this.exportProject}
                   >
                     Export Project
                   </button>

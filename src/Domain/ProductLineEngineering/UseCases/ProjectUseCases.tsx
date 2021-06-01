@@ -11,7 +11,7 @@ export default class ProjectUseCases {
   // }
 
   createProject(projectName: string): Project {
-    let project = new Project(projectName);
+    let project = new Project(this.generateId(), projectName);
     return project;
   }
 
@@ -59,7 +59,7 @@ export default class ProjectUseCases {
     // let modelName = this.findLanguage(LanguageType);
 
     let model: Model = new Model(languageType);
-    project.productLines[productLine].domainEngineering?.models?.push(model);
+    project.productLines[productLine].domainEngineering?.models.push(model);
 
     //Ejecutar el consumo de mxGraph.
 
@@ -74,7 +74,7 @@ export default class ProjectUseCases {
     // let modelName = this.findLanguage(LanguageType);
     let model: Model = new Model(languageType);
 
-    project.productLines[productLine].applicationEngineering?.models?.push(
+    project.productLines[productLine].applicationEngineering?.models.push(
       model
     );
 
@@ -95,7 +95,7 @@ export default class ProjectUseCases {
 
     project.productLines[productLine].applicationEngineering?.applications[
       application
-    ].models?.push(model);
+    ].models.push(model);
 
     //Ejecutar el consumo de mxGraph.
 
@@ -115,7 +115,7 @@ export default class ProjectUseCases {
 
     project.productLines[productLine].applicationEngineering?.applications[
       application
-    ].adaptations[adaptation].models?.push(model);
+    ].adaptations[adaptation].models.push(model);
 
     //Ejecutar el consumo de mxGraph.
 
@@ -133,5 +133,18 @@ export default class ProjectUseCases {
 
     // Remove all saved data from sessionStorage
     sessionStorage.clear();
+  }
+
+  generateId(): string {
+    var dt = new Date().getTime();
+    var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+      /[xy]/g,
+      function (c) {
+        var r = (dt + Math.random() * 16) % 16 | 0;
+        dt = Math.floor(dt / 16);
+        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+      }
+    );
+    return uuid;
   }
 }

@@ -31,6 +31,7 @@ class TreeExplorer extends Component<Props, State> {
 
   btn_viewDomainModel(idPl: number, idDomainModel: number) {
     this.props.projectService.modelDomainSelected(idPl, idDomainModel);
+    this.props.projectService.saveProject();
   }
 
   btn_viewApplicationModel(
@@ -43,6 +44,7 @@ class TreeExplorer extends Component<Props, State> {
       idApplication,
       idApplicationModel
     );
+    this.props.projectService.saveProject();
   }
 
   btn_viewAdaptationModel(
@@ -57,6 +59,7 @@ class TreeExplorer extends Component<Props, State> {
       idAdaptation,
       idAdaptationModel
     );
+    this.props.projectService.saveProject();
   }
 
   btn_viewApplicationEngModel(idPl: number, idApplicationEngModel: number) {
@@ -64,14 +67,17 @@ class TreeExplorer extends Component<Props, State> {
       idPl,
       idApplicationEngModel
     );
+    this.props.projectService.saveProject();
   }
 
   updateLpSelected(idPl: number) {
     this.props.projectService.updateLpSelected(idPl);
+    this.props.projectService.saveProject();
   }
 
   updateApplicationSelected(idPl: number, idApplication: number) {
     this.props.projectService.updateApplicationSelected(idPl, idApplication);
+    this.props.projectService.saveProject();
   }
 
   updateAdaptationSelected(
@@ -84,6 +90,7 @@ class TreeExplorer extends Component<Props, State> {
       idApplication,
       idAdaptation
     );
+    this.props.projectService.saveProject();
   }
 
   lps_onClick(e: any, i: number) {
@@ -93,6 +100,7 @@ class TreeExplorer extends Component<Props, State> {
 
   projectService_addListener(e: any) {
     this.forceUpdate();
+    this.props.projectService.saveProject();
   }
 
   componentDidMount() {
@@ -118,6 +126,10 @@ class TreeExplorer extends Component<Props, State> {
     );
 
     me.props.projectService.addNewDomainEngineeringModelListener(
+      this.projectService_addListener
+    );
+
+    me.props.projectService.addUpdateProjectListener(
       this.projectService_addListener
     );
   }
@@ -146,6 +158,7 @@ class TreeExplorer extends Component<Props, State> {
                             className="fa fa-plus-square lps"
                             onClick={() => this.lps_onClick(window.event, idPl)}
                             onAuxClick={() => this.updateLpSelected(idPl)}
+                            // contentEditable="true"
                           >
                             {pl.name}
                           </span>

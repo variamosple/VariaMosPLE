@@ -158,7 +158,7 @@ ul {
   background-color: #b8daed3b;
 }
 
-.nav-bar-variamos {
+.nav-bar-variamos, a {
   text-decoration: none;
   color: #428dcf;
   background-color: white;

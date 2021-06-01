@@ -8,66 +8,24 @@ import { NewModelEventArg } from "./Events/NewModelEventArg";
 import ProjectManager from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
-import { idText } from "typescript";
-
-export class NewProductLineEventArg {
-  public target: any;
-  public project: Project;
-  public productLine: ProductLine;
-
-  constructor(target: any, project: Project, productLine: ProductLine) {
-    this.target = target;
-    this.project = project;
-    this.productLine = productLine;
-  }
-}
-
-export class NewApplicationEventArg {
-  public target: any;
-  public project: Project;
-  public application: Application;
-
-  constructor(target: any, project: Project, application: Application) {
-    this.target = target;
-    this.project = project;
-    this.application = application;
-  }
-}
-
-export class NewAdaptationEventArg {
-  public target: any;
-  public project: Project;
-  public adaptation: Adaptation;
-
-  constructor(target: any, project: Project, adaptation: Adaptation) {
-    this.target = target;
-    this.project = project;
-    this.adaptation = adaptation;
-  }
-}
-
-export class SelectedModelEventArg {
-  public target: any;
-  public model: Model;
-
-  constructor(target: any, model: Model) {
-    this.target = target;
-    this.model = model;
-  }
-}
+import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
+import { LanguagesDetailEventArg } from "./Events/LanguagesDetailEventArg";
+import { ProjectEventArg } from "./Events/ProjectEventArg";
+import { NewProductLineEventArg } from "./Events/NewProductLineEventArg";
+import { NewApplicationEventArg } from "./Events/NewApplicationEventArg";
+import { NewAdaptationEventArg } from "./Events/NewAdaptationEventArg";
 
 export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
   private languageUseCases: LanguageUseCases = new LanguageUseCases();
   private languageService: LanguageService = new LanguageService();
-  private _languages: Language[] = this.getLanguages();
+  private _languages: any;
+  private _languagesDetail: Language[] = this.getLanguagesDetail();
   private _project: Project = this.createProject("");
-  private languages_: any;
-  private _productLineSelected: number = 0;
-  private _applicationSelected: number = 0;
-  private _adaptationSelected: number = 0;
-  private _modelSelected: number = 0;
+  private productLineSelected: number = 0;
+  private applicationSelected: number = 0;
+  private adaptationSelected: number = 0;
 
   private newProductLineListeners: any = [];
   private newApplicationListeners: any = [];
@@ -76,24 +34,25 @@ export default class ProjectService {
   private newApplicationModelListeners: any = [];
   private newAdaptationModelListeners: any = [];
   private selectedModelListeners: any = [];
+  private loadLanguagesListeners: any = [];
+  private updateProjectListeners: any = [];
 
   constructor() {
     let me = this;
     let fun = function (data: any) {
-      me.languages_ = data;
+      me._languages = data;
     };
+
     this.languageService.getLanguages(fun);
   }
 
-  public get languages(): Language[] {
-    return this._languages;
-  }
-
+  //Search Model functions_ START***********
   modelDomainSelected(idPl: number, idDomainModel: number) {
     let modelSelected =
       this._project.productLines[idPl].domainEngineering?.models[idDomainModel];
     this.raiseEventSelectedModel(modelSelected);
   }
+
   modelApplicationEngSelected(idPl: number, idApplicationEngModel: number) {
     let modelSelected =
       this._project.productLines[idPl].applicationEngineering?.models[
@@ -101,6 +60,7 @@ export default class ProjectService {
       ];
     this.raiseEventSelectedModel(modelSelected);
   }
+
   modelApplicationSelected(
     idPl: number,
     idApplication: number,
@@ -112,6 +72,7 @@ export default class ProjectService {
       ].models[idApplicationModel];
     this.raiseEventSelectedModel(modelSelected);
   }
+
   modelAdaptationSelected(
     idPl: number,
     idApplication: number,
@@ -143,36 +104,133 @@ export default class ProjectService {
       }
     }
   }
-  //Search Model functions_ END***********
-
   updateAdaptationSelected(
     idPl: number,
     idApplication: number,
     idAdaptation: number
   ) {
-    this._productLineSelected = idPl;
-    this._applicationSelected = idApplication;
-    this._adaptationSelected = idAdaptation;
+    this.productLineSelected = idPl;
+    this.applicationSelected = idApplication;
+    this.adaptationSelected = idAdaptation;
   }
   updateApplicationSelected(idPl: number, idApplication: number) {
-    this._productLineSelected = idPl;
-    this._applicationSelected = idApplication;
+    this.productLineSelected = idPl;
+    this.applicationSelected = idApplication;
   }
   updateLpSelected(idPl: number) {
-    this._productLineSelected = idPl;
+    this.productLineSelected = idPl;
+  }
+  //Search Model functions_ END***********
+
+  //Language functions_ START***********
+  public get languagesDetail(): Language[] {
+    return this._languagesDetail;
   }
 
-  getLanguages(): Language[] {
-    return this.languageUseCases.getLanguages();
+  public get languages(): Language[] {
+    return this._languages;
+  }
+
+  getLanguagesDetail(): Language[] {
+    return this.languageUseCases.getLanguagesDetail();
+  }
+
+  addLanguagesDetailListener(listener: any) {
+    this.loadLanguagesListeners.push(listener);
+  }
+
+  removeLanguagesDetailListener(listener: any) {
+    this.loadLanguagesListeners[listener] = null;
+  }
+
+  raiseEventLanguagesDetail(language: Language[]) {
+    let me = this;
+    let e = new LanguagesDetailEventArg(me, language);
+    for (let index = 0; index < me.loadLanguagesListeners.length; index++) {
+      let callback = this.loadLanguagesListeners[index];
+      callback(e);
+    }
   }
 
   getLanguagesByType(languageType: string, _languages: Language[]): Language[] {
     return this.languageUseCases.getLanguagesByType(languageType, _languages);
   }
 
-  createProject(projectName: string): Project {
-    return this.projectManager.createProject(projectName);
+  //Language functions_ END***********
+
+  //Project functions_ START***********
+  public get project(): Project {
+    return this._project;
   }
+
+  public set project(value: Project) {
+    this._project = value;
+  }
+
+  createProject(projectName: string): Project {
+    let project = this.projectManager.createProject(projectName);
+    project = this.loadProject(project);
+
+    return project;
+  }
+
+  loadProject(project: Project): Project {
+    let projectSessionStorage = sessionStorage.getItem("Project");
+    if (projectSessionStorage) {
+      project = Object.assign(project, JSON.parse(projectSessionStorage));
+    }
+
+    return project;
+  }
+
+  saveProject(): void {
+    this.projectManager.saveProject(this._project);
+  }
+
+  deleteProject(): void {
+    this.projectManager.deleteProject();
+    window.location.reload();
+  }
+
+  exportProject() {
+    var dataStr =
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(this._project));
+    var downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", this._project.id + ".json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }
+
+  updateProjectState(state: boolean) {
+    this._project.enable = state;
+  }
+
+  updateProjectName(name: string) {
+    this._project.name = name;
+    this.raiseEventUpdateProject(this._project);
+  }
+
+  addUpdateProjectListener(listener: any) {
+    this.updateProjectListeners.push(listener);
+  }
+
+  removeUpdateProjectListener(listener: any) {
+    this.updateProjectListeners[listener] = null;
+  }
+
+  raiseEventUpdateProject(project: Project) {
+    let me = this;
+    let e = new ProjectEventArg(me, project);
+    for (let index = 0; index < me.updateProjectListeners.length; index++) {
+      let callback = this.updateProjectListeners[index];
+      callback(e);
+    }
+  }
+
+  //Project functions_ END***********
 
   //Product Line functions_ START***********
   createLPS(project: Project, productLineName: string) {
@@ -202,7 +260,7 @@ export default class ProjectService {
     return this.projectManager.createApplication(
       project,
       applicationName,
-      this._productLineSelected
+      this.productLineSelected
     );
   }
 
@@ -229,8 +287,8 @@ export default class ProjectService {
     return this.projectManager.createAdaptation(
       project,
       adaptationName,
-      this._productLineSelected,
-      this._applicationSelected
+      this.productLineSelected,
+      this.applicationSelected
     );
   }
 
@@ -257,7 +315,7 @@ export default class ProjectService {
     return this.projectManager.createDomainEngineeringModel(
       project,
       languageType,
-      this._productLineSelected
+      this.productLineSelected
     );
   }
 
@@ -288,8 +346,8 @@ export default class ProjectService {
     return this.projectManager.createApplicationModel(
       project,
       languageType,
-      this._productLineSelected,
-      this._applicationSelected
+      this.productLineSelected,
+      this.applicationSelected
     );
   }
 
@@ -320,9 +378,9 @@ export default class ProjectService {
     return this.projectManager.createAdaptationModel(
       project,
       languageType,
-      this._productLineSelected,
-      this._applicationSelected,
-      this._adaptationSelected
+      this.productLineSelected,
+      this.applicationSelected,
+      this.adaptationSelected
     );
   }
 
@@ -360,14 +418,6 @@ export default class ProjectService {
     return this.graph;
   }
 
-  public get project(): Project {
-    return this._project;
-  }
-
-  public set project(value: Project) {
-    this._project = value;
-  }
-
   open() {
     //open file
   }
@@ -391,12 +441,4 @@ export default class ProjectService {
   //     }
   //   }
   // }
-
-  saveProject(): void {
-    this.projectManager.saveProject(this._project);
-  }
-
-  deleteProject(): void {
-    this.projectManager.deleteProject();
-  }
 }

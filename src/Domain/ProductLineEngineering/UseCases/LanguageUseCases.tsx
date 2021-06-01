@@ -17,7 +17,7 @@ export default class LanguageUseCases {
     return languagesFilter;
   }
 
-  getLanguages(): Language[] {
+  getLanguagesDetail(): Language[] {
     return this.languageService.getLanguagesDetail();
   }
 }

@@ -21,13 +21,21 @@ class ProjectManagement extends Component<Props, State> {
     super(props);
     this.state = {
       productLineName: "",
-      projectName: "",
+      projectName: this.props.projectService.project.name,
     };
-
+    this.loadProject();
     this.handleUpdateNameProject = this.handleUpdateNameProject.bind(this);
     this.handleUpdateNameProductLine =
       this.handleUpdateNameProductLine.bind(this);
     this.btnCreateProject_onClick = this.btnCreateProject_onClick.bind(this);
+    this.btnSaveProject_onClick = this.btnSaveProject_onClick.bind(this);
+  }
+
+  loadProject() {
+    if (this.props.projectService.project.enable) {
+      classActive = "";
+      classActiveShow = "";
+    }
   }
 
   handleUpdateNameProject(event: any) {
@@ -43,13 +51,24 @@ class ProjectManagement extends Component<Props, State> {
   }
 
   btnCreateProject_onClick(event: any) {
-    this.props.projectService.project.name = this.state.projectName;
+    this.props.projectService.updateProjectName(this.state.projectName);
+    this.props.projectService.updateProjectState(true);
 
     let productLine = this.props.projectService.createLPS(
       this.props.projectService.project,
       this.state.productLineName
     );
     this.props.projectService.raiseEventNewProductLine(productLine);
+
+    this.props.projectService.saveProject();
+  }
+
+  btnSaveProject_onClick(event: any) {
+    let languages = this.props.projectService.getLanguagesDetail();
+
+    this.props.projectService.updateProjectName(this.state.projectName);
+
+    this.props.projectService.raiseEventLanguagesDetail(languages);
 
     this.props.projectService.saveProject();
   }
@@ -139,10 +158,8 @@ class ProjectManagement extends Component<Props, State> {
                               className="form-control"
                               id="floatingInput"
                               placeholder="VariaMosProject"
-                              value={this.props.projectService.project.name}
-                              onChange={(e) =>
-                                this.handleUpdateNameProductLine(e)
-                              }
+                              value={this.state.projectName}
+                              onChange={(e) => this.handleUpdateNameProject(e)}
                             />
                             <label htmlFor="floatingInput">
                               Enter Project Name
@@ -153,9 +170,9 @@ class ProjectManagement extends Component<Props, State> {
                             <div className="col-4">
                               <button
                                 type="button"
-                                className="btn form-control btn-darkVariamos"
+                                className="btn form-control btn-Variamos"
                                 data-bs-dismiss="modal"
-                                onClick={() => this.handleUpdateNameProject}
+                                onClick={(e) => this.btnSaveProject_onClick(e)}
                               >
                                 Save Project
                               </button>
@@ -163,7 +180,7 @@ class ProjectManagement extends Component<Props, State> {
                             <div className="col-4">
                               <button
                                 type="button"
-                                className="btn form-control btn-darkVariamos"
+                                className="btn form-control btn-Variamos"
                                 data-bs-dismiss="modal"
                                 onClick={() =>
                                   this.props.projectService.deleteProject()
@@ -204,7 +221,6 @@ class ProjectManagement extends Component<Props, State> {
                                 className="form-control"
                                 id="floatingInputGrid"
                                 placeholder="VariaMosProductLineE"
-                                // value={this.props.projectService.project.productLine[0].productLineName}
                                 onChange={(e) =>
                                   this.handleUpdateNameProductLine(e)
                                 }
@@ -257,6 +273,12 @@ class ProjectManagement extends Component<Props, State> {
                         aria-labelledby="list-settings-list"
                       >
                         Setting
+                        <br />
+                        - Create method for refresh language List
+                        <br />
+                        - Create Method for add new language
+                        <br />
+                        <br />
                       </div>
                     </div>
                   </div>

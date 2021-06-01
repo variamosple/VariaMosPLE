@@ -7,7 +7,6 @@ import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import NavBar from "./navBar";
 import ProjectService from "../../Application/Project/ProjectService";
 
-
 interface Props {}
 interface State {}
 
@@ -19,20 +18,19 @@ class DashBoard extends Component<Props, State> {
   //   super(props);
   // }
 
-  componentDidMount() {
-  }
+  componentDidMount() {}
 
   render() {
     return (
       <div className="container-fluid">
-        <NavBar />
-        <ProjectManagement  projectService={this.projectService}/>
+        <NavBar projectService={this.projectService} />
+        <ProjectManagement projectService={this.projectService} />
         <div className="row align-items-center" style={{ height: "92vh" }}>
-          <TreeExplorer  projectService={this.projectService}/> 
-          <DiagramEditor   projectService={this.projectService}/> 
+          <TreeExplorer projectService={this.projectService} />
+          <DiagramEditor projectService={this.projectService} />
           <div className="col-sm-2 distribution-variamos h-100">
-            <ElementsPannel   projectService={this.projectService}/>
-            <PropiertiesPannel   projectService={this.projectService}/>
+            <ElementsPannel projectService={this.projectService} />
+            <PropiertiesPannel projectService={this.projectService} />
           </div>
         </div>
       </div>

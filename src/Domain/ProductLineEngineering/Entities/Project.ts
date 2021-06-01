@@ -1,12 +1,13 @@
 import { ProductLine } from "./ProductLine";
 
-
 export class Project {
+  id: string;
   name: string;
   enable: boolean = false;
   productLines: ProductLine[] = [];
 
-  constructor(name: string) {
+  constructor(id: string, name: string) {
+    this.id = id;
     this.name = name;
   }
 }
