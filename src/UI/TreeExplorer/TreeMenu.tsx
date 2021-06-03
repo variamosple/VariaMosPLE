@@ -98,6 +98,7 @@ class TreeMenu extends Component<Props, State> {
           optionAllowModelAdaptation: true,
           optionAllowRename: true,
           optionAllowDelete: true,
+          newSelected: "ADAPTATION  ",
         });
       },
       default: function () {
