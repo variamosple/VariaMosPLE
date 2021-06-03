@@ -90,7 +90,6 @@ class TreeMenu extends Component<Props, State> {
           optionAllowAdaptation: true,
           optionAllowRename: true,
           optionAllowDelete: true,
-          newSelected: "APPLICATION",
         });
       },
       adaptation: function () {
@@ -99,7 +98,6 @@ class TreeMenu extends Component<Props, State> {
           optionAllowModelAdaptation: true,
           optionAllowRename: true,
           optionAllowDelete: true,
-          newSelected: "ADAPTATION",
         });
       },
       default: function () {
@@ -147,15 +145,15 @@ class TreeMenu extends Component<Props, State> {
   updateModal(eventId: string) {
     let me = this;
     const updateModal: any = {
-      newProducLine: function () {
+      PRODUCTLINE: function () {
         me.state.modalTittle = "New product line";
         me.state.modalInputText = "Enter new product line name";
       },
-      newApplication: function () {
+      APPLICATION: function () {
         me.state.modalTittle = "New application";
         me.state.modalInputText = "Enter new application name";
       },
-      newAdaptation: function () {
+      ADAPTATION: function () {
         me.state.modalTittle = "New Adaptation";
         me.state.modalInputText = "Enter new adaptation name";
       },
@@ -173,6 +171,7 @@ class TreeMenu extends Component<Props, State> {
     this.setState({
       modalTittle: me.state.modalTittle,
       modalInputText: me.state.modalInputText,
+      newSelected: eventId,
     });
   }
 
@@ -184,13 +183,13 @@ class TreeMenu extends Component<Props, State> {
   addNewFolder(event: any) {
     let me = this;
     const add: any = {
-      newProducLine: function () {
+      PRODUCTLINE: function () {
         me.addNewProductLine(me.state.modalInputValue);
       },
-      newApplication: function () {
+      APPLICATION: function () {
         me.addNewApplication(me.state.modalInputValue);
       },
-      newAdaptation: function () {
+      ADAPTATION: function () {
         me.addNewAdaptation(me.state.modalInputValue);
       },
     };
@@ -379,7 +378,7 @@ class TreeMenu extends Component<Props, State> {
                   ? "dropdown-item"
                   : "hidden dropdown-item"
               }
-              id="newProducLine"
+              id="PRODUCTLINE"
               onClick={this.handleUpdateNewSelected}
               data-bs-toggle="modal"
               data-bs-target="#editorTextModal"
@@ -394,7 +393,7 @@ class TreeMenu extends Component<Props, State> {
                   ? "dropdown-item"
                   : "hidden dropdown-item"
               }
-              id="newApplication"
+              id="APPLICATION"
               onClick={this.handleUpdateNewSelected}
               data-bs-toggle="modal"
               data-bs-target="#editorTextModal"
@@ -409,7 +408,7 @@ class TreeMenu extends Component<Props, State> {
                   ? "dropdown-item"
                   : "hidden dropdown-item"
               }
-              id="newAdaptation"
+              id="ADAPTATION"
               onClick={this.handleUpdateNewSelected}
               data-bs-toggle="modal"
               data-bs-target="#editorTextModal"
