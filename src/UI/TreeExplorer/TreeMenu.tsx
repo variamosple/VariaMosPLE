@@ -9,10 +9,20 @@ interface State {}
 
 class TreeMenu extends Component<Props, State> {
   state = {
-    editorText: "",
-    newSelected: "default",
+    menu: false,
     modalTittle: "",
-    modalInput: "",
+    modalInputText: "",
+    modalInputValue: "",
+    optionAllowModelEnable: false,
+    optionAllowModelDomain: false,
+    optionAllowModelApplication: false,
+    optionAllowModelAdaptation: false,
+    optionAllowProductLine: false,
+    optionAllowApplication: false,
+    optionAllowAdaptation: false,
+    optionAllowRename: false,
+    optionAllowDelete: false,
+    newSelected: "default",
   };
 
   constructor(props: any) {
@@ -32,6 +42,86 @@ class TreeMenu extends Component<Props, State> {
     this.handleUpdateNewSelected = this.handleUpdateNewSelected.bind(this);
     this.addNewFolder = this.addNewFolder.bind(this);
     this.updateModal = this.updateModal.bind(this);
+    this.removeHidden = this.removeHidden.bind(this);
+    this.viewMenuTree_addListener = this.viewMenuTree_addListener.bind(this);
+  }
+
+  viewMenuTree_addListener() {
+    let me = this;
+
+    // alert(this.props.projectService.getTreeItemSelected());
+
+    let optionsAllow = "default";
+    // if (e.target.id) optionsAllow = e.target.id;
+
+    if (this.props.projectService.getTreeItemSelected())
+      optionsAllow = this.props.projectService.getTreeItemSelected();
+
+    this.removeHidden();
+
+    const enableOptions: any = {
+      productLine: () => {
+        this.setState({
+          optionAllowProductLine: true,
+          optionAllowRename: true,
+          optionAllowDelete: true,
+        });
+      },
+      domainEngineering: () => {
+        me.setState({
+          optionAllowModelEnable: true,
+          optionAllowModelDomain: true,
+          newSelected: "DOMAIN",
+        });
+      },
+      applicationEngineering: () => {
+        me.setState({
+          optionAllowModelEnable: true,
+          optionAllowModelApplication: true,
+          optionAllowApplication: true,
+          newSelected: "APPLICATION",
+        });
+      },
+      application: function () {
+        me.setState({
+          optionAllowModelEnable: true,
+          optionAllowModelApplication: true,
+          optionAllowApplication: true,
+          optionAllowAdaptation: true,
+          optionAllowRename: true,
+          optionAllowDelete: true,
+          newSelected: "APPLICATION",
+        });
+      },
+      adaptation: function () {
+        me.setState({
+          optionAllowModelEnable: true,
+          optionAllowModelAdaptation: true,
+          optionAllowRename: true,
+          optionAllowDelete: true,
+          newSelected: "ADAPTATION",
+        });
+      },
+      default: function () {
+        return false;
+      },
+    };
+
+    enableOptions[optionsAllow]();
+  }
+
+  removeHidden() {
+    this.setState({
+      optionAllowModelEnable: false,
+      optionAllowModelDomain: false,
+      optionAllowModelApplication: false,
+      optionAllowModelAdaptation: false,
+      optionAllowProductLine: false,
+      optionAllowApplication: false,
+      optionAllowAdaptation: false,
+      optionAllowRename: false,
+      optionAllowDelete: false,
+    });
   }
 
   componentDidMount() {
@@ -39,50 +129,50 @@ class TreeMenu extends Component<Props, State> {
     me.props.projectService.addLanguagesDetailListener(
       this.projectService_addListener
     );
+    me.props.projectService.addUpdateSelectedListener(
+      this.viewMenuTree_addListener
+    );
   }
 
   handleUpdateEditorText(event: any) {
     this.setState({
-      editorText: event.target.value,
+      modalInputValue: event.target.value,
     });
   }
 
   handleUpdateNewSelected(event: any) {
-    this.setState({
-      newSelected: event.target.id,
-    });
     this.updateModal(event.target.id);
   }
 
   updateModal(eventId: string) {
     let me = this;
-    const add: any = {
+    const updateModal: any = {
       newProducLine: function () {
         me.state.modalTittle = "New product line";
-        me.state.modalInput = "Enter new product line name";
+        me.state.modalInputText = "Enter new product line name";
       },
       newApplication: function () {
         me.state.modalTittle = "New application";
-        me.state.modalInput = "Enter new application name";
+        me.state.modalInputText = "Enter new application name";
       },
       newAdaptation: function () {
         me.state.modalTittle = "New Adaptation";
-        me.state.modalInput = "Enter new adaptation name";
+        me.state.modalInputText = "Enter new adaptation name";
       },
       renameItem: function () {
         me.state.modalTittle = "Rename";
-        me.state.modalInput = "Enter new name";
+        me.state.modalInputText = "Enter new name";
       },
       default: function () {
         me.state.modalTittle = "New ";
-        me.state.modalInput = "Enter name";
+        me.state.modalInputText = "Enter name";
       },
     };
-    add[eventId]();
+    updateModal[eventId]();
 
     this.setState({
       modalTittle: me.state.modalTittle,
-      modalInput: me.state.modalInput,
+      modalInputText: me.state.modalInputText,
     });
   }
 
@@ -95,17 +185,21 @@ class TreeMenu extends Component<Props, State> {
     let me = this;
     const add: any = {
       newProducLine: function () {
-        me.addNewProductLine(me.state.editorText);
+        me.addNewProductLine(me.state.modalInputValue);
       },
       newApplication: function () {
-        me.addNewApplication(me.state.editorText);
+        me.addNewApplication(me.state.modalInputValue);
       },
       newAdaptation: function () {
-        me.addNewAdaptation(me.state.editorText);
+        me.addNewAdaptation(me.state.modalInputValue);
       },
     };
 
     add[this.state.newSelected]();
+
+    this.setState({
+      modalInputValue: "",
+    });
   }
 
   addNewProductLine(productLineName: string) {
@@ -193,7 +287,7 @@ class TreeMenu extends Component<Props, State> {
           aria-labelledby="editorTextModalLabel"
           aria-hidden="true"
         >
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog modalTreeMenu-left-variamos">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title" id="editorTextModalLabel">
@@ -213,10 +307,12 @@ class TreeMenu extends Component<Props, State> {
                     className="form-control"
                     id="floatingInput"
                     placeholder="VariaMosTextEditor"
-                    value={this.state.editorText}
+                    value={this.state.modalInputValue}
                     onChange={this.handleUpdateEditorText}
                   />
-                  <label htmlFor="floatingInput">{this.state.modalInput}</label>
+                  <label htmlFor="floatingInput">
+                    {this.state.modalInputText}
+                  </label>
                 </div>
               </div>
               <div className="modal-footer">
@@ -242,7 +338,14 @@ class TreeMenu extends Component<Props, State> {
 
         <ul className="dropdown-menu" id="context-menu">
           <li>
-            <span className="dropdown-item" id="newModel">
+            <span
+              className={
+                this.state.optionAllowModelEnable
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
+              id="newModel"
+            >
               New Model
               <i className="bi bi-chevron-compact-right float-end"></i>
             </span>
@@ -250,16 +353,20 @@ class TreeMenu extends Component<Props, State> {
               {this.props.projectService.languagesDetail.map(
                 (language: Language, i: number) => (
                   <div>
-                    {/* Validar si en el lugar seleccionado ya existe el lenguage */}
-                    <li>
-                      <span
-                        className={"dropdown-item type_" + language}
-                        key={i}
-                        onClick={() => this.addNewEModel(language)}
-                      >
-                        {language.name + " Model"}
-                      </span>
-                    </li>
+                    {language.type === this.state.newSelected ? (
+                      /* Validar si en el lugar seleccionado ya existe el lenguage */
+                      <li>
+                        <span
+                          className={"dropdown-item type_" + language}
+                          key={i}
+                          onClick={() => this.addNewEModel(language)}
+                        >
+                          {language.name + " Model"}
+                        </span>
+                      </li>
+                    ) : (
+                      ""
+                    )}
                   </div>
                 )
               )}
@@ -267,7 +374,11 @@ class TreeMenu extends Component<Props, State> {
           </li>
           <li>
             <span
-              className="dropdown-item"
+              className={
+                this.state.optionAllowProductLine
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
               id="newProducLine"
               onClick={this.handleUpdateNewSelected}
               data-bs-toggle="modal"
@@ -278,7 +389,11 @@ class TreeMenu extends Component<Props, State> {
           </li>
           <li>
             <span
-              className="dropdown-item"
+              className={
+                this.state.optionAllowApplication
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
               id="newApplication"
               onClick={this.handleUpdateNewSelected}
               data-bs-toggle="modal"
@@ -289,7 +404,11 @@ class TreeMenu extends Component<Props, State> {
           </li>
           <li>
             <span
-              className="dropdown-item"
+              className={
+                this.state.optionAllowAdaptation
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
               id="newAdaptation"
               onClick={this.handleUpdateNewSelected}
               data-bs-toggle="modal"
@@ -299,11 +418,19 @@ class TreeMenu extends Component<Props, State> {
             </span>
           </li>
           <li>
-            <hr className="dropdown-divider" />
+            {this.state.optionAllowRename || this.state.optionAllowDelete ? (
+              <hr className="dropdown-divider" />
+            ) : (
+              ""
+            )}
           </li>
           <li>
             <span
-              className="dropdown-item"
+              className={
+                this.state.optionAllowRename
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
               id="renameItem"
               onClick={this.handleUpdateNewSelected}
               data-bs-toggle="modal"
@@ -314,7 +441,11 @@ class TreeMenu extends Component<Props, State> {
           </li>
           <li>
             <span
-              className="dropdown-item"
+              className={
+                this.state.optionAllowDelete
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
               id="deleteItem"
               // onClick={this.handleUpdateNewSelected}
               // data-bs-toggle="modal"

@@ -29,6 +29,20 @@ class ProjectManagement extends Component<Props, State> {
       this.handleUpdateNameProductLine.bind(this);
     this.btnCreateProject_onClick = this.btnCreateProject_onClick.bind(this);
     this.btnSaveProject_onClick = this.btnSaveProject_onClick.bind(this);
+    this.projectService_addListener =
+      this.projectService_addListener.bind(this);
+  }
+
+  componentDidMount() {
+    let me = this;
+    me.props.projectService.addUpdateProjectListener(
+      this.projectService_addListener
+    );
+  }
+
+  projectService_addListener(e: any) {
+    this.forceUpdate();
+    this.loadProject();
   }
 
   loadProject() {

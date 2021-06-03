@@ -42,7 +42,6 @@
 
     <script>
       $(document).ready(function () {
-
         document.getElementById("projectManagement").click();
 
         // START ********** SPLIT EDITOR SPACE
@@ -64,12 +63,6 @@
         // END  ********** SPLIT EDITOR SPACE
 
         //START ***************** Code for Right Clic
-        const findTypeSelect = (term, targeSelect) => {
-          if (targeSelect.includes(term)) {
-            return targeSelect;
-          }
-        };
-
         $("#TreePannel")
           .on("contextmenu", function (e) {
             var top = e.pageY - 10;
@@ -82,54 +75,15 @@
               })
               .addClass("show");
 
-            const targeSelect = e.target.classList.toString();
-
-            $("#newModel").removeAttr("hidden");
-            $("#newApplication").removeAttr("hidden");
-            $("#newAdaptation").removeAttr("hidden");
-            $("#newProducLine").removeAttr("hidden");
-            $("#context-menu").removeAttr("hidden");
-
-            switch (targeSelect) {
-              case findTypeSelect("lps", targeSelect):
-                $("#newModel").attr("hidden", "hidden");
-                $("#newApplication").attr("hidden", "hidden");
-                $("#newAdaptation").attr("hidden", "hidden");
-
-                break;
-              case findTypeSelect("domainE", targeSelect):
-                $("#newApplication").attr("hidden", "hidden");
-                $("#newAdaptation").attr("hidden", "hidden");
-                $("#newProducLine").attr("hidden", "hidden");
-
-                break;
-              case findTypeSelect("appE", targeSelect):
-                $("#newAdaptation").attr("hidden", "hidden");
-                $("#newProducLine").attr("hidden", "hidden");
-                break;
-              case findTypeSelect("aeApp", targeSelect):
-                $("#newApplication").attr("hidden", "hidden");
-                $("#newProducLine").attr("hidden", "hidden");
-                break;
-              case findTypeSelect("aeContext", targeSelect):
-                $("#newApplication").attr("hidden", "hidden");
-                $("#newAdaptation").attr("hidden", "hidden");
-                $("#newProducLine").attr("hidden", "hidden");
-                break;
-              default:
-                $("#context-menu").attr("hidden", "hidden");
-                break;
-            }
-
             return false; //blocks default Webbrowser right click menu
           })
           .on("click", function () {
             $("#context-menu").removeClass("show").hide();
           });
 
-        // $("#context-menu a").on("click", function () {
-        //   $(this).parent().removeClass("show").hide();
-        // });
+        $("#context-menu a").on("click", function () {
+          $(this).parent().removeClass("show").hide();
+        });
         //End***************** Code for Right Clic
       });
     </script>

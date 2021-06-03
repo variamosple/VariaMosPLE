@@ -14,6 +14,7 @@ class TreeExplorer extends Component<Props, State> {
 
   constructor(props: any) {
     super(props);
+
     this.btnSave_onClick = this.btnSave_onClick.bind(this);
     this.projectService_addListener =
       this.projectService_addListener.bind(this);
@@ -70,8 +71,13 @@ class TreeExplorer extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
-  updateLpSelected(idPl: number) {
+  updateLpSelected(e: any, idPl: number) {
     this.props.projectService.updateLpSelected(idPl);
+    if (e.target.id === "domainEngineering") {
+      this.props.projectService.updateDomainEngSelected();
+    } else if (e.target.id === "applicationEngineering") {
+      this.props.projectService.updateAppEngSelected();
+    }
     this.props.projectService.saveProject();
   }
 
@@ -156,8 +162,11 @@ class TreeExplorer extends Component<Props, State> {
                         <li key={idPl}>
                           <span
                             className="fa fa-plus-square lps"
+                            id="productLine"
                             onClick={() => this.lps_onClick(window.event, idPl)}
-                            onAuxClick={() => this.updateLpSelected(idPl)}
+                            onAuxClick={() =>
+                              this.updateLpSelected(window.event, idPl)
+                            }
                             // contentEditable="true"
                           >
                             {pl.name}
@@ -166,7 +175,10 @@ class TreeExplorer extends Component<Props, State> {
                             <li>
                               <span
                                 className="fa fa-plus-square domainE"
-                                onAuxClick={() => this.updateLpSelected(idPl)}
+                                onAuxClick={() =>
+                                  this.updateLpSelected(window.event, idPl)
+                                }
+                                id="domainEngineering"
                                 onClick={() =>
                                   this.lps_onClick(window.event, idPl)
                                 }
@@ -195,8 +207,11 @@ class TreeExplorer extends Component<Props, State> {
                             </li>
                             <li>
                               <span
+                                id="applicationEngineering"
                                 className="fa fa-plus-square appE"
-                                onAuxClick={() => this.updateLpSelected(idPl)}
+                                onAuxClick={() =>
+                                  this.updateLpSelected(window.event, idPl)
+                                }
                                 onClick={() =>
                                   this.lps_onClick(window.event, idPl)
                                 }
@@ -229,6 +244,7 @@ class TreeExplorer extends Component<Props, State> {
                                     (aeApp, idApplication: number) => (
                                       <div>
                                         <span
+                                          id="application"
                                           key={idApplication}
                                           className="fa fa-plus-square aeApp"
                                           onAuxClick={() =>
@@ -276,6 +292,7 @@ class TreeExplorer extends Component<Props, State> {
                                               <div>
                                                 <li>
                                                   <span
+                                                    id="adaptation"
                                                     key={idAdaptation}
                                                     className="fa fa-plus-square aeContext"
                                                     onAuxClick={() =>

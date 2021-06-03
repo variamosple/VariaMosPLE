@@ -158,7 +158,8 @@ ul {
   background-color: #b8daed3b;
 }
 
-.nav-bar-variamos, a {
+.nav-bar-variamos,
+a {
   text-decoration: none;
   color: #428dcf;
   background-color: white;
@@ -227,4 +228,13 @@ ul {
     margin-right: 0.7rem;
     margin-bottom: 0.5rem;
   }
+}
+
+.modalTreeMenu-left-variamos {
+  margin-left: 5%;
+  margin-top: 10%;
+}
+
+.hidden {
+  display: none;
 }

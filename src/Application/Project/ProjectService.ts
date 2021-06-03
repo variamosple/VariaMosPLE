@@ -23,6 +23,7 @@ export default class ProjectService {
   private _languages: any;
   private _languagesDetail: Language[] = this.getLanguagesDetail();
   private _project: Project = this.createProject("");
+  private treeItemSelected: string = "";
   private productLineSelected: number = 0;
   private applicationSelected: number = 0;
   private adaptationSelected: number = 0;
@@ -36,6 +37,7 @@ export default class ProjectService {
   private selectedModelListeners: any = [];
   private loadLanguagesListeners: any = [];
   private updateProjectListeners: any = [];
+  private updateSelectedListeners: any = [];
 
   constructor() {
     let me = this;
@@ -104,6 +106,7 @@ export default class ProjectService {
       }
     }
   }
+
   updateAdaptationSelected(
     idPl: number,
     idApplication: number,
@@ -112,13 +115,54 @@ export default class ProjectService {
     this.productLineSelected = idPl;
     this.applicationSelected = idApplication;
     this.adaptationSelected = idAdaptation;
+    this.treeItemSelected = "adaptation";
+    this.raiseEventUpdateSelected(this.treeItemSelected);
   }
   updateApplicationSelected(idPl: number, idApplication: number) {
     this.productLineSelected = idPl;
     this.applicationSelected = idApplication;
+    this.treeItemSelected = "application";
+    this.raiseEventUpdateSelected(this.treeItemSelected);
   }
   updateLpSelected(idPl: number) {
     this.productLineSelected = idPl;
+    this.treeItemSelected = "productLine";
+    this.raiseEventUpdateSelected(this.treeItemSelected);
+  }
+
+  updateDomainEngSelected() {
+    this.treeItemSelected = "domainEngineering";
+    this.raiseEventUpdateSelected(this.treeItemSelected);
+  }
+
+  updateAppEngSelected() {
+    this.treeItemSelected = "applicationEngineering";
+    this.raiseEventUpdateSelected(this.treeItemSelected);
+  }
+
+  getTreeItemSelected() {
+    return this.treeItemSelected;
+  }
+
+  setTreeItemSelected(value: string) {
+    this.treeItemSelected = value;
+  }
+
+  addUpdateSelectedListener(listener: any) {
+    this.updateSelectedListeners.push(listener);
+  }
+
+  removeUpdateSelectedListener(listener: any) {
+    this.updateSelectedListeners[listener] = null;
+  }
+
+  raiseEventUpdateSelected(itemSelected: string) {
+    let me = this;
+    let e: string = itemSelected;
+    for (let index = 0; index < me.updateSelectedListeners.length; index++) {
+      let callback = this.updateSelectedListeners[index];
+      callback(e);
+    }
   }
   //Search Model functions_ END***********
 
@@ -206,6 +250,7 @@ export default class ProjectService {
 
   updateProjectState(state: boolean) {
     this._project.enable = state;
+    this.raiseEventUpdateProject(this._project);
   }
 
   updateProjectName(name: string) {

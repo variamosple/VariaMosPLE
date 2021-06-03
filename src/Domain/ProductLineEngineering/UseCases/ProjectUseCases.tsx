@@ -122,6 +122,15 @@ export default class ProjectUseCases {
     return model;
   }
 
+  deleteTreeItemSelected(
+    project: Project,
+    language: string,
+    productLine: number,
+    application: number,
+    adaptation: number,
+    itemDelete: string | number
+  ) {}
+
   saveProject(project: Project): void {
     // Save data to sessionStorage
     sessionStorage.setItem("Project", JSON.stringify(project));

@@ -14,10 +14,15 @@ class navBar extends Component<Props, State> {
     super(props);
 
     this.exportProject = this.exportProject.bind(this);
+    this.refreshNavBar = this.refreshNavBar.bind(this);
   }
 
   exportProject() {
     this.props.projectService.exportProject();
+  }
+
+  refreshNavBar() {
+    this.forceUpdate();
   }
 
   render() {
