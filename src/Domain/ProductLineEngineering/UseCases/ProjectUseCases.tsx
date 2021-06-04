@@ -13,6 +13,49 @@ export default class ProjectUseCases {
     return project;
   }
 
+  renameItemProject(
+    project: Project,
+    idItem: string,
+    newName: string
+  ): Project {
+    let currentLP = 0;
+    let currentAp = 0;
+    let currentAdapt = 0;
+
+    project.productLines.forEach((productLine) => {
+      // search productLine
+      if (productLine.id === idItem) {
+        project.productLines[currentLP].name = newName;
+        return project;
+      }
+
+      productLine.applicationEngineering.applications.forEach((application) => {
+        // search application
+        if (application.id === idItem) {
+          project.productLines[currentLP].applicationEngineering.applications[
+            currentAp
+          ].name = newName;
+          return project;
+        }
+
+        application.adaptations.forEach((adaptation) => {
+          // search adaptation
+          if (adaptation.id === idItem) {
+            project.productLines[currentLP].applicationEngineering.applications[
+              currentAp
+            ].adaptations[currentAdapt].name = newName;
+            return project;
+          }
+
+          currentAdapt = currentAdapt + 1;
+        });
+        currentAp = currentAp + 1;
+      });
+      currentLP = currentLP + 1;
+    });
+    return project;
+  }
+
   deleteItemProject(project: Project, idItem: string): Project {
     let currentLP = 0;
     let currentAp = 0;

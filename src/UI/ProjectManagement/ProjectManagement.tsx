@@ -47,7 +47,6 @@ class ProjectManagement extends Component<Props, State> {
         this.setState({
           importProject: text,
         });
-        // console.log(text);
       };
 
       reader.readAsText(selectedFile);

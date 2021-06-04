@@ -2,11 +2,11 @@ import { Model } from "./Model";
 
 export class Adaptation {
   id: string;
-  adaptationName: string;
+  name: string;
   models: Model[] = [];
-  constructor(id: string, adaptationName: string, models: Model[] = []) {
+  constructor(id: string, name: string, models: Model[] = []) {
     this.id = id;
-    this.adaptationName = adaptationName;
+    this.name = name;
     this.models = models;
   }
 }

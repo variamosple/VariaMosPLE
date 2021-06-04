@@ -45,10 +45,15 @@ class TreeMenu extends Component<Props, State> {
     this.removeHidden = this.removeHidden.bind(this);
     this.viewMenuTree_addListener = this.viewMenuTree_addListener.bind(this);
     this.deleteItemProject = this.deleteItemProject.bind(this);
+    this.renameItemProject = this.renameItemProject.bind(this);
   }
 
   deleteItemProject() {
     this.props.projectService.deleteItemProject();
+  }
+
+  renameItemProject(newName: string) {
+    this.props.projectService.renameItemProject(newName);
   }
 
   viewMenuTree_addListener() {
@@ -206,6 +211,9 @@ class TreeMenu extends Component<Props, State> {
       },
       ADAPTATION: function () {
         me.addNewAdaptation(me.state.modalInputValue);
+      },
+      renameItem: function () {
+        me.renameItemProject(me.state.modalInputValue);
       },
     };
 

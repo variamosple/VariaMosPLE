@@ -268,7 +268,7 @@ class TreeExplorer extends Component<Props, State> {
                                             )
                                           }
                                         >
-                                          {aeApp.applicationName}
+                                          {aeApp.name}
                                         </span>
                                         <ul className="nested">
                                           {aeApp.models?.map(
@@ -325,7 +325,7 @@ class TreeExplorer extends Component<Props, State> {
                                                       )
                                                     }
                                                   >
-                                                    {aeCotext.adaptationName}
+                                                    {aeCotext.name}
                                                   </span>
                                                   <ul className="nested">
                                                     {aeCotext.models?.map(

@@ -287,6 +287,15 @@ export default class ProjectService {
     this.raiseEventUpdateProject(this._project);
   }
 
+  renameItemProject(newName: string) {
+    this._project = this.projectManager.renameItemProject(
+      this._project,
+      this.treeIdItemSelected,
+      newName
+    );
+    this.raiseEventUpdateProject(this._project);
+  }
+
   updateProjectState(state: boolean) {
     this._project.enable = state;
     this.raiseEventUpdateProject(this._project);
