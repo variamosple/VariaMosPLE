@@ -1,7 +1,5 @@
 import { Adaptation } from "../Entities/Adaptation";
 import { Application } from "../Entities/Application";
-import { ApplicationEngineering } from "../Entities/ApplicationEngineering";
-import { DomainEngineering } from "../Entities/DomainEngineering";
 import { Model } from "../Entities/Model";
 import { ProductLine } from "../Entities/ProductLine";
 import { Project } from "../Entities/Project";
@@ -15,10 +13,115 @@ export default class ProjectUseCases {
     return project;
   }
 
+  deleteItemProject(project: Project, idItem: string): Project {
+    let currentLP = 0;
+    let currentAp = 0;
+    let currentAdapt = 0;
+
+    project.productLines.forEach((productLine) => {
+      // search productLine
+      if (productLine.id === idItem) {
+        project.productLines = project.productLines.filter(
+          (lp) => lp.id !== idItem
+        );
+        return project;
+      }
+
+      productLine.domainEngineering.models.forEach((domainModel) => {
+        // search domainModel
+        if (domainModel.id === idItem) {
+          project.productLines[currentLP].domainEngineering.models =
+            project.productLines[currentLP].domainEngineering.models.filter(
+              (model) => model.id !== idItem
+            );
+          return project;
+        }
+      });
+
+      productLine.applicationEngineering.models.forEach(
+        (applicationEngModel) => {
+          // search applicationEngModel
+          if (applicationEngModel.id === idItem) {
+            project.productLines[currentLP].applicationEngineering.models =
+              project.productLines[
+                currentLP
+              ].applicationEngineering.models.filter(
+                (model) => model.id !== idItem
+              );
+            return project;
+          }
+        }
+      );
+
+      productLine.applicationEngineering.applications.forEach((application) => {
+        // search application
+        if (application.id === idItem) {
+          project.productLines[currentLP].applicationEngineering.applications =
+            project.productLines[
+              currentLP
+            ].applicationEngineering.applications.filter(
+              (app) => app.id !== idItem
+            );
+          return project;
+        }
+
+        application.models.forEach((applicationModel) => {
+          // search applicationModel
+          if (applicationModel.id === idItem) {
+            project.productLines[currentLP].applicationEngineering.applications[
+              currentAp
+            ].models = project.productLines[
+              currentLP
+            ].applicationEngineering.applications[currentAp].models.filter(
+              (model) => model.id !== idItem
+            );
+            return project;
+          }
+        });
+
+        application.adaptations.forEach((adaptation) => {
+          // search adaptation
+          if (adaptation.id === idItem) {
+            project.productLines[currentLP].applicationEngineering.applications[
+              currentAp
+            ].adaptations = project.productLines[
+              currentLP
+            ].applicationEngineering.applications[currentAp].adaptations.filter(
+              (adp) => adp.id !== idItem
+            );
+            return project;
+          }
+
+          adaptation.models.forEach((adaptationModel) => {
+            // search AdaptationModel
+            if (adaptationModel.id === idItem) {
+              project.productLines[
+                currentLP
+              ].applicationEngineering.applications[currentAp].adaptations[
+                currentAdapt
+              ].models = project.productLines[
+                currentLP
+              ].applicationEngineering.applications[currentAp].adaptations[
+                currentAdapt
+              ].models.filter((model) => model.id !== idItem);
+              return project;
+            }
+          });
+
+          currentAdapt = currentAdapt + 1;
+        });
+        currentAp = currentAp + 1;
+      });
+      currentLP = currentLP + 1;
+    });
+    return project;
+  }
+
   createLps(project: Project, producLineName: string): ProductLine {
-    let productLine: ProductLine = new ProductLine(producLineName);
-    productLine.domainEngineering = new DomainEngineering();
-    productLine.applicationEngineering = new ApplicationEngineering();
+    let productLine: ProductLine = new ProductLine(
+      this.generateId(),
+      producLineName
+    );
     project.productLines.push(productLine);
     return productLine;
   }
@@ -28,7 +131,10 @@ export default class ProjectUseCases {
     applicationName: string,
     productLine: number
   ): Application {
-    let application: Application = new Application(applicationName);
+    let application: Application = new Application(
+      this.generateId(),
+      applicationName
+    );
 
     project.productLines[productLine].applicationEngineering?.applications.push(
       application
@@ -43,7 +149,10 @@ export default class ProjectUseCases {
     productLine: number,
     application: number
   ): Adaptation {
-    let adaptation: Adaptation = new Adaptation(adaptationName);
+    let adaptation: Adaptation = new Adaptation(
+      this.generateId(),
+      adaptationName
+    );
     project.productLines[productLine].applicationEngineering?.applications[
       application
     ].adaptations?.push(adaptation);
@@ -58,7 +167,7 @@ export default class ProjectUseCases {
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(languageType);
+    let model: Model = new Model(this.generateId(), languageType);
     project.productLines[productLine].domainEngineering?.models.push(model);
 
     //Ejecutar el consumo de mxGraph.
@@ -72,7 +181,7 @@ export default class ProjectUseCases {
     productLine: number
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
-    let model: Model = new Model(languageType);
+    let model: Model = new Model(this.generateId(), languageType);
 
     project.productLines[productLine].applicationEngineering?.models.push(
       model
@@ -91,7 +200,7 @@ export default class ProjectUseCases {
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(languageType);
+    let model: Model = new Model(this.generateId(), languageType);
 
     project.productLines[productLine].applicationEngineering?.applications[
       application
@@ -111,9 +220,9 @@ export default class ProjectUseCases {
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(languageType);
+    let model: Model = new Model(this.generateId(), languageType);
 
-    project.productLines[productLine].applicationEngineering?.applications[
+    project.productLines[productLine].applicationEngineering.applications[
       application
     ].adaptations[adaptation].models.push(model);
 

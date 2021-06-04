@@ -24,6 +24,7 @@ export default class ProjectService {
   private _languagesDetail: Language[] = this.getLanguagesDetail();
   private _project: Project = this.createProject("");
   private treeItemSelected: string = "";
+  private treeIdItemSelected: string = "";
   private productLineSelected: number = 0;
   private applicationSelected: number = 0;
   private adaptationSelected: number = 0;
@@ -52,6 +53,8 @@ export default class ProjectService {
   modelDomainSelected(idPl: number, idDomainModel: number) {
     let modelSelected =
       this._project.productLines[idPl].domainEngineering?.models[idDomainModel];
+
+    this.treeIdItemSelected = modelSelected.id;
     this.raiseEventSelectedModel(modelSelected);
   }
 
@@ -60,6 +63,7 @@ export default class ProjectService {
       this._project.productLines[idPl].applicationEngineering?.models[
         idApplicationEngModel
       ];
+    this.treeIdItemSelected = modelSelected.id;
     this.raiseEventSelectedModel(modelSelected);
   }
 
@@ -72,6 +76,7 @@ export default class ProjectService {
       this._project.productLines[idPl].applicationEngineering?.applications[
         idApplication
       ].models[idApplicationModel];
+    this.treeIdItemSelected = modelSelected.id;
     this.raiseEventSelectedModel(modelSelected);
   }
 
@@ -85,6 +90,7 @@ export default class ProjectService {
       this._project.productLines[idPl].applicationEngineering?.applications[
         idApplication
       ].adaptations[idAdaptation].models[idAdaptationModel];
+    this.treeIdItemSelected = modelSelected.id;
     this.raiseEventSelectedModel(modelSelected);
   }
 
@@ -116,17 +122,26 @@ export default class ProjectService {
     this.applicationSelected = idApplication;
     this.adaptationSelected = idAdaptation;
     this.treeItemSelected = "adaptation";
+    this.treeIdItemSelected =
+      this._project.productLines[idPl].applicationEngineering.applications[
+        idApplication
+      ].adaptations[idAdaptation].id;
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
   updateApplicationSelected(idPl: number, idApplication: number) {
     this.productLineSelected = idPl;
     this.applicationSelected = idApplication;
     this.treeItemSelected = "application";
+    this.treeIdItemSelected =
+      this._project.productLines[idPl].applicationEngineering.applications[
+        idApplication
+      ].id;
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
   updateLpSelected(idPl: number) {
     this.productLineSelected = idPl;
     this.treeItemSelected = "productLine";
+    this.treeIdItemSelected = this._project.productLines[idPl].id;
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
 
@@ -248,6 +263,14 @@ export default class ProjectService {
     downloadAnchorNode.remove();
   }
 
+  deleteItemProject() {
+    this._project = this.projectManager.deleteItemProject(
+      this._project,
+      this.treeIdItemSelected
+    );
+    this.raiseEventUpdateProject(this._project);
+  }
+
   updateProjectState(state: boolean) {
     this._project.enable = state;
     this.raiseEventUpdateProject(this._project);
@@ -274,7 +297,6 @@ export default class ProjectService {
       callback(e);
     }
   }
-
   //Project functions_ END***********
 
   //Product Line functions_ START***********

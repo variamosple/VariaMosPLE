@@ -44,6 +44,11 @@ class TreeMenu extends Component<Props, State> {
     this.updateModal = this.updateModal.bind(this);
     this.removeHidden = this.removeHidden.bind(this);
     this.viewMenuTree_addListener = this.viewMenuTree_addListener.bind(this);
+    this.deleteItemProject = this.deleteItemProject.bind(this);
+  }
+
+  deleteItemProject() {
+    this.props.projectService.deleteItemProject();
   }
 
   viewMenuTree_addListener() {
@@ -90,6 +95,7 @@ class TreeMenu extends Component<Props, State> {
           optionAllowAdaptation: true,
           optionAllowRename: true,
           optionAllowDelete: true,
+          newSelected: "APPLICATION",
         });
       },
       adaptation: function () {
@@ -130,6 +136,9 @@ class TreeMenu extends Component<Props, State> {
     );
     me.props.projectService.addUpdateSelectedListener(
       this.viewMenuTree_addListener
+    );
+    me.props.projectService.addUpdateProjectListener(
+      this.projectService_addListener
     );
   }
 
@@ -336,6 +345,50 @@ class TreeMenu extends Component<Props, State> {
           </div>
         </div>
 
+        <div
+          className="modal fade"
+          id="deleteModal"
+          tabIndex={-1}
+          aria-labelledby="deleteModalLabel"
+          aria-hidden="true"
+        >
+          <div className="modal-dialog modalTreeMenu-left-variamos">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="deleteModalLabel">
+                  Delete
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div className="modal-body">
+                <p>Are you sure you want to delete this item?</p>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Not
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-Variamos"
+                  onClick={this.deleteItemProject}
+                  data-bs-dismiss="modal"
+                >
+                  Yes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <ul className="dropdown-menu" id="context-menu">
           <li>
             <span
@@ -447,9 +500,8 @@ class TreeMenu extends Component<Props, State> {
                   : "hidden dropdown-item"
               }
               id="deleteItem"
-              // onClick={this.handleUpdateNewSelected}
-              // data-bs-toggle="modal"
-              data-bs-target="#editorTextModal"
+              data-bs-toggle="modal"
+              data-bs-target="#deleteModal"
             >
               Delete
             </span>
