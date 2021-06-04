@@ -54,8 +54,10 @@ export default class ProjectService {
     let modelSelected =
       this._project.productLines[idPl].domainEngineering?.models[idDomainModel];
 
+    this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
     this.raiseEventSelectedModel(modelSelected);
+    this.raiseEventUpdateSelected(this.treeItemSelected);
   }
 
   modelApplicationEngSelected(idPl: number, idApplicationEngModel: number) {
@@ -63,8 +65,10 @@ export default class ProjectService {
       this._project.productLines[idPl].applicationEngineering?.models[
         idApplicationEngModel
       ];
+    this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
     this.raiseEventSelectedModel(modelSelected);
+    this.raiseEventUpdateSelected(this.treeItemSelected);
   }
 
   modelApplicationSelected(
@@ -76,8 +80,10 @@ export default class ProjectService {
       this._project.productLines[idPl].applicationEngineering?.applications[
         idApplication
       ].models[idApplicationModel];
+    this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
     this.raiseEventSelectedModel(modelSelected);
+    this.raiseEventUpdateSelected(this.treeItemSelected);
   }
 
   modelAdaptationSelected(
@@ -90,8 +96,11 @@ export default class ProjectService {
       this._project.productLines[idPl].applicationEngineering?.applications[
         idApplication
       ].adaptations[idAdaptation].models[idAdaptationModel];
+
+    this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
     this.raiseEventSelectedModel(modelSelected);
+    this.raiseEventUpdateSelected(this.treeItemSelected);
   }
 
   addSelectedModelListener(listener: any) {

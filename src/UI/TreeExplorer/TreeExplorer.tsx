@@ -190,8 +190,15 @@ class TreeExplorer extends Component<Props, State> {
                                   (domainModel, idDomainModel: number) => (
                                     <div>
                                       <li
+                                        id="model"
                                         key={idDomainModel}
                                         onClick={() =>
+                                          this.btn_viewDomainModel(
+                                            idPl,
+                                            idDomainModel
+                                          )
+                                        }
+                                        onAuxClick={() =>
                                           this.btn_viewDomainModel(
                                             idPl,
                                             idDomainModel
@@ -226,6 +233,7 @@ class TreeExplorer extends Component<Props, State> {
                                   ) => (
                                     <div>
                                       <li
+                                        id="model"
                                         key={idApplicationEngModel}
                                         onClick={() =>
                                           this.btn_viewApplicationEngModel(
@@ -270,8 +278,16 @@ class TreeExplorer extends Component<Props, State> {
                                             ) => (
                                               <div>
                                                 <li
+                                                  id="model"
                                                   key={idApplicationModel}
                                                   onClick={() =>
+                                                    this.btn_viewApplicationModel(
+                                                      idPl,
+                                                      idApplication,
+                                                      idApplicationModel
+                                                    )
+                                                  }
+                                                  onAuxClick={() =>
                                                     this.btn_viewApplicationModel(
                                                       idPl,
                                                       idApplication,
@@ -319,10 +335,19 @@ class TreeExplorer extends Component<Props, State> {
                                                       ) => (
                                                         <div>
                                                           <li
+                                                            id="model"
                                                             key={
                                                               idAdaptationModel
                                                             }
                                                             onClick={() =>
+                                                              this.btn_viewAdaptationModel(
+                                                                idPl,
+                                                                idApplication,
+                                                                idAdaptation,
+                                                                idAdaptationModel
+                                                              )
+                                                            }
+                                                            onAuxClick={() =>
                                                               this.btn_viewAdaptationModel(
                                                                 idPl,
                                                                 idApplication,

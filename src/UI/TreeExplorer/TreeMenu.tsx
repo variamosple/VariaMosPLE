@@ -107,6 +107,11 @@ class TreeMenu extends Component<Props, State> {
           newSelected: "ADAPTATION",
         });
       },
+      model: function () {
+        me.setState({
+          optionAllowDelete: true,
+        });
+      },
       default: function () {
         return false;
       },
@@ -471,11 +476,25 @@ class TreeMenu extends Component<Props, State> {
             </span>
           </li>
           <li>
-            {this.state.optionAllowRename || this.state.optionAllowDelete ? (
+            {this.state.optionAllowRename ? (
               <hr className="dropdown-divider" />
             ) : (
               ""
             )}
+          </li>
+          <li>
+            <span
+              className={
+                this.state.optionAllowDelete
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
+              id="deleteItem"
+              data-bs-toggle="modal"
+              data-bs-target="#deleteModal"
+            >
+              Delete
+            </span>
           </li>
           <li>
             <span
@@ -490,20 +509,6 @@ class TreeMenu extends Component<Props, State> {
               data-bs-target="#editorTextModal"
             >
               Raname
-            </span>
-          </li>
-          <li>
-            <span
-              className={
-                this.state.optionAllowDelete
-                  ? "dropdown-item"
-                  : "hidden dropdown-item"
-              }
-              id="deleteItem"
-              data-bs-toggle="modal"
-              data-bs-target="#deleteModal"
-            >
-              Delete
             </span>
           </li>
         </ul>
