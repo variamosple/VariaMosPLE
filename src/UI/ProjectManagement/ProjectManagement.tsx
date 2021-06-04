@@ -9,6 +9,7 @@ interface Props {
 interface State {
   projectName: string;
   productLineName: string;
+  importProject: string | undefined;
 }
 
 let classActive: string = "active";
@@ -22,8 +23,10 @@ class ProjectManagement extends Component<Props, State> {
     this.state = {
       productLineName: "",
       projectName: this.props.projectService.project.name,
+      importProject: "",
     };
     this.loadProject();
+
     this.handleUpdateNameProject = this.handleUpdateNameProject.bind(this);
     this.handleUpdateNameProductLine =
       this.handleUpdateNameProductLine.bind(this);
@@ -31,6 +34,32 @@ class ProjectManagement extends Component<Props, State> {
     this.btnSaveProject_onClick = this.btnSaveProject_onClick.bind(this);
     this.projectService_addListener =
       this.projectService_addListener.bind(this);
+    this.handleImportProject = this.handleImportProject.bind(this);
+    this.importProject = this.importProject.bind(this);
+  }
+
+  handleImportProject(files: FileList | null) {
+    if (files) {
+      let selectedFile = files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = reader.result?.toString().trim();
+        this.setState({
+          importProject: text,
+        });
+        // console.log(text);
+      };
+
+      reader.readAsText(selectedFile);
+    }
+  }
+
+  importProject() {
+    this.props.projectService.importProject(this.state.importProject);
+    document.getElementById("list-iProject-list")?.classList.remove("active");
+    document.getElementById("list-iProject")?.classList.remove("active");
+    document.getElementById("list-iProject")?.classList.remove("show");
+    window.location.reload();
   }
 
   componentDidMount() {
@@ -262,13 +291,19 @@ class ProjectManagement extends Component<Props, State> {
                         aria-labelledby="list-iProject-list"
                       >
                         <div className="">
-                          <label htmlFor="formFile" className="form-label">
+                          <label
+                            htmlFor="importProjectFile"
+                            className="form-label"
+                          >
                             Upload a JSON file
                           </label>
                           <input
                             className="form-control"
                             type="file"
-                            id="formFile"
+                            id="importProjectFile"
+                            onChange={(e) =>
+                              this.handleImportProject(e.target.files)
+                            }
                             accept=".json"
                           />
                         </div>
@@ -276,6 +311,7 @@ class ProjectManagement extends Component<Props, State> {
                         <button
                           type="button"
                           className="btn btn-Variamos h-100"
+                          onClick={this.importProject}
                         >
                           Import
                         </button>

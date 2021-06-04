@@ -242,6 +242,13 @@ export default class ProjectService {
     return project;
   }
 
+  importProject(file: string | undefined): void {
+    if (file) {
+      this._project = Object.assign(this._project, JSON.parse(file));
+    }
+    this.raiseEventUpdateProject(this._project);
+  }
+
   loadProject(project: Project): Project {
     let projectSessionStorage = sessionStorage.getItem("Project");
     if (projectSessionStorage) {
