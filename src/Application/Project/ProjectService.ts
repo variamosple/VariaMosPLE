@@ -203,6 +203,40 @@ export default class ProjectService {
     return this.languageUseCases.getLanguagesDetail();
   }
 
+  existDomainModel(language: string): boolean {
+    let existModel = this._project.productLines[
+      this.productLineSelected
+    ].domainEngineering.models.filter((model) => model.name === language)[0];
+
+    if (existModel) return true;
+
+    return false;
+  }
+
+  existApplicaioninModel(language: string): boolean {
+    let existModel = this._project.productLines[
+      this.productLineSelected
+    ].applicationEngineering.applications[
+      this.applicationSelected
+    ].models.filter((model) => model.name === language)[0];
+
+    if (existModel) return true;
+
+    return false;
+  }
+
+  existAdaptationModel(language: string): boolean {
+    let existModel = this._project.productLines[
+      this.productLineSelected
+    ].applicationEngineering.applications[this.applicationSelected].adaptations[
+      this.adaptationSelected
+    ].models.filter((model) => model.name === language)[0];
+    
+    if (existModel) return true;
+
+    return false;
+  }
+
   addLanguagesDetailListener(listener: any) {
     this.loadLanguagesListeners.push(listener);
   }

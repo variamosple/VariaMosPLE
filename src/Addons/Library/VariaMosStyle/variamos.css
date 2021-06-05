@@ -238,3 +238,9 @@ a {
 .hidden {
   display: none;
 }
+
+.ajs-message {
+  color: #ffff !important;
+  background-color: #428dcf !important;
+  border-color: #428dcf !important;
+}

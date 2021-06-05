@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
+import * as alertify from "alertifyjs"
 
 interface Props {
   projectService: ProjectService;
@@ -253,17 +254,24 @@ class TreeMenu extends Component<Props, State> {
 
   addNewEModel(language: Language) {
     let me = this;
+
     const add: any = {
       DOMAIN: function () {
-        me.addNewDomainEModel(language.name);
+        if (!me.props.projectService.existDomainModel(language.name))
+          me.addNewDomainEModel(language.name);
+        else alertify.message(language.name + " model already exist.");
       },
       APPLICATION: function () {
-        me.addNewApplicationModel(language.name);
+        if (!me.props.projectService.existApplicaioninModel(language.name))
+          me.addNewApplicationModel(language.name);
+        else alertify.message(language.name + " model already exist.");
       },
       ADAPTATION: function () {
-        me.addNewAdaptationModel(language.name);
+        if (!me.props.projectService.existAdaptationModel(language.name))
+          me.addNewAdaptationModel(language.name);
+        else alertify.message(language.name + " model already exist.");
       },
-    };
+    };  
 
     add[language.type]();
   }
