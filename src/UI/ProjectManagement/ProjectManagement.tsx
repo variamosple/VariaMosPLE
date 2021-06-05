@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import "../../Addons/Library/VariaMosStyle/variamos.css";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
+import * as alertify from "alertifyjs";
 
 interface Props {
   projectService: ProjectService;
@@ -93,6 +94,18 @@ class ProjectManagement extends Component<Props, State> {
   }
 
   btnCreateProject_onClick(event: any) {
+    if (this.state.projectName === "") {
+      alertify.message("Project name is required");
+      document.getElementById("enterProjectName")?.focus();
+      return false;
+    }
+
+    if (this.state.productLineName === "") {
+      alertify.message("Product line name is required");
+      document.getElementById("enterProductLineName")?.focus();
+      return false;
+    }
+
     this.props.projectService.updateProjectName(this.state.projectName);
     this.props.projectService.updateProjectState(true);
 
@@ -103,9 +116,17 @@ class ProjectManagement extends Component<Props, State> {
     this.props.projectService.raiseEventNewProductLine(productLine);
 
     this.props.projectService.saveProject();
+
+    document.getElementById("openModal")?.click();
   }
 
   btnSaveProject_onClick(event: any) {
+    if (this.state.projectName === "") {
+      alertify.message("Project name is required");
+      document.getElementById("enterMyProjectName")?.focus();
+      return false;
+    }
+
     let languages = this.props.projectService.getLanguagesDetail();
 
     this.props.projectService.updateProjectName(this.state.projectName);
@@ -113,6 +134,7 @@ class ProjectManagement extends Component<Props, State> {
     this.props.projectService.raiseEventLanguagesDetail(languages);
 
     this.props.projectService.saveProject();
+    document.getElementById("openModal")?.click();
   }
 
   render() {
@@ -198,7 +220,7 @@ class ProjectManagement extends Component<Props, State> {
                             <input
                               type="text"
                               className="form-control"
-                              id="floatingInput"
+                              id="enterMyProjectName"
                               placeholder="VariaMosProject"
                               value={this.state.projectName}
                               onChange={(e) => this.handleUpdateNameProject(e)}
@@ -213,7 +235,6 @@ class ProjectManagement extends Component<Props, State> {
                               <button
                                 type="button"
                                 className="btn form-control btn-Variamos"
-                                data-bs-dismiss="modal"
                                 onClick={(e) => this.btnSaveProject_onClick(e)}
                               >
                                 Save Project
@@ -245,9 +266,8 @@ class ProjectManagement extends Component<Props, State> {
                           <input
                             type="text"
                             className="form-control"
-                            id="floatingInput"
+                            id="enterProjectName"
                             placeholder="VariaMosProject"
-                            // value={this.props.projectService.project.projectName}
                             onChange={(e) => this.handleUpdateNameProject(e)}
                           />
                           <label htmlFor="floatingInput">
@@ -261,7 +281,7 @@ class ProjectManagement extends Component<Props, State> {
                               <input
                                 type="text"
                                 className="form-control"
-                                id="floatingInputGrid"
+                                id="enterProductLineName"
                                 placeholder="VariaMosProductLineE"
                                 onChange={(e) =>
                                   this.handleUpdateNameProductLine(e)
@@ -277,12 +297,18 @@ class ProjectManagement extends Component<Props, State> {
                         <button
                           type="button"
                           className="btn form-control btn-Variamos"
-                          data-bs-dismiss="modal"
                           onClick={this.btnCreateProject_onClick}
+                          id="createProject"
                         >
                           Create Project
                         </button>
+                        <div
+                          hidden={true}
+                          id="openModal"
+                          data-bs-dismiss="modal"
+                        ></div>
                       </div>
+
                       <div
                         className="tab-pane fade"
                         id="list-iProject"

@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
-import * as alertify from "alertifyjs"
+import * as alertify from "alertifyjs";
 
 interface Props {
   projectService: ProjectService;
@@ -202,6 +202,12 @@ class TreeMenu extends Component<Props, State> {
   }
 
   addNewFolder(event: any) {
+    if (this.state.modalInputValue === "") {
+      alertify.message("The name is required");
+      document.getElementById("modalInputValue")?.focus();
+      return false;
+    }
+
     let me = this;
     const add: any = {
       PRODUCTLINE: function () {
@@ -219,6 +225,8 @@ class TreeMenu extends Component<Props, State> {
     };
 
     add[this.state.newSelected]();
+
+    document.getElementById("closeModal")?.click();
 
     this.setState({
       modalInputValue: "",
@@ -271,7 +279,7 @@ class TreeMenu extends Component<Props, State> {
           me.addNewAdaptationModel(language.name);
         else alertify.message(language.name + " model already exist.");
       },
-    };  
+    };
 
     add[language.type]();
   }
@@ -335,7 +343,7 @@ class TreeMenu extends Component<Props, State> {
                   <input
                     type="text"
                     className="form-control"
-                    id="floatingInput"
+                    id="modalInputValue"
                     placeholder="VariaMosTextEditor"
                     value={this.state.modalInputValue}
                     onChange={this.handleUpdateEditorText}
@@ -357,10 +365,15 @@ class TreeMenu extends Component<Props, State> {
                   type="button"
                   className="btn btn-Variamos"
                   onClick={this.addNewFolder}
-                  data-bs-dismiss="modal"
+                  // data-bs-dismiss="modal"
                 >
                   Save changes
                 </button>
+                <div
+                  hidden={true}
+                  id="closeModal"
+                  data-bs-dismiss="modal"
+                ></div>
               </div>
             </div>
           </div>
