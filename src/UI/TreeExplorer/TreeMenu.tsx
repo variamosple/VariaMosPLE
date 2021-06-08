@@ -400,7 +400,7 @@ class TreeMenu extends Component<Props, State> {
                 ></button>
               </div>
               <div className="modal-body">
-                <p>Are you sure you want to delete this item?</p>
+                <p>Are you sure you wish to delete this item?</p>
               </div>
               <div className="modal-footer">
                 <button
@@ -408,7 +408,7 @@ class TreeMenu extends Component<Props, State> {
                   className="btn btn-secondary"
                   data-bs-dismiss="modal"
                 >
-                  Not
+                  No
                 </button>
                 <button
                   type="button"
@@ -537,7 +537,7 @@ class TreeMenu extends Component<Props, State> {
               data-bs-toggle="modal"
               data-bs-target="#editorTextModal"
             >
-              Raname
+              Rename
             </span>
           </li>
         </ul>

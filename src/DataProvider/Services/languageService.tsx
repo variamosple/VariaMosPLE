@@ -9,8 +9,11 @@ export default class LanguageService {
   getLanguagesDetail(): Language[] {
     let languages: Language[] = [];
     try {
-      this.apiVariamos.get("/languagesDetail").then((res) => {
-        languages = Object.assign(languages, res.data);
+      this.apiVariamos.get("/languages/detail").then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+
+        languages = Object.assign(languages, responseAPISuccess.data);
       });
     } catch (error) {
       console.log("Error " + error);
@@ -21,29 +24,41 @@ export default class LanguageService {
   getLanguages(callBack: any) {
     try {
       this.apiVariamos.get("/languages").then((res) => {
-        callBack(res.data);
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        callBack(responseAPISuccess.data);
       });
     } catch (error) {
       console.log("Error " + error);
     }
   }
+}
 
-  // getLanguagesNative(method: string, url: string, languageName: string) {
-  //   var xhr = new XMLHttpRequest();
-  //   xhr.open(method, url, true);
-  //   return new Promise((resolve, reject) => {
-  //     xhr.onreadystatechange = function () {
-  //       if (xhr.readyState !== 4) return;
-  //       if (xhr.status >= 200 && xhr.status < 300) {
-  //         resolve(xhr);
-  //       } else {
-  //         reject({
-  //           status: xhr.status,
-  //           statusText: xhr.statusText,
-  //         });
-  //       }
-  //     };
-  //     xhr.send(languageName);
-  //   });
-  // }
+export class ResponseAPISuccess {
+  transactionId?: string;
+  message?: string;
+  data?: JSON;
+  constructor(transactionId?: string, message?: string, data?: JSON) {
+    this.transactionId = transactionId;
+    this.message = message;
+    this.data = data;
+  }
+}
+
+export class ResponseAPIError {
+  transactionId?: string;
+  message?: string;
+  errorCode?: string;
+  data?: JSON;
+  constructor(
+    transactionId?: string,
+    message?: string,
+    errorCode?: string,
+    data?: JSON
+  ) {
+    this.transactionId = transactionId;
+    this.message = message;
+    this.errorCode = errorCode;
+    this.data = data;
+  }
 }
