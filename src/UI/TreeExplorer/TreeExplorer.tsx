@@ -134,6 +134,9 @@ class TreeExplorer extends Component<Props, State> {
     me.props.projectService.addNewDomainEngineeringModelListener(
       this.projectService_addListener
     );
+    me.props.projectService.addNewApplicationEngineeringModelListener(
+      this.projectService_addListener
+    );
 
     me.props.projectService.addUpdateProjectListener(
       this.projectService_addListener

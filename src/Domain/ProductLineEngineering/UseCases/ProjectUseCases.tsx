@@ -208,8 +208,6 @@ export default class ProjectUseCases {
     languageType: string,
     productLine: number
   ): Model {
-    // let modelName = this.findLanguage(LanguageType);
-
     let model: Model = new Model(this.generateId(), languageType);
     project.productLines[productLine].domainEngineering?.models.push(model);
 
@@ -223,9 +221,7 @@ export default class ProjectUseCases {
     languageType: string,
     productLine: number
   ): Model {
-    // let modelName = this.findLanguage(LanguageType);
     let model: Model = new Model(this.generateId(), languageType);
-
     project.productLines[productLine].applicationEngineering?.models.push(
       model
     );

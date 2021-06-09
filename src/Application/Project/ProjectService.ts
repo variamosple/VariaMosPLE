@@ -33,6 +33,7 @@ export default class ProjectService {
   private newApplicationListeners: any = [];
   private newAdaptationListeners: any = [];
   private newDomainEngineeringModelListeners: any = [];
+  private newApplicationEngineeringModelListeners: any = [];
   private newApplicationModelListeners: any = [];
   private newAdaptationModelListeners: any = [];
   private selectedModelListeners: any = [];
@@ -213,6 +214,18 @@ export default class ProjectService {
     return false;
   }
 
+  existApplicaioninEngModel(language: string): boolean {
+    let existModel = this._project.productLines[
+      this.productLineSelected
+    ].applicationEngineering.models.filter(
+      (model) => model.name === language
+    )[0];
+
+    if (existModel) return true;
+
+    return false;
+  }
+
   existApplicaioninModel(language: string): boolean {
     let existModel = this._project.productLines[
       this.productLineSelected
@@ -231,7 +244,7 @@ export default class ProjectService {
     ].applicationEngineering.applications[this.applicationSelected].adaptations[
       this.adaptationSelected
     ].models.filter((model) => model.name === language)[0];
-    
+
     if (existModel) return true;
 
     return false;
@@ -466,6 +479,37 @@ export default class ProjectService {
     }
   }
   //createDomainEngineeringModel functions_ END***********
+
+  //createApplicationEngineeringModel functions_ START***********
+  createApplicationEngineeringModel(project: Project, languageType: string) {
+    return this.projectManager.createApplicationEngineeringModel(
+      project,
+      languageType,
+      this.productLineSelected
+    );
+  }
+
+  addNewApplicationEngineeringModelListener(listener: any) {
+    this.newApplicationEngineeringModelListeners.push(listener);
+  }
+
+  removeNewApplicationEngineeringModelListener(listener: any) {
+    this.newApplicationEngineeringModelListeners[listener] = null;
+  }
+
+  raiseEventApplicationEngineeringModel(model: Model) {
+    let me = this;
+    let e = new NewModelEventArg(me, me._project, model);
+    for (
+      let index = 0;
+      index < me.newApplicationEngineeringModelListeners.length;
+      index++
+    ) {
+      let callback = this.newApplicationEngineeringModelListeners[index];
+      callback(e);
+    }
+  }
+  //createApplicationEngineeringModel functions_ END***********
 
   //createApplicationModel functions_ START***********
   createApplicationModel(project: Project, languageType: string) {

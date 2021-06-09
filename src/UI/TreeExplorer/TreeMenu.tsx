@@ -33,6 +33,7 @@ class TreeMenu extends Component<Props, State> {
     this.addNewApplication = this.addNewApplication.bind(this);
     this.addNewAdaptation = this.addNewAdaptation.bind(this);
     this.addNewDomainEModel = this.addNewDomainEModel.bind(this);
+    this.addNewApplicationEModel = this.addNewApplicationEModel.bind(this);
     this.addNewApplicationModel = this.addNewApplicationModel.bind(this);
     this.addNewAdaptationModel = this.addNewAdaptationModel.bind(this);
     this.addNewEModel = this.addNewEModel.bind(this);
@@ -270,7 +271,16 @@ class TreeMenu extends Component<Props, State> {
         else alertify.message(language.name + " model already exist.");
       },
       APPLICATION: function () {
-        if (!me.props.projectService.existApplicaioninModel(language.name))
+        if (
+          me.props.projectService.getTreeItemSelected() ===
+          "applicationEngineering"
+        ) {
+          if (!me.props.projectService.existApplicaioninEngModel(language.name))
+            me.addNewApplicationEModel(language.name);
+          else alertify.message(language.name + " model already exist.");
+        } else if (
+          !me.props.projectService.existApplicaioninModel(language.name)
+        )
           me.addNewApplicationModel(language.name);
         else alertify.message(language.name + " model already exist.");
       },
@@ -293,6 +303,19 @@ class TreeMenu extends Component<Props, State> {
 
     this.props.projectService.raiseEventDomainEngineeringModel(
       domainEngineeringModel
+    );
+    this.props.projectService.saveProject();
+  }
+
+  addNewApplicationEModel(languageName: string) {
+    let applicationEngineeringModel =
+      this.props.projectService.createApplicationEngineeringModel(
+        this.props.projectService.project,
+        languageName
+      );
+
+    this.props.projectService.raiseEventApplicationEngineeringModel(
+      applicationEngineeringModel
     );
     this.props.projectService.saveProject();
   }

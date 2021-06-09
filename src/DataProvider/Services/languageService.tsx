@@ -1,4 +1,5 @@
 import axios from "axios";
+import { exception } from "console";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 
 export default class LanguageService {
@@ -8,28 +9,39 @@ export default class LanguageService {
 
   getLanguagesDetail(): Language[] {
     let languages: Language[] = [];
+
     try {
       this.apiVariamos.get("/languages/detail").then((res) => {
         let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
         responseAPISuccess = Object.assign(responseAPISuccess, res.data);
 
+        if (responseAPISuccess.message?.includes("Error"))
+          throw new Error(JSON.stringify(res.data));
+
         languages = Object.assign(languages, responseAPISuccess.data);
       });
     } catch (error) {
-      console.log("Error " + error);
+      console.log("Something wrong in getLanguageDetail Service: " + error);
     }
     return languages;
   }
 
   getLanguages(callBack: any) {
+    let languages: Language[] = [];
     try {
       this.apiVariamos.get("/languages").then((res) => {
         let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
         responseAPISuccess = Object.assign(responseAPISuccess, res.data);
-        callBack(responseAPISuccess.data);
+
+        if (responseAPISuccess.message?.includes("Error"))
+          throw new Error(JSON.stringify(res.data));
+
+        languages = Object.assign(languages, responseAPISuccess.data);
+        callBack(languages);
       });
     } catch (error) {
-      console.log("Error " + error);
+      console.log("Something wrong in getLanguages service: " + error);
+      callBack(languages);
     }
   }
 }
