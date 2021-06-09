@@ -4,33 +4,52 @@ import React, { Component } from 'react'
 import mx from "./mxgraph";
 import { mxGraph } from "mxgraph";
 import ProjectService from '../../Application/Project/ProjectService';
+import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 
 interface Props {
-   projectService:ProjectService
+  projectService: ProjectService
 }
-interface State {}
+interface State { }
 
 export default class MxGEditor extends Component<Props, State> {
   state = {};
   containerRef: any;
   graphContainerRef: any;
   graph?: mxGraph;
+  currentModel?: Model;
 
   constructor(props: Props) {
     super(props);
     this.containerRef = React.createRef();
     this.graphContainerRef = React.createRef();
+    this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
+    this.projectService_addSelectedModelListener = this.projectService_addSelectedModelListener.bind(this);
+  }
+
+  projectService_addNewProductLineListener(e: any) {
+    this.forceUpdate();
+  }
+
+  projectService_addSelectedModelListener(e: any) {
+    this.currentModel = e.model;
+    this.loadModel(e.model);
+    this.forceUpdate();
   }
 
   componentDidMount() {
+    let me = this;
     this.graph = new mx.mxGraph(this.graphContainerRef.current);
-    this.props.projectService.setGraph(this.graph);  
+    this.props.projectService.setGraph(this.graph);
     this.LoadGraph(this.graph);
+    me.props.projectService.addNewProductLineListener(this.projectService_addNewProductLineListener);
+    me.props.projectService.addSelectedModelListener(this.projectService_addSelectedModelListener);
   }
 
-  LoadGraph(graph: mxGraph) { 
-    mx.mxEvent.disableContextMenu(this.graphContainerRef.current);  
-    new mx.mxRubberband(graph);  
+  LoadGraph(graph: mxGraph) {
+    let me=this;
+    mx.mxEvent.disableContextMenu(this.graphContainerRef.current);
+    new mx.mxRubberband(graph);
     // var parent = graph.getDefaultParent(); 
     graph.setPanning(true);
     graph.setTooltips(true);
@@ -40,63 +59,71 @@ export default class MxGEditor extends Component<Props, State> {
     graph.setVertexLabelsMovable(false);
     graph.setGridEnabled(true);
     graph.setAllowDanglingEdges(false);
-
-    graph.getModel().beginUpdate();
-    try {
-      //mxGrapg component
-    //   var doc = mx.mxUtils.createXmlDocument();
-    //   var node = doc.createElement("Node");
-    //   node.setAttribute("ComponentID", "[P01]");
-
-    //   var vx = graph.insertVertex(
-    //     parent,
-    //     null,
-    //     node,
-    //     240,
-    //     40,
-    //     150,
-    //     30,
-    //     "shape=ellipse;fillColor=yellow"
-    //   );
-
-    //   var v1 = graph.insertVertex(
-    //     parent,
-    //     null,
-    //     "shape1",
-    //     20,
-    //     120,
-    //     80,
-    //     30,
-    //     "rounded=1;strokeColor=red;fillColor=orange"
-    //   );
-    //   var v2 = graph.insertVertex(parent, null, "shape2", 300, 120, 80, 30);
-    //   var v3 = graph.insertVertex(parent, null, "shape3", 620, 180, 80, 30);
-    //   var e1 = graph.insertEdge(
-    //     parent,
-    //     null,
-    //     "",
-    //     v1,
-    //     v2,
-    //     "strokeWidth=2;endArrow=block;endSize=2;endFill=1;strokeColor=blue;rounded=1;"
-    //   );
-    //   var e2 = graph.insertEdge(parent, null, "Edge 2", v2, v3);
-    //   var e3 = graph.insertEdge(parent, null, "Edge 3", v1, v3);
-
-      //data
-    } finally {
-      // Updates the display
-      graph.getModel().endUpdate();
+    graph.convertValueToString = function (cell) {
+      if (mx.mxUtils.isNode(cell.value, "node")) {
+        return cell.getAttribute('label', '')
+      }
     }
+    graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
+      alert("CELLS_MOVED");
+      evt.consume();
+    });
+    graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
+      evt.consume();
+    });
 
-    // Enables rubberband (marquee) selection and a handler for basic keystrokes
-    // var rubberband = new mxRubberband(graph);
-    // var keyHandler = new mxKeyHandler(graph);
+    graph.addListener(mx.mxEvent.CLICK, function (sender, evt) {
+      evt.consume();
+      if (evt.properties.cell) {
+        let uid = evt.properties.cell.value.getAttribute("uid");
+        if (me.currentModel) {
+          for (let i = 0; i < me.currentModel.elements.length; i++) {
+            const element:any = me.currentModel.elements[i];
+            if (element.id==uid) {
+              me.props.projectService.raiseEventSelectedElement(me.currentModel, element);
+            }
+          }
+        } 
+      }
+    });
+  } 
+
+  loadModel(model: Model) {
+    let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.name);
+
+    let graph: mxGraph | undefined = this.graph;
+    if (graph) {
+      graph.getModel().beginUpdate();
+      try {
+        graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
+        let parent = graph.getDefaultParent();
+        for (let i = 0; i < model.elements.length; i++) {
+          let element:any = model.elements[i];
+          var doc = mx.mxUtils.createXmlDocument();
+          var node = doc.createElement("node");
+          node.setAttribute("uid", element.id);
+          node.setAttribute("label", element.name);
+          var vx = graph.insertVertex(
+            parent,
+            null,
+            node,
+            element.x,
+            element.y,
+            element.width,
+            element.height,
+            languageDefinition.concreteSyntax.elements[element.type].design
+          );
+        }
+      } finally {
+        this.graph?.getModel().endUpdate();
+      }
+    }
   }
 
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">
-        <div ref={this.graphContainerRef} className="GraphContainer"> 
+        <div ref={this.graphContainerRef} className="GraphContainer">
         </div>
       </div>
     );

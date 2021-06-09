@@ -23,7 +23,9 @@
       "node_modules/@types",
       "node_modules/@typed-mxgraph"
     ],
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "suppressImplicitAnyIndexErrors": true,
+    "strictNullChecks": false
   },
   "include": [
     "src"

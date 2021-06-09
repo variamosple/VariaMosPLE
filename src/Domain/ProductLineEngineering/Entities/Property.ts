@@ -1,6 +1,8 @@
 export class Property {
-    name: string;
-    constructor(name: string) {
-      this.name = name;
-    }
+  name: string;
+  value: any;
+  constructor(name: string, value:any) {
+    this.name = name;
+    this.value=value;
+  }
   }
