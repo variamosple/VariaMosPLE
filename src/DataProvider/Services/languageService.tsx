@@ -29,7 +29,7 @@ export default class LanguageService {
   getLanguages(callBack: any) {
     let languages: Language[] = [];
     try {
-      this.apiVariamos.get("/languages").then((res) => {
+      this.apiVariamos.get("/languages/detail").then((res) => {
         let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
         responseAPISuccess = Object.assign(responseAPISuccess, res.data);
 

@@ -4,11 +4,13 @@ import { Application } from "../../Domain/ProductLineEngineering/Entities/Applic
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
+import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { NewModelEventArg } from "./Events/NewModelEventArg";
 import ProjectManager from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
+import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { LanguagesDetailEventArg } from "./Events/LanguagesDetailEventArg";
 import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { NewProductLineEventArg } from "./Events/NewProductLineEventArg";
@@ -40,6 +42,7 @@ export default class ProjectService {
   private loadLanguagesListeners: any = [];
   private updateProjectListeners: any = [];
   private updateSelectedListeners: any = [];
+  private selectedElementListeners: any = [];
 
   constructor() {
     let me = this;
@@ -120,6 +123,23 @@ export default class ProjectService {
         let callback = this.selectedModelListeners[index];
         callback(e);
       }
+    }
+  }
+
+  addSelectedElementListener(listener: any) {
+    this.selectedElementListeners.push(listener);
+  }
+
+  removeSelectedElementListener(listener: any) {
+    this.selectedElementListeners[listener] = null;
+  }
+
+  raiseEventSelectedElement(model: Model|undefined, element: Element | undefined) {
+    let me = this;
+    let e = new SelectedElementEventArg(me, model, element);
+    for (let index = 0; index < me.selectedElementListeners.length; index++) {
+      let callback = this.selectedElementListeners[index];
+      callback(e);
     }
   }
 
@@ -597,6 +617,16 @@ export default class ProjectService {
       for (let index = 0; index < this.languages.length; index++) {
         if (this.languages[index].name === language) {
           callBack(this.languages[index]);
+        }
+      }
+    }
+  }
+
+  getLanguageDefinition(language: string) {
+    if (this.languages) {
+      for (let index = 0; index < this.languages.length; index++) {
+        if (this.languages[index].name === language) {
+          return this.languages[index];
         }
       }
     }

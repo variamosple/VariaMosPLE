@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import ProjectService from "../../Application/Project/ProjectService";
+import MxProperties from "../MxProperties/MxProperties";
 
 interface Props {
   projectService: ProjectService
@@ -18,7 +19,7 @@ class PropiertiesPannel extends Component<Props, State> {
               Propierties
             </div>
             <div className="card-body bg-white-Variamos">
-              <h5 className="card-title">...</h5>
+              <MxProperties projectService={this.props.projectService} />
             </div>
           </div>
         </div>
