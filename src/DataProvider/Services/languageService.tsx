@@ -1,5 +1,4 @@
 import axios from "axios";
-import { exception } from "console";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 
 export default class LanguageService {

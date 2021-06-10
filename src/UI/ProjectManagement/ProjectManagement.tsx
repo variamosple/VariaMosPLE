@@ -37,6 +37,9 @@ class ProjectManagement extends Component<Props, State> {
       this.projectService_addListener.bind(this);
     this.handleImportProject = this.handleImportProject.bind(this);
     this.importProject = this.importProject.bind(this);
+    this.onEnterSaveProject = this.onEnterSaveProject.bind(this);
+    this.onEnterCreateProject = this.onEnterCreateProject.bind(this);
+    this.onEnterFocusPL = this.onEnterFocusPL.bind(this);
   }
 
   handleImportProject(files: FileList | null) {
@@ -81,6 +84,17 @@ class ProjectManagement extends Component<Props, State> {
     }
   }
 
+  onEnterSaveProject(event: any) {
+    if (event.key === "Enter") this.btnSaveProject_onClick(event);
+  }
+
+  onEnterCreateProject(event: any) {
+    if (event.key === "Enter") this.btnCreateProject_onClick(event);
+  }
+  onEnterFocusPL(event: any) {
+    if (event.key === "Enter")
+      document.getElementById("enterProductLineName")?.focus();
+  }
   handleUpdateNameProject(event: any) {
     this.setState({
       projectName: event.target.value,
@@ -224,6 +238,7 @@ class ProjectManagement extends Component<Props, State> {
                               placeholder="VariaMosProject"
                               value={this.state.projectName}
                               onChange={(e) => this.handleUpdateNameProject(e)}
+                              onKeyDown={this.onEnterSaveProject}
                             />
                             <label htmlFor="floatingInput">
                               Enter Project Name
@@ -269,6 +284,7 @@ class ProjectManagement extends Component<Props, State> {
                             id="enterProjectName"
                             placeholder="VariaMosProject"
                             onChange={(e) => this.handleUpdateNameProject(e)}
+                            onKeyPress={this.onEnterFocusPL}
                           />
                           <label htmlFor="floatingInput">
                             Enter Project Name
@@ -286,6 +302,7 @@ class ProjectManagement extends Component<Props, State> {
                                 onChange={(e) =>
                                   this.handleUpdateNameProductLine(e)
                                 }
+                                onKeyDown={this.onEnterCreateProject}
                               />
                               <label htmlFor="floatingInputGrid">
                                 Enter Product Line Name

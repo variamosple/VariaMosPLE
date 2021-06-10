@@ -161,8 +161,8 @@ class TreeExplorer extends Component<Props, State> {
                 <ul id="ul">
                   {this.props.projectService.project.productLines.map(
                     (pl: ProductLine, idPl: number) => (
-                      <div>
-                        <li key={idPl}>
+                      <div key={idPl}>
+                        <li>
                           <span
                             className="fa fa-plus-square lps"
                             id="productLine"

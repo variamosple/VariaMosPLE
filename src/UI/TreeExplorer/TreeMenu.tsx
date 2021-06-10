@@ -48,6 +48,11 @@ class TreeMenu extends Component<Props, State> {
     this.viewMenuTree_addListener = this.viewMenuTree_addListener.bind(this);
     this.deleteItemProject = this.deleteItemProject.bind(this);
     this.renameItemProject = this.renameItemProject.bind(this);
+    this.onEnterModal = this.onEnterModal.bind(this);
+  }
+
+  onEnterModal(event: any) {
+    if (event.key === "Enter") this.addNewFolder(event);
   }
 
   deleteItemProject() {
@@ -61,10 +66,7 @@ class TreeMenu extends Component<Props, State> {
   viewMenuTree_addListener() {
     let me = this;
 
-    // alert(this.props.projectService.getTreeItemSelected());
-
     let optionsAllow = "default";
-    // if (e.target.id) optionsAllow = e.target.id;
 
     if (this.props.projectService.getTreeItemSelected())
       optionsAllow = this.props.projectService.getTreeItemSelected();
@@ -370,6 +372,7 @@ class TreeMenu extends Component<Props, State> {
                     placeholder="VariaMosTextEditor"
                     value={this.state.modalInputValue}
                     onChange={this.handleUpdateEditorText}
+                    onKeyDown={this.onEnterModal}
                   />
                   <label htmlFor="floatingInput">
                     {this.state.modalInputText}
@@ -462,9 +465,9 @@ class TreeMenu extends Component<Props, State> {
             <ul className="submenu dropdown-menu">
               {this.props.projectService.languagesDetail.map(
                 (language: Language, i: number) => (
-                  <div>
-                    {language.type === this.state.newSelected ? (
-                      /* Validar si en el lugar seleccionado ya existe el lenguage */
+                  <div key={i}>
+                    {language.type === this.state.newSelected &&
+                    language.stateAccept === "ACTIVE" ? (
                       <li>
                         <span
                           className={"dropdown-item type_" + language}
