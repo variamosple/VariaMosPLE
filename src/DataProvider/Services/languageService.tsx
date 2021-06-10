@@ -4,7 +4,8 @@ import { Language } from "../../Domain/ProductLineEngineering/Entities/Language"
 
 export default class LanguageService {
   apiVariamos = axios.create({
-    baseURL: "http://variamosmicroservice02.eastus.azurecontainer.io:4000/",
+    // baseURL: "http://variamosmicroservice02.eastus.azurecontainer.io:4000/",
+    baseURL: "https://variamos-ms-languages.azurewebsites.net/",
   });
 
   getLanguagesDetail(): Language[] {
