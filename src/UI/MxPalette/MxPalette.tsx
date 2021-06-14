@@ -131,8 +131,13 @@ export default class MxPalette extends Component<Props, State> {
       let mdiv = document.createElement("div");
       let mspan: HTMLElement = document.createElement("span"); //tooltip
       mspan.classList.add("csstooltiptext2");
-      let url = "assets/images/models/" + languageDefinition.name + "/" + key + ".png";
-      let img = toolbar.addMode(element.label, url, drapAndDropCreation);
+      let iconUrl = "assets/images/models/" + languageDefinition.name + "/" + key + ".png";
+      if (element.icon) {
+        let contentType = 'image/png';
+        let blob = this.b64toBlob(element.icon, contentType);
+        iconUrl = URL.createObjectURL(blob);
+      } 
+      let img = toolbar.addMode(element.label, iconUrl, drapAndDropCreation);
       // mspan.innerText = key;
 
       mx.mxUtils.makeDraggable(img, graph, drapAndDropCreation);
@@ -173,6 +178,26 @@ export default class MxPalette extends Component<Props, State> {
     //         )
     //     );
     // }
+  }
+
+  b64toBlob(b64Data, contentType='', sliceSize=512){
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+  
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
+  
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+  
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+  
+    const blob = new Blob(byteArrays, {type: contentType});
+    return blob;
   }
 
   render() {
