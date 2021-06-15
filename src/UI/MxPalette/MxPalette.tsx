@@ -6,6 +6,7 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
+import { mxStencil } from "mxgraph";
 
 interface Props {
   projectService: ProjectService;
@@ -56,7 +57,7 @@ export default class MxPalette extends Component<Props, State> {
     let vertex = new mx.mxCell(
       node,
       new mx.mxGeometry(0, 0, element.width, element.height),
-      element.design
+      "shape=" +  element.type + ";" + element.design
     );
     vertex.setConnectable(true);
     vertex.setVertex(true);
@@ -99,7 +100,7 @@ export default class MxPalette extends Component<Props, State> {
 
   callbackGetStyle(languageDefinition: any): any {
     const me = this;
-    let graph = this.props.projectService.getGraph();
+    let graph = this.props.projectService.getGraph(); 
 
     let divToolbar: any = document.getElementById("graph_palette");
     if (divToolbar) {
@@ -137,6 +138,13 @@ export default class MxPalette extends Component<Props, State> {
         let blob = this.b64toBlob(element.icon, contentType);
         iconUrl = URL.createObjectURL(blob);
       } 
+      if (element.draw) {
+        let shape=atob(element.draw); 
+        let ne:any = mx.mxUtils.parseXml(shape).documentElement;
+        ne.setAttribute("name", key);
+        let stencil=new mx.mxStencil(ne);
+        mx.mxStencilRegistry.addStencil(key, stencil);
+      }
       let img = toolbar.addMode(element.label, iconUrl, drapAndDropCreation);
       // mspan.innerText = key;
 
@@ -150,7 +158,8 @@ export default class MxPalette extends Component<Props, State> {
         throw new Error("The element #portal wasn't found");
       }
       divToolbar.appendChild(mdiv);
-    }
+    } 
+
 
     if (languageDefinition.abstractSyntax.relationships) {
       for (key in languageDefinition.abstractSyntax.relationships) {

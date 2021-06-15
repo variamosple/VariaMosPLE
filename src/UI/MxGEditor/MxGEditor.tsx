@@ -65,7 +65,7 @@ export default class MxGEditor extends Component<Props, State> {
       }
     }
     graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
-      alert("CELLS_MOVED");
+      //alert("CELLS_MOVED");
       evt.consume();
     });
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
@@ -99,6 +99,17 @@ export default class MxGEditor extends Component<Props, State> {
         let parent = graph.getDefaultParent();
         for (let i = 0; i < model.elements.length; i++) {
           let element:any = model.elements[i];
+
+
+          if (languageDefinition.concreteSyntax.elements[element.type].draw) {
+            let shape=atob(languageDefinition.concreteSyntax.elements[element.type].draw); 
+            let ne:any = mx.mxUtils.parseXml(shape).documentElement;
+            ne.setAttribute("name", element.type);
+            let stencil=new mx.mxStencil(ne);
+            mx.mxStencilRegistry.addStencil(element.type, stencil);
+          }
+
+
           var doc = mx.mxUtils.createXmlDocument();
           var node = doc.createElement("node");
           node.setAttribute("uid", element.id);
@@ -111,7 +122,7 @@ export default class MxGEditor extends Component<Props, State> {
             element.y,
             element.width,
             element.height,
-            languageDefinition.concreteSyntax.elements[element.type].design
+            "shape=" +  element.type + ";" + languageDefinition.concreteSyntax.elements[element.type].design
           );
         }
       } finally {
