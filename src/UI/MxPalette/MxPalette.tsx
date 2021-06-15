@@ -11,11 +11,9 @@ import { mxStencil } from "mxgraph";
 interface Props {
   projectService: ProjectService;
 }
-interface State {
-}
+interface State {}
 
 export default class MxPalette extends Component<Props, State> {
-
   containerRef: any;
   currentModel?: Model;
 
@@ -23,8 +21,10 @@ export default class MxPalette extends Component<Props, State> {
     super(props);
     this.containerRef = React.createRef();
     this.callbackGetStyle = this.callbackGetStyle.bind(this);
-    this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
-    this.projectService_addSelectedModelListener = this.projectService_addSelectedModelListener.bind(this);
+    this.projectService_addNewProductLineListener =
+      this.projectService_addNewProductLineListener.bind(this);
+    this.projectService_addSelectedModelListener =
+      this.projectService_addSelectedModelListener.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -39,8 +39,12 @@ export default class MxPalette extends Component<Props, State> {
 
   componentDidMount() {
     let me = this;
-    me.props.projectService.addNewProductLineListener(this.projectService_addNewProductLineListener);
-    me.props.projectService.addSelectedModelListener(this.projectService_addSelectedModelListener);
+    me.props.projectService.addNewProductLineListener(
+      this.projectService_addNewProductLineListener
+    );
+    me.props.projectService.addSelectedModelListener(
+      this.projectService_addSelectedModelListener
+    );
   }
 
   createPalette(modelName: string) {
@@ -57,7 +61,7 @@ export default class MxPalette extends Component<Props, State> {
     let vertex = new mx.mxCell(
       node,
       new mx.mxGeometry(0, 0, element.width, element.height),
-      "shape=" +  element.type + ";" + element.design
+      "shape=" + element.type + ";" + element.design
     );
     vertex.setConnectable(true);
     vertex.setVertex(true);
@@ -95,14 +99,18 @@ export default class MxPalette extends Component<Props, State> {
     // newCells[0].collapsed = false;
     graph.getModel().endUpdate();
 
-    this.props.projectService.raiseEventSelectedElement(this.currentModel, element);
+    this.props.projectService.raiseEventSelectedElement(
+      this.currentModel,
+      element
+    );
   }
 
   callbackGetStyle(languageDefinition: any): any {
     const me = this;
-    let graph = this.props.projectService.getGraph(); 
+    let graph = this.props.projectService.getGraph();
 
     let divToolbar: any = document.getElementById("graph_palette");
+    divToolbar.classList.add("list-inline");
     if (divToolbar) {
       divToolbar.innerHTML = "";
     }
@@ -130,19 +138,21 @@ export default class MxPalette extends Component<Props, State> {
       };
 
       let mdiv = document.createElement("div");
+      mdiv.classList.add("list-inline-item");
       let mspan: HTMLElement = document.createElement("span"); //tooltip
       mspan.classList.add("csstooltiptext2");
-      let iconUrl = "assets/images/models/" + languageDefinition.name + "/" + key + ".png";
+      let iconUrl =
+        "assets/images/models/" + languageDefinition.name + "/" + key + ".png";
       if (element.icon) {
-        let contentType = 'image/png';
+        let contentType = "image/png";
         let blob = this.b64toBlob(element.icon, contentType);
         iconUrl = URL.createObjectURL(blob);
-      } 
+      }
       if (element.draw) {
-        let shape=atob(element.draw); 
-        let ne:any = mx.mxUtils.parseXml(shape).documentElement;
+        let shape = atob(element.draw);
+        let ne: any = mx.mxUtils.parseXml(shape).documentElement;
         ne.setAttribute("name", key);
-        let stencil=new mx.mxStencil(ne);
+        let stencil = new mx.mxStencil(ne);
         mx.mxStencilRegistry.addStencil(key, stencil);
       }
       let img = toolbar.addMode(element.label, iconUrl, drapAndDropCreation);
@@ -158,18 +168,27 @@ export default class MxPalette extends Component<Props, State> {
         throw new Error("The element #portal wasn't found");
       }
       divToolbar.appendChild(mdiv);
-    } 
-
+    }
 
     if (languageDefinition.abstractSyntax.relationships) {
       for (key in languageDefinition.abstractSyntax.relationships) {
-        const relationship = languageDefinition.abstractSyntax.relationships[key];
-        let mul=new mx.mxMultiplicity(false, relationship.source, "type", null, 0, 1, [relationship.target], 
-          "Only 1 target is allowed", "Only " + relationship.target + " targets allowed", false);
+        const relationship =
+          languageDefinition.abstractSyntax.relationships[key];
+        let mul = new mx.mxMultiplicity(
+          false,
+          relationship.source,
+          "type",
+          null,
+          0,
+          1,
+          [relationship.target],
+          "Only 1 target is allowed",
+          "Only " + relationship.target + " targets allowed",
+          false
+        );
         graph.multiplicities.push(mul);
       }
     }
-
 
     // for (const key in language.relationships) {
     //     const relationship = language.relationships[key];
@@ -189,23 +208,23 @@ export default class MxPalette extends Component<Props, State> {
     // }
   }
 
-  b64toBlob(b64Data, contentType='', sliceSize=512){
+  b64toBlob(b64Data, contentType = "", sliceSize = 512) {
     const byteCharacters = atob(b64Data);
     const byteArrays = [];
-  
+
     for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
       const slice = byteCharacters.slice(offset, offset + sliceSize);
-  
+
       const byteNumbers = new Array(slice.length);
       for (let i = 0; i < slice.length; i++) {
         byteNumbers[i] = slice.charCodeAt(i);
       }
-  
+
       const byteArray = new Uint8Array(byteNumbers);
       byteArrays.push(byteArray);
     }
-  
-    const blob = new Blob(byteArrays, {type: contentType});
+
+    const blob = new Blob(byteArrays, { type: contentType });
     return blob;
   }
 

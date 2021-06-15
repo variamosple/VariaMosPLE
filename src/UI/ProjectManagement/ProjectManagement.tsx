@@ -166,7 +166,7 @@ class ProjectManagement extends Component<Props, State> {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title" id="staticBackdropLabel">
-                  Project Management
+                  Project management
                 </h5>
               </div>
               <div className="modal-body">
@@ -182,7 +182,7 @@ class ProjectManagement extends Component<Props, State> {
                           role="tab"
                           aria-controls="mProject"
                         >
-                          My Project
+                          Current
                         </a>
                       )}
 
@@ -197,7 +197,7 @@ class ProjectManagement extends Component<Props, State> {
                         role="tab"
                         aria-controls="nProject"
                       >
-                        New Project
+                        New
                       </a>
                       <a
                         className="list-group-item list-group-item-action"
@@ -207,7 +207,7 @@ class ProjectManagement extends Component<Props, State> {
                         role="tab"
                         aria-controls="iProject"
                       >
-                        Import Project
+                        Import
                       </a>
                       <a
                         className="list-group-item list-group-item-action"
@@ -241,7 +241,7 @@ class ProjectManagement extends Component<Props, State> {
                               onKeyDown={this.onEnterSaveProject}
                             />
                             <label htmlFor="floatingInput">
-                              Enter Project Name
+                              Enter name
                             </label>
                           </div>
                           <br />
@@ -252,7 +252,7 @@ class ProjectManagement extends Component<Props, State> {
                                 className="btn form-control btn-Variamos"
                                 onClick={(e) => this.btnSaveProject_onClick(e)}
                               >
-                                Save Project
+                                Save
                               </button>
                             </div>
                             <div className="col-4">
@@ -264,7 +264,7 @@ class ProjectManagement extends Component<Props, State> {
                                   this.props.projectService.deleteProject()
                                 }
                               >
-                                Delete Project
+                                Delete
                               </button>
                             </div>
                           </div>
@@ -287,7 +287,7 @@ class ProjectManagement extends Component<Props, State> {
                             onKeyPress={this.onEnterFocusPL}
                           />
                           <label htmlFor="floatingInput">
-                            Enter Project Name
+                            Project name
                           </label>
                         </div>
                         <br />
@@ -305,7 +305,7 @@ class ProjectManagement extends Component<Props, State> {
                                 onKeyDown={this.onEnterCreateProject}
                               />
                               <label htmlFor="floatingInputGrid">
-                                Enter Product Line Name
+                                Product line name
                               </label>
                             </div>
                           </div>
@@ -317,7 +317,7 @@ class ProjectManagement extends Component<Props, State> {
                           onClick={this.btnCreateProject_onClick}
                           id="createProject"
                         >
-                          Create Project
+                          Create
                         </button>
                         <div
                           hidden={true}

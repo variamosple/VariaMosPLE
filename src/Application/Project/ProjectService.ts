@@ -16,14 +16,19 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { NewProductLineEventArg } from "./Events/NewProductLineEventArg";
 import { NewApplicationEventArg } from "./Events/NewApplicationEventArg";
 import { NewAdaptationEventArg } from "./Events/NewAdaptationEventArg";
+import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
+import { Utils } from "../../Addons/Library/Utils/Utils";
 
 export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
   private languageUseCases: LanguageUseCases = new LanguageUseCases();
   private languageService: LanguageService = new LanguageService();
+  private utils: Utils = new Utils();
+
   private _languages: any;
   private _languagesDetail: Language[] = this.getLanguagesDetail();
+  private _externalFunctions: ExternalFuntion[] = [];
   private _project: Project = this.createProject("");
   private treeItemSelected: string = "";
   private treeIdItemSelected: string = "";
@@ -53,6 +58,53 @@ export default class ProjectService {
     this.languageService.getLanguages(fun);
   }
 
+  public get externalFunctions(): ExternalFuntion[] {
+    return this._externalFunctions;
+  }
+
+  callExternalFuntion(externalFunction: ExternalFuntion) {
+    let me = this;
+
+    // Standard Request Start
+    externalFunction.request = {
+      modelSelectedId: me.treeItemSelected,
+      project: me._project,
+    };
+    // Standard Request End
+
+    let callback = function (response: any) {
+      //Decode content.
+      response.data.content = Buffer.from(
+        response.data.content,
+        "base64"
+      ).toString();
+
+      if (response.data.name.indexOf("json") > -1)
+        response.data.content = JSON.parse(response.data.content);
+
+      const resulting_action: any = {
+        download: function () {
+          me.utils.downloadFile(response.data.name, response.data.content);
+        },
+        showonscreen: function () {
+          alert(JSON.stringify(response.data.content));
+        },
+      };
+
+      resulting_action[externalFunction.resulting_action]();
+    };
+    me.languageUseCases.callExternalFuntion(callback, externalFunction);
+  }
+
+  loadExternalFunctions(languageName: string) {
+    let me = this;
+    let callback = function (data: any) {
+      me._externalFunctions = data;
+    };
+
+    this.languageUseCases.getExternalFunctions(callback, languageName);
+  }
+
   //Search Model functions_ START***********
   modelDomainSelected(idPl: number, idDomainModel: number) {
     let modelSelected =
@@ -60,6 +112,9 @@ export default class ProjectService {
 
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
+
+    this.loadExternalFunctions(modelSelected.name);
+
     this.raiseEventSelectedModel(modelSelected);
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
@@ -71,6 +126,9 @@ export default class ProjectService {
       ];
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
+
+    this.loadExternalFunctions(modelSelected.name);
+
     this.raiseEventSelectedModel(modelSelected);
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
@@ -86,6 +144,9 @@ export default class ProjectService {
       ].models[idApplicationModel];
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
+
+    this.loadExternalFunctions(modelSelected.name);
+
     this.raiseEventSelectedModel(modelSelected);
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
@@ -103,6 +164,9 @@ export default class ProjectService {
 
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
+
+    this.loadExternalFunctions(modelSelected.name);
+
     this.raiseEventSelectedModel(modelSelected);
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
@@ -134,7 +198,10 @@ export default class ProjectService {
     this.selectedElementListeners[listener] = null;
   }
 
-  raiseEventSelectedElement(model: Model|undefined, element: Element | undefined) {
+  raiseEventSelectedElement(
+    model: Model | undefined,
+    element: Element | undefined
+  ) {
     let me = this;
     let e = new SelectedElementEventArg(me, model, element);
     for (let index = 0; index < me.selectedElementListeners.length; index++) {
@@ -335,15 +402,7 @@ export default class ProjectService {
   }
 
   exportProject() {
-    var dataStr =
-      "data:text/json;charset=utf-8," +
-      encodeURIComponent(JSON.stringify(this._project));
-    var downloadAnchorNode = document.createElement("a");
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", this._project.id + ".json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    this.utils.downloadFile(this._project.id + ".json", this._project);
   }
 
   deleteItemProject() {

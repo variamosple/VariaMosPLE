@@ -246,3 +246,7 @@ a {
   border-bottom: 5px #22486a !important;
   box-shadow: 5px 5px 5px #22486a;
 }
+
+.form-floating label {
+  color: grey !important;
+}

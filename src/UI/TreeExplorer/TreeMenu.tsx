@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 import * as alertify from "alertifyjs";
+import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
 
 interface Props {
   projectService: ProjectService;
@@ -23,6 +24,7 @@ class TreeMenu extends Component<Props, State> {
     optionAllowAdaptation: false,
     optionAllowRename: false,
     optionAllowDelete: false,
+    optionAllowEFunctions: false,
     newSelected: "default",
   };
 
@@ -49,6 +51,11 @@ class TreeMenu extends Component<Props, State> {
     this.deleteItemProject = this.deleteItemProject.bind(this);
     this.renameItemProject = this.renameItemProject.bind(this);
     this.onEnterModal = this.onEnterModal.bind(this);
+    this.callExternalFuntion = this.callExternalFuntion.bind(this);
+  }
+
+  callExternalFuntion(efunction: ExternalFuntion): void {
+    this.props.projectService.callExternalFuntion(efunction);
   }
 
   onEnterModal(event: any) {
@@ -119,6 +126,7 @@ class TreeMenu extends Component<Props, State> {
       model: function () {
         me.setState({
           optionAllowDelete: true,
+          optionAllowEFunctions: true,
         });
       },
       default: function () {
@@ -140,6 +148,7 @@ class TreeMenu extends Component<Props, State> {
       optionAllowAdaptation: false,
       optionAllowRename: false,
       optionAllowDelete: false,
+      optionAllowEFunctions: false,
     });
   }
 
@@ -459,7 +468,7 @@ class TreeMenu extends Component<Props, State> {
               }
               id="newModel"
             >
-              New Model
+              New model
               <i className="bi bi-chevron-compact-right float-end"></i>
             </span>
             <ul className="submenu dropdown-menu">
@@ -485,6 +494,43 @@ class TreeMenu extends Component<Props, State> {
               )}
             </ul>
           </li>
+          {this.props.projectService.externalFunctions ? (
+            this.props.projectService.externalFunctions.length >= 1 ? (
+              <li>
+                <span
+                  className={
+                    this.state.optionAllowEFunctions
+                      ? "dropdown-item"
+                      : "hidden dropdown-item"
+                  }
+                  id="model"
+                >
+                  Tools
+                  <i className="bi bi-chevron-compact-right float-end"></i>
+                </span>
+                <ul className="submenu dropdown-menu">
+                  {this.props.projectService.externalFunctions.map(
+                    (efunction: ExternalFuntion, i: number) => (
+                      <div key={i}>
+                        <li>
+                          <span
+                            className={"dropdown-item"}
+                            onClick={() => this.callExternalFuntion(efunction)}
+                          >
+                            {efunction.label}
+                          </span>
+                        </li>
+                      </div>
+                    )
+                  )}
+                </ul>
+              </li>
+            ) : (
+              ""
+            )
+          ) : (
+            ""
+          )}
           <li>
             <span
               className={
@@ -497,7 +543,7 @@ class TreeMenu extends Component<Props, State> {
               data-bs-toggle="modal"
               data-bs-target="#editorTextModal"
             >
-              New Product Line
+              New product line
             </span>
           </li>
           <li>
@@ -512,7 +558,7 @@ class TreeMenu extends Component<Props, State> {
               data-bs-toggle="modal"
               data-bs-target="#editorTextModal"
             >
-              New Application
+              New application
             </span>
           </li>
           <li>
@@ -527,7 +573,7 @@ class TreeMenu extends Component<Props, State> {
               data-bs-toggle="modal"
               data-bs-target="#editorTextModal"
             >
-              New Adaptation
+              New adaptation
             </span>
           </li>
           <li>

@@ -170,7 +170,6 @@ class TreeExplorer extends Component<Props, State> {
                             onAuxClick={() =>
                               this.updateLpSelected(window.event, idPl)
                             }
-                            // contentEditable="true"
                           >
                             {pl.name}
                           </span>
@@ -191,10 +190,9 @@ class TreeExplorer extends Component<Props, State> {
                               <ul className="nested">
                                 {pl.domainEngineering?.models?.map(
                                   (domainModel, idDomainModel: number) => (
-                                    <div>
+                                    <div key={idDomainModel}>
                                       <li
                                         id="model"
-                                        key={idDomainModel}
                                         onClick={() =>
                                           this.btn_viewDomainModel(
                                             idPl,
@@ -234,10 +232,9 @@ class TreeExplorer extends Component<Props, State> {
                                     appEModel,
                                     idApplicationEngModel: number
                                   ) => (
-                                    <div>
+                                    <div key={idApplicationEngModel}>
                                       <li
                                         id="model"
-                                        key={idApplicationEngModel}
                                         onClick={() =>
                                           this.btn_viewApplicationEngModel(
                                             idPl,
@@ -253,10 +250,9 @@ class TreeExplorer extends Component<Props, State> {
                                 <li>
                                   {pl.applicationEngineering?.applications?.map(
                                     (aeApp, idApplication: number) => (
-                                      <div>
+                                      <div key={idApplication}>
                                         <span
                                           id="application"
-                                          key={idApplication}
                                           className="fa fa-plus-square aeApp"
                                           onAuxClick={() =>
                                             this.updateApplicationSelected(
@@ -279,10 +275,9 @@ class TreeExplorer extends Component<Props, State> {
                                               aeApp,
                                               idApplicationModel: number
                                             ) => (
-                                              <div>
+                                              <div key={idApplicationModel}>
                                                 <li
                                                   id="model"
-                                                  key={idApplicationModel}
                                                   onClick={() =>
                                                     this.btn_viewApplicationModel(
                                                       idPl,
@@ -308,11 +303,10 @@ class TreeExplorer extends Component<Props, State> {
                                               aeCotext,
                                               idAdaptation: number
                                             ) => (
-                                              <div>
+                                              <div key={idAdaptation}>
                                                 <li>
                                                   <span
                                                     id="adaptation"
-                                                    key={idAdaptation}
                                                     className="fa fa-plus-square aeContext"
                                                     onAuxClick={() =>
                                                       this.updateAdaptationSelected(
@@ -336,12 +330,13 @@ class TreeExplorer extends Component<Props, State> {
                                                         aeCotextModel,
                                                         idAdaptationModel: number
                                                       ) => (
-                                                        <div>
+                                                        <div
+                                                          key={
+                                                            idAdaptationModel
+                                                          }
+                                                        >
                                                           <li
                                                             id="model"
-                                                            key={
-                                                              idAdaptationModel
-                                                            }
                                                             onClick={() =>
                                                               this.btn_viewAdaptationModel(
                                                                 idPl,
