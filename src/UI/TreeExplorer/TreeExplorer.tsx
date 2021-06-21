@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import TreeMenu from "./TreeMenu";
 import ProjectService from "../../Application/Project/ProjectService";
+import VariaMosLogo from "../../Addons/images/VariaMosLogo.png";
 
 interface Props {
   projectService: ProjectService;
@@ -149,15 +150,27 @@ class TreeExplorer extends Component<Props, State> {
 
   render() {
     return (
-      <div id="TreePannel" className="col-sm-2 distribution-variamos h-100">
-        <TreeMenu projectService={this.props.projectService} />
+      <div
+        id="TreePannel"
+        className="col-sm-2 distribution-variamos shadow"
+        style={{ height: "100vh", zIndex: 5 }}
+      >
         <div className="col-sm-12 h-100">
           <div className="col-sm-12 h-100">
             <div className="card h-100 shadow-sm bg-body rounded">
-              <div className="card-header text-center">
-                &nbsp; {this.props.projectService.project.name}
+              <div className="text-center">
+                <a
+                  href="https://variamos.com/home/variamos-web/"
+                  target="_blanck"
+                >
+                  <img src={VariaMosLogo} alt="" width="191" height="39" />
+                </a>
               </div>
+              <hr style={{ marginTop: 0, color: "gray" }} />
               <div className="card-body bg-white-Variamos">
+                <div className="text-center projectName">
+                  &nbsp; {this.props.projectService.project.name}
+                </div>
                 <ul id="ul">
                   {this.props.projectService.project.productLines.map(
                     (pl: ProductLine, idPl: number) => (

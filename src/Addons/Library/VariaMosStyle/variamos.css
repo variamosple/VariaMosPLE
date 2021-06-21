@@ -101,10 +101,9 @@
 
 .list-group-item.active {
   color: white;
-  background-color: #428dcf;
+  background-color: #428dcf !important;
   border-color: #8ab5c7;
   border-bottom: 5px solid #22486a;
-  /* border-right: 5px solid #8ab5c769; */
 }
 
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap");
@@ -160,19 +159,38 @@ ul {
 
 .nav-bar-variamos,
 a {
-  text-decoration: none;
-  color: #428dcf;
-  background-color: white;
+  text-decoration: none !important;
+  color: white;
+  background-color: transparent !important;
   border: none;
-  padding-right: 15px;
+  padding-top: 5px;
+  cursor: pointer;
 }
 
+.nav-bar-variamos:active {
+  color: white !important;
+  text-decoration: none;
+  background-color: #22486a !important;
+  border-color: #22486a;
+}
 .nav-bar-variamos:hover {
+  color: white !important;
+  text-decoration: none;
+  background-color: #22486a !important;
+  border-color: #22486a;
+}
+
+a:hover {
+  text-decoration: none;
+  color: white;
+}
+
+/* .nav-bar-variamos:hover {
   text-decoration: none;
   color: #22486a;
   border: none;
   font-size: 120%;
-}
+} */
 
 .distribution-variamos {
   padding: 0.05em;
@@ -184,6 +202,11 @@ a {
 }
 
 .card-header {
+  background-color: #428dcf;
+  color: white;
+}
+
+.background-variamos {
   background-color: #428dcf;
   color: white;
 }
@@ -249,4 +272,20 @@ a {
 
 .form-floating label {
   color: grey !important;
+}
+
+.list-inline {
+  margin-bottom: 0px !important;
+}
+
+.align-variamos {
+  /* background-color: red; */
+  height: 100%;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+}
+
+.projectName {
+  color: #428dcf;
 }

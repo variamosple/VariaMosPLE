@@ -351,7 +351,7 @@ class TreeMenu extends Component<Props, State> {
 
   render() {
     return (
-      <div>
+      <div className="treeMenu">
         <div
           className="modal fade"
           id="editorTextModal"

@@ -3,7 +3,7 @@ import ProjectService from "../../Application/Project/ProjectService";
 import MxGEditor from "../MxGEditor/MxGEditor";
 
 interface Props {
-  projectService: ProjectService
+  projectService: ProjectService;
 }
 interface State {}
 
@@ -16,16 +16,19 @@ class DiagramEditor extends Component<Props, State> {
 
   render() {
     return (
-      <div id="EditorPannel" className="col-sm distribution-variamos h-100">
+      <div
+        id="EditorPannel"
+        className="col-10 col-sm-10 distribution-variamos"
+        style={{ height: "95vh" }}
+      >
         <div className="col-sm-12 h-100">
           <div className="card text-center h-100 shadow-sm bg-body rounded">
-            <div className="card-header">
+            {/* <div className="card-header">
               <span
                 className="bi bi-box-arrow-left float-start shadow rounded"
                 id="hiddenProject"
               ></span>
-       
-            </div>
+            </div> */}
             <div className="card-body">
               <MxGEditor projectService={this.props.projectService} />
             </div>

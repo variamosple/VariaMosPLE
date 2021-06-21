@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import VariaMosLogo from "../../Addons/images/VariaMosLogo.png";
+
 import ProjectService from "../../Application/Project/ProjectService";
 
 interface Props {
@@ -27,67 +27,91 @@ class navBar extends Component<Props, State> {
 
   render() {
     return (
-      <div>
-        <nav className="navbar navbar-light bg-light p-2 shadow-sm bg-body rounded">
-          <div className="container-fluid">
-            <a
-              className="navbar-brand p-1"
-              href="https://variamos.com/home/variamos-web/"
-              target="_blanck"
+      <div
+        className="row distribution-variamos background-variamos"
+        style={{ height: "4vh", zIndex: 5 }}
+      >
+        <ul className="list-group list-group-horizontal">
+          <li className="list-group-item nav-bar-variamos">
+            <span
+              className="bi bi-box-arrow-left shadow rounded"
+              id="hiddenProject"
+            ></span>
+          </li>
+          <li
+            className="list-group-item nav-bar-variamos"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Home"
+          >
+            <span>
+              <a
+                className="bi bi-house-door shadow rounded"
+                href="https://variamos.com/home/variamos-web/"
+                target="_blanck"
+              >
+                {/* Home */}
+              </a>
+            </span>
+          </li>
+
+          <li
+            className="list-group-item nav-bar-variamos"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="View docs"
+          >
+            <span>
+              <a
+                className="bi bi-file-richtext shadow rounded"
+                href="https://github.com/VariaMosORG/VariaMos/wiki"
+                target="_blanck"
+              >
+                {/* Docs */}
+              </a>
+            </span>
+          </li>
+          <li
+            className="list-group-item nav-bar-variamos"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Export project"
+          >
+            <span
+              onClick={this.exportProject}
+              className="bi bi-download shadow rounded"
             >
-              <img
-                src={VariaMosLogo}
-                alt=""
-                width="240"
-                height="48"
-                className="d-inline-block align-top"
-              />
-            </a>
-            <div className="row align-items-center">
-              <ul className="list-inline">
-                <li className="list-inline-item">
-                  <a
-                    className="nav-bar-variamos"
-                    href="https://variamos.com/home/variamos-web/"
-                    target="_blanck"
-                  >
-                    Home
-                  </a>
-                </li>
-                <li className="list-inline-item">
-                  <button
-                    type="button"
-                    className="nav-bar-variamos"
-                    data-bs-toggle="modal"
-                    data-bs-target="#staticBackdrop"
-                    id="projectManagement"
-                  >
-                    Project Management
-                  </button>
-                </li>
-                <li className="list-inline-item">
-                  <a
-                    className="nav-bar-variamos"
-                    href="https://github.com/VariaMosORG/VariaMos/wiki"
-                    target="_blanck"
-                  >
-                    Docs
-                  </a>
-                </li>
-                <li className="list-inline-item">
-                  <button
-                    type="button"
-                    className="nav-bar-variamos"
-                    id="exportProject"
-                    onClick={this.exportProject}
-                  >
-                    Export Project
-                  </button>
-                </li>
-              </ul>
+              {/* Export Project */}
+            </span>
+          </li>
+          <li
+            className="list-group-item nav-bar-variamos"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Project management"
+          >
+            <button
+              type="button"
+              data-bs-toggle="modal"
+              data-bs-target="#staticBackdrop"
+              className="nav-bar-variamos"
+              id="projectManagement"
+              hidden={true}
+            >
+              Project Management
+            </button>
+            <div className="float-end">
+              <span
+                onClick={() =>
+                  document.getElementById("projectManagement").click()
+                }
+                className="bi bi-gear shadow rounded"
+              >
+                {/* Project Management */}
+              </span>
             </div>
-          </div>
-        </nav>
+          </li>
+        </ul>
       </div>
     );
   }
