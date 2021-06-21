@@ -31,76 +31,80 @@ class navBar extends Component<Props, State> {
         className="row distribution-variamos background-variamos"
         style={{ height: "4vh", zIndex: 5 }}
       >
-        <ul className="list-group list-group-horizontal">
-          <li className="list-group-item nav-bar-variamos">
-            <span
-              className="bi bi-box-arrow-left shadow rounded"
-              id="hiddenProject"
-            ></span>
-          </li>
-          <li
-            className="list-group-item nav-bar-variamos"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Home"
-          >
-            <span>
-              <a
-                className="bi bi-house-door shadow rounded"
-                href="https://variamos.com/home/variamos-web/"
-                target="_blanck"
-              >
-                {/* Home */}
-              </a>
-            </span>
-          </li>
+        <div className="col d-flex justify-content-start">
+          <ul className="list-group list-group-horizontal">
+            <li className="list-group-item nav-bar-variamos">
+              <span
+                className="bi bi-box-arrow-left shadow rounded"
+                id="hiddenProject"
+              ></span>
+            </li>
+          </ul>
+        </div>
+        <div className="col d-flex justify-content-center">
+          <ul className="list-group list-group-horizontal">
+            <li
+              className="list-group-item nav-bar-variamos"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Home"
+            >
+              <span>
+                <a
+                  className="bi bi-house-door shadow rounded"
+                  href="https://variamos.com/home/variamos-web/"
+                  target="_blanck"
+                >
+                  {/* Home */}
+                </a>
+              </span>
+            </li>
 
-          <li
-            className="list-group-item nav-bar-variamos"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="View docs"
-          >
-            <span>
-              <a
-                className="bi bi-file-richtext shadow rounded"
-                href="https://github.com/VariaMosORG/VariaMos/wiki"
-                target="_blanck"
+            <li
+              className="list-group-item nav-bar-variamos"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="View docs"
+            >
+              <span>
+                <a
+                  className="bi bi-file-richtext shadow rounded"
+                  href="https://github.com/VariaMosORG/VariaMos/wiki"
+                  target="_blanck"
+                >
+                  {/* Docs */}
+                </a>
+              </span>
+            </li>
+            <li
+              className="list-group-item nav-bar-variamos"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Download project"
+            >
+              <span
+                onClick={this.exportProject}
+                className="bi bi-download shadow rounded"
               >
-                {/* Docs */}
-              </a>
-            </span>
-          </li>
-          <li
-            className="list-group-item nav-bar-variamos"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Export project"
-          >
-            <span
-              onClick={this.exportProject}
-              className="bi bi-download shadow rounded"
+                {/* Export Project */}
+              </span>
+            </li>
+            <li
+              className="list-group-item nav-bar-variamos"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Project management"
             >
-              {/* Export Project */}
-            </span>
-          </li>
-          <li
-            className="list-group-item nav-bar-variamos"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Project management"
-          >
-            <button
-              type="button"
-              data-bs-toggle="modal"
-              data-bs-target="#staticBackdrop"
-              className="nav-bar-variamos"
-              id="projectManagement"
-              hidden={true}
-            >
-              Project Management
-            </button>
-            <div className="float-end">
+              <button
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#staticBackdrop"
+                className="nav-bar-variamos"
+                id="projectManagement"
+                hidden={true}
+              >
+                Project Management
+              </button>
               <span
                 onClick={() =>
                   document.getElementById("projectManagement").click()
@@ -109,9 +113,24 @@ class navBar extends Component<Props, State> {
               >
                 {/* Project Management */}
               </span>
-            </div>
-          </li>
-        </ul>
+            </li>
+          </ul>
+        </div>
+        <div className="col d-flex justify-content-end">
+          <ul className="list-group list-group-horizontal">
+            <li
+              className="list-group-item nav-bar-variamos"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="User setting"
+            >
+              <span
+                className="bi bi-person-bounding-box shadow rounded"
+                id="userSetting"
+              ></span>
+            </li>
+          </ul>
+        </div>
       </div>
     );
   }

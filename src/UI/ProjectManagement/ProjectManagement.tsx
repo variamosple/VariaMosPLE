@@ -109,13 +109,13 @@ class ProjectManagement extends Component<Props, State> {
 
   btnCreateProject_onClick(event: any) {
     if (this.state.projectName === "") {
-      alertify.message("Project name is required");
+      alertify.error("Project name is required");
       document.getElementById("enterProjectName")?.focus();
       return false;
     }
 
     if (this.state.productLineName === "") {
-      alertify.message("Product line name is required");
+      alertify.error("Product line name is required");
       document.getElementById("enterProductLineName")?.focus();
       return false;
     }
@@ -136,7 +136,7 @@ class ProjectManagement extends Component<Props, State> {
 
   btnSaveProject_onClick(event: any) {
     if (this.state.projectName === "") {
-      alertify.message("Project name is required");
+      alertify.error("Project name is required");
       document.getElementById("enterMyProjectName")?.focus();
       return false;
     }
@@ -207,7 +207,7 @@ class ProjectManagement extends Component<Props, State> {
                         role="tab"
                         aria-controls="iProject"
                       >
-                        Import
+                        Upload
                       </a>
                       <a
                         className="list-group-item list-group-item-action"
@@ -240,9 +240,7 @@ class ProjectManagement extends Component<Props, State> {
                               onChange={(e) => this.handleUpdateNameProject(e)}
                               onKeyDown={this.onEnterSaveProject}
                             />
-                            <label htmlFor="floatingInput">
-                              Enter name
-                            </label>
+                            <label htmlFor="floatingInput">Enter name</label>
                           </div>
                           <br />
                           <div className="row justify-content-center">
@@ -286,9 +284,7 @@ class ProjectManagement extends Component<Props, State> {
                             onChange={(e) => this.handleUpdateNameProject(e)}
                             onKeyPress={this.onEnterFocusPL}
                           />
-                          <label htmlFor="floatingInput">
-                            Project name
-                          </label>
+                          <label htmlFor="floatingInput">Project name</label>
                         </div>
                         <br />
                         <div className="row g-2">
@@ -355,7 +351,7 @@ class ProjectManagement extends Component<Props, State> {
                           className="btn btn-Variamos h-100"
                           onClick={this.importProject}
                         >
-                          Import
+                          Upload
                         </button>
                       </div>
                       <div
