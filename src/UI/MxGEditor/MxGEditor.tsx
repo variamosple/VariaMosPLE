@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-
+import "./MxGEditor.css"
 
 import mx from "./mxgraph";
 import { mxGraph } from "mxgraph";
