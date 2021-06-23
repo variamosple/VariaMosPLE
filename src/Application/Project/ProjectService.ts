@@ -66,9 +66,11 @@ export default class ProjectService {
     let me = this;
 
     // Standard Request Start
+    externalFunction.request = {};
+
     externalFunction.request = {
-      modelSelectedId: me.treeItemSelected,
-      project: me._project,
+      transactionId: "callExternalFuntion_Frontend",
+      data: { modelSelectedId: me.treeItemSelected, project: me._project },
     };
     // Standard Request End
 
@@ -291,6 +293,13 @@ export default class ProjectService {
     return this.languageUseCases.getLanguagesDetail();
   }
 
+  createLanguage(callback: any, language: any) {
+    language.abstractSyntax = JSON.parse(language.abstractSyntax);
+    language.concreteSyntax = JSON.parse(language.concreteSyntax);
+
+    return this.languageUseCases.createLanguage(callback, language);
+  }
+
   existDomainModel(language: string): boolean {
     let existModel = this._project.productLines[
       this.productLineSelected
@@ -356,6 +365,15 @@ export default class ProjectService {
 
   getLanguagesByType(languageType: string, _languages: Language[]): Language[] {
     return this.languageUseCases.getLanguagesByType(languageType, _languages);
+  }
+
+  languageExist(languageName: string): Boolean {
+    return this.languageUseCases.getLanguageByName(
+      languageName,
+      this._languages
+    )
+      ? true
+      : false;
   }
 
   //Language functions_ END***********

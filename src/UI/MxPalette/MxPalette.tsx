@@ -231,9 +231,11 @@ export default class MxPalette extends Component<Props, State> {
   render() {
     return (
       <div className="MxPalette">
-        <div ref={this.containerRef} className="MxPalette" id="graph_palette">
-          MxPalette
-        </div>
+        <div
+          ref={this.containerRef}
+          className="MxPalette"
+          id="graph_palette"
+        ></div>
       </div>
     );
   }

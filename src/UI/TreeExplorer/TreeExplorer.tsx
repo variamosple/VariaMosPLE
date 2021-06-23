@@ -1,6 +1,5 @@
 import React, { Component } from "react";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
-import TreeMenu from "./TreeMenu";
 import ProjectService from "../../Application/Project/ProjectService";
 import VariaMosLogo from "../../Addons/images/VariaMosLogo.png";
 

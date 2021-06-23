@@ -1,10 +1,10 @@
 export class Language {
-  id: number;
+  id?: number;
   name: string;
   abstractSyntax: string;
   concreteSyntax: string;
   type: string;
-  stateAccept: string;
+  stateAccept?: string;
 
   constructor(
     id: number,
@@ -12,7 +12,7 @@ export class Language {
     abstractSyntax: string,
     concreteSyntax: string,
     type: string,
-    stateAccept: string
+    stateAccept?: string
   ) {
     this.id = id;
     this.name = name;

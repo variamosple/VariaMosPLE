@@ -1,16 +1,16 @@
-import React, { Component } from 'react'
-import "./MxGEditor.css"
+import React, { Component } from "react";
+import "./MxGEditor.css";
 
 import mx from "./mxgraph";
 import { mxGraph } from "mxgraph";
-import ProjectService from '../../Application/Project/ProjectService';
+import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
-import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
+// import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 
 interface Props {
-  projectService: ProjectService
+  projectService: ProjectService;
 }
-interface State { }
+interface State {}
 
 export default class MxGEditor extends Component<Props, State> {
   state = {};
@@ -23,8 +23,10 @@ export default class MxGEditor extends Component<Props, State> {
     super(props);
     this.containerRef = React.createRef();
     this.graphContainerRef = React.createRef();
-    this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
-    this.projectService_addSelectedModelListener = this.projectService_addSelectedModelListener.bind(this);
+    this.projectService_addNewProductLineListener =
+      this.projectService_addNewProductLineListener.bind(this);
+    this.projectService_addSelectedModelListener =
+      this.projectService_addSelectedModelListener.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -42,15 +44,19 @@ export default class MxGEditor extends Component<Props, State> {
     this.graph = new mx.mxGraph(this.graphContainerRef.current);
     this.props.projectService.setGraph(this.graph);
     this.LoadGraph(this.graph);
-    me.props.projectService.addNewProductLineListener(this.projectService_addNewProductLineListener);
-    me.props.projectService.addSelectedModelListener(this.projectService_addSelectedModelListener);
+    me.props.projectService.addNewProductLineListener(
+      this.projectService_addNewProductLineListener
+    );
+    me.props.projectService.addSelectedModelListener(
+      this.projectService_addSelectedModelListener
+    );
   }
 
   LoadGraph(graph: mxGraph) {
-    let me=this;
+    let me = this;
     mx.mxEvent.disableContextMenu(this.graphContainerRef.current);
     new mx.mxRubberband(graph);
-    // var parent = graph.getDefaultParent(); 
+    // var parent = graph.getDefaultParent();
     graph.setPanning(true);
     graph.setTooltips(true);
     graph.setConnectable(true);
@@ -61,9 +67,9 @@ export default class MxGEditor extends Component<Props, State> {
     graph.setAllowDanglingEdges(false);
     graph.convertValueToString = function (cell) {
       if (mx.mxUtils.isNode(cell.value, "node")) {
-        return cell.getAttribute('label', '')
+        return cell.getAttribute("label", "");
       }
-    }
+    };
     graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
       //alert("CELLS_MOVED");
       evt.consume();
@@ -78,18 +84,22 @@ export default class MxGEditor extends Component<Props, State> {
         let uid = evt.properties.cell.value.getAttribute("uid");
         if (me.currentModel) {
           for (let i = 0; i < me.currentModel.elements.length; i++) {
-            const element:any = me.currentModel.elements[i];
-            if (element.id==uid) {
-              me.props.projectService.raiseEventSelectedElement(me.currentModel, element);
+            const element: any = me.currentModel.elements[i];
+            if (element.id === uid) {
+              me.props.projectService.raiseEventSelectedElement(
+                me.currentModel,
+                element
+              );
             }
           }
-        } 
+        }
       }
     });
-  } 
+  }
 
   loadModel(model: Model) {
-    let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.name);
+    let languageDefinition: any =
+      this.props.projectService.getLanguageDefinition("" + model.name);
 
     let graph: mxGraph | undefined = this.graph;
     if (graph) {
@@ -98,17 +108,17 @@ export default class MxGEditor extends Component<Props, State> {
         graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
         let parent = graph.getDefaultParent();
         for (let i = 0; i < model.elements.length; i++) {
-          let element:any = model.elements[i];
-
+          let element: any = model.elements[i];
 
           if (languageDefinition.concreteSyntax.elements[element.type].draw) {
-            let shape=atob(languageDefinition.concreteSyntax.elements[element.type].draw); 
-            let ne:any = mx.mxUtils.parseXml(shape).documentElement;
+            let shape = atob(
+              languageDefinition.concreteSyntax.elements[element.type].draw
+            );
+            let ne: any = mx.mxUtils.parseXml(shape).documentElement;
             ne.setAttribute("name", element.type);
-            let stencil=new mx.mxStencil(ne);
+            let stencil = new mx.mxStencil(ne);
             mx.mxStencilRegistry.addStencil(element.type, stencil);
           }
-
 
           var doc = mx.mxUtils.createXmlDocument();
           var node = doc.createElement("node");
@@ -122,7 +132,10 @@ export default class MxGEditor extends Component<Props, State> {
             element.y,
             element.width,
             element.height,
-            "shape=" +  element.type + ";" + languageDefinition.concreteSyntax.elements[element.type].design
+            "shape=" +
+              element.type +
+              ";" +
+              languageDefinition.concreteSyntax.elements[element.type].design
           );
         }
       } finally {
@@ -134,8 +147,7 @@ export default class MxGEditor extends Component<Props, State> {
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">
-        <div ref={this.graphContainerRef} className="GraphContainer">
-        </div>
+        <div ref={this.graphContainerRef} className="GraphContainer"></div>
       </div>
     );
   }

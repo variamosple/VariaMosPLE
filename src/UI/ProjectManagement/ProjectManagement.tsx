@@ -1,8 +1,8 @@
 import React, { Component } from "react";
-import "../../Addons/Library/VariaMosStyle/variamos.css";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import * as alertify from "alertifyjs";
+import LanguageManagement from "./LanguageManagement";
 
 interface Props {
   projectService: ProjectService;
@@ -360,13 +360,9 @@ class ProjectManagement extends Component<Props, State> {
                         role="tabpanel"
                         aria-labelledby="list-settings-list"
                       >
-                        Setting
-                        <br />
-                        - Create method for refresh language List
-                        <br />
-                        - Create Method for add new language
-                        <br />
-                        <br />
+                        <LanguageManagement
+                          projectService={this.props.projectService}
+                        />
                       </div>
                     </div>
                   </div>

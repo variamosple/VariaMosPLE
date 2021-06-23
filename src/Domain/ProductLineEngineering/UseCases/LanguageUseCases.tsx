@@ -10,19 +10,24 @@ export default class LanguageUseCases {
 
   getLanguagesByType(languageType: string, languages: Language[]): Language[] {
     const languagesFilter: Language[] = languages.filter(
-      (language) => (language.type = languageType)
+      (language) => language.type === languageType
     );
     return languagesFilter;
   }
+
   getLanguageByName(languageName: string, languages: Language[]): Language {
     const languagesFilter: Language = languages.filter(
-      (language) => (language.name = languageName)
+      (language) => language.name === languageName
     )[0];
     return languagesFilter;
   }
 
   getLanguagesDetail(): Language[] {
     return this.languageService.getLanguagesDetail();
+  }
+
+  createLanguage(callback: any, language: Language) {
+    return this.languageService.createLanguage(callback, language);
   }
 
   callExternalFuntion(callback: any, externalFunction: ExternalFuntion): any[] {

@@ -1,10 +1,10 @@
-import axios from "axios";
-import config from "../../Infraestructure/config.json";
+import axios, { Method } from "axios";
+import _config from "../../Infraestructure/config.json";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 
 export default class LanguageService {
   apiVariamos = axios.create({
-    baseURL: config.urlBackEndLanguage,
+    baseURL: _config.urlBackEndLanguage,
   });
 
   getLanguagesDetail(): Language[] {
@@ -24,6 +24,39 @@ export default class LanguageService {
       console.log("Something wrong in getLanguageDetail Service: " + error);
     }
     return languages;
+  }
+
+  createLanguage(callback: any, language: Language) {
+    let response: string;
+
+    // Standard Request Start
+    let requestBody = {
+      transactionId: "createLanguage_Frontend",
+      data: language,
+    };
+    // Standard Request End
+
+    const config = {
+      baseURL: _config.urlBackEndLanguage + "languages",
+      method: "post" as Method,
+      data: requestBody,
+    };
+    try {
+      axios(config).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        response = responseAPISuccess.message;
+
+        if (responseAPISuccess.message?.includes("Error"))
+          throw new Error(JSON.stringify(res.data));
+
+        callback(response);
+      });
+    } catch (error) {
+      response = "Something wrong in createLanguage Service: " + error;
+      console.log(response);
+      callback(response);
+    }
   }
 
   getLanguages(callBack: any) {

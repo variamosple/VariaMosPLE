@@ -1,0 +1,162 @@
+/*!
+ * Copyright 2021 VariaMos PLE. 
+ */
+
+:root {
+  --primary-color: #428dcf;
+  --primary-color-text: #ffffff;
+  --primary-color-constrast: #22486a;
+  --primary-color-constrast-text: #ffffff;
+}
+
+/* General design
+---------------------------- */
+.distribution-variamos {
+  padding: 0.05em;
+  border: none;
+}
+
+.card {
+  border: 1px rgba(0, 0, 0, 0.125);
+}
+
+.background-variamos {
+  background-color: var(--primary-color);
+  color: var(--primary-color-text);
+}
+
+.dropdown-item:active {
+  background-color: var(--primary-color);
+  color: var(--primary-color-text);
+}
+
+.projectName {
+  color: var(--primary-color);
+}
+
+label {
+  color: gray;
+}
+
+.ajs-error,
+.ajs-message,
+.ajs-warning {
+  color: var(--primary-color-text) !important;
+  border-bottom: 1px !important;
+  box-shadow: 2px 2px 6px var(--primary-color-constrast);
+}
+
+/* ---------------------------- */
+
+/* Variamos Botton - Primary Color
+---------------------------- */
+.btn-Variamos {
+  color: var(--primary-color-text);
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.btn-Variamos:hover {
+  color: var(--primary-color-constrast-text);
+  background-color: var(--primary-color-constrast);
+  border-color: var(--primary-color-constrast);
+}
+
+.btn-Variamos:active {
+  color: var(--primary-color-constrast-text);
+  background-color: var(--primary-color-constrast);
+  border-color: var(--primary-color-constrast);
+}
+/* ---------------------------- */
+
+/* Variamos project management
+---------------------------- */
+.border-title-darkblue-variamos {
+  border-bottom: 5px solid var(--primary-color-constrast);
+  border-right: 5px solid var(--primary-color-constrast);
+}
+
+.list-group-item.active {
+  color: var(--primary-color-text);
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color-constrast);
+  border-bottom: 5px solid var(--primary-color-constrast);
+}
+
+/* ---------------------------- */
+
+/* Variamos Tree
+---------------------------- */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap");
+.outer {
+  top: 30%;
+  left: 40%;
+}
+ul {
+  list-style: none;
+}
+#ul {
+  margin: 0;
+  padding: 0;
+}
+.fa-plus-square,
+.nested {
+  cursor: pointer;
+  user-select: none;
+}
+.fa-plus-square::before {
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.nested {
+  display: none;
+}
+.active {
+  display: block;
+}
+
+.fa-plus-square {
+  color: var(--primary-color);
+  cursor: pointer;
+}
+
+.fa-minus-square:active {
+  background-color: #b8daed3b;
+}
+
+.fa-plus-square:active {
+  background-color: #b8daed3b;
+}
+/* ---------------------------- */
+
+/* Variamos navigate bar
+---------------------------- */
+.nav-bar-variamos,
+a {
+  text-decoration: none !important;
+  color: var(--primary-color-text);
+  background-color: transparent !important;
+  border: none;
+  padding-top: 5px;
+  cursor: pointer;
+}
+
+.nav-bar-variamos:active {
+  color: var(--primary-color-constrast-text) !important;
+  text-decoration: none;
+  background-color: var(--primary-color-constrast) !important;
+  border-color: var(--primary-color-constrast);
+}
+
+.nav-bar-variamos:hover {
+  color: var(--primary-color-constrast-text) !important;
+  text-decoration: none;
+  background-color: var(--primary-color-constrast) !important;
+  border-color: var(--primary-color-constrast);
+}
+
+a:hover {
+  text-decoration: none;
+  color: var(--primary-color-text);
+}
+/* ---------------------------- */

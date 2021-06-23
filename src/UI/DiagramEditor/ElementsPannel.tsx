@@ -19,7 +19,7 @@ class ElementsPannel extends Component<Props, State> {
       <div id="ElementsPannel" className="" style={{ height: "35vh" }}>
         <div className="col-sm h-100 distribution-variamos">
           <div className="card text-center h-100 distribution-variamos shadow-sm bg-body rounded">
-            <div className="card-header">Elements</div>
+            <div className="card-header background-variamos">Elements</div>
             <div className="card-body bg-white-Variamos">
               <MxPalette projectService={this.props.projectService} />
             </div>

@@ -23,12 +23,6 @@ class DiagramEditor extends Component<Props, State> {
       >
         <div className="col-sm-12 h-100">
           <div className="card text-center h-100 shadow-sm bg-body rounded">
-            {/* <div className="card-header">
-              <span
-                className="bi bi-box-arrow-left float-start shadow rounded"
-                id="hiddenProject"
-              ></span>
-            </div> */}
             <div className="card-body">
               <MxGEditor projectService={this.props.projectService} />
             </div>

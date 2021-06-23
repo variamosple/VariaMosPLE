@@ -15,7 +15,7 @@ class PropiertiesPannel extends Component<Props, State> {
       <div id="PropiertiesPannel" style={{ height: "60vh" }}>
         <div className="col-sm h-100 distribution-variamos">
           <div className="card text-center h-100 distribution-variamos shadow-sm bg-body rounded">
-            <div className="card-header">Propierties</div>
+            <div className="card-header background-variamos">Propierties</div>
             <div className="card-body bg-white-Variamos">
               <MxProperties projectService={this.props.projectService} />
             </div>

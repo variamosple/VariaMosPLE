@@ -3,6 +3,7 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 import * as alertify from "alertifyjs";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
+import "./TreeMenu.css";
 
 interface Props {
   projectService: ProjectService;
@@ -215,7 +216,7 @@ class TreeMenu extends Component<Props, State> {
 
   addNewFolder(event: any) {
     if (this.state.modalInputValue === "") {
-      alertify.message("The name is required");
+      alertify.error("The name is required");
       document.getElementById("modalInputValue")?.focus();
       return false;
     }
@@ -279,7 +280,7 @@ class TreeMenu extends Component<Props, State> {
       DOMAIN: function () {
         if (!me.props.projectService.existDomainModel(language.name))
           me.addNewDomainEModel(language.name);
-        else alertify.message(language.name + " model already exist.");
+        else alertify.error(language.name + " model already exist.");
       },
       APPLICATION: function () {
         if (
@@ -288,17 +289,17 @@ class TreeMenu extends Component<Props, State> {
         ) {
           if (!me.props.projectService.existApplicaioninEngModel(language.name))
             me.addNewApplicationEModel(language.name);
-          else alertify.message(language.name + " model already exist.");
+          else alertify.error(language.name + " model already exist.");
         } else if (
           !me.props.projectService.existApplicaioninModel(language.name)
         )
           me.addNewApplicationModel(language.name);
-        else alertify.message(language.name + " model already exist.");
+        else alertify.error(language.name + " model already exist.");
       },
       ADAPTATION: function () {
         if (!me.props.projectService.existAdaptationModel(language.name))
           me.addNewAdaptationModel(language.name);
-        else alertify.message(language.name + " model already exist.");
+        else alertify.error(language.name + " model already exist.");
       },
     };
 
