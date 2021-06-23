@@ -86,8 +86,8 @@
             $("#context-menu").removeClass("show").hide();
           });
 
-        $("#context-menu a").on("click", function () {
-          $(this).parent().removeClass("show").hide();
+        $("#context-menu").on("click", function () {
+          $(this).removeClass("show").hide();
         });
         //End***************** Code for Right Clic
       });
