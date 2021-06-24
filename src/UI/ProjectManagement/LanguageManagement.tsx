@@ -28,6 +28,26 @@ class LanguageManagement extends Component<Props, State> {
     this.updateType = this.updateType.bind(this);
   }
 
+  jsonFormat() {
+    // var obj = JSON.parse(this.state.abstractSyntax);
+    // var jsonFormat = JSON.stringify(obj, undefined, 4);
+    // document
+    //   .getElementById("newLanguageAbSy")
+    //   .setAttribute("value", jsonFormat);
+    // this.setState({
+    //   abstractSyntax: JSON.stringify(this.state.abstractSyntax, undefined, 4),
+    // });
+    // var badJSON = document
+    //   .getElementById("newLanguageAbSy")
+    //   .getAttribute("value");
+    // var parseJSON = JSON.parse(badJSON);
+    // var JSONInPrettyFormat = JSON.stringify(parseJSON, undefined, 4);
+    // document
+    //   .getElementById("newLanguageAbSy")
+    //   .setAttribute("value", JSONInPrettyFormat);
+    // alert(document.getElementById("newLanguageAbSy").getAttribute("value"));
+  }
+
   validateSchemaConcreteSyntax(): boolean {
     return true;
   }
@@ -46,6 +66,7 @@ class LanguageManagement extends Component<Props, State> {
   }
 
   validateParamsNull(): boolean {
+    // this.jsonFormat();
     if (this.state.name === "") {
       alertify.error("Language name is required");
       document.getElementById("newLanguageName")?.focus();

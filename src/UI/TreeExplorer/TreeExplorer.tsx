@@ -177,7 +177,7 @@ class TreeExplorer extends Component<Props, State> {
                 style={{ overflowX: "auto" }}
               >
                 <div className="text-center projectName shadow-sm p-2 rounded">
-                  &nbsp; {this.props.projectService.project.name}
+                  &nbsp;Project name: {this.props.projectService.project.name}
                 </div>
                 <br />
 
