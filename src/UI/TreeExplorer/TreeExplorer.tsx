@@ -156,20 +156,31 @@ class TreeExplorer extends Component<Props, State> {
       >
         <div className="col-sm-12 h-100">
           <div className="col-sm-12 h-100">
-            <div className="card h-100 shadow-sm bg-body rounded">
-              <div className="text-center">
+            <div className="card h-100 shadow bg-body rounded">
+              <div className="text-center p-2 bg-body">
                 <a
                   href="https://variamos.com/home/variamos-web/"
                   target="_blanck"
                 >
-                  <img src={VariaMosLogo} alt="" width="191" height="39" />
+                  <img
+                    src={VariaMosLogo}
+                    alt=""
+                    className="img-fluid"
+                    width="191"
+                    height="39"
+                  />
                 </a>
+                <hr style={{ marginTop: 10, color: "gray" }} />
               </div>
-              <hr style={{ marginTop: 0, color: "gray" }} />
-              <div className="card-body bg-white-Variamos">
-                <div className="text-center projectName">
-                  &nbsp; {this.props.projectService.project.name}
+              <div
+                className="card-body bg-white-Variamos"
+                style={{ overflowX: "auto" }}
+              >
+                <div className="text-center projectName shadow-sm p-2 rounded">
+                  &nbsp;Project name: {this.props.projectService.project.name}
                 </div>
+                <br />
+
                 <ul id="ul">
                   {this.props.projectService.project.productLines.map(
                     (pl: ProductLine, idPl: number) => (

@@ -177,6 +177,8 @@ class TreeMenu extends Component<Props, State> {
   }
 
   updateModal(eventId: string) {
+    document.getElementById("modalInputValue").focus();
+
     let me = this;
     const updateModal: any = {
       PRODUCTLINE: function () {
@@ -401,7 +403,6 @@ class TreeMenu extends Component<Props, State> {
                   type="button"
                   className="btn btn-Variamos"
                   onClick={this.addNewFolder}
-                  // data-bs-dismiss="modal"
                 >
                   Save changes
                 </button>
