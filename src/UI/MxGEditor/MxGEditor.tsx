@@ -117,14 +117,13 @@ export default class MxGEditor extends Component<Props, State> {
         node.setAttribute("label", relationshipType);
 
         edge.value=node;
+       edge.style="strokeColor=#446E79;strokeWidth=2;";
 
         let languageDefinition: any = me.props.projectService.getLanguageDefinition("" + me.currentModel.name);
         if (languageDefinition.concreteSyntax.relationships) {
           if (languageDefinition.concreteSyntax.relationships[relationshipType]) {
             edge.style=languageDefinition.concreteSyntax.relationships[relationshipType].style;
-          }else{
-            edge.style="strokeColor=#446E79;strokeWidth=2;";
-          }
+          } 
         }
 
         // var style = graph.getCellStyle(edge);
