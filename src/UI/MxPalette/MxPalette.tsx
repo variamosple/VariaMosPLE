@@ -56,7 +56,7 @@ export default class MxPalette extends Component<Props, State> {
 
   createVertex(type: any, element: any) {
     let doc = mx.mxUtils.createXmlDocument();
-    let node = doc.createElement("node");
+    let node = doc.createElement(type);
     node.setAttribute("type", type);
     let vertex = new mx.mxCell(
       node,
@@ -107,8 +107,8 @@ export default class MxPalette extends Component<Props, State> {
 
   callbackGetStyle(languageDefinition: any): any {
     const me = this;
-    let graph = this.props.projectService.getGraph();
-
+    let graph = this.props.projectService.getGraph(); 
+    graph.multiplicities=[];
     let divToolbar: any = document.getElementById("graph_palette");
     divToolbar.classList.add("list-inline");
     if (divToolbar) {
@@ -172,19 +172,18 @@ export default class MxPalette extends Component<Props, State> {
 
     if (languageDefinition.abstractSyntax.relationships) {
       for (key in languageDefinition.abstractSyntax.relationships) {
-        const relationship =
-          languageDefinition.abstractSyntax.relationships[key];
+        const relationship = languageDefinition.abstractSyntax.relationships[key];
         let mul = new mx.mxMultiplicity(
-          false,
+          true,
           relationship.source,
-          "type",
+          null,
           null,
           0,
-          1,
+          0,
           [relationship.target],
           "Only 1 target is allowed",
           "Only " + relationship.target + " targets allowed",
-          false
+          true
         );
         graph.multiplicities.push(mul);
       }
