@@ -37,10 +37,77 @@ export default class LanguageService {
     // Standard Request End
 
     const config = {
-      baseURL: _config.urlBackEndLanguage + "languages",
+      baseURL: _config.urlBackEndLanguage + "/languages",
       method: "post" as Method,
       data: requestBody,
     };
+    try {
+      axios(config).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        response = responseAPISuccess.message;
+
+        if (responseAPISuccess.message?.includes("Error"))
+          throw new Error(JSON.stringify(res.data));
+
+        callback(response);
+      });
+    } catch (error) {
+      response = "Something wrong in createLanguage Service: " + error;
+      console.log(response);
+      callback(response);
+    }
+  }
+
+  deleteLanguage(callback: any, languageId: string) {
+    let response: string;
+
+    // Standard Request Start
+    let requestBody = {
+      transactionId: "deleteLanguage_Frontend",
+    };
+    // Standard Request End
+
+    const config = {
+      baseURL: _config.urlBackEndLanguage + "/languages/" + languageId,
+      method: "delete" as Method,
+      data: requestBody,
+    };
+
+    try {
+      axios(config).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        response = responseAPISuccess.message;
+
+        if (responseAPISuccess.message?.includes("Error"))
+          throw new Error(JSON.stringify(res.data));
+
+        callback(response);
+      });
+    } catch (error) {
+      response = "Something wrong in deleteLanguage Service: " + error;
+      console.log(response);
+      callback(response);
+    }
+  }
+
+  updateLanguage(callback: any, language: Language) {
+    let response: string;
+
+    // Standard Request Start
+    let requestBody = {
+      transactionId: "updateLanguage_Frontend",
+      data: language,
+    };
+    // Standard Request End
+
+    const config = {
+      baseURL: _config.urlBackEndLanguage + "/languages/" + language.id,
+      method: "put" as Method,
+      data: requestBody,
+    };
+
     try {
       axios(config).then((res) => {
         let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();

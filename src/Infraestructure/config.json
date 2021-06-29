@@ -1,3 +1,6 @@
 {
-  "urlBackEndLanguage": "https://variamos-ms-languages.azurewebsites.net/"
+  "urlBackEndLanguage": "https://variamos-ms-languages.azurewebsites.net",
+
+  "_comment.environment": "The environments available are development and production",
+  "environment": "development"
 }

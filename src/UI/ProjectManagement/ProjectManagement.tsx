@@ -216,6 +216,9 @@ class ProjectManagement extends Component<Props, State> {
                         href="#list-settings"
                         role="tab"
                         aria-controls="settings"
+                        onClick={() =>
+                          LanguageManagement.bind(this.forceUpdate())
+                        }
                       >
                         Settings
                       </a>

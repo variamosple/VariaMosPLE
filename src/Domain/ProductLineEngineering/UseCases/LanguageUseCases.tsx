@@ -25,9 +25,20 @@ export default class LanguageUseCases {
   getLanguagesDetail(): Language[] {
     return this.languageService.getLanguagesDetail();
   }
+  getLanguagesDetailCll(callBack: any) {
+    return this.languageService.getLanguages(callBack);
+  }
 
   createLanguage(callback: any, language: Language) {
     return this.languageService.createLanguage(callback, language);
+  }
+
+  updateLanguage(callback: any, language: Language) {
+    return this.languageService.updateLanguage(callback, language);
+  }
+
+  deleteLanguage(callback: any, languageId: string) {
+    return this.languageService.deleteLanguage(callback, languageId);
   }
 
   callExternalFuntion(callback: any, externalFunction: ExternalFuntion): any[] {

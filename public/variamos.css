@@ -3,10 +3,20 @@
  */
 
 :root {
-  --primary-color: #428DCF;
+  --primary-color: #2196f3;
   --primary-color-text: #ffffff;
-  --primary-color-constrast: #22486a;
+  --primary-color-constrast: #0f436d;
   --primary-color-constrast-text: #ffffff;
+
+  /* --secondary-color: #8bc34a;
+  --secondary-color-text: #344b1b;
+  --secondary-color-constrast: #344b1b;
+  --secondary-color-constrast-text: #ffffff; */
+
+  --secondary-color: #2196f3;
+  --secondary-color-text: #ffffff;
+  --secondary-color-constrast: #0f436d;
+  --secondary-color-constrast-text: #ffffff;
 }
 
 /* General design
@@ -51,20 +61,20 @@ label {
 /* Variamos Botton - Primary Color
 ---------------------------- */
 .btn-Variamos {
-  color: var(--primary-color-text);
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
+  color: var(--secondary-color-text);
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
 }
 .btn-Variamos:hover {
-  color: var(--primary-color-constrast-text);
-  background-color: var(--primary-color-constrast);
-  border-color: var(--primary-color-constrast);
+  color: var(--secondary-color-constrast-text);
+  background-color: var(--secondary-color-constrast);
+  border-color: var(--secondary-color-constrast);
 }
 
 .btn-Variamos:active {
-  color: var(--primary-color-constrast-text);
-  background-color: var(--primary-color-constrast);
-  border-color: var(--primary-color-constrast);
+  color: var(--secondary-color-constrast-text);
+  background-color: var(--secondary-color-constrast);
+  border-color: var(--secondary-color-constrast);
 }
 /* ---------------------------- */
 
@@ -158,5 +168,24 @@ a {
 a:hover {
   text-decoration: none;
   color: var(--primary-color-text);
+}
+/* ---------------------------- */
+
+/* Variamos icon dark
+---------------------------- */
+.icon-dark-variamos {
+  text-decoration: none !important;
+  color: var(--primary-color-text);
+  background-color: var(--primary-color);
+  border: none;
+  padding-top: 5px;
+  cursor: pointer;
+}
+
+.icon-dark-variamos:hover {
+  color: var(--primary-color-constrast-text) !important;
+  text-decoration: none;
+  background-color: var(--primary-color-constrast) !important;
+  border-color: var(--primary-color-constrast);
 }
 /* ---------------------------- */

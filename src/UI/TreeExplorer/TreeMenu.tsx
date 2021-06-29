@@ -306,6 +306,8 @@ class TreeMenu extends Component<Props, State> {
     };
 
     add[language.type]();
+
+    
   }
 
   addNewDomainEModel(languageName: string) {
@@ -474,11 +476,13 @@ class TreeMenu extends Component<Props, State> {
               <i className="bi bi-chevron-compact-right float-end"></i>
             </span>
             <ul className="submenu dropdown-menu">
-              {this.props.projectService.languagesDetail.map(
+              {this.props.projectService.languages.map(
                 (language: Language, i: number) => (
                   <div key={i}>
                     {language.type === this.state.newSelected &&
-                    language.stateAccept === "ACTIVE" ? (
+                    (language.stateAccept === "ACTIVE" ||
+                      this.props.projectService.environment ===
+                        "development") ? (
                       <li>
                         <span
                           className={"dropdown-item type_" + language}

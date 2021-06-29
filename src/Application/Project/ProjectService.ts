@@ -18,6 +18,7 @@ import { NewApplicationEventArg } from "./Events/NewApplicationEventArg";
 import { NewAdaptationEventArg } from "./Events/NewAdaptationEventArg";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
 import { Utils } from "../../Addons/Library/Utils/Utils";
+import _config from "../../Infraestructure/config.json";
 
 export default class ProjectService {
   private graph: any;
@@ -26,8 +27,8 @@ export default class ProjectService {
   private languageService: LanguageService = new LanguageService();
   private utils: Utils = new Utils();
 
-  private _languages: any;
-  private _languagesDetail: Language[] = this.getLanguagesDetail();
+  private _environment: string = _config.environment;
+  private _languages: any = this.getLanguagesDetail();
   private _externalFunctions: ExternalFuntion[] = [];
   private _project: Project = this.createProject("");
   private treeItemSelected: string = "";
@@ -49,17 +50,21 @@ export default class ProjectService {
   private updateSelectedListeners: any = [];
   private selectedElementListeners: any = [];
 
-  constructor() {
-    let me = this;
-    let fun = function (data: any) {
-      me._languages = data;
-    };
+  // constructor() {
+  //   let me = this;
+  //   let fun = function (data: any) {
+  //     me._languages = data;
+  //   };
 
-    this.languageService.getLanguages(fun);
-  }
+  //   this.languageService.getLanguages(fun);
+  // }
 
   public get externalFunctions(): ExternalFuntion[] {
     return this._externalFunctions;
+  }
+
+  public get environment(): string {
+    return this._environment;
   }
 
   callExternalFuntion(externalFunction: ExternalFuntion) {
@@ -281,9 +286,6 @@ export default class ProjectService {
   //Search Model functions_ END***********
 
   //Language functions_ START***********
-  public get languagesDetail(): Language[] {
-    return this._languagesDetail;
-  }
 
   public get languages(): Language[] {
     return this._languages;
@@ -293,11 +295,27 @@ export default class ProjectService {
     return this.languageUseCases.getLanguagesDetail();
   }
 
+  getLanguagesDetailCll(callback: any) {
+    return this.languageUseCases.getLanguagesDetailCll(callback);
+  }
+
   createLanguage(callback: any, language: any) {
     language.abstractSyntax = JSON.parse(language.abstractSyntax);
     language.concreteSyntax = JSON.parse(language.concreteSyntax);
 
     return this.languageUseCases.createLanguage(callback, language);
+  }
+
+  updateLanguage(callback: any, language: any, languageId: string) {
+    language.id = languageId;
+    language.abstractSyntax = JSON.parse(language.abstractSyntax);
+    language.concreteSyntax = JSON.parse(language.concreteSyntax);
+
+    return this.languageUseCases.updateLanguage(callback, language);
+  }
+
+  deleteLanguage(callback: any, languageId: string) {
+    return this.languageUseCases.deleteLanguage(callback, languageId);
   }
 
   existDomainModel(language: string): boolean {
@@ -429,6 +447,11 @@ export default class ProjectService {
       this.treeIdItemSelected
     );
     this.raiseEventUpdateProject(this._project);
+  }
+
+  refreshLanguageList() {
+    this._languages = this.getLanguagesDetail();
+    this.raiseEventLanguagesDetail(this._languages);
   }
 
   renameItemProject(newName: string) {
