@@ -222,6 +222,19 @@ class ProjectManagement extends Component<Props, State> {
                       >
                         Settings
                       </a>
+                      <a
+                        className="list-group-item list-group-item-action"
+                        id="list-help-list"
+                        data-bs-toggle="list"
+                        href="#list-help"
+                        role="tab"
+                        aria-controls="help"
+                        onClick={() =>
+                          LanguageManagement.bind(this.forceUpdate())
+                        }
+                      >
+                        Help
+                      </a>
                     </div>
                   </div>
                   <div className="col-8">
@@ -366,6 +379,29 @@ class ProjectManagement extends Component<Props, State> {
                         <LanguageManagement
                           projectService={this.props.projectService}
                         />
+                      </div>
+                      <div
+                        className="tab-pane fade"
+                        id="list-help"
+                        role="tabpanel"
+                        aria-labelledby="list-help-list"
+                      >
+                        <div className="list-group">
+                          <a
+                            href="https://github.com/VariaMosORG/VariaMos/wiki"
+                            target="_blanck"
+                            className="list-group-item list-group-item-action"
+                          >
+                            What is VariaMos?
+                          </a>
+                          <a
+                            href="https://github.com/VariaMosORG/VariaMos/wiki"
+                            target="_blanck"
+                            className="list-group-item list-group-item-action"
+                          >
+                            how can i define a language?
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
