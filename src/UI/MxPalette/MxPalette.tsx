@@ -103,12 +103,13 @@ export default class MxPalette extends Component<Props, State> {
       this.currentModel,
       element
     );
+    this.props.projectService.saveProject();
   }
 
   callbackGetStyle(languageDefinition: any): any {
     const me = this;
-    let graph = this.props.projectService.getGraph(); 
-    graph.multiplicities=[];
+    let graph = this.props.projectService.getGraph();
+    graph.multiplicities = [];
     let divToolbar: any = document.getElementById("graph_palette");
     divToolbar.classList.add("list-inline");
     if (divToolbar) {
@@ -172,7 +173,8 @@ export default class MxPalette extends Component<Props, State> {
 
     if (languageDefinition.abstractSyntax.relationships) {
       for (key in languageDefinition.abstractSyntax.relationships) {
-        const relationship = languageDefinition.abstractSyntax.relationships[key];
+        const relationship =
+          languageDefinition.abstractSyntax.relationships[key];
         let mul = new mx.mxMultiplicity(
           true,
           relationship.source,

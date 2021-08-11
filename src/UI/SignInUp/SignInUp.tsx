@@ -13,7 +13,7 @@ class SignInUp extends Component<Props, State> {
   componentDidMount() {}
 
   render() {
-    return <div className=""></div>;
+    return <div className="container-fluid">test mxgraph</div>;
   }
 }
 
