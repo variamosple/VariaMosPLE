@@ -3,6 +3,9 @@ import { Application } from "../Entities/Application";
 import { Model } from "../Entities/Model";
 import { ProductLine } from "../Entities/ProductLine";
 import { Project } from "../Entities/Project";
+import { Relationship } from "../Entities/Relationship";
+import { Point } from "../Entities/Point";
+import { Property } from "../Entities/Property";
 
 export default class ProjectUseCases {
   // constructor() {
@@ -268,6 +271,26 @@ export default class ProjectUseCases {
     //Ejecutar el consumo de mxGraph.
 
     return model;
+  }
+
+  createRelationship(
+    model: Model,
+    name: string,
+    sourceId: string,
+    targetId: string,
+    points: Point[] = [],
+    min: number,
+    max: number,
+    properties: Property[] 
+  ): Relationship {
+    // let modelName = this.findLanguage(LanguageType);
+
+    let relationship: Relationship = new Relationship(this.generateId(), name, sourceId, targetId, points, min, max, properties );
+    model.relationships.push(relationship);
+
+    //Ejecutar el consumo de mxGraph.
+
+    return relationship;
   }
 
   deleteTreeItemSelected(

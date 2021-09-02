@@ -5,12 +5,13 @@ import mx from "./mxgraph";
 import { mxGraph } from "mxgraph";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 
 interface Props {
   projectService: ProjectService;
 }
-interface State {}
+interface State { }
 
 export default class MxGEditor extends Component<Props, State> {
   state = {};
@@ -75,8 +76,22 @@ export default class MxGEditor extends Component<Props, State> {
       }
     };
     graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
-      alert("CELLS_MOVED");
       evt.consume();
+      if (evt.properties.cells) {
+        let cell = evt.properties.cells[0];
+        let uid = cell.value.getAttribute("uid");
+        if (me.currentModel) {
+          for (let i = 0; i < me.currentModel.elements.length; i++) {
+            const element: any = me.currentModel.elements[i];
+            if (element.id === uid) {
+              element.x = cell.geometry.x;
+              element.y = cell.geometry.y;
+              element.width = cell.geometry.width;
+              element.height = cell.geometry.height;
+            }
+          }
+        }
+      }
     });
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
       evt.consume();
@@ -99,26 +114,19 @@ export default class MxGEditor extends Component<Props, State> {
             }
           }
         }
-      } catch (error) {}
+      } catch (error) { }
     });
 
     graph.addListener(mx.mxEvent.CELL_CONNECTED, function (sender, evt) {
       try {
         evt.consume();
-        var edge = evt.getProperty("edge");
-        var source = edge.source;
-        var target = edge.target;
+        let edge = evt.getProperty("edge");
+        let source = edge.source;
+        let target = edge.target;
+        let name = source.value.tagName + "_" + target.value.tagName;
+        let relationshipType = source.value.tagName + "_" + target.value.tagName;
 
-        var relationshipType =
-          source.value.tagName + "_" + target.value.tagName;
-
-        var doc = mx.mxUtils.createXmlDocument();
-        var node = doc.createElement("relationship");
-        node.setAttribute("label", relationshipType);
-
-        edge.value = node;
         edge.style = "strokeColor=#446E79;strokeWidth=2;";
-
         let languageDefinition: any =
           me.props.projectService.getLanguageDefinition(
             "" + me.currentModel.name
@@ -133,15 +141,36 @@ export default class MxGEditor extends Component<Props, State> {
               ].style;
           }
         }
+        if (!edge.value) { 
+          var doc = mx.mxUtils.createXmlDocument();
+          var node = doc.createElement("relationship");
+          node.setAttribute("label", relationshipType); 
+          edge.value = node; 
+          let points = [];
+          let min = 0;
+          let max = 1;
+          let properties = []; 
+          let relationship = me.props.projectService.createRelationship(me.currentModel, name, source.value.getAttribute("uid"), target.value.getAttribute("uid"), points, min, max, properties);
 
-        // var style = graph.getCellStyle(edge);
-        // var sourcePortId = style[mx.mxConstants.STYLE_SOURCE_PORT];
-        // var targetPortId = style[mx.mxConstants.STYLE_TARGET_PORT];
+          // var style = graph.getCellStyle(edge);
+          // var sourcePortId = style[mx.mxConstants.STYLE_SOURCE_PORT];
+          // var targetPortId = style[mx.mxConstants.STYLE_TARGET_PORT];
 
-        // mxLog.show();
-        // mxLog.debug('connect', edge, source.id, target.id, sourcePortId, targetPortId);
-      } catch (error) {}
+          // mxLog.show();
+          // mxLog.debug('connect', edge, source.id, target.id, sourcePortId, targetPortId);
+        }
+      } catch (error) {
+        let m = error;
+      }
     });
+
+    // graph.connectionHandler.addListener(mx.mxEvent.CONNECT, function(sender, evt)
+    // {
+    //   var edge = evt.getProperty('cell');
+    //   var source = graph.getModel().getTerminal(edge, true);
+    //   var target = graph.getModel().getTerminal(edge, false);  
+    // });
+
   }
 
   loadModel(model: Model) {
@@ -180,16 +209,59 @@ export default class MxGEditor extends Component<Props, State> {
             element.width,
             element.height,
             "shape=" +
-              element.type +
-              ";" +
-              languageDefinition.concreteSyntax.elements[element.type].design
+            element.type +
+            ";" +
+            languageDefinition.concreteSyntax.elements[element.type].design
           );
           console.log(vx);
+        }
+
+        for (let i = 0; i < model.relationships.length; i++) {
+          const relationship = model.relationships[i]; 
+          let source = this.findElementById(graph, relationship.sourceId);
+          let target = this.findElementById(graph, relationship.targetId);
+          let name = source.value.tagName + "_" + target.value.tagName;
+          let relationshipType = source.value.tagName + "_" + target.value.tagName;
+          let doc = mx.mxUtils.createXmlDocument();
+          let node = doc.createElement("relationship");
+          node.setAttribute("label", name);
+          node.setAttribute("type", relationshipType);
+
+          //var cell = new mx.mxCell(node, new mx.mxGeometry(0, 0, 50, 50), 'curved=1;endArrow=classic;html=1;');
+          var cell = new mx.mxCell(node, new mx.mxGeometry(0, 0, 50, 50), 'strokeColor=#446E79;strokeWidth=2;');
+          cell.geometry.setTerminalPoint(new mx.mxPoint(50, 150), true);
+          cell.geometry.setTerminalPoint(new mx.mxPoint(150, 50), false);
+          cell.geometry.relative = true;
+          cell.edge = true;
+
+          //cell = this.graph?.addCell(cell);
+
+          let index = null;
+          this.graph?.addEdge(cell, parent, source, target, index);
+
+          //this.graph?.fireEvent(new mx.mxEventObject('cellsInserted', 'cells', [cell])); 
         }
       } finally {
         this.graph?.getModel().endUpdate();
       }
     }
+  }
+
+  //sacar esto en una libreria
+  findElementById(graph, uid){
+    let vertices = graph.getChildVertices(graph.getDefaultParent());
+    for (let i = 0; i < vertices.length; i++) {
+      const vertice = vertices[i];
+      try {
+        let vuid=vertice.value.getAttribute("uid");
+        if (vuid==uid) {
+          return vertice;
+        }
+      } catch (error) {
+        
+      } 
+    }
+    return null;
   }
 
   render() {

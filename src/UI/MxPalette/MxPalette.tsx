@@ -78,6 +78,9 @@ export default class MxPalette extends Component<Props, State> {
     let type = vertex.getAttribute("type");
     let name = type + " 1";
 
+    //aqui se llamaría a la api de restricciones y  mostrar mensajes de error
+    // o sino continuar
+
     let element: any = new Element(name, type);
     element.x = vertex.geometry.x;
     element.y = vertex.geometry.y;

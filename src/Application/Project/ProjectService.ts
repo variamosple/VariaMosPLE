@@ -19,6 +19,9 @@ import { NewAdaptationEventArg } from "./Events/NewAdaptationEventArg";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
 import { Utils } from "../../Addons/Library/Utils/Utils";
 import _config from "../../Infraestructure/config.json";
+import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
+import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
+import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 
 export default class ProjectService {
   private graph: any;
@@ -741,4 +744,18 @@ export default class ProjectService {
   //     }
   //   }
   // }
+
+  
+
+  createRelationship(model: Model,
+    name: string,
+    sourceId: string,
+    targetId: string,
+    points: Point[] = [],
+    min: number,
+    max: number,
+    properties: Property[] ): Relationship {
+    let r = this.projectManager.createRelationship(model, name, sourceId, targetId, points, min, max, properties);
+    return r;
+  }
 }
