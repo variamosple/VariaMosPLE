@@ -86,7 +86,7 @@ export default class MxPalette extends Component<Props, State> {
     element.y = vertex.geometry.y;
     element.width = vertex.geometry.width;
     element.height = vertex.geometry.height;
-    element.properties["Name"] = new Property("Name", name);
+    element.properties.push(new Property("Name", name)) ;
     this.currentModel?.elements?.push(element);
 
     graph.getModel().beginUpdate();
