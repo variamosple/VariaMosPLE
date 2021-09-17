@@ -16,13 +16,23 @@ export default class RestrictionsUseCases {
   }
 
   applyRestrictions(callback: any, model: Model, restrictions: any) {
-    Object.entries(restrictions).forEach(async ([name, definition]) => {
-      this.restrictionService.applyRestriction(
-        callback,
-        model,
-        name,
-        definition
-      );
-    });
+    console.log();
+    if (Object.entries(restrictions).length < 1) {
+      let response = {
+        data: {
+          state: "ALLOWED",
+        },
+      };
+      callback(response);
+    } else {
+      Object.entries(restrictions).forEach(async ([name, definition]) => {
+        this.restrictionService.applyRestriction(
+          callback,
+          model,
+          name,
+          definition
+        );
+      });
+    }
   }
 }

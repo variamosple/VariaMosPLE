@@ -6,7 +6,7 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
- // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { mxStencil } from "mxgraph";
 import * as alertify from "alertifyjs";
 
@@ -83,19 +83,19 @@ export default class MxPalette extends Component<Props, State> {
     //aqui se llamaría a la api de restricciones y  mostrar mensajes de error
     // o sino continuar
 
-    let validateModelRestriction = this.currentModel;
+    const previuosModel = JSON.stringify(this.currentModel);
+
+    let element: any = new Element(name, type);
+    element.x = vertex.geometry.x;
+    element.y = vertex.geometry.y;
+    element.width = vertex.geometry.width;
+    element.height = vertex.geometry.height;
+    element.properties["Name"] = new Property("Name", name);
+    this.currentModel?.elements?.push(element);
 
     let me = this;
     let callback = function (data: any) {
       if (data.data.state !== "DENIED") {
-        let element: any = new Element(name, type);
-        element.x = vertex.geometry.x;
-        element.y = vertex.geometry.y;
-        element.width = vertex.geometry.width;
-        element.height = vertex.geometry.height;
-        element.properties["Name"] = new Property("Name", name);
-        me.currentModel?.elements?.push(element);
-
         graph.getModel().beginUpdate();
         let newCells = graph.importCells([vertex], 0, 0, cell);
         newCells[0].setAttribute("uid", element.id);
@@ -115,7 +115,12 @@ export default class MxPalette extends Component<Props, State> {
         );
       } else {
         alertify.error("Validate: " + data.data.message);
-        me.currentModel = validateModelRestriction;
+        me.currentModel = Object.assign(
+          me.currentModel,
+          JSON.parse(previuosModel)
+        );
+        // me.currentModel = validateModelRestriction;
+        // validateModelRestriction = me.currentModel;
         graph.getModel().endUpdate();
       }
       me.props.projectService.saveProject();
