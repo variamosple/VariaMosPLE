@@ -5,13 +5,14 @@ import mx from "./mxgraph";
 import { mxGraph } from "mxgraph";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 
 interface Props {
   projectService: ProjectService;
 }
-interface State { }
+interface State {}
 
 export default class MxGEditor extends Component<Props, State> {
   state = {};
@@ -114,7 +115,7 @@ export default class MxGEditor extends Component<Props, State> {
             }
           }
         }
-      } catch (error) { }
+      } catch (error) {}
     });
 
     graph.addListener(mx.mxEvent.CELL_CONNECTED, function (sender, evt) {
@@ -124,7 +125,8 @@ export default class MxGEditor extends Component<Props, State> {
         let source = edge.source;
         let target = edge.target;
         let name = source.value.tagName + "_" + target.value.tagName;
-        let relationshipType = source.value.tagName + "_" + target.value.tagName;
+        let relationshipType =
+          source.value.tagName + "_" + target.value.tagName;
 
         edge.style = "strokeColor=#446E79;strokeWidth=2;";
         let languageDefinition: any =
@@ -141,16 +143,26 @@ export default class MxGEditor extends Component<Props, State> {
               ].style;
           }
         }
-        if (!edge.value) { 
+        if (!edge.value) {
           var doc = mx.mxUtils.createXmlDocument();
           var node = doc.createElement("relationship");
-          node.setAttribute("label", relationshipType); 
-          edge.value = node; 
+          node.setAttribute("label", relationshipType);
+          edge.value = node;
           let points = [];
           let min = 0;
           let max = 1;
-          let properties = []; 
-          let relationship = me.props.projectService.createRelationship(me.currentModel, name, source.value.getAttribute("uid"), target.value.getAttribute("uid"), points, min, max, properties);
+          let properties = [];
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          let relationship = me.props.projectService.createRelationship(
+            me.currentModel,
+            name,
+            source.value.getAttribute("uid"),
+            target.value.getAttribute("uid"),
+            points,
+            min,
+            max,
+            properties
+          );
 
           // var style = graph.getCellStyle(edge);
           // var sourcePortId = style[mx.mxConstants.STYLE_SOURCE_PORT];
@@ -160,6 +172,7 @@ export default class MxGEditor extends Component<Props, State> {
           // mxLog.debug('connect', edge, source.id, target.id, sourcePortId, targetPortId);
         }
       } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         let m = error;
       }
     });
@@ -168,9 +181,8 @@ export default class MxGEditor extends Component<Props, State> {
     // {
     //   var edge = evt.getProperty('cell');
     //   var source = graph.getModel().getTerminal(edge, true);
-    //   var target = graph.getModel().getTerminal(edge, false);  
+    //   var target = graph.getModel().getTerminal(edge, false);
     // });
-
   }
 
   loadModel(model: Model) {
@@ -209,26 +221,31 @@ export default class MxGEditor extends Component<Props, State> {
             element.width,
             element.height,
             "shape=" +
-            element.type +
-            ";" +
-            languageDefinition.concreteSyntax.elements[element.type].design
+              element.type +
+              ";" +
+              languageDefinition.concreteSyntax.elements[element.type].design
           );
           console.log(vx);
         }
 
         for (let i = 0; i < model.relationships.length; i++) {
-          const relationship = model.relationships[i]; 
+          const relationship = model.relationships[i];
           let source = this.findElementById(graph, relationship.sourceId);
           let target = this.findElementById(graph, relationship.targetId);
           let name = source.value.tagName + "_" + target.value.tagName;
-          let relationshipType = source.value.tagName + "_" + target.value.tagName;
+          let relationshipType =
+            source.value.tagName + "_" + target.value.tagName;
           let doc = mx.mxUtils.createXmlDocument();
           let node = doc.createElement("relationship");
           node.setAttribute("label", name);
           node.setAttribute("type", relationshipType);
 
           //var cell = new mx.mxCell(node, new mx.mxGeometry(0, 0, 50, 50), 'curved=1;endArrow=classic;html=1;');
-          var cell = new mx.mxCell(node, new mx.mxGeometry(0, 0, 50, 50), 'strokeColor=#446E79;strokeWidth=2;');
+          var cell = new mx.mxCell(
+            node,
+            new mx.mxGeometry(0, 0, 50, 50),
+            "strokeColor=#446E79;strokeWidth=2;"
+          );
           cell.geometry.setTerminalPoint(new mx.mxPoint(50, 150), true);
           cell.geometry.setTerminalPoint(new mx.mxPoint(150, 50), false);
           cell.geometry.relative = true;
@@ -239,7 +256,7 @@ export default class MxGEditor extends Component<Props, State> {
           let index = null;
           this.graph?.addEdge(cell, parent, source, target, index);
 
-          //this.graph?.fireEvent(new mx.mxEventObject('cellsInserted', 'cells', [cell])); 
+          //this.graph?.fireEvent(new mx.mxEventObject('cellsInserted', 'cells', [cell]));
         }
       } finally {
         this.graph?.getModel().endUpdate();
@@ -248,18 +265,16 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   //sacar esto en una libreria
-  findElementById(graph, uid){
+  findElementById(graph, uid) {
     let vertices = graph.getChildVertices(graph.getDefaultParent());
     for (let i = 0; i < vertices.length; i++) {
       const vertice = vertices[i];
       try {
-        let vuid=vertice.value.getAttribute("uid");
-        if (vuid==uid) {
+        let vuid = vertice.value.getAttribute("uid");
+        if (vuid === uid) {
           return vertice;
         }
-      } catch (error) {
-        
-      } 
+      } catch (error) {}
     }
     return null;
   }
