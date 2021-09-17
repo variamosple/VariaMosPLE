@@ -1,3 +1,4 @@
+import { timeStamp } from "console";
 import React, { Component } from "react";
 // import mx from "../MxGEditor/mxgraph";
 // import { mxGraph, mxGraphModel } from "mxgraph";
@@ -10,7 +11,9 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 interface Props {
   projectService: ProjectService;
 }
-interface State {}
+interface State {
+  values: any[]
+}
 
 export default class MxProperties extends Component<Props, State> {
   containerRef: any;
@@ -20,6 +23,12 @@ export default class MxProperties extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.containerRef = React.createRef();
+
+    this.state = {
+      values: []
+    }
+
+
     this.projectService_addNewProductLineListener =
       this.projectService_addNewProductLineListener.bind(this);
     this.projectService_addSelectedModelListener =
@@ -50,13 +59,31 @@ export default class MxProperties extends Component<Props, State> {
   checkBox_onChange(e: any) {
     let name = e.target.attributes["data-name"].value;
     let value = e.target.checked;
-    this.currentObject.properties[name] = new Property(name, value);
+    for (let p = 0; p < this.currentObject.properties.length; p++) {
+      if(this.currentObject.properties[p].name==name){
+          this.currentObject.properties[p].value=value;
+      } 
+    }  
+    let values = this.state.values;
+    values[name] = value;
+    this.setState({
+      values: values
+    })
   }
 
   input_onChange(e: any) {
     let name = e.target.attributes["data-name"].value;
     let value = e.target.value;
-    this.currentObject.properties[name] = new Property(name, value);
+    for (let p = 0; p < this.currentObject.properties.length; p++) {
+      if(this.currentObject.properties[p].name==name){
+          this.currentObject.properties[p].value=value;
+      } 
+    }  
+    let values = this.state.values;
+    values[name] = value;
+    this.setState({
+      values: values
+    })
   }
 
   componentDidMount() {
@@ -85,9 +112,18 @@ export default class MxProperties extends Component<Props, State> {
         for (let i = 0; i < elementDef.properties.length; i++) {
           const property: any = elementDef.properties[i];
           let value = null;
-          if (this.currentObject.properties[property.name]) {
-            value = this.currentObject.properties[property.name].value;
-          }
+          let exists=false;
+          for (let p = 0; p < this.currentObject.properties.length; p++) {
+            if(this.currentObject.properties[p].name==property.name){
+                value=this.currentObject.properties[p].value;
+                exists=true;
+                break;
+            } 
+          } 
+          if (!exists) {
+            this.currentObject.properties.push(new Property(property.name, value)) ;
+          } 
+          this.state.values[property.name] = value
           ret.push(this.createControl(property, value));
         }
       }
@@ -125,9 +161,9 @@ export default class MxProperties extends Component<Props, State> {
       case "Text":
         control = (
           <textarea
-            data-name={property.name}
-            value={value}
+            data-name={property.name} 
             onChange={this.input_onChange}
+            value={this.state.values[property.name]}
           />
         );
         break;
@@ -136,9 +172,9 @@ export default class MxProperties extends Component<Props, State> {
           control = (
             <input
               data-name={property.name}
-              type="checkbox"
-              checked={true}
+              type="checkbox" 
               onChange={this.checkBox_onChange}
+              checked={this.state.values[property.name]}
             />
           );
         } else {
@@ -147,6 +183,7 @@ export default class MxProperties extends Component<Props, State> {
               data-name={property.name}
               type="checkbox"
               onChange={this.checkBox_onChange}
+              checked={this.state.values[property.name]}
             />
           );
         }
@@ -157,7 +194,7 @@ export default class MxProperties extends Component<Props, State> {
             type="text"
             data-name={property.name}
             onChange={this.input_onChange}
-            value={value}
+            value={this.state.values[property.name]}
           />
         );
         break;
