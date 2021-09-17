@@ -66,7 +66,7 @@ export default class MxPalette extends Component<Props, State> {
     vertex.setConnectable(true);
     vertex.setVertex(true);
     vertex.setAttribute("type", type);
-    vertex.setAttribute("label", "hola");
+    vertex.setAttribute("label", type);
     return vertex;
   }
 

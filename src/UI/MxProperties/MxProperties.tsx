@@ -74,6 +74,11 @@ export default class MxProperties extends Component<Props, State> {
   input_onChange(e: any) {
     let name = e.target.attributes["data-name"].value;
     let value = e.target.value;
+
+    if (name=="Name") {
+      this.currentObject.name=value;
+    }
+
     for (let p = 0; p < this.currentObject.properties.length; p++) {
       if(this.currentObject.properties[p].name==name){
           this.currentObject.properties[p].value=value;
