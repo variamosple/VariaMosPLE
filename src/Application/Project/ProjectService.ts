@@ -1,4 +1,3 @@
-import LanguageService from "../../DataProvider/Services/languageService";
 import { Adaptation } from "../../Domain/ProductLineEngineering/Entities/Adaptation";
 import { Application } from "../../Domain/ProductLineEngineering/Entities/Application";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
@@ -22,12 +21,15 @@ import _config from "../../Infraestructure/config.json";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
+import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/RestrictionsUseCases";
 
 export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
   private languageUseCases: LanguageUseCases = new LanguageUseCases();
-  private languageService: LanguageService = new LanguageService();
+  private restrictionsUseCases: RestrictionsUseCases =
+    new RestrictionsUseCases();
+
   private utils: Utils = new Utils();
 
   private _environment: string = _config.environment;
@@ -296,6 +298,18 @@ export default class ProjectService {
 
   getLanguagesDetail(): Language[] {
     return this.languageUseCases.getLanguagesDetail();
+  }
+
+  applyRestrictions(callback: any, model: Model) {
+    let languageByName: Language = this.languageUseCases.getLanguageByName(
+      model.name,
+      this._languages
+    );
+
+    let restrictions: any =
+      this.restrictionsUseCases.getRestrictions(languageByName);
+
+    this.restrictionsUseCases.applyRestrictions(callback, model, restrictions);
   }
 
   getLanguagesDetailCll(callback: any) {
@@ -745,17 +759,26 @@ export default class ProjectService {
   //   }
   // }
 
-  
-
-  createRelationship(model: Model,
+  createRelationship(
+    model: Model,
     name: string,
     sourceId: string,
     targetId: string,
     points: Point[] = [],
     min: number,
     max: number,
-    properties: Property[] ): Relationship {
-    let r = this.projectManager.createRelationship(model, name, sourceId, targetId, points, min, max, properties);
+    properties: Property[]
+  ): Relationship {
+    let r = this.projectManager.createRelationship(
+      model,
+      name,
+      sourceId,
+      targetId,
+      points,
+      min,
+      max,
+      properties
+    );
     return r;
   }
 }

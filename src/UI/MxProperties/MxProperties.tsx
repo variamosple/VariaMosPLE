@@ -172,6 +172,10 @@ export default class MxProperties extends Component<Props, State> {
   }
 
   render() {
-    return <div className="MxPalette">{this.renderProperties()}</div>;
+    return (
+      <div key="a" className="MxPalette">
+        {this.renderProperties()}
+      </div>
+    );
   }
 }

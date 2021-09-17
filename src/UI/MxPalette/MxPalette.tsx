@@ -6,7 +6,9 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
+ // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { mxStencil } from "mxgraph";
+import * as alertify from "alertifyjs";
 
 interface Props {
   projectService: ProjectService;
@@ -81,32 +83,45 @@ export default class MxPalette extends Component<Props, State> {
     //aqui se llamaría a la api de restricciones y  mostrar mensajes de error
     // o sino continuar
 
-    let element: any = new Element(name, type);
-    element.x = vertex.geometry.x;
-    element.y = vertex.geometry.y;
-    element.width = vertex.geometry.width;
-    element.height = vertex.geometry.height;
-    element.properties["Name"] = new Property("Name", name);
-    this.currentModel?.elements?.push(element);
+    let validateModelRestriction = this.currentModel;
 
-    graph.getModel().beginUpdate();
-    let newCells = graph.importCells([vertex], 0, 0, cell);
-    newCells[0].setAttribute("uid", element.id);
-    newCells[0].setAttribute("label", element.name);
-    newCells[0].setAttribute("title", element.name);
-    newCells[0].setAttribute("name", element.name);
-    graph.setSelectionCells(newCells);
-    // let g = vertex.geometry;
+    let me = this;
+    let callback = function (data: any) {
+      if (data.data.state !== "DENIED") {
+        let element: any = new Element(name, type);
+        element.x = vertex.geometry.x;
+        element.y = vertex.geometry.y;
+        element.width = vertex.geometry.width;
+        element.height = vertex.geometry.height;
+        element.properties["Name"] = new Property("Name", name);
+        me.currentModel?.elements?.push(element);
 
-    // var v2 = graph.insertVertex(newCells[0], null, "World!", 0, 0, 20, 20);
-    // newCells[0].collapsed = false;
-    graph.getModel().endUpdate();
+        graph.getModel().beginUpdate();
+        let newCells = graph.importCells([vertex], 0, 0, cell);
+        newCells[0].setAttribute("uid", element.id);
+        newCells[0].setAttribute("label", element.name);
+        newCells[0].setAttribute("title", element.name);
+        newCells[0].setAttribute("name", element.name);
+        graph.setSelectionCells(newCells);
+        // let g = vertex.geometry;
 
-    this.props.projectService.raiseEventSelectedElement(
-      this.currentModel,
-      element
-    );
-    this.props.projectService.saveProject();
+        // var v2 = graph.insertVertex(newCells[0], null, "World!", 0, 0, 20, 20);
+        // newCells[0].collapsed = false;
+        graph.getModel().endUpdate();
+
+        me.props.projectService.raiseEventSelectedElement(
+          me.currentModel,
+          element
+        );
+      } else {
+        alertify.error("Validate: " + data.data.message);
+        me.currentModel = validateModelRestriction;
+        graph.getModel().endUpdate();
+      }
+      me.props.projectService.saveProject();
+    };
+
+    this.props.projectService.applyRestrictions(callback, this.currentModel);
   }
 
   callbackGetStyle(languageDefinition: any): any {
