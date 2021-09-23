@@ -4,12 +4,13 @@ export class Element {
   id: string;
   type: string;
   name: string;
-  x: number=0;
-  y: number=0;
-  width: number=0;
-  height: number=0;
+  x: number = 0;
+  y: number = 0;
+  width: number = 0;
+  height: number = 0;
+  properties: Property[] = [];
+  children: string[] = []; //id elementos hijos
 
-  properties: Property[]=[];
   constructor(name: string, type: string, properties: Property[] = []) {
     this.id = generateId();
     this.type = type;
