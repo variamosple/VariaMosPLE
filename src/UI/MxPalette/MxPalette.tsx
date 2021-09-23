@@ -113,6 +113,9 @@ export default class MxPalette extends Component<Props, State> {
           me.currentModel,
           element
         );
+
+        if (data.data.message !== "")
+          alertify.error("Validate: " + data.data.message);
       } else {
         alertify.error("Validate: " + data.data.message);
         me.currentModel = Object.assign(
