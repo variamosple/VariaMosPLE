@@ -10,6 +10,7 @@ import { Language } from "../../Domain/ProductLineEngineering/Entities/Language"
 import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
+import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
 import { LanguagesDetailEventArg } from "./Events/LanguagesDetailEventArg";
 import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { NewProductLineEventArg } from "./Events/NewProductLineEventArg";
@@ -54,6 +55,7 @@ export default class ProjectService {
   private updateProjectListeners: any = [];
   private updateSelectedListeners: any = [];
   private selectedElementListeners: any = [];
+  private updatedElementListeners: any = [];
 
   // constructor() {
   //   let me = this;
@@ -218,6 +220,26 @@ export default class ProjectService {
     let e = new SelectedElementEventArg(me, model, element);
     for (let index = 0; index < me.selectedElementListeners.length; index++) {
       let callback = this.selectedElementListeners[index];
+      callback(e);
+    }
+  }
+
+  addUpdatedElementListener(listener: any) {
+    this.updatedElementListeners.push(listener);
+  }
+
+  removeUpdatedElementListener(listener: any) {
+    this.updatedElementListeners[listener] = null;
+  }
+
+  raiseEventUpdatedElement(
+    model: Model | undefined,
+    element: Element | undefined
+  ) {
+    let me = this;
+    let e = new UpdatedElementEventArg(me, model, element);
+    for (let index = 0; index < me.updatedElementListeners.length; index++) {
+      let callback = this.updatedElementListeners[index];
       callback(e);
     }
   }
@@ -762,6 +784,7 @@ export default class ProjectService {
   createRelationship(
     model: Model,
     name: string,
+    type: string,
     sourceId: string,
     targetId: string,
     points: Point[] = [],
@@ -772,6 +795,7 @@ export default class ProjectService {
     let r = this.projectManager.createRelationship(
       model,
       name,
+      type,
       sourceId,
       targetId,
       points,

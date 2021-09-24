@@ -2,7 +2,8 @@ import { Point } from "./Point";
 import { Property } from "./Property";
 
 export class Relationship {
-  id: string;
+  id: string; 
+  type: string; 
   name: string;
   sourceId: string;
   targetId: string;
@@ -14,6 +15,7 @@ export class Relationship {
   constructor(
     id: string,
     name: string,
+    type: string, 
     sourceId: string,
     targetId: string,
     points: Point[] = [],
@@ -23,6 +25,7 @@ export class Relationship {
   ) {
     this.id = id;
     this.name = name;
+    this.type = type;
     this.sourceId = sourceId;
     this.targetId = targetId;
     this.points = points;

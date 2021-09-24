@@ -9,6 +9,8 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { mxStencil } from "mxgraph";
 import * as alertify from "alertifyjs";
+import { stringify } from "querystring";
+import { join } from "path";
 
 interface Props {
   projectService: ProjectService;
@@ -89,8 +91,7 @@ export default class MxPalette extends Component<Props, State> {
     element.x = vertex.geometry.x;
     element.y = vertex.geometry.y;
     element.width = vertex.geometry.width;
-    element.height = vertex.geometry.height;
-    element.properties["Name"] = new Property("Name", name);
+    element.height = vertex.geometry.height; 
     this.currentModel?.elements?.push(element);
 
     let me = this;
@@ -206,11 +207,11 @@ export default class MxPalette extends Component<Props, State> {
           relationship.source,
           null,
           null,
-          0,
-          0,
-          [relationship.target],
+          relationship.min,
+          relationship.max,
+          relationship.target,
           "Only 1 target is allowed",
-          "Only " + relationship.target + " targets allowed",
+          "Only " +   relationship.target.join(', ') + " targets allowed",
           true
         );
         graph.multiplicities.push(mul);

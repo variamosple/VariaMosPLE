@@ -12,7 +12,7 @@ import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relat
 interface Props {
   projectService: ProjectService;
 }
-interface State {}
+interface State { }
 
 export default class MxGEditor extends Component<Props, State> {
   state = {};
@@ -29,6 +29,8 @@ export default class MxGEditor extends Component<Props, State> {
       this.projectService_addNewProductLineListener.bind(this);
     this.projectService_addSelectedModelListener =
       this.projectService_addSelectedModelListener.bind(this);
+      this.projectService_addUpdatedElementListener =
+        this.projectService_addUpdatedElementListener.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -41,6 +43,14 @@ export default class MxGEditor extends Component<Props, State> {
     this.forceUpdate();
   }
 
+  projectService_addUpdatedElementListener(e: any) { 
+    let ele=this.findElementById(this.graph, e.element.id);
+    if (ele) {
+      ele.value.setAttribute("label", e.element.name);
+    } 
+    this.graph.refresh();
+  }
+
   componentDidMount() {
     let me = this;
     this.graph = new mx.mxGraph(this.graphContainerRef.current);
@@ -51,6 +61,9 @@ export default class MxGEditor extends Component<Props, State> {
     );
     me.props.projectService.addSelectedModelListener(
       this.projectService_addSelectedModelListener
+    );
+    me.props.projectService.addUpdatedElementListener(
+      this.projectService_addUpdatedElementListener
     );
   }
 
@@ -67,8 +80,7 @@ export default class MxGEditor extends Component<Props, State> {
     graph.setVertexLabelsMovable(false);
     graph.setGridEnabled(true);
     graph.setAllowDanglingEdges(false);
-    graph.getStylesheet().getDefaultEdgeStyle()["edgeStyle"] =
-      "orthogonalEdgeStyle";
+    //graph.getStylesheet().getDefaultEdgeStyle()["edgeStyle"] = "orthogonalEdgeStyle"; 
     graph.convertValueToString = function (cell) {
       try {
         return cell.getAttribute("label", "");
@@ -113,9 +125,18 @@ export default class MxGEditor extends Component<Props, State> {
                 );
               }
             }
+            for (let i = 0; i < me.currentModel.relationships.length; i++) {
+              const relationship: any = me.currentModel.relationships[i];
+              if (relationship.id === uid) {
+                me.props.projectService.raiseEventSelectedElement(
+                  me.currentModel,
+                  relationship
+                );
+              }
+            }
           }
         }
-      } catch (error) {}
+      } catch (error) { }
     });
 
     graph.addListener(mx.mxEvent.CELL_CONNECTED, function (sender, evt) {
@@ -124,45 +145,64 @@ export default class MxGEditor extends Component<Props, State> {
         let edge = evt.getProperty("edge");
         let source = edge.source;
         let target = edge.target;
-        let name = source.value.tagName + "_" + target.value.tagName;
-        let relationshipType =
-          source.value.tagName + "_" + target.value.tagName;
+        let name = source.value.getAttribute("label") + "_" + target.value.getAttribute("label");
+        let relationshipType = null; //  source.value.tagName + "_" + target.value.tagName;
 
         edge.style = "strokeColor=#446E79;strokeWidth=2;";
         let languageDefinition: any =
           me.props.projectService.getLanguageDefinition(
             "" + me.currentModel.name
           );
-        if (languageDefinition.concreteSyntax.relationships) {
-          if (
-            languageDefinition.concreteSyntax.relationships[relationshipType]
-          ) {
-            edge.style =
-              languageDefinition.concreteSyntax.relationships[
-                relationshipType
-              ].style;
-          }
-        }
+        if (languageDefinition.abstractSyntax.relationships) {
+          for (let key in languageDefinition.abstractSyntax.relationships) {
+            const rel = languageDefinition.abstractSyntax.relationships[key];
+            if (rel.source==source.value.tagName) {
+              for (let t = 0; t < rel.target.length; t++) {
+                if (rel.target[t]==target.value.tagName) {
+                  relationshipType = key;
+                  break;
+                }  
+              }
+            }
+            if (relationshipType) {
+              break;
+            }
+          } 
+          if (!relationshipType) {
+            return;
+          } 
+          if (languageDefinition.concreteSyntax.relationships) {
+            if (
+              languageDefinition.concreteSyntax.relationships[relationshipType]
+            ) {
+              edge.style =
+                languageDefinition.concreteSyntax.relationships[
+                  relationshipType
+                ].style;
+            }
+          } 
+        }   
         if (!edge.value) {
+          const rel = languageDefinition.abstractSyntax.relationships[relationshipType];
           var doc = mx.mxUtils.createXmlDocument();
           var node = doc.createElement("relationship");
-          node.setAttribute("label", relationshipType);
+          node.setAttribute("label", name);
           edge.value = node;
-          let points = [];
-          let min = 0;
-          let max = 1;
+          let points = []; 
           let properties = [];
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           let relationship = me.props.projectService.createRelationship(
             me.currentModel,
             name,
+            relationshipType,
             source.value.getAttribute("uid"),
             target.value.getAttribute("uid"),
             points,
-            min,
-            max,
+            rel.min,
+            rel.max,
             properties
           );
+          node.setAttribute("uid", relationship.id);
 
           // var style = graph.getCellStyle(edge);
           // var sourcePortId = style[mx.mxConstants.STYLE_SOURCE_PORT];
@@ -221,9 +261,9 @@ export default class MxGEditor extends Component<Props, State> {
             element.width,
             element.height,
             "shape=" +
-              element.type +
-              ";" +
-              languageDefinition.concreteSyntax.elements[element.type].design
+            element.type +
+            ";" +
+            languageDefinition.concreteSyntax.elements[element.type].design
           );
           console.log(vx);
         }
@@ -231,14 +271,12 @@ export default class MxGEditor extends Component<Props, State> {
         for (let i = 0; i < model.relationships.length; i++) {
           const relationship = model.relationships[i];
           let source = this.findElementById(graph, relationship.sourceId);
-          let target = this.findElementById(graph, relationship.targetId);
-          let name = source.value.tagName + "_" + target.value.tagName;
-          let relationshipType =
-            source.value.tagName + "_" + target.value.tagName;
+          let target = this.findElementById(graph, relationship.targetId);  
           let doc = mx.mxUtils.createXmlDocument();
           let node = doc.createElement("relationship");
-          node.setAttribute("label", name);
-          node.setAttribute("type", relationshipType);
+          node.setAttribute("uid", relationship.id);
+          node.setAttribute("label", relationship.name);
+          node.setAttribute("type", relationship.type);
 
           //var cell = new mx.mxCell(node, new mx.mxGeometry(0, 0, 50, 50), 'curved=1;endArrow=classic;html=1;');
           var cell = new mx.mxCell(
@@ -274,7 +312,7 @@ export default class MxGEditor extends Component<Props, State> {
         if (vuid === uid) {
           return vertice;
         }
-      } catch (error) {}
+      } catch (error) { }
     }
     return null;
   }

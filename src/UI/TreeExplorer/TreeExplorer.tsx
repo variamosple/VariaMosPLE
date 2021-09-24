@@ -196,7 +196,7 @@ class TreeExplorer extends Component<Props, State> {
                           >
                             {pl.name}
                           </span>
-                          <ul className="nested">
+                          <ul className="nested active">
                             <li>
                               <span
                                 className="fa fa-plus-square domainE"
@@ -210,7 +210,7 @@ class TreeExplorer extends Component<Props, State> {
                               >
                                 Domain Engineering
                               </span>
-                              <ul className="nested">
+                              <ul className="nested active">
                                 {pl.domainEngineering?.models?.map(
                                   (domainModel, idDomainModel: number) => (
                                     <div key={idDomainModel}>
@@ -249,7 +249,7 @@ class TreeExplorer extends Component<Props, State> {
                               >
                                 Application Engineering
                               </span>
-                              <ul className="nested">
+                              <ul className="nested active">
                                 {pl.applicationEngineering?.models?.map(
                                   (
                                     appEModel,
@@ -292,7 +292,7 @@ class TreeExplorer extends Component<Props, State> {
                                         >
                                           {aeApp.name}
                                         </span>
-                                        <ul className="nested">
+                                        <ul className="nested active">
                                           {aeApp.models?.map(
                                             (
                                               aeApp,
@@ -347,7 +347,7 @@ class TreeExplorer extends Component<Props, State> {
                                                   >
                                                     {aeCotext.name}
                                                   </span>
-                                                  <ul className="nested">
+                                                  <ul className="nested active">
                                                     {aeCotext.models?.map(
                                                       (
                                                         aeCotextModel,

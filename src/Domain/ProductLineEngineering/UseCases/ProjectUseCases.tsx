@@ -276,6 +276,7 @@ export default class ProjectUseCases {
   createRelationship(
     model: Model,
     name: string,
+    type: string,
     sourceId: string,
     targetId: string,
     points: Point[] = [],
@@ -285,7 +286,7 @@ export default class ProjectUseCases {
   ): Relationship {
     // let modelName = this.findLanguage(LanguageType);
 
-    let relationship: Relationship = new Relationship(this.generateId(), name, sourceId, targetId, points, min, max, properties );
+    let relationship: Relationship = new Relationship(this.generateId(), name, type, sourceId, targetId, points, min, max, properties );
     model.relationships.push(relationship);
 
     //Ejecutar el consumo de mxGraph.
