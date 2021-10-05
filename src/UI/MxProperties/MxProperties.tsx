@@ -154,7 +154,7 @@ export default class MxProperties extends Component<Props, State> {
           type: "String"
         }
         this.state.values["Name"] = this.currentObject.name;
-        ret.push(this.createControl(property, this.currentObject.name, null));
+        ret.push(this.createControl(property, this.currentObject.name, true));
         if (this.elementDefinition.properties) {
           for (let i = 0; i < this.elementDefinition.properties.length; i++) {
             let property: any = this.elementDefinition.properties[i]; 
@@ -170,29 +170,38 @@ export default class MxProperties extends Component<Props, State> {
               }
             }
             if (index==-1) {
-              this.currentObject.properties.push(new Property(property.name, null, property.type, property.options, property.linked_property, property.linked_value));
+              this.currentObject.properties.push(new Property(property.name, null, property.type, property.options, property.linked_property, property.linked_value, false, true));
               index=this.currentObject.properties.length-1;
             }
-            this.state.values[property.name] = this.currentObject.properties[index].value
-            let display = null;
+            this.state.values[property.name] = this.currentObject.properties[index].value 
             if (property.linked_property) {
               if (this.state.values[property.linked_property] == property.linked_value) {
-                display = { display: "block" };
+                this.currentObject.properties[index].display   = true;
               }
               else {
-                display = { display: "none" };
+                this.currentObject.properties[index].display   = false;
               } 
             } 
-            ret.push(this.createControl(this.currentObject.properties[index], this.currentObject.properties[index].value, display));
+            //ret.push(this.createControl(this.currentObject.properties[index], this.currentObject.properties[index].value, display));
           }
+        }
+        for (let p = 0; p < this.currentObject.properties.length; p++) {
+          ret.push(this.createControl(this.currentObject.properties[p], this.currentObject.properties[p].value, this.currentObject.properties[p].display));
         }
       }
     }
     return ret;
   }
 
-  createControl(property: any, value: any, style: any) {
+  createControl(property: any, value: any, display: any) {
     let control: any;
+    let style=null;
+    if (display) {
+      style = { display: "block" };
+    }
+    else {
+      style = { display: "none" };
+    } 
     switch (property.type) {
       case "Select":
         let options = [];
