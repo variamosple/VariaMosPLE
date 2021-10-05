@@ -157,20 +157,23 @@ export default class MxProperties extends Component<Props, State> {
         ret.push(this.createControl(property, this.currentObject.name, null));
         if (this.elementDefinition.properties) {
           for (let i = 0; i < this.elementDefinition.properties.length; i++) {
-            let property: any = this.elementDefinition.properties[i];
-            let value = null;
-            let exists = false;
+            let property: any = this.elementDefinition.properties[i]; 
+            let index = -1;
             for (let p = 0; p < this.currentObject.properties.length; p++) {
-              if (this.currentObject.properties[p].name == property.name) {
-                value = this.currentObject.properties[p].value;
-                exists = true;
+              if (this.currentObject.properties[p].name == property.name) { 
+                this.currentObject.properties[p].type=property.type;
+                this.currentObject.properties[p].options= property.options;
+                this.currentObject.properties[p].linked_property= property.linked_property;
+                this.currentObject.properties[p].linked_value = property.linked_value;
+                index = p;
                 break;
               }
             }
-            if (!exists) {
-              this.currentObject.properties.push(new Property(property.name, value));
+            if (index==-1) {
+              this.currentObject.properties.push(new Property(property.name, null, property.type, property.options, property.linked_property, property.linked_value));
+              index=this.currentObject.properties.length-1;
             }
-            this.state.values[property.name] = value
+            this.state.values[property.name] = this.currentObject.properties[index].value
             let display = null;
             if (property.linked_property) {
               if (this.state.values[property.linked_property] == property.linked_value) {
@@ -179,8 +182,8 @@ export default class MxProperties extends Component<Props, State> {
               else {
                 display = { display: "none" };
               } 
-            }
-            ret.push(this.createControl(property, value, display));
+            } 
+            ret.push(this.createControl(this.currentObject.properties[index], this.currentObject.properties[index].value, display));
           }
         }
       }
