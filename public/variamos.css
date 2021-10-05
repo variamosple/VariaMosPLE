@@ -108,11 +108,12 @@ ul {
   margin: 0;
   padding: 0;
 }
-.fa-plus-square,
+.fa-minus-square-o,
 .nested {
   cursor: pointer;
   user-select: none;
 }
+.fa-minus-square-o::before,
 .fa-plus-square::before {
   display: inline-block;
   margin-right: 5px;
@@ -125,15 +126,18 @@ ul {
   display: block;
 }
 
+.fa-minus-square-o,
 .fa-plus-square {
   color: var(--primary-color);
   cursor: pointer;
 }
 
-.fa-minus-square:active {
+.fa-minus-square-o:active,
+.fa-plus-square:active {
   background-color: #b8daed3b;
 }
 
+.fa-minus-square-o:active,
 .fa-plus-square:active {
   background-color: #b8daed3b;
 }

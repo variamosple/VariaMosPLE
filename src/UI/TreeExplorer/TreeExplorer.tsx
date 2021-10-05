@@ -187,7 +187,7 @@ class TreeExplorer extends Component<Props, State> {
                       <div key={idPl}>
                         <li>
                           <span
-                            className="fa fa-plus-square lps"
+                            className="fa fa-plus-square fa-minus-square-o lps"
                             id="productLine"
                             onClick={() => this.lps_onClick(window.event, idPl)}
                             onAuxClick={() =>
@@ -199,7 +199,7 @@ class TreeExplorer extends Component<Props, State> {
                           <ul className="nested active">
                             <li>
                               <span
-                                className="fa fa-plus-square domainE"
+                                className="fa fa-plus-square fa-minus-square-o domainE"
                                 onAuxClick={() =>
                                   this.updateLpSelected(window.event, idPl)
                                 }
@@ -239,7 +239,7 @@ class TreeExplorer extends Component<Props, State> {
                             <li>
                               <span
                                 id="applicationEngineering"
-                                className="fa fa-plus-square appE"
+                                className="fa fa-plus-square fa-minus-square-o appE"
                                 onAuxClick={() =>
                                   this.updateLpSelected(window.event, idPl)
                                 }
@@ -276,7 +276,7 @@ class TreeExplorer extends Component<Props, State> {
                                       <div key={idApplication}>
                                         <span
                                           id="application"
-                                          className="fa fa-plus-square aeApp"
+                                          className="fa fa-plus-square fa-minus-square-o aeApp"
                                           onAuxClick={() =>
                                             this.updateApplicationSelected(
                                               idPl,
@@ -330,7 +330,7 @@ class TreeExplorer extends Component<Props, State> {
                                                 <li>
                                                   <span
                                                     id="adaptation"
-                                                    className="fa fa-plus-square aeContext"
+                                                    className="fa fa-plus-square fa-minus-square-o aeContext"
                                                     onAuxClick={() =>
                                                       this.updateAdaptationSelected(
                                                         idPl,

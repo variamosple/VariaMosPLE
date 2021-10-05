@@ -156,9 +156,9 @@ export default class MxGEditor extends Component<Props, State> {
         if (languageDefinition.abstractSyntax.relationships) {
           for (let key in languageDefinition.abstractSyntax.relationships) {
             const rel = languageDefinition.abstractSyntax.relationships[key];
-            if (rel.source==source.value.tagName) {
+            if (rel.source===source.value.tagName) {
               for (let t = 0; t < rel.target.length; t++) {
-                if (rel.target[t]==target.value.tagName) {
+                if (rel.target[t]===target.value.tagName) {
                   relationshipType = key;
                   break;
                 }  

@@ -1,4 +1,4 @@
-import { timeStamp } from "console";
+// import { timeStamp } from "console";
 import React, { Component } from "react";
 // import mx from "../MxGEditor/mxgraph";
 // import { mxGraph, mxGraphModel } from "mxgraph";
@@ -12,7 +12,7 @@ interface Props {
   projectService: ProjectService;
 }
 interface State {
-  values: any[]
+  values: any[];
 }
 
 export default class MxProperties extends Component<Props, State> {
@@ -26,9 +26,8 @@ export default class MxProperties extends Component<Props, State> {
     this.containerRef = React.createRef();
 
     this.state = {
-      values: []
-    }
-
+      values: [],
+    };
 
     this.projectService_addNewProductLineListener =
       this.projectService_addNewProductLineListener.bind(this);
@@ -71,11 +70,11 @@ export default class MxProperties extends Component<Props, State> {
 
   property_onChange(name: any, value: any) {
     let me = this;
-    if (name == "Name") {
+    if (name === "Name") {
       this.currentObject.name = value;
     } else {
       for (let p = 0; p < this.currentObject.properties.length; p++) {
-        if (this.currentObject.properties[p].name == name) {
+        if (this.currentObject.properties[p].name === name) {
           this.currentObject.properties[p].value = value;
         }
       }
@@ -83,12 +82,12 @@ export default class MxProperties extends Component<Props, State> {
     let values = this.state.values;
     values[name] = value;
     this.setState({
-      values: values
-    })
+      values: values,
+    });
     if (this.elementDefinition.properties) {
       for (let i = 0; i < this.elementDefinition.properties.length; i++) {
         const property: any = this.elementDefinition.properties[i];
-        if (name == property.name) {
+        if (name === property.name) {
           if (property.enable_properties) {
             this.showLinkedProperties(property.name, value);
           }
@@ -96,7 +95,6 @@ export default class MxProperties extends Component<Props, State> {
         }
       }
     }
-
 
     me.props.projectService.raiseEventUpdatedElement(
       me.currentModel,
@@ -109,9 +107,9 @@ export default class MxProperties extends Component<Props, State> {
       for (let i = 0; i < this.elementDefinition.properties.length; i++) {
         const property: any = this.elementDefinition.properties[i];
         if (property.linked_property) {
-          if (property.linked_property == propertyName) {
+          if (property.linked_property === propertyName) {
             let ele = document.getElementById("prop_" + property.name);
-            if (property.linked_value == value) {
+            if (property.linked_value === value) {
               ele.style.display = "block";
             } else {
               ele.style.display = "none";
@@ -143,16 +141,25 @@ export default class MxProperties extends Component<Props, State> {
           "" + this.currentModel?.name
         );
       if (languageDefinition) {
-        if (languageDefinition.abstractSyntax.elements[this.currentObject.type]) {
-          this.elementDefinition = languageDefinition.abstractSyntax.elements[this.currentObject.type];
-        }
-        else if (languageDefinition.abstractSyntax.relationships[this.currentObject.type]) {
-          this.elementDefinition = languageDefinition.abstractSyntax.relationships[this.currentObject.type];
+        if (
+          languageDefinition.abstractSyntax.elements[this.currentObject.type]
+        ) {
+          this.elementDefinition =
+            languageDefinition.abstractSyntax.elements[this.currentObject.type];
+        } else if (
+          languageDefinition.abstractSyntax.relationships[
+            this.currentObject.type
+          ]
+        ) {
+          this.elementDefinition =
+            languageDefinition.abstractSyntax.relationships[
+              this.currentObject.type
+            ];
         }
         let property = {
           name: "Name",
-          type: "String"
-        }
+          type: "String",
+        };
         this.state.values["Name"] = this.currentObject.name;
         ret.push(this.createControl(property, this.currentObject.name, null));
         if (this.elementDefinition.properties) {
@@ -161,24 +168,28 @@ export default class MxProperties extends Component<Props, State> {
             let value = null;
             let exists = false;
             for (let p = 0; p < this.currentObject.properties.length; p++) {
-              if (this.currentObject.properties[p].name == property.name) {
+              if (this.currentObject.properties[p].name === property.name) {
                 value = this.currentObject.properties[p].value;
                 exists = true;
                 break;
               }
             }
             if (!exists) {
-              this.currentObject.properties.push(new Property(property.name, value));
+              this.currentObject.properties.push(
+                new Property(property.name, property.type, value)
+              );
             }
-            this.state.values[property.name] = value
+            this.state.values[property.name] = value;
             let display = null;
             if (property.linked_property) {
-              if (this.state.values[property.linked_property] == property.linked_value) {
+              if (
+                this.state.values[property.linked_property] ===
+                property.linked_value
+              ) {
                 display = { display: "block" };
-              }
-              else {
+              } else {
                 display = { display: "none" };
-              } 
+              }
             }
             ret.push(this.createControl(property, value, display));
           }
@@ -197,20 +208,33 @@ export default class MxProperties extends Component<Props, State> {
           const option = property.options[i];
           if (option === value) {
             options.push(
-              <option data-name={property.name} value={option} selected>
+              <option
+                className="form-check-input"
+                data-name={property.name}
+                value={option}
+                selected
+              >
                 {option}
               </option>
             );
           } else {
             options.push(
-              <option data-name={property.name} value={option}>
+              <option
+                className="form-check-input"
+                data-name={property.name}
+                value={option}
+              >
                 {option}
               </option>
             );
           }
         }
         control = (
-          <select data-name={property.name} onChange={this.input_onChange}>
+          <select
+            className="form-select"
+            data-name={property.name}
+            onChange={this.input_onChange}
+          >
             {options}
           </select>
         );
@@ -218,6 +242,7 @@ export default class MxProperties extends Component<Props, State> {
       case "Text":
         control = (
           <textarea
+            className="form-control"
             data-name={property.name}
             onChange={this.input_onChange}
             value={this.state.values[property.name]}
@@ -228,6 +253,7 @@ export default class MxProperties extends Component<Props, State> {
         if (value === true) {
           control = (
             <input
+              className="form-check-input"
               data-name={property.name}
               type="checkbox"
               onChange={this.checkBox_onChange}
@@ -237,6 +263,7 @@ export default class MxProperties extends Component<Props, State> {
         } else {
           control = (
             <input
+              className="form-check-input"
               data-name={property.name}
               type="checkbox"
               onChange={this.checkBox_onChange}
@@ -248,6 +275,7 @@ export default class MxProperties extends Component<Props, State> {
       default:
         control = (
           <input
+            className="form-control"
             type="text"
             data-name={property.name}
             onChange={this.input_onChange}
