@@ -161,13 +161,13 @@ export default class MxProperties extends Component<Props, State> {
           type: "String",
         };
         this.state.values["Name"] = this.currentObject.name;
-        ret.push(this.createControl(property, this.currentObject.name, null));
+        ret.push(this.createControl(property, this.currentObject.name, true));
         if (this.elementDefinition.properties) {
           for (let i = 0; i < this.elementDefinition.properties.length; i++) {
-            let property: any = this.elementDefinition.properties[i];
-            let value = null;
-            let exists = false;
+            let property: any = this.elementDefinition.properties[i]; 
+            let index = -1;
             for (let p = 0; p < this.currentObject.properties.length; p++) {
+<<<<<<< HEAD
               if (this.currentObject.properties[p].name === property.name) {
                 value = this.currentObject.properties[p].value;
                 exists = true;
@@ -192,15 +192,50 @@ export default class MxProperties extends Component<Props, State> {
               }
             }
             ret.push(this.createControl(property, value, display));
+=======
+              if (this.currentObject.properties[p].name == property.name) { 
+                this.currentObject.properties[p].type=property.type;
+                this.currentObject.properties[p].options= property.options;
+                this.currentObject.properties[p].linked_property= property.linked_property;
+                this.currentObject.properties[p].linked_value = property.linked_value;
+                index = p;
+                break;
+              }
+            }
+            if (index==-1) {
+              this.currentObject.properties.push(new Property(property.name, null, property.type, property.options, property.linked_property, property.linked_value, false, true));
+              index=this.currentObject.properties.length-1;
+            }
+            this.state.values[property.name] = this.currentObject.properties[index].value 
+            if (property.linked_property) {
+              if (this.state.values[property.linked_property] == property.linked_value) {
+                this.currentObject.properties[index].display   = true;
+              }
+              else {
+                this.currentObject.properties[index].display   = false;
+              } 
+            } 
+            //ret.push(this.createControl(this.currentObject.properties[index], this.currentObject.properties[index].value, display));
+>>>>>>> 463baa90e5a000e73c80a4800aedd9b0516b4172
           }
+        }
+        for (let p = 0; p < this.currentObject.properties.length; p++) {
+          ret.push(this.createControl(this.currentObject.properties[p], this.currentObject.properties[p].value, this.currentObject.properties[p].display));
         }
       }
     }
     return ret;
   }
 
-  createControl(property: any, value: any, style: any) {
+  createControl(property: any, value: any, display: any) {
     let control: any;
+    let style=null;
+    if (display) {
+      style = { display: "block" };
+    }
+    else {
+      style = { display: "none" };
+    } 
     switch (property.type) {
       case "Select":
         let options = [];
