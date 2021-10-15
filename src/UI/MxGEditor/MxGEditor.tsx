@@ -5,8 +5,10 @@ import mx from "./mxgraph";
 import { mxGraph } from "mxgraph";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
+import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 
 interface Props {
@@ -29,8 +31,8 @@ export default class MxGEditor extends Component<Props, State> {
       this.projectService_addNewProductLineListener.bind(this);
     this.projectService_addSelectedModelListener =
       this.projectService_addSelectedModelListener.bind(this);
-      this.projectService_addUpdatedElementListener =
-        this.projectService_addUpdatedElementListener.bind(this);
+    this.projectService_addUpdatedElementListener =
+      this.projectService_addUpdatedElementListener.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -43,11 +45,17 @@ export default class MxGEditor extends Component<Props, State> {
     this.forceUpdate();
   }
 
-  projectService_addUpdatedElementListener(e: any) { 
-    let ele=this.findElementById(this.graph, e.element.id);
-    if (ele) {
-      ele.value.setAttribute("label", e.element.name);
-    } 
+  projectService_addUpdatedElementListener(e: any) {
+    let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id);
+    if (vertice) {
+      this.refreshVertexLabel(vertice);
+    } else {
+      let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id);
+      if (edge) {
+        this.refreshEdgeLabel(edge);
+        this.refreshEdgeStyle(edge);
+      }
+    }
     this.graph.refresh();
   }
 
@@ -106,6 +114,7 @@ export default class MxGEditor extends Component<Props, State> {
         }
       }
     });
+
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
       evt.consume();
     });
@@ -136,6 +145,9 @@ export default class MxGEditor extends Component<Props, State> {
             }
           }
         }
+        else {
+          me.graph.clearSelection();
+        }
       } catch (error) { }
     });
 
@@ -148,48 +160,52 @@ export default class MxGEditor extends Component<Props, State> {
         let name = source.value.getAttribute("label") + "_" + target.value.getAttribute("label");
         let relationshipType = null; //  source.value.tagName + "_" + target.value.tagName;
 
-        edge.style = "strokeColor=#446E79;strokeWidth=2;";
         let languageDefinition: any =
           me.props.projectService.getLanguageDefinition(
             "" + me.currentModel.name
           );
+
         if (languageDefinition.abstractSyntax.relationships) {
           for (let key in languageDefinition.abstractSyntax.relationships) {
             const rel = languageDefinition.abstractSyntax.relationships[key];
-            if (rel.source==source.value.tagName) {
+            if (rel.source == source.value.tagName) {
               for (let t = 0; t < rel.target.length; t++) {
-                if (rel.target[t]==target.value.tagName) {
+                if (rel.target[t] == target.value.tagName) {
                   relationshipType = key;
                   break;
-                }  
+                }
               }
             }
             if (relationshipType) {
               break;
             }
-          } 
-          if (!relationshipType) {
-            return;
-          } 
-          if (languageDefinition.concreteSyntax.relationships) {
-            if (
-              languageDefinition.concreteSyntax.relationships[relationshipType]
-            ) {
-              edge.style =
-                languageDefinition.concreteSyntax.relationships[
-                  relationshipType
-                ].style;
-            }
-          } 
-        }   
+          }
+        }
+
         if (!edge.value) {
           const rel = languageDefinition.abstractSyntax.relationships[relationshipType];
           var doc = mx.mxUtils.createXmlDocument();
           var node = doc.createElement("relationship");
           node.setAttribute("label", name);
           edge.value = node;
-          let points = []; 
+          let points = [];
           let properties = [];
+          if (rel.properties) {
+            for (let i = 0; i < rel.properties.length; i++) {
+              const p = rel.properties[i];
+              const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true);
+              if (p.linked_property) {
+                property.display = false;
+              }
+              if (p.options) {
+                if (p.options.length > 0) {
+                  property.value = p.options[0];
+                }
+              }
+              properties.push(property);
+            }
+          }
+
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           let relationship = me.props.projectService.createRelationship(
             me.currentModel,
@@ -202,15 +218,12 @@ export default class MxGEditor extends Component<Props, State> {
             rel.max,
             properties
           );
+
           node.setAttribute("uid", relationship.id);
-
-          // var style = graph.getCellStyle(edge);
-          // var sourcePortId = style[mx.mxConstants.STYLE_SOURCE_PORT];
-          // var targetPortId = style[mx.mxConstants.STYLE_TARGET_PORT];
-
-          // mxLog.show();
-          // mxLog.debug('connect', edge, source.id, target.id, sourcePortId, targetPortId);
+          edge.style = "strokeColor=#446E79;strokeWidth=2;";
         }
+        me.refreshEdgeLabel(edge);
+        me.refreshEdgeStyle(edge);
       } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         let m = error;
@@ -223,6 +236,130 @@ export default class MxGEditor extends Component<Props, State> {
     //   var source = graph.getModel().getTerminal(edge, true);
     //   var target = graph.getModel().getTerminal(edge, false);
     // });
+
+    graph.addListener(mx.mxEvent.REMOVE_CELLS, function (sender, evt) {
+      try {
+        evt.consume();
+      } catch (error) {
+        alert(error);
+      }
+    });
+
+    let keyHandler = new mx.mxKeyHandler(graph);
+    keyHandler.bindKey(46, function (evt) {
+      me.deleteSelection();
+    });
+  }
+
+  deleteSelection() {
+    let me=this;
+    let graph = this.graph;
+    if (graph.isEnabled()) {
+      let cells = graph.getSelectionCells();
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i];
+        if (cell.value) {
+          let uid = cell.value.getAttribute("uid");
+          if (uid) {
+            if (cell.edge) {
+              me.props.projectService.removeModelRelationshipById(me.currentModel, uid);
+            }else{
+              me.props.projectService.removeModelElementById(me.currentModel, uid);
+            } 
+          }
+        }
+      }
+      graph.removeCells(cells, true);
+    }
+    //MxgraphUtils.deleteSelection(this.graph, this.currentModel);
+  }
+
+  refreshEdgeStyle(edge: any) {
+    let me = this;
+    let languageDefinition: any =
+      me.props.projectService.getLanguageDefinition(
+        "" + me.currentModel.name
+      );
+    let relationship = me.props.projectService.findModelRelationshipById(me.currentModel, edge.value.getAttribute("uid"));
+    if (languageDefinition.concreteSyntax.relationships) {
+      if (languageDefinition.concreteSyntax.relationships[relationship.type]) {
+        if (languageDefinition.concreteSyntax.relationships[relationship.type].styles) {
+          for (let i = 0; i < languageDefinition.concreteSyntax.relationships[relationship.type].styles.length; i++) {
+            const styleDef = languageDefinition.concreteSyntax.relationships[relationship.type].styles[i];
+            if (!styleDef.linked_property) {
+              edge.style = styleDef.style;
+              return;
+            } else {
+              for (let p = 0; p < relationship.properties.length; p++) {
+                const property = relationship.properties[p];
+                if (property.name == styleDef.linked_property && property.value == styleDef.linked_value) {
+                  edge.style = styleDef.style;
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  refreshEdgeLabel(edge: any) {
+    let me = this;
+    let languageDefinition: any =
+      me.props.projectService.getLanguageDefinition(
+        "" + me.currentModel.name
+      );
+    let label_property = null;
+    let relationship = me.props.projectService.findModelRelationshipById(me.currentModel, edge.value.getAttribute("uid"));
+    if (languageDefinition.concreteSyntax.relationships) {
+      if (languageDefinition.concreteSyntax.relationships[relationship.type]) {
+        if (languageDefinition.concreteSyntax.relationships[relationship.type].label_property) {
+          label_property = languageDefinition.concreteSyntax.relationships[relationship.type].label_property;
+          for (let p = 0; p < relationship.properties.length; p++) {
+            const property = relationship.properties[p];
+            if (property.name == label_property) {
+              edge.value.setAttribute("label", property.value);
+              return;
+            }
+          }
+        }
+      }
+    }
+    if (!label_property) {
+      edge.value.setAttribute("label", relationship.name);
+    } else {
+      edge.value.setAttribute("label", "");
+    }
+  }
+
+  refreshVertexLabel(vertice: any) {
+    let me = this;
+    let languageDefinition: any =
+      me.props.projectService.getLanguageDefinition(
+        "" + me.currentModel.name
+      );
+    let label_property = null;
+    let element = me.props.projectService.findModelElementById(me.currentModel, vertice.value.getAttribute("uid"));
+    if (languageDefinition.concreteSyntax.elements) {
+      if (languageDefinition.concreteSyntax.elements[element.type]) {
+        if (languageDefinition.concreteSyntax.elements[element.type].label_property) {
+          label_property = languageDefinition.concreteSyntax.elements[element.type].label_property;
+          for (let p = 0; p < element.properties.length; p++) {
+            const property = element.properties[p];
+            if (property.name == languageDefinition.concreteSyntax.elements[element.type].label_property) {
+              vertice.value.setAttribute("label", property.value);
+              return;
+            }
+          }
+        }
+      }
+    }
+    if (!label_property) {
+      vertice.value.setAttribute("label", element.name);
+    } else {
+      vertice.value.setAttribute("label", "");
+    }
   }
 
   loadModel(model: Model) {
@@ -252,7 +389,7 @@ export default class MxGEditor extends Component<Props, State> {
           var node = doc.createElement(element.type);
           node.setAttribute("uid", element.id);
           node.setAttribute("label", element.name);
-          var vx = graph.insertVertex(
+          var vertex = graph.insertVertex(
             parent,
             null,
             node,
@@ -265,13 +402,13 @@ export default class MxGEditor extends Component<Props, State> {
             ";" +
             languageDefinition.concreteSyntax.elements[element.type].design
           );
-          console.log(vx);
+          this.refreshVertexLabel(vertex);
         }
 
         for (let i = 0; i < model.relationships.length; i++) {
           const relationship = model.relationships[i];
-          let source = this.findElementById(graph, relationship.sourceId);
-          let target = this.findElementById(graph, relationship.targetId);  
+          let source = MxgraphUtils.findVerticeById(graph, relationship.sourceId);
+          let target = MxgraphUtils.findVerticeById(graph, relationship.targetId);
           let doc = mx.mxUtils.createXmlDocument();
           let node = doc.createElement("relationship");
           node.setAttribute("uid", relationship.id);
@@ -303,19 +440,12 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   //sacar esto en una libreria
-  findElementById(graph, uid) {
-    let vertices = graph.getChildVertices(graph.getDefaultParent());
-    for (let i = 0; i < vertices.length; i++) {
-      const vertice = vertices[i];
-      try {
-        let vuid = vertice.value.getAttribute("uid");
-        if (vuid === uid) {
-          return vertice;
-        }
-      } catch (error) { }
-    }
-    return null;
-  }
+
+
+
+
+
+
 
   render() {
     return (

@@ -323,9 +323,70 @@ export default class ProjectUseCases {
       function (c) {
         var r = (dt + Math.random() * 16) % 16 | 0;
         dt = Math.floor(dt / 16);
-        return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+        return (c == "x" ? r : (r & 0x3) | 0x8).toString(16);
       }
     );
     return uuid;
+  }
+
+  static findModelElementById(model:Model, uid:any) { 
+    if (model) {
+      for (let i = 0; i < model.elements.length; i++) {
+        const element: any = model.elements[i];
+        if (element.id == uid) {
+          return element;
+        }
+      }
+    }
+    return null;
+  }
+
+  static findModelRelationshipById(model:Model, uid:any) {
+    let me = this;
+    if (model) {
+      for (let i = 0; i < model.relationships.length; i++) {
+        const relationship: any = model.relationships[i];
+        if (relationship.id == uid) {
+          return relationship;
+        }
+      }
+    }
+    return null;
+  }
+ 
+  static removeModelElementById(model:Model, uid:any) { 
+    if (model) {
+      for (let i = 0; i < model.elements.length; i++) {
+        const element: any = model.elements[i];
+        if (element.id == uid) {
+          model.elements.splice(i, 1); 
+          this.removeModelRelationshipsOfElement(model, uid);
+          return;
+        }
+      }
+    } 
+  }
+
+  static removeModelRelationshipById(model:Model, uid:any) { 
+    if (model) {
+      for (let i = 0; i < model.relationships.length; i++) {
+        const relationship: any = model.relationships[i];
+        if (relationship.id == uid) {
+          model.relationships.splice(i, 1);
+          return;
+        }
+      }
+    } 
+  }
+
+  static removeModelRelationshipsOfElement(model:Model, uid:any) { 
+    if (model) {
+      for (let i = model.relationships.length-1; i >=0 ; i--) {
+        const relationship: any = model.relationships[i];
+        if (relationship.sourceId == uid || relationship.targetId == uid) {
+          model.relationships.splice(i, 1);
+        }
+      }
+    } 
   }
 }

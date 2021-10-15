@@ -75,9 +75,16 @@ export default class MxPalette extends Component<Props, State> {
   }
 
   addingVertex(graph: any, vertex: any, cell: any) {
+    let me=this;
     if (!this.currentModel) {
       return;
     }
+    
+    let languageDefinition: any =
+    me.props.projectService.getLanguageDefinition(
+      "" + me.currentModel.name
+    );
+
     // const me = this;
     let type = vertex.getAttribute("type");
     let name = type + " 1";
@@ -92,9 +99,28 @@ export default class MxPalette extends Component<Props, State> {
     element.y = vertex.geometry.y;
     element.width = vertex.geometry.width;
     element.height = vertex.geometry.height; 
-    this.currentModel?.elements?.push(element);
+    const def = languageDefinition.abstractSyntax.elements[type]; 
+    if (def.properties) {
+      for (let i = 0; i < def.properties.length; i++) {
+        const p = def.properties[i];
+        const property=new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true);
+        if (p.linked_property) {
+          property.display=false;
+        }
+        if (p.options) {
+          if (p.options.length>0) {
+            property.value=p.options[0];
+          }
+        }
+        element.properties.push(property);
+      }
+    }
 
-    let me = this;
+
+
+
+    this.currentModel?.elements?.push(element);
+  
     let callback = function (data: any) {
       if (data.data.state !== "DENIED") {
         graph.getModel().beginUpdate();
@@ -109,6 +135,12 @@ export default class MxPalette extends Component<Props, State> {
         // var v2 = graph.insertVertex(newCells[0], null, "World!", 0, 0, 20, 20);
         // newCells[0].collapsed = false;
         graph.getModel().endUpdate();
+
+        
+        me.props.projectService.raiseEventUpdatedElement(
+          me.currentModel,
+          element
+        );
 
         me.props.projectService.raiseEventSelectedElement(
           me.currentModel,

@@ -23,6 +23,7 @@ import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relat
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/RestrictionsUseCases";
+import ProjectUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
 
 export default class ProjectService {
   private graph: any;
@@ -805,4 +806,24 @@ export default class ProjectService {
     );
     return r;
   }
+
+  findModelElementById(model:Model, uid:any) {  
+    return ProjectUseCases.findModelElementById(model, uid);
+  }
+
+  findModelRelationshipById(model:Model, uid:any) {
+    return ProjectUseCases.findModelRelationshipById(model, uid);
+  } 
+
+  removeModelElementById(model:Model, uid:any) {  
+    return ProjectUseCases.removeModelElementById(model, uid);
+  } 
+  
+  removeModelRelationshipById(model:Model, uid:any) {  
+    return ProjectUseCases.removeModelRelationshipById(model, uid);
+  } 
+  
+  removeModelRelationshipsOfElement(model:Model, uid:any) {  
+    return ProjectUseCases.removeModelRelationshipsOfElement(model, uid);
+  } 
 }
