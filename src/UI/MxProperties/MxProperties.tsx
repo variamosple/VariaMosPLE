@@ -8,12 +8,23 @@ import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 // import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 import CustomProperties from "./CustomProperties";
+import "./PropertiesMenu.css";
+import * as alertify from "alertifyjs";
 
 interface Props {
   projectService: ProjectService;
 }
 interface State {
   values: any[];
+  propertyName: string;
+  propertyLastName: string;
+  propertyDomain: string;
+  propertyPossibleValues: string;
+  propertyComment: string;
+  customPropertyFlag: boolean;
+  customPropertyCreateFlag: boolean;
+  customPropertyUpdateFlag: boolean;
+  currentCustomProperty: any;
 }
 
 export default class MxProperties extends Component<Props, State> {
@@ -28,6 +39,15 @@ export default class MxProperties extends Component<Props, State> {
 
     this.state = {
       values: [],
+      propertyName: "",
+      propertyLastName: "",
+      propertyDomain: "String",
+      propertyPossibleValues: "",
+      propertyComment: "",
+      customPropertyFlag: true,
+      customPropertyCreateFlag: true,
+      customPropertyUpdateFlag: true,
+      currentCustomProperty: {},
     };
 
     this.projectService_addNewProductLineListener =
@@ -39,6 +59,19 @@ export default class MxProperties extends Component<Props, State> {
 
     this.checkBox_onChange = this.checkBox_onChange.bind(this);
     this.input_onChange = this.input_onChange.bind(this);
+
+    this.newCustomPropertyForm = this.newCustomPropertyForm.bind(this);
+    this.createCustomProperty = this.createCustomProperty.bind(this);
+    this.updateCustomPropertyForm = this.updateCustomPropertyForm.bind(this);
+    this.deleteCustomProperty = this.deleteCustomProperty.bind(this);
+
+    this.clearForm = this.clearForm.bind(this);
+    this.selectNameChange = this.selectNameChange.bind(this);
+    this.selectDomainChange = this.selectDomainChange.bind(this);
+    this.selectCommentChange = this.selectCommentChange.bind(this);
+    this.selectPossibleValuesChange =
+      this.selectPossibleValuesChange.bind(this);
+    this.customPropertySelected = this.customPropertySelected.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -80,6 +113,7 @@ export default class MxProperties extends Component<Props, State> {
         }
       }
     }
+
     let values = this.state.values;
     values[name] = value;
     this.setState({
@@ -132,6 +166,165 @@ export default class MxProperties extends Component<Props, State> {
     me.props.projectService.addSelectedElementListener(
       this.projectService_addSelectedElementListener
     );
+  }
+
+  newCustomPropertyForm() {
+    this.setState({
+      customPropertyFlag: false,
+      customPropertyCreateFlag: false,
+    });
+  }
+
+  updateCustomPropertyForm() {
+    this.setState({
+      propertyName: this.state.currentCustomProperty.name,
+      propertyDomain: this.state.currentCustomProperty.type,
+      propertyPossibleValues: this.state.currentCustomProperty.possibleValues,
+      propertyComment: this.state.currentCustomProperty.comment,
+      customPropertyFlag: false,
+      customPropertyCreateFlag: true,
+      customPropertyUpdateFlag: false,
+    });
+  }
+
+  nullValidate(): boolean {
+    if (this.state.propertyName === "") {
+      alertify.error("Name property is required");
+      document.getElementById("newPropertyOptionList")?.focus();
+      return false;
+    }
+    return true;
+  }
+
+  validatePropertyExist(func?: string): boolean {
+    if (
+      func === "update" &&
+      this.state.propertyLastName === this.state.propertyName
+    )
+      return true;
+
+    for (let i = 0; i < this.currentObject.properties.length; i++) {
+      const element = this.currentObject.properties[i];
+      if (element.name === this.state.propertyName) {
+        alertify.error("Property name already exist");
+        document.getElementById("newPropertyName")?.focus();
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  createCustomProperty() {
+    if (!this.nullValidate()) return false;
+    if (!this.validatePropertyExist()) return false;
+
+    this.currentObject.properties.push(
+      new Property(
+        this.state.propertyName,
+        null,
+        this.state.propertyDomain,
+        null,
+        null,
+        null,
+        true,
+        true,
+        this.state.propertyComment,
+        this.state.propertyPossibleValues
+      )
+    );
+
+    this.props.projectService.saveProject();
+    this.props.projectService.raiseEventUpdatedElement(
+      this.currentModel,
+      this.currentObject
+    );
+
+    alertify.success("Property created successfully");
+    this.clearForm();
+  }
+
+  updateCustomProperty() {
+    console.log(this.currentObject.properties);
+    for (let i = 0; i < this.currentObject?.properties.length; i++) {
+      if (
+        this.currentObject.properties[i].id ===
+        this.state.currentCustomProperty.id
+      ) {
+        this.currentObject.properties[i].name = "";
+
+        this.props.projectService.saveProject();
+        this.props.projectService.raiseEventUpdatedElement(
+          this.currentModel,
+          this.currentObject
+        );
+
+        alertify.success("Property updated successfully");
+        this.clearForm();
+        return;
+      }
+    }
+  }
+
+  deleteCustomProperty() {
+    this.currentObject.properties = this.currentObject.properties.filter(
+      (property: Property) =>
+        property.id !== this.state.currentCustomProperty.id
+    );
+
+    this.props.projectService.saveProject();
+    this.props.projectService.raiseEventUpdatedElement(
+      this.currentModel,
+      this.currentObject
+    );
+
+    alertify.success("Property deleted successfully");
+    this.clearForm();
+  }
+
+  clearForm() {
+    this.setState({
+      propertyName: "",
+      propertyLastName: "",
+      propertyDomain: "String",
+      propertyPossibleValues: "",
+      propertyComment: "",
+      customPropertyFlag: true,
+      customPropertyCreateFlag: true,
+      customPropertyUpdateFlag: true,
+      currentCustomProperty: {},
+    });
+  }
+
+  customPropertySelected(Property: any) {
+    this.setState({
+      currentCustomProperty: Property,
+    });
+  }
+  selectNameChange(event: any) {
+    const lastNameProperty = this.state.propertyName;
+    this.setState({
+      propertyLastName: lastNameProperty,
+      propertyName: event.target.value,
+    });
+  }
+
+  selectDomainChange(event: any) {
+    this.setState({
+      propertyDomain: event.target.value,
+    });
+  }
+
+  selectCommentChange(event: any) {
+    this.setState({
+      propertyComment: event.target.value,
+    });
+  }
+
+  selectPossibleValuesChange(event: any) {
+    this.setState({
+      propertyPossibleValues: event.target.value,
+    });
   }
 
   renderProperties() {
@@ -436,7 +629,11 @@ export default class MxProperties extends Component<Props, State> {
         break;
     }
     return (
-      <div id={"prop_" + property.name} style={style}>
+      <div
+        id={"prop_" + property.name}
+        style={style}
+        onAuxClick={() => this.customPropertySelected(property)}
+      >
         <label title={titleToolTip}>{property.name}</label>
         <br />
         {control}
@@ -447,67 +644,152 @@ export default class MxProperties extends Component<Props, State> {
 
   render() {
     return (
-      <div key="a" className="MxPalette">
-        <ul
-          className="list-group list-group-horizontal justify-content-center background-variamos"
-          // style={{
-          //   marginTop: -23,
-          //   borderTopStyle: "double",
-          // }}
-          id="PropertyFunctionsPanel"
-          hidden={false}
-        >
-          <li
-            className="list-group-item icon-dark-variamos"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Update property"
-            // onClick={this.activeUpdate}
-            style={{
-              paddingBottom: "1px",
-            }}
-            hidden={false}
-          >
-            <span
-              className="bi bi-pencil-square shadow "
-              id="updateproperty"
-            ></span>
-          </li>
-          <li
-            className="list-group-item icon-dark-variamos"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="Delete property"
-            // onClick={this.activeDelete}
-            style={{
-              paddingBottom: "1px",
-            }}
-            hidden={false}
-          >
-            <span className="bi bi-trash shadow " id="deleteproperty"></span>
-            <span
-              className="hidden"
-              id="deleteViewModalproperty"
-              data-bs-toggle="modal"
-              data-bs-target="#modalDeleteProperty"
-            ></span>
-          </li>
-          <li
-            className="list-group-item icon-dark-variamos"
-            data-bs-toggle="tooltip"
-            data-bs-placement="bottom"
-            title="New property"
-            style={{
-              paddingBottom: "1px",
-            }}
-            // onClick={this.activeCreate}
-          >
-            <span className="bi bi-plus-circle shadow" id="newproperty"></span>
-          </li>
-        </ul>
-        <br />
-        <div className="card-body bg-white-Variamos">
+      <div key="a" id="MxPalette" className="MxPalette">
+        <div className="card-body bg-white-Variamos" id="renderProperties">
+          <div hidden={this.state.customPropertyFlag}>
+            <div className="row">
+              <div className="col-md">
+                <div className="form-floating">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="property name"
+                    id="newPropertyName"
+                    value={this.state.propertyName}
+                    onChange={this.selectNameChange}
+                  />
+                  <label htmlFor="newPropertyName">Enter name</label>
+                </div>
+              </div>
+            </div>
+            <br />
+            <div className="row">
+              <div className="col-md">
+                <div className="form-floating">
+                  <select
+                    className="form-select"
+                    id="newPropertySelectDomain"
+                    aria-label="Select property domain"
+                    value={this.state.propertyDomain}
+                    onChange={this.selectDomainChange}
+                  >
+                    <option value="String" selected>
+                      String
+                    </option>
+                    <option value="Integer">Integer</option>
+                    <option value="Boolean">Boolean</option>
+                  </select>
+                  <label
+                    htmlFor="newPropertySelectDomain"
+                    style={{ fontSize: 12 }}
+                  >
+                    Select property domain
+                  </label>
+                </div>
+              </div>
+            </div>
+            <br />
+            <div className="row">
+              <div className="col-md">
+                <div className="form-floating">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="property possible values"
+                    id="customPropertyPossibleValues"
+                    value={this.state.propertyPossibleValues}
+                    onChange={this.selectPossibleValuesChange}
+                  />
+                  <label htmlFor="customPropertyPossibleValues">
+                    Enter possible values
+                  </label>
+                </div>
+              </div>
+            </div>
+            <br />
+            <div className="row">
+              <div className="col-md">
+                <div className="form-floating">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="property comment"
+                    id="customPropertyComment"
+                    value={this.state.propertyComment}
+                    onChange={this.selectCommentChange}
+                  />
+                  <label htmlFor="customPropertyComment">Enter comment</label>
+                </div>
+              </div>
+            </div>
+            <br />
+            <div className="row">
+              <div className="col-md">
+                <button
+                  type="button"
+                  className="btn form-control btn-secondary"
+                  onClick={this.clearForm}
+                >
+                  Cancel
+                </button>
+              </div>
+              <div className="col-md">
+                <button
+                  type="button"
+                  className="btn form-control btn-Variamos"
+                  onClick={this.createCustomProperty}
+                  id="btnCreateproperty"
+                  hidden={this.state.customPropertyCreateFlag}
+                >
+                  Create
+                </button>
+                <button
+                  type="button"
+                  className="btn form-control btn-Variamos"
+                  onClick={this.updateCustomProperty}
+                  id="btnUpdatepFroperty"
+                  hidden={this.state.customPropertyUpdateFlag}
+                >
+                  Update
+                </button>
+              </div>
+            </div>
+            <br />
+          </div>
           {this.renderProperties()}
+          <ul className="dropdown-menu" id="properties-menu">
+            <li>
+              <span
+                className={"dropdown-item"}
+                id="newCustomProperty"
+                onClick={this.newCustomPropertyForm}
+              >
+                New property
+              </span>
+            </li>
+            <li>
+              <span
+                className="dropdown-item"
+                hidden={!this.state.currentCustomProperty.custom}
+                id="renameItem"
+                onClick={this.updateCustomPropertyForm}
+              >
+                Update
+              </span>
+            </li>
+            <li>
+              <span
+                className="dropdown-item"
+                hidden={!this.state.currentCustomProperty.custom}
+                id="deleteItem"
+                // data-bs-toggle="modal"
+                // data-bs-target="#deleteModal"
+                onClick={this.deleteCustomProperty}
+              >
+                Delete
+              </span>
+            </li>
+          </ul>
         </div>
 
         <CustomProperties

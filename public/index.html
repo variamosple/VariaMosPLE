@@ -67,7 +67,7 @@
           });
         // END  ********** SPLIT EDITOR SPACE
 
-        //START ***************** Code for Right Clic
+        //START ***************** Code for Right Clic TreeMenu
         $("#explorer #TreePannel")
           .on("contextmenu", function (e) {
             var top = e.pageY - 10;
@@ -89,7 +89,33 @@
         $("#context-menu").on("click", function () {
           $(this).removeClass("show").hide();
         });
-        //End***************** Code for Right Clic
+        //End***************** Code for Right Clic TreeMenu
+
+         //START ***************** Code for Right Clic Properties
+         $("#MxPalette #renderProperties")
+          .on("contextmenu", function (e) {
+            var top = e.pageY - 10;
+            var left = e.pageX + 30;
+            $("#properties-menu")
+              .css({
+                display: "block",
+                top: top,
+                left: left,
+              })
+              .addClass("show");
+
+            return false; //blocks default Webbrowser right click menu
+          })
+          .on("click", function () {
+            $("#properties-menu").removeClass("show").hide();
+          });
+
+        $("#properties-menu").on("click", function () {
+          $(this).removeClass("show").hide();
+        });
+        //End***************** Code for Right Clic Properties
+
+
       });
     </script>
   </body>

@@ -1,0 +1,32 @@
+/* Properties menu
+---------------------------- */
+
+@media all and (min-width: 992px) {
+  #properties-menu {
+    top: inherit !important;
+    left: auto !important;
+    right: 200px !important;
+  }
+
+  .dropdown-menu li {
+    position: relative;
+  }
+
+  .dropdown-menu > li:hover {
+    background-color: #f1f1f1;
+  }
+  .dropdown-menu > li:hover > .submenu {
+    display: block;
+  }
+}
+
+@media (max-width: 991px) {
+  .dropdown-menu #properties-menu {
+    /* margin-left: 30px; */
+  }
+}
+
+.hidden {
+  display: none;
+}
+/* ---------------------------- */
