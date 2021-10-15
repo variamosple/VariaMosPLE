@@ -306,8 +306,6 @@ class TreeMenu extends Component<Props, State> {
     };
 
     add[language.type]();
-
-    
   }
 
   addNewDomainEModel(languageName: string) {
