@@ -298,7 +298,7 @@ export default class MxProperties extends Component<Props, State> {
         ) {
           control = (
             <input
-              className="form-check-input"
+              className="form-control"
               type="number"
               data-name={property.name}
               onChange={this.input_onChange}
@@ -314,7 +314,7 @@ export default class MxProperties extends Component<Props, State> {
           const max = values[1];
           control = (
             <input
-              className="form-check-input"
+              className="form-control"
               type="number"
               min={min}
               max={max}
@@ -332,22 +332,13 @@ export default class MxProperties extends Component<Props, State> {
             const option = options[i];
             if (option === value) {
               options.push(
-                <option
-                  className="form-check-input"
-                  data-name={property.name}
-                  value={option}
-                  selected
-                >
+                <option data-name={property.name} value={option} selected>
                   {option}
                 </option>
               );
             } else {
               options.push(
-                <option
-                  className="form-check-input"
-                  data-name={property.name}
-                  value={option}
-                >
+                <option data-name={property.name} value={option}>
                   {option}
                 </option>
               );
@@ -392,22 +383,13 @@ export default class MxProperties extends Component<Props, State> {
             const option = possibleValues[i];
             if (option === value) {
               options.push(
-                <option
-                  className="form-check-input"
-                  data-name={property.name}
-                  value={option}
-                  selected
-                >
+                <option data-name={property.name} value={option} selected>
                   {option}
                 </option>
               );
             } else {
               options.push(
-                <option
-                  className="form-check-input"
-                  data-name={property.name}
-                  value={option}
-                >
+                <option data-name={property.name} value={option}>
                   {option}
                 </option>
               );
