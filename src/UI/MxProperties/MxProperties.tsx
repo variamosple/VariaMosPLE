@@ -63,6 +63,7 @@ export default class MxProperties extends Component<Props, State> {
     this.newCustomPropertyForm = this.newCustomPropertyForm.bind(this);
     this.createCustomProperty = this.createCustomProperty.bind(this);
     this.updateCustomPropertyForm = this.updateCustomPropertyForm.bind(this);
+    this.updateCustomProperty = this.updateCustomProperty.bind(this);
     this.deleteCustomProperty = this.deleteCustomProperty.bind(this);
 
     this.clearForm = this.clearForm.bind(this);
@@ -245,13 +246,23 @@ export default class MxProperties extends Component<Props, State> {
   }
 
   updateCustomProperty() {
-    console.log(this.currentObject.properties);
     for (let i = 0; i < this.currentObject?.properties.length; i++) {
       if (
         this.currentObject.properties[i].id ===
         this.state.currentCustomProperty.id
       ) {
-        this.currentObject.properties[i].name = "";
+        console.log(this.currentObject.properties[i]);
+        console.log(this.state.currentCustomProperty);
+        this.currentObject.properties[i].name = this.state.propertyName;
+
+        this.currentObject.properties[i].type = this.state.propertyDomain;
+        this.currentObject.properties[i].possibleValues =
+          this.state.propertyPossibleValues;
+        this.currentObject.properties[i].comment = this.state.propertyComment;
+
+        this.setState({
+          currentCustomProperty: this.currentObject.properties[i],
+        });
 
         this.props.projectService.saveProject();
         this.props.projectService.raiseEventUpdatedElement(
@@ -301,6 +312,7 @@ export default class MxProperties extends Component<Props, State> {
       currentCustomProperty: Property,
     });
   }
+
   selectNameChange(event: any) {
     const lastNameProperty = this.state.propertyName;
     this.setState({
