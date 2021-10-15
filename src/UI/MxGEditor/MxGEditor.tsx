@@ -197,9 +197,12 @@ export default class MxGEditor extends Component<Props, State> {
               if (p.linked_property) {
                 property.display = false;
               }
-              if (p.options) {
-                if (p.options.length > 0) {
-                  property.value = p.options[0];
+              if (p.possibleValues) {
+                if (property.possibleValues.includes(",")) {
+                  let options = property.possibleValues.split(",");
+                  if (options.length > 0) {
+                    property.value = options[0];
+                  }
                 }
               }
               properties.push(property);

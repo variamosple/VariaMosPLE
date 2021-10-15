@@ -15,7 +15,7 @@ import { join } from "path";
 interface Props {
   projectService: ProjectService;
 }
-interface State {}
+interface State { }
 
 export default class MxPalette extends Component<Props, State> {
   containerRef: any;
@@ -75,15 +75,15 @@ export default class MxPalette extends Component<Props, State> {
   }
 
   addingVertex(graph: any, vertex: any, cell: any) {
-    let me=this;
+    let me = this;
     if (!this.currentModel) {
       return;
     }
-    
+
     let languageDefinition: any =
-    me.props.projectService.getLanguageDefinition(
-      "" + me.currentModel.name
-    );
+      me.props.projectService.getLanguageDefinition(
+        "" + me.currentModel.name
+      );
 
     // const me = this;
     let type = vertex.getAttribute("type");
@@ -98,18 +98,21 @@ export default class MxPalette extends Component<Props, State> {
     element.x = vertex.geometry.x;
     element.y = vertex.geometry.y;
     element.width = vertex.geometry.width;
-    element.height = vertex.geometry.height; 
-    const def = languageDefinition.abstractSyntax.elements[type]; 
+    element.height = vertex.geometry.height;
+    const def = languageDefinition.abstractSyntax.elements[type];
     if (def.properties) {
       for (let i = 0; i < def.properties.length; i++) {
         const p = def.properties[i];
-        const property=new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues);
+        const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues);
         if (p.linked_property) {
-          property.display=false;
+          property.display = false;
         }
-        if (p.options) {
-          if (p.options.length>0) {
-            property.value=p.options[0];
+        if (p.possibleValues) {
+          if (property.possibleValues.includes(",")) {
+            let options = property.possibleValues.split(",");
+            if (options.length > 0) {
+              property.value = options[0];
+            }
           }
         }
         element.properties.push(property);
@@ -120,7 +123,7 @@ export default class MxPalette extends Component<Props, State> {
 
 
     this.currentModel?.elements?.push(element);
-  
+
     let callback = function (data: any) {
       if (data.data.state !== "DENIED") {
         graph.getModel().beginUpdate();
@@ -136,7 +139,7 @@ export default class MxPalette extends Component<Props, State> {
         // newCells[0].collapsed = false;
         graph.getModel().endUpdate();
 
-        
+
         me.props.projectService.raiseEventUpdatedElement(
           me.currentModel,
           element
@@ -243,7 +246,7 @@ export default class MxPalette extends Component<Props, State> {
           relationship.max,
           relationship.target,
           "Only 1 target is allowed",
-          "Only " +   relationship.target.join(', ') + " targets allowed",
+          "Only " + relationship.target.join(', ') + " targets allowed",
           true
         );
         graph.multiplicities.push(mul);
