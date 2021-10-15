@@ -193,7 +193,7 @@ export default class MxGEditor extends Component<Props, State> {
           if (rel.properties) {
             for (let i = 0; i < rel.properties.length; i++) {
               const p = rel.properties[i];
-              const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true);
+              const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues);
               if (p.linked_property) {
                 property.display = false;
               }
