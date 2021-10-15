@@ -7,6 +7,7 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 // import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
+import CustomProperties from "./CustomProperties";
 
 interface Props {
   projectService: ProjectService;
@@ -188,7 +189,9 @@ export default class MxProperties extends Component<Props, State> {
                   property.linked_property,
                   property.linked_value,
                   false,
-                  true
+                  true,
+                  property.comment,
+                  property.possibleValues
                 )
               );
               index = this.currentObject.properties.length - 1;
@@ -230,6 +233,16 @@ export default class MxProperties extends Component<Props, State> {
     } else {
       style = { display: "none" };
     }
+    let titleToolTip =
+      "Name: " +
+      property.name +
+      "\n Domain: " +
+      property.type +
+      "\n PossibleValues: " +
+      property.possibleValues +
+      "\n Comment: " +
+      property.comment;
+
     switch (property.type) {
       case "Select":
         let options = [];
@@ -243,7 +256,7 @@ export default class MxProperties extends Component<Props, State> {
                 value={option}
                 selected
               >
-                {option}
+                |{option}
               </option>
             );
           } else {
@@ -278,6 +291,142 @@ export default class MxProperties extends Component<Props, State> {
           />
         );
         break;
+      case "Integer":
+        if (
+          property.possibleValues === undefined ||
+          property.possibleValues === ""
+        ) {
+          control = (
+            <input
+              className="form-check-input"
+              type="number"
+              data-name={property.name}
+              onChange={this.input_onChange}
+              value={this.state.values[property.name]}
+            />
+          );
+          break;
+        }
+
+        if (property.possibleValues.includes("..")) {
+          const values: any = property.possibleValues.split("..");
+          const min = values[0];
+          const max = values[1];
+          control = (
+            <input
+              className="form-check-input"
+              type="number"
+              min={min}
+              max={max}
+              data-name={property.name}
+              onChange={this.input_onChange}
+              value={this.state.values[property.name]}
+            />
+          );
+          break;
+        }
+
+        if (property.possibleValues.includes(",")) {
+          let options = property.possibleValues.split(",");
+          for (let i = 0; i < options.length; i++) {
+            const option = options[i];
+            if (option === value) {
+              options.push(
+                <option
+                  className="form-check-input"
+                  data-name={property.name}
+                  value={option}
+                  selected
+                >
+                  {option}
+                </option>
+              );
+            } else {
+              options.push(
+                <option
+                  className="form-check-input"
+                  data-name={property.name}
+                  value={option}
+                >
+                  {option}
+                </option>
+              );
+            }
+          }
+
+          control = (
+            <select
+              className="form-select"
+              data-name={property.name}
+              onChange={this.input_onChange}
+            >
+              {options}
+            </select>
+          );
+          break;
+        }
+
+        break;
+      case "String":
+        if (
+          property.possibleValues === undefined ||
+          property.possibleValues === ""
+        ) {
+          control = (
+            <input
+              className="form-control"
+              type="text"
+              title={titleToolTip}
+              data-name={property.name}
+              onChange={this.input_onChange}
+              value={this.state.values[property.name]}
+            />
+          );
+          break;
+        }
+
+        if (property.possibleValues.includes(",")) {
+          let options = [];
+          let possibleValues = property.possibleValues.split(",");
+          for (let i = 0; i < possibleValues.length; i++) {
+            const option = possibleValues[i];
+            if (option === value) {
+              options.push(
+                <option
+                  className="form-check-input"
+                  data-name={property.name}
+                  value={option}
+                  selected
+                >
+                  {option}
+                </option>
+              );
+            } else {
+              options.push(
+                <option
+                  className="form-check-input"
+                  data-name={property.name}
+                  value={option}
+                >
+                  {option}
+                </option>
+              );
+            }
+          }
+
+          control = (
+            <select
+              className="form-select"
+              data-name={property.name}
+              onChange={this.input_onChange}
+              title={titleToolTip}
+            >
+              {options}
+            </select>
+          );
+          break;
+        }
+        break;
       case "Boolean":
         if (value === true) {
           control = (
@@ -285,6 +434,7 @@ export default class MxProperties extends Component<Props, State> {
               className="form-check-input"
               data-name={property.name}
               type="checkbox"
+              title={titleToolTip}
               onChange={this.checkBox_onChange}
               checked={this.state.values[property.name]}
             />
@@ -295,29 +445,20 @@ export default class MxProperties extends Component<Props, State> {
               className="form-check-input"
               data-name={property.name}
               type="checkbox"
+              title={titleToolTip}
               onChange={this.checkBox_onChange}
               checked={this.state.values[property.name]}
             />
           );
         }
         break;
-      default:
-        control = (
-          <input
-            className="form-control"
-            type="text"
-            data-name={property.name}
-            onChange={this.input_onChange}
-            value={this.state.values[property.name]}
-          />
-        );
-        break;
     }
     return (
       <div id={"prop_" + property.name} style={style}>
-        <label>{property.name}</label>
+        <label title={titleToolTip}>{property.name}</label>
         <br />
         {control}
+        <hr style={{ marginTop: 10, color: "gray" }} />
       </div>
     );
   }
@@ -325,7 +466,72 @@ export default class MxProperties extends Component<Props, State> {
   render() {
     return (
       <div key="a" className="MxPalette">
-        {this.renderProperties()}
+        <ul
+          className="list-group list-group-horizontal justify-content-center background-variamos"
+          // style={{
+          //   marginTop: -23,
+          //   borderTopStyle: "double",
+          // }}
+          id="PropertyFunctionsPanel"
+          hidden={false}
+        >
+          <li
+            className="list-group-item icon-dark-variamos"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Update property"
+            // onClick={this.activeUpdate}
+            style={{
+              paddingBottom: "1px",
+            }}
+            hidden={false}
+          >
+            <span
+              className="bi bi-pencil-square shadow "
+              id="updateproperty"
+            ></span>
+          </li>
+          <li
+            className="list-group-item icon-dark-variamos"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="Delete property"
+            // onClick={this.activeDelete}
+            style={{
+              paddingBottom: "1px",
+            }}
+            hidden={false}
+          >
+            <span className="bi bi-trash shadow " id="deleteproperty"></span>
+            <span
+              className="hidden"
+              id="deleteViewModalproperty"
+              data-bs-toggle="modal"
+              data-bs-target="#modalDeleteProperty"
+            ></span>
+          </li>
+          <li
+            className="list-group-item icon-dark-variamos"
+            data-bs-toggle="tooltip"
+            data-bs-placement="bottom"
+            title="New property"
+            style={{
+              paddingBottom: "1px",
+            }}
+            // onClick={this.activeCreate}
+          >
+            <span className="bi bi-plus-circle shadow" id="newproperty"></span>
+          </li>
+        </ul>
+        <br />
+        <div className="card-body bg-white-Variamos">
+          {this.renderProperties()}
+        </div>
+
+        <CustomProperties
+          projectService={this.props.projectService}
+          currentObject={this.currentObject}
+        />
       </div>
     );
   }
