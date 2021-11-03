@@ -62,11 +62,17 @@ export default class MxPalette extends Component<Props, State> {
     let doc = mx.mxUtils.createXmlDocument();
     let node = doc.createElement(type);
     node.setAttribute("type", type);
+    let style="shape=" + type;
+    if (element.design) {
+      if (element.design.includes("shape=")) {
+        style=element.design;
+      }
+    }
     let vertex = new mx.mxCell(
       node,
       new mx.mxGeometry(0, 0, element.width, element.height),
-      "shape=" + element.type + ";" + element.design
-    );
+       style
+    ); 
     vertex.setConnectable(true);
     vertex.setVertex(true);
     vertex.setAttribute("type", type);

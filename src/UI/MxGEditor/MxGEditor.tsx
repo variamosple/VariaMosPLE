@@ -88,7 +88,15 @@ export default class MxGEditor extends Component<Props, State> {
     graph.setVertexLabelsMovable(false);
     graph.setGridEnabled(true);
     graph.setAllowDanglingEdges(false);
+
+    // Allows dropping cells into new lanes and
+    // lanes into new pools, but disallows dropping
+    // cells on edges to split edges
+    graph.setDropEnabled(true);
+    graph.setSplitEnabled(false);
+
     //graph.getStylesheet().getDefaultEdgeStyle()["edgeStyle"] = "orthogonalEdgeStyle"; 
+
     graph.convertValueToString = function (cell) {
       try {
         return cell.getAttribute("label", "");
@@ -97,6 +105,26 @@ export default class MxGEditor extends Component<Props, State> {
       }
     };
     graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
+      evt.consume();
+      if (evt.properties.cells) {
+        let cell = evt.properties.cells[0];
+        let uid = cell.value.getAttribute("uid");
+        if (me.currentModel) {
+          for (let i = 0; i < me.currentModel.elements.length; i++) {
+            const element: any = me.currentModel.elements[i];
+            if (element.id === uid) {
+              element.x = cell.geometry.x;
+              element.y = cell.geometry.y;
+              element.width = cell.geometry.width;
+              element.height = cell.geometry.height;
+            }
+          }
+        }
+      }
+    });
+
+
+    graph.addListener(mx.mxEvent.CELLS_RESIZED, function (sender, evt) {
       evt.consume();
       if (evt.properties.cells) {
         let cell = evt.properties.cells[0];
@@ -255,7 +283,7 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   deleteSelection() {
-    let me=this;
+    let me = this;
     let graph = this.graph;
     if (graph.isEnabled()) {
       let cells = graph.getSelectionCells();
@@ -266,9 +294,9 @@ export default class MxGEditor extends Component<Props, State> {
           if (uid) {
             if (cell.edge) {
               me.props.projectService.removeModelRelationshipById(me.currentModel, uid);
-            }else{
+            } else {
               me.props.projectService.removeModelElementById(me.currentModel, uid);
-            } 
+            }
           }
         }
       }
