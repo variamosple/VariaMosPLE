@@ -62,17 +62,17 @@ export default class MxPalette extends Component<Props, State> {
     let doc = mx.mxUtils.createXmlDocument();
     let node = doc.createElement(type);
     node.setAttribute("type", type);
-    let style="shape=" + type;
+    let style = "shape=" + type;
     if (element.design) {
       if (element.design.includes("shape=")) {
-        style=element.design;
+        style = element.design;
       }
     }
     let vertex = new mx.mxCell(
       node,
       new mx.mxGeometry(0, 0, element.width, element.height),
-       style
-    ); 
+      style
+    );
     vertex.setConnectable(true);
     vertex.setVertex(true);
     vertex.setAttribute("type", type);
@@ -80,7 +80,7 @@ export default class MxPalette extends Component<Props, State> {
     return vertex;
   }
 
-  addingVertex(graph: any, vertex: any, cell: any) {
+  addingVertex(graph: any, vertex: any, parentCell: any) {
     let me = this;
     if (!this.currentModel) {
       return;
@@ -91,6 +91,13 @@ export default class MxPalette extends Component<Props, State> {
         "" + me.currentModel.name
       );
 
+    let parentId = null;
+    if (parentCell) {
+      if (parentCell.value) {
+        parentId = parentCell.value.getAttribute("uid");
+      }
+    }
+
     // const me = this;
     let type = vertex.getAttribute("type");
     let name = type + " 1";
@@ -99,8 +106,8 @@ export default class MxPalette extends Component<Props, State> {
     // o sino continuar
 
     const previuosModel = JSON.stringify(this.currentModel);
-
-    let element: any = new Element(name, type);
+    let properties=[]; 
+    let element: any = new Element(name, type, properties, parentId);
     element.x = vertex.geometry.x;
     element.y = vertex.geometry.y;
     element.width = vertex.geometry.width;
@@ -132,8 +139,9 @@ export default class MxPalette extends Component<Props, State> {
 
     let callback = function (data: any) {
       if (data.data.state !== "DENIED") {
+        vertex.setAttribute("uid", element.id);
         graph.getModel().beginUpdate();
-        let newCells = graph.importCells([vertex], 0, 0, cell);
+        let newCells = graph.importCells([vertex], 0, 0, parentCell);
         newCells[0].setAttribute("uid", element.id);
         newCells[0].setAttribute("label", element.name);
         newCells[0].setAttribute("title", element.name);

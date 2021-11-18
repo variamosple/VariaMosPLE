@@ -46,11 +46,11 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   projectService_addUpdatedElementListener(e: any) {
-    let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id);
+    let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
     if (vertice) {
       this.refreshVertexLabel(vertice);
     } else {
-      let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id);
+      let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
       if (edge) {
         this.refreshEdgeLabel(edge);
         this.refreshEdgeStyle(edge);
@@ -113,6 +113,32 @@ export default class MxGEditor extends Component<Props, State> {
           for (let i = 0; i < me.currentModel.elements.length; i++) {
             const element: any = me.currentModel.elements[i];
             if (element.id === uid) {
+              element.x = cell.geometry.x;
+              element.y = cell.geometry.y;
+              element.width = cell.geometry.width;
+              element.height = cell.geometry.height;
+            }
+          }
+        }
+      }
+    });
+
+    graph.addListener(mx.mxEvent.CELLS_ADDED, function (sender, evt) {
+      //evt.consume();
+      if (evt.properties.cells) {
+        let parentId = null;
+        if (evt.properties.parent) {
+          if (evt.properties.parent.value) {
+            parentId = evt.properties.parent.value.getAttribute("uid");
+          }
+        }
+        for (let i = 0; i < evt.properties.cells.length; i++) {
+          const cell = evt.properties.cells[i];
+          let uid = cell.value.getAttribute("uid");
+          if (uid) {
+            let element = me.props.projectService.findModelElementById(me.currentModel, uid);
+            if (element) {
+              element.parentId = parentId;
               element.x = cell.geometry.x;
               element.y = cell.geometry.y;
               element.width = cell.geometry.width;
@@ -393,6 +419,16 @@ export default class MxGEditor extends Component<Props, State> {
     }
   }
 
+  pushIfNotExist(array: any, value: any) {
+    for (let i = 0; i < array.length; i++) {
+      const item = array[i];
+      if (item == value) {
+        return;
+      }
+    }
+    array.push(value);
+  }
+
   loadModel(model: Model) {
     let languageDefinition: any =
       this.props.projectService.getLanguageDefinition("" + model.name);
@@ -402,9 +438,20 @@ export default class MxGEditor extends Component<Props, State> {
       graph.getModel().beginUpdate();
       try {
         graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
-        let parent = graph.getDefaultParent();
+
+        let orden = [];
         for (let i = 0; i < model.elements.length; i++) {
           let element: any = model.elements[i];
+          if (element.parentId) {
+            this.pushIfNotExist(orden, element.parentId);
+          }
+          this.pushIfNotExist(orden, element.id);
+        }
+
+        let vertices = [];
+
+        for (let i = 0; i < orden.length; i++) {
+          let element: any = this.props.projectService.findModelElementById(model, orden[i]);
 
           if (languageDefinition.concreteSyntax.elements[element.type].draw) {
             let shape = atob(
@@ -414,6 +461,11 @@ export default class MxGEditor extends Component<Props, State> {
             ne.setAttribute("name", element.type);
             let stencil = new mx.mxStencil(ne);
             mx.mxStencilRegistry.addStencil(element.type, stencil);
+          }
+ 
+          let parent = graph.getDefaultParent();
+          if (element.parentId) {
+            parent = vertices[element.parentId];
           }
 
           var doc = mx.mxUtils.createXmlDocument();
@@ -434,12 +486,14 @@ export default class MxGEditor extends Component<Props, State> {
             languageDefinition.concreteSyntax.elements[element.type].design
           );
           this.refreshVertexLabel(vertex);
+          vertices[element.id] = vertex;
         }
 
+        let parent = graph.getDefaultParent();
         for (let i = 0; i < model.relationships.length; i++) {
           const relationship = model.relationships[i];
-          let source = MxgraphUtils.findVerticeById(graph, relationship.sourceId);
-          let target = MxgraphUtils.findVerticeById(graph, relationship.targetId);
+          let source = MxgraphUtils.findVerticeById(graph, relationship.sourceId, null);
+          let target = MxgraphUtils.findVerticeById(graph, relationship.targetId, null);
           let doc = mx.mxUtils.createXmlDocument();
           let node = doc.createElement("relationship");
           node.setAttribute("uid", relationship.id);

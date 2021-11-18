@@ -17,27 +17,41 @@ export default class MxgraphUtils {
             }
             graph.removeCells(cells, true);
         }
-    }
+    } 
 
-    static findVerticeById(graph, uid) {
-        let vertices = graph.getChildVertices(graph.getDefaultParent());
-        for (let i = 0; i < vertices.length; i++) {
-            const vertice = vertices[i];
-            let vuid = vertice.value.getAttribute("uid");
-            if (vuid === uid) {
-                return vertice;
-            }
+    static findVerticeById(graph, uid, parentVertice) {
+        if (!parentVertice) {
+            parentVertice=graph.getDefaultParent();
         }
-        return null;
-    }
-
-    static findEdgeById(graph, uid) {
-        let items = graph.getChildEdges(graph.getDefaultParent());
+        let items = graph.getChildVertices(parentVertice);
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             let vuid = item.value.getAttribute("uid");
             if (vuid === uid) {
                 return item;
+            }
+            let finded=this.findVerticeById(graph, uid, item)
+            if (finded) {
+                return finded;
+            }
+        }
+        return null;
+    }
+
+    static findEdgeById(graph, uid, parentVertice) {
+        if (!parentVertice) {
+            parentVertice=graph.getDefaultParent();
+        }
+        let items = graph.getChildEdges(parentVertice);
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            let vuid = item.value.getAttribute("uid");
+            if (vuid === uid) {
+                return item;
+            }
+            let finded=this.findEdgeById(graph, uid, item)
+            if (finded) {
+                return finded;
             }
         }
         return null;
