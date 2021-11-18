@@ -22,7 +22,7 @@ class LanguageManagement extends Component<Props, State> {
       abstractSyntax: "",
       concreteSyntax: "",
       type: "DOMAIN",
-      stateAccept: "",
+      stateAccept: "PENDING",
     },
     lastNameUpdate: "",
     languageListSelected: "-1",
@@ -247,7 +247,7 @@ class LanguageManagement extends Component<Props, State> {
         abstractSyntax: "",
         concreteSyntax: "",
         type: "DOMAIN",
-        stateAccept: "",
+        stateAccept: "PENDING",
       };
 
       return {
