@@ -9,6 +9,7 @@ export class Element {
   width: number = 0;
   height: number = 0;
   parentId: string; 
+  instanceOfId: string; 
   properties: Property[] = [];
 
   constructor(name: string, type: string, properties: Property[] = [], parentId:string) {

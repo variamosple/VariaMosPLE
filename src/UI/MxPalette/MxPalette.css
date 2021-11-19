@@ -1,0 +1,7 @@
+.MxPalette {
+  overflow: auto; 
+} 
+
+.MxPaletteContainter img {
+  max-width: 64px;
+} 

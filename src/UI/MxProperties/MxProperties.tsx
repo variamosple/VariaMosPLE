@@ -417,6 +417,8 @@ export default class MxProperties extends Component<Props, State> {
           }
         }
         for (let p = 0; p < this.currentObject.properties.length; p++) {
+          let pr=this.currentObject.properties[p]; 
+          this.state.values[pr.name] =  pr.value;
           ret.push(
             this.createControl(
               this.currentObject.properties[p],

@@ -12,7 +12,7 @@ export default class ProjectUseCases {
   // }
 
   createProject(projectName: string): Project {
-    let project = new Project(this.generateId(), projectName);
+    let project = new Project(ProjectUseCases.generateId(), projectName);
     return project;
   }
 
@@ -165,7 +165,7 @@ export default class ProjectUseCases {
 
   createLps(project: Project, producLineName: string): ProductLine {
     let productLine: ProductLine = new ProductLine(
-      this.generateId(),
+      ProjectUseCases.generateId(),
       producLineName
     );
     project.productLines.push(productLine);
@@ -178,7 +178,7 @@ export default class ProjectUseCases {
     productLine: number
   ): Application {
     let application: Application = new Application(
-      this.generateId(),
+      ProjectUseCases.generateId(),
       applicationName
     );
 
@@ -196,7 +196,7 @@ export default class ProjectUseCases {
     application: number
   ): Adaptation {
     let adaptation: Adaptation = new Adaptation(
-      this.generateId(),
+      ProjectUseCases.generateId(),
       adaptationName
     );
     project.productLines[productLine].applicationEngineering?.applications[
@@ -211,7 +211,7 @@ export default class ProjectUseCases {
     languageType: string,
     productLine: number
   ): Model {
-    let model: Model = new Model(this.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
     project.productLines[productLine].domainEngineering?.models.push(model);
 
     //Ejecutar el consumo de mxGraph.
@@ -224,7 +224,7 @@ export default class ProjectUseCases {
     languageType: string,
     productLine: number
   ): Model {
-    let model: Model = new Model(this.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
     project.productLines[productLine].applicationEngineering?.models.push(
       model
     );
@@ -242,7 +242,7 @@ export default class ProjectUseCases {
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(this.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
 
     project.productLines[productLine].applicationEngineering?.applications[
       application
@@ -262,7 +262,7 @@ export default class ProjectUseCases {
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(this.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
 
     project.productLines[productLine].applicationEngineering.applications[
       application
@@ -271,6 +271,122 @@ export default class ProjectUseCases {
     //Ejecutar el consumo de mxGraph.
 
     return model;
+  }
+
+  static findModelByName(project: Project, type: string, modelName: string, modelNeighborId: string): Model {
+    //encuentra un modelo por nombre y tipo cercano a otro a nivel de carpeta
+    let modelNeighborDomain = this.findDomainFolder(project, modelNeighborId);
+    let modelNeighborApplication = this.findApplicationFolder(project, modelNeighborId);
+    let modelNeighborAdaptation = this.findAdaptationFolder(project, modelNeighborId);
+
+    for (let i = 0; i < project.productLines.length; i++) {
+      const productLine = project.productLines[i];
+      if (type == "Domain") {
+        for (let k = 0; k < productLine.domainEngineering.models.length; k++) {
+          const model = productLine.domainEngineering.models[k];
+          if (model.name == modelName) {
+            if (productLine.domainEngineering == modelNeighborDomain) {
+              return model;
+            }
+          }
+        }
+      }
+      else if (type == "Application") {
+        for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+          const application = productLine.applicationEngineering.applications[ap];
+          for (let k = 0; k < application.models.length; k++) {
+            const model = application.models[k];
+            if (model.name == modelName) {
+              if (application == modelNeighborApplication) {
+                return model;
+              }
+            }
+          }
+        }
+      }
+      else {
+        for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+          const application = productLine.applicationEngineering.applications[ap];
+          for (let ad = 0; ad < application.adaptations.length; ad++) {
+            const adaptation = application.adaptations[ad];
+            for (let k = 0; k < adaptation.models.length; k++) {
+              const model = adaptation.models[k];
+              if (model.name == modelName) {
+                if (adaptation == modelNeighborAdaptation) {
+                  return model;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  static findDomainFolder(project: Project, modelId: string) {
+    let applicationModel = this.findApplicationFolder(project, modelId);
+    for (let i = 0; i < project.productLines.length; i++) {
+      const productLine = project.productLines[i];
+      if (applicationModel) {
+        for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+          const application = productLine.applicationEngineering.applications[ap];
+          if (application == applicationModel) {
+            return productLine.domainEngineering;
+          }
+        }
+      } else {
+        const domain = productLine.domainEngineering;
+        for (let k = 0; k < domain.models.length; k++) {
+          const model = domain.models[k];
+          if (model.id == modelId) {
+            return domain;
+          }
+        }
+      }
+    }
+  }
+
+  static findApplicationFolder(project: Project, modelId: string) {
+    for (let i = 0; i < project.productLines.length; i++) {
+      const productLine = project.productLines[i];
+      for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+        const application = productLine.applicationEngineering.applications[ap];
+        for (let k = 0; k < application.models.length; k++) {
+          const model = application.models[k];
+          if (model.id == modelId) {
+            return application;
+          }
+        }
+        for (let ad = 0; ad < application.adaptations.length; ad++) {
+          const adaptation = application.adaptations[ad];
+          for (let k = 0; k < adaptation.models.length; k++) {
+            const model = adaptation.models[k];
+            if (model.id == modelId) {
+              return application;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  static findAdaptationFolder(project: Project, modelId: string) {
+    for (let i = 0; i < project.productLines.length; i++) {
+      const productLine = project.productLines[i];
+      for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+        const application = productLine.applicationEngineering.applications[ap];
+        for (let ad = 0; ad < application.adaptations.length; ad++) {
+          const adaptation = application.adaptations[ad];
+          for (let k = 0; k < adaptation.models.length; k++) {
+            const model = adaptation.models[k];
+            if (model.id == modelId) {
+              return adaptation;
+            }
+          }
+        }
+      }
+    }
   }
 
   createRelationship(
@@ -282,11 +398,11 @@ export default class ProjectUseCases {
     points: Point[] = [],
     min: number,
     max: number,
-    properties: Property[] 
+    properties: Property[]
   ): Relationship {
     // let modelName = this.findLanguage(LanguageType);
 
-    let relationship: Relationship = new Relationship(this.generateId(), name, type, sourceId, targetId, points, min, max, properties );
+    let relationship: Relationship = new Relationship(ProjectUseCases.generateId(), name, type, sourceId, targetId, points, min, max, properties);
     model.relationships.push(relationship);
 
     //Ejecutar el consumo de mxGraph.
@@ -301,7 +417,7 @@ export default class ProjectUseCases {
     application: number,
     adaptation: number,
     itemDelete: string | number
-  ) {}
+  ) { }
 
   saveProject(project: Project): void {
     // Save data to sessionStorage
@@ -316,7 +432,7 @@ export default class ProjectUseCases {
     sessionStorage.clear();
   }
 
-  generateId(): string {
+  static generateId(): string {
     var dt = new Date().getTime();
     var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
       /[xy]/g,
@@ -329,7 +445,7 @@ export default class ProjectUseCases {
     return uuid;
   }
 
-  static findModelElementById(model:Model, uid:any) { 
+  static findModelElementById(model: Model, uid: any) {
     if (model) {
       for (let i = 0; i < model.elements.length; i++) {
         const element: any = model.elements[i];
@@ -341,7 +457,7 @@ export default class ProjectUseCases {
     return null;
   }
 
-  static findModelRelationshipById(model:Model, uid:any) {
+  static findModelRelationshipById(model: Model, uid: any) {
     let me = this;
     if (model) {
       for (let i = 0; i < model.relationships.length; i++) {
@@ -353,21 +469,55 @@ export default class ProjectUseCases {
     }
     return null;
   }
- 
-  static removeModelElementById(model:Model, uid:any) { 
+
+  static findModelElementByIdInProject(project: Project, id: any) {
+    for (let i = 0; i < project.productLines.length; i++) {
+      const productLine = project.productLines[i];
+      for (let k = 0; k < productLine.domainEngineering.models.length; k++) {
+        const model = productLine.domainEngineering.models[k];
+        const element = this.findModelElementById(model, id);
+        if (element) {
+          return element;
+        }
+      }
+      for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+        const application = productLine.applicationEngineering.applications[ap];
+        for (let k = 0; k < application.models.length; k++) {
+          const model = application.models[k];
+          const element = this.findModelElementById(model, id);
+          if (element) {
+            return element;
+          }
+        }
+        for (let ad = 0; ad < application.adaptations.length; ad++) {
+          const adaptation = application.adaptations[ad];
+          for (let k = 0; k < adaptation.models.length; k++) {
+            const model = adaptation.models[k];
+            const element = this.findModelElementById(model, id);
+            if (element) {
+              return element;
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  static removeModelElementById(model: Model, uid: any) {
     if (model) {
       for (let i = 0; i < model.elements.length; i++) {
         const element: any = model.elements[i];
         if (element.id == uid) {
-          model.elements.splice(i, 1); 
+          model.elements.splice(i, 1);
           this.removeModelRelationshipsOfElement(model, uid);
           return;
         }
       }
-    } 
+    }
   }
 
-  static removeModelRelationshipById(model:Model, uid:any) { 
+  static removeModelRelationshipById(model: Model, uid: any) {
     if (model) {
       for (let i = 0; i < model.relationships.length; i++) {
         const relationship: any = model.relationships[i];
@@ -376,17 +526,17 @@ export default class ProjectUseCases {
           return;
         }
       }
-    } 
+    }
   }
 
-  static removeModelRelationshipsOfElement(model:Model, uid:any) { 
+  static removeModelRelationshipsOfElement(model: Model, uid: any) {
     if (model) {
-      for (let i = model.relationships.length-1; i >=0 ; i--) {
+      for (let i = model.relationships.length - 1; i >= 0; i--) {
         const relationship: any = model.relationships[i];
         if (relationship.sourceId == uid || relationship.targetId == uid) {
           model.relationships.splice(i, 1);
         }
       }
-    } 
+    }
   }
 }

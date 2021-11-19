@@ -137,7 +137,7 @@ export default class ProjectService {
   modelApplicationEngSelected(idPl: number, idApplicationEngModel: number) {
     let modelSelected =
       this._project.productLines[idPl].applicationEngineering?.models[
-        idApplicationEngModel
+      idApplicationEngModel
       ];
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
@@ -752,6 +752,13 @@ export default class ProjectService {
     //open file
   }
 
+  
+
+  duplicateObject(obj:any ) {
+    let str=JSON.stringify(obj);
+    return JSON.parse(str);
+  }
+
   getStyleDefinition(language: string, callBack: any) {
     if (this.languages) {
       for (let index = 0; index < this.languages.length; index++) {
@@ -807,23 +814,35 @@ export default class ProjectService {
     return r;
   }
 
-  findModelElementById(model:Model, uid:any) {  
+  findModelElementById(model: Model, uid: any) {
     return ProjectUseCases.findModelElementById(model, uid);
   }
 
-  findModelRelationshipById(model:Model, uid:any) {
+  findModelRelationshipById(model: Model, uid: any) {
     return ProjectUseCases.findModelRelationshipById(model, uid);
-  } 
+  }
 
-  removeModelElementById(model:Model, uid:any) {  
+  removeModelElementById(model: Model, uid: any) {
     return ProjectUseCases.removeModelElementById(model, uid);
-  } 
-  
-  removeModelRelationshipById(model:Model, uid:any) {  
+  }
+
+  removeModelRelationshipById(model: Model, uid: any) {
     return ProjectUseCases.removeModelRelationshipById(model, uid);
-  } 
-  
-  removeModelRelationshipsOfElement(model:Model, uid:any) {  
+  }
+
+  removeModelRelationshipsOfElement(model: Model, uid: any) {
     return ProjectUseCases.removeModelRelationshipsOfElement(model, uid);
-  } 
+  }
+
+  findModelByName(type: string, modelName: string, neightborModel: Model) {
+    return ProjectUseCases.findModelByName(this._project, type, modelName, neightborModel.id);
+  }
+
+  findModelElementByIdInProject(elementId: string) {
+    return ProjectUseCases.findModelElementByIdInProject(this._project, elementId);
+  }
+
+  generateId() {
+    return ProjectUseCases.generateId();
+  }
 }

@@ -11,6 +11,7 @@ import { mxStencil } from "mxgraph";
 import * as alertify from "alertifyjs";
 import { stringify } from "querystring";
 import { join } from "path";
+import "./MxPalette.css"
 
 interface Props {
   projectService: ProjectService;
@@ -97,17 +98,28 @@ export default class MxPalette extends Component<Props, State> {
         parentId = parentCell.value.getAttribute("uid");
       }
     }
-
-    // const me = this;
+ 
     let type = vertex.getAttribute("type");
+    let instanceOfId = vertex.getAttribute("instanceOfId");
     let name = type + " 1";
+    let element: any;
+
+    if (instanceOfId) {
+      name=vertex.getAttribute("label") + " 1";
+      let instanceOf = me.props.projectService.findModelElementByIdInProject(instanceOfId);
+      element=me.props.projectService.duplicateObject(instanceOf);
+      element.id=me.props.projectService.generateId();
+      element.parentId=null;
+      element.instanceOfId=instanceOfId;
+    }else{
+        let properties = [];
+        element  = new Element(name, type, properties, parentId);
+    }
 
     //aqui se llamaría a la api de restricciones y  mostrar mensajes de error
     // o sino continuar
 
-    const previuosModel = JSON.stringify(this.currentModel);
-    let properties=[]; 
-    let element: any = new Element(name, type, properties, parentId);
+    const previuosModel = JSON.stringify(this.currentModel); 
     element.x = vertex.geometry.x;
     element.y = vertex.geometry.y;
     element.width = vertex.geometry.width;
@@ -186,71 +198,32 @@ export default class MxPalette extends Component<Props, State> {
     const me = this;
     let graph = this.props.projectService.getGraph();
     graph.multiplicities = [];
+
     let divToolbar: any = document.getElementById("graph_palette");
     divToolbar.classList.add("list-inline");
-    if (divToolbar) {
-      divToolbar.innerHTML = "";
+    if (!divToolbar) {
+      throw new Error("The element #portal wasn't found");
     }
+    divToolbar.innerHTML = "";
     const toolbar = new mx.mxToolbar(divToolbar);
 
-    let key: any = "";
+    let elementName: any = "";
 
-    for (key in languageDefinition.concreteSyntax.elements) {
-      const element = languageDefinition.concreteSyntax.elements[key];
-      if (!element.label) {
-        element.label = key;
+    for (elementName in languageDefinition.abstractSyntax.elements) {
+      const elementAbstract = languageDefinition.abstractSyntax.elements[elementName];
+      if (elementAbstract.instance) {
+        me.createElementInstanceInPalette(graph, languageDefinition, elementName, divToolbar, toolbar);
+      } else {  
+        let elementConcrete= languageDefinition.concreteSyntax.elements[elementName];
+        let vertexToClone = this.createVertex(elementName, elementConcrete);
+        me.createElementInPalette(graph, languageDefinition,elementName, elementConcrete, vertexToClone, divToolbar, toolbar);
       }
-      let vertexToClone = this.createVertex(key, element);
-      let drapAndDropCreation = function (graph: any, evt: any, cell: any) {
-        try {
-          graph.stopEditing(false);
-          let pt = graph.getPointForEvent(evt);
-          let vertex = graph.getModel().cloneCell(vertexToClone);
-          vertex.geometry.x = pt.x;
-          vertex.geometry.y = pt.y;
-          me.addingVertex(graph, vertex, cell);
-        } catch (error) {
-          alert(error);
-        }
-      };
-
-      let mdiv = document.createElement("div");
-      mdiv.classList.add("list-inline-item");
-      let mspan: HTMLElement = document.createElement("span"); //tooltip
-      mspan.classList.add("csstooltiptext2");
-      let iconUrl =
-        "assets/images/models/" + languageDefinition.name + "/" + key + ".png";
-      if (element.icon) {
-        let contentType = "image/png";
-        let blob = this.b64toBlob(element.icon, contentType);
-        iconUrl = URL.createObjectURL(blob);
-      }
-      if (element.draw) {
-        let shape = atob(element.draw);
-        let ne: any = mx.mxUtils.parseXml(shape).documentElement;
-        ne.setAttribute("name", key);
-        let stencil = new mx.mxStencil(ne);
-        mx.mxStencilRegistry.addStencil(key, stencil);
-      }
-      let img = toolbar.addMode(element.label, iconUrl, drapAndDropCreation);
-      // mspan.innerText = key;
-
-      mx.mxUtils.makeDraggable(img, graph, drapAndDropCreation);
-
-      mdiv.classList.add("pallete-div");
-      mdiv.classList.add("csstooltip");
-      mdiv.appendChild(img);
-      mdiv.appendChild(mspan);
-      if (!divToolbar) {
-        throw new Error("The element #portal wasn't found");
-      }
-      divToolbar.appendChild(mdiv);
     }
 
     if (languageDefinition.abstractSyntax.relationships) {
-      for (key in languageDefinition.abstractSyntax.relationships) {
+      for (elementName in languageDefinition.abstractSyntax.relationships) {
         const relationship =
-          languageDefinition.abstractSyntax.relationships[key];
+          languageDefinition.abstractSyntax.relationships[elementName];
         let mul = new mx.mxMultiplicity(
           true,
           relationship.source,
@@ -285,6 +258,77 @@ export default class MxPalette extends Component<Props, State> {
     // }
   }
 
+  createElementInstanceInPalette(graph: any, languageDefinition: any, elementType: any, divToolbar: any, toolbar: any) {
+    let me = this;
+    const elementAbstract = languageDefinition.abstractSyntax.elements[elementType];
+    let typeFolder = elementAbstract.instance.model.split(".")[0];
+    let modelName = elementAbstract.instance.model.split(".")[1];
+    let model = me.props.projectService.findModelByName(typeFolder, modelName, me.currentModel);
+    if (model) {
+      for (let i = 0; i < model.elements.length; i++) {
+        const element = model.elements[i]; 
+        if (element.type==elementType) {
+          let elementConcrete=languageDefinition.concreteSyntax.elements[elementType];
+          let vertexToClone = this.createVertex(elementType, elementConcrete);
+          vertexToClone.setAttribute("label", element.name);
+          vertexToClone.setAttribute("instanceOfId", element.id);
+          elementConcrete.label=element.name;
+          me.createElementInPalette(graph, languageDefinition, element.type, elementConcrete, vertexToClone, divToolbar, toolbar);
+        }
+      }
+    }
+  }
+
+  createElementInPalette(graph: any, languageDefinition: any, type:any, element:any, vertexToClone:any,  divToolbar: any, toolbar: any) {
+    let me = this; 
+    let drapAndDropCreation = function (graph: any, evt: any, cell: any) {
+      try {
+        graph.stopEditing(false);
+        let pt = graph.getPointForEvent(evt);
+        let vertex = graph.getModel().cloneCell(vertexToClone);
+        vertex.geometry.x = pt.x;
+        vertex.geometry.y = pt.y;
+        me.addingVertex(graph, vertex, cell);
+      } catch (error) {
+        alert(error);
+      }
+    };
+
+    let mdiv = document.createElement("div");
+    mdiv.classList.add("list-inline-item");
+    let mspan: HTMLElement = document.createElement("span"); //tooltip
+    mspan.classList.add("csstooltiptext2");
+    let iconUrl =
+      "assets/images/models/" + languageDefinition.name + "/" + type + ".png";
+    if (element.icon) {
+      let contentType = "image/png";
+      let blob = this.b64toBlob(element.icon, contentType);
+      iconUrl = URL.createObjectURL(blob);
+    }
+    if (element.draw) {
+      let shape = atob(element.draw);
+      let ne: any = mx.mxUtils.parseXml(shape).documentElement;
+      ne.setAttribute("name", type);
+      let stencil = new mx.mxStencil(ne);
+      mx.mxStencilRegistry.addStencil( type, stencil);
+    }
+    divToolbar.appendChild(mdiv);
+    let img = toolbar.addMode(element.label, iconUrl, drapAndDropCreation);
+    // mspan.innerText = key;
+
+    mx.mxUtils.makeDraggable(img, graph, drapAndDropCreation);
+
+    let label = document.createElement("label");
+    label.innerText = element.label;
+
+    mdiv.classList.add("pallete-div");
+    mdiv.classList.add("csstooltip");
+    mdiv.appendChild(img);
+    mdiv.appendChild(mspan);
+    mdiv.appendChild(label);
+
+  }
+
   b64toBlob(b64Data, contentType = "", sliceSize = 512) {
     const byteCharacters = atob(b64Data);
     const byteArrays = [];
@@ -310,7 +354,7 @@ export default class MxPalette extends Component<Props, State> {
       <div className="MxPalette">
         <div
           ref={this.containerRef}
-          className="MxPalette"
+          className="MxPaletteContainter"
           id="graph_palette"
         ></div>
       </div>
