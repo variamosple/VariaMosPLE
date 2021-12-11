@@ -113,11 +113,12 @@ export default class ProjectService {
 
   loadExternalFunctions(languageName: string) {
     let me = this;
+    let language = this._languages.filter(language => language.name == languageName);
     let callback = function (data: any) {
       me._externalFunctions = data;
     };
 
-    this.languageUseCases.getExternalFunctions(callback, languageName);
+    this.languageUseCases.getExternalFunctions(callback, language[0].id);
   }
 
   //Search Model functions_ START***********
@@ -752,10 +753,10 @@ export default class ProjectService {
     //open file
   }
 
-  
 
-  duplicateObject(obj:any ) {
-    let str=JSON.stringify(obj);
+
+  duplicateObject(obj: any) {
+    let str = JSON.stringify(obj);
     return JSON.parse(str);
   }
 

@@ -48,10 +48,10 @@ export default class LanguageUseCases {
     );
   }
 
-  getExternalFunctions(callback: any, languageName: string) {
+  getExternalFunctions(callback: any, languageId: number) {
     return this.externalFunctionService.getExternalFunctions(
       callback,
-      languageName
+      languageId
     );
   }
 }

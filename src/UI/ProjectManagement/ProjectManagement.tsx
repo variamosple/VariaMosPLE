@@ -3,6 +3,7 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import * as alertify from "alertifyjs";
 import LanguageManagement from "./LanguageManagement";
+import _config from "../../Infraestructure/config.json";
 
 interface Props {
   projectService: ProjectService;
@@ -11,6 +12,7 @@ interface State {
   projectName: string;
   productLineName: string;
   importProject: string | undefined;
+  version: string
 }
 
 let classActive: string = "active";
@@ -25,6 +27,7 @@ class ProjectManagement extends Component<Props, State> {
       productLineName: "",
       projectName: this.props.projectService.project.name,
       importProject: "",
+      version: _config.version,
     };
     this.loadProject();
 
@@ -413,6 +416,11 @@ class ProjectManagement extends Component<Props, State> {
                         aria-labelledby="list-help-list"
                       >
                         <div className="list-group">
+                        <a
+                            className="list-group-item list-group-item-action"
+                          >
+                            Version: {this.state.version}
+                          </a>
                           <a
                             href="https://github.com/mauroagudeloz/VariaMosPLE/wiki"
                             target="_blanck"
