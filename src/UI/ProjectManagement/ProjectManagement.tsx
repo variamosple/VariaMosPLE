@@ -414,14 +414,14 @@ class ProjectManagement extends Component<Props, State> {
                       >
                         <div className="list-group">
                           <a
-                            href="https://github.com/VariaMosORG/VariaMos/wiki"
+                            href="https://github.com/mauroagudeloz/VariaMosPLE/wiki"
                             target="_blanck"
                             className="list-group-item list-group-item-action"
                           >
                             What is VariaMos?
                           </a>
                           <a
-                            href="https://github.com/VariaMosORG/VariaMos/wiki"
+                            href="https://github.com/mauroagudeloz/VariaMosPLE/wiki/Language-definition"
                             target="_blanck"
                             className="list-group-item list-group-item-action"
                           >
