@@ -543,6 +543,7 @@ class LanguageManagement extends Component<Props, State> {
                       id="updateLanguageName"
                       value={this.state.formLanguage.name}
                       onChange={this.updateName}
+                      autoComplete="off" 
                     />
                     <label htmlFor="floatingInput">Enter name</label>
                   </div>
@@ -595,6 +596,7 @@ class LanguageManagement extends Component<Props, State> {
                       style={{ height: "100px" }}
                       value={this.state.formLanguage.abstractSyntax}
                       onChange={this.updateAbstractSyntax}
+                      autoComplete="off" 
                     ></textarea>
                     <label htmlFor="newLanguageAbSy">
                       Enter abstract syntax
@@ -610,6 +612,7 @@ class LanguageManagement extends Component<Props, State> {
                       style={{ height: "100px" }}
                       value={this.state.formLanguage.concreteSyntax}
                       onChange={this.updateConcreteSyntax}
+                      autoComplete="off" 
                     ></textarea>
                     <label htmlFor="newLanguageCoSy">
                       Enter concrete syntax
