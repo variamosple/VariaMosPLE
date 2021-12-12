@@ -5,3 +5,7 @@
 .MxPaletteContainter img {
   max-width: 64px;
 } 
+
+.list-inline-item {
+  padding-bottom: 10px;
+}
