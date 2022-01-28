@@ -306,6 +306,10 @@ export default class MxGEditor extends Component<Props, State> {
     keyHandler.bindKey(46, function (evt) {
       me.deleteSelection();
     });
+
+    keyHandler.bindKey(8, function (evt) {
+      me.deleteSelection();
+    });
   }
 
   deleteSelection() {
