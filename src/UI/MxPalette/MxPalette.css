@@ -3,5 +3,6 @@
 } 
 
 .MxPaletteContainter img {
+  width: 64px;
   max-width: 64px;
 } 
