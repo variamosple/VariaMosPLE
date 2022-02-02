@@ -318,13 +318,18 @@ export default class MxPalette extends Component<Props, State> {
 
     mx.mxUtils.makeDraggable(img, graph, drapAndDropCreation);
 
+    let enter = document.createElement("br");
+    enter.innerText = element.label;
+
     let label = document.createElement("label");
     label.innerText = element.label;
+    
 
     mdiv.classList.add("pallete-div");
     mdiv.classList.add("csstooltip");
     mdiv.appendChild(img);
     mdiv.appendChild(mspan);
+    mdiv.appendChild(enter);
     mdiv.appendChild(label);
 
   }
@@ -353,6 +358,7 @@ export default class MxPalette extends Component<Props, State> {
     return (
       <div className="MxPalette">
         <div
+          style={{fontSize: 8}}
           ref={this.containerRef}
           className="MxPaletteContainter"
           id="graph_palette"

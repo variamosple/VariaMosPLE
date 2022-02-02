@@ -6,14 +6,14 @@ import config from "../../Infraestructure/config.json";
 export default class ExternalFuntionService {
   apiVariamos: any;
 
-  getExternalFunctions(callback: any, languageName: string) {
+  getExternalFunctions(callback: any, languageId: number) {
     this.apiVariamos = axios.create({
       baseURL: config.urlBackEndLanguage,
     });
     let externalFunctions: ExternalFuntion[] = [];
     try {
       this.apiVariamos
-        .get("/languages/" + languageName + "/externalfunctions")
+        .get("/languages/" + languageId + "/externalfunctions")
         .then((res) => {
           let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
           responseAPISuccess = Object.assign(responseAPISuccess, res.data);

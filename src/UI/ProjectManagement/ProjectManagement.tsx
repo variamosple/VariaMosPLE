@@ -3,6 +3,7 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import * as alertify from "alertifyjs";
 import LanguageManagement from "./LanguageManagement";
+import _config from "../../Infraestructure/config.json";
 
 interface Props {
   projectService: ProjectService;
@@ -11,6 +12,7 @@ interface State {
   projectName: string;
   productLineName: string;
   importProject: string | undefined;
+  version: string
 }
 
 let classActive: string = "active";
@@ -25,6 +27,7 @@ class ProjectManagement extends Component<Props, State> {
       productLineName: "",
       projectName: this.props.projectService.project.name,
       importProject: "",
+      version: _config.version,
     };
     this.loadProject();
 
@@ -168,7 +171,27 @@ class ProjectManagement extends Component<Props, State> {
                 <h5 className="modal-title" id="staticBackdropLabel">
                   Project management
                 </h5>
+                {this.props.projectService.project.enable === true && (
+
+                  <div className="col d-flex justify-content-end">
+                    <ul className="list-group icon-dark-variamos list-group-horizontal">
+                      <li
+                        className="list-group-item nav-bar-variamos"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="bottom"
+                        title="User setting"
+                      >
+                        <span
+                          className="bi bi-x-lg shadow rounded"
+                          id="userSetting"
+                          onClick={(e) => this.btnSaveProject_onClick(e)}
+                        ></span>
+                      </li>
+                    </ul>
+                  </div>
+                )}
               </div>
+
               <div className="modal-body">
                 <div className="row">
                   <div className="col-4">
@@ -186,19 +209,22 @@ class ProjectManagement extends Component<Props, State> {
                         </a>
                       )}
 
-                      <a
-                        className={
-                          "list-group-item list-group-item-action " +
-                          classActive
-                        }
-                        id="list-nProject-list"
-                        data-bs-toggle="list"
-                        href="#list-nProject"
-                        role="tab"
-                        aria-controls="nProject"
-                      >
-                        New
-                      </a>
+                      {this.props.projectService.project.enable === false && (
+                        <a
+                          className={
+                            "list-group-item list-group-item-action " +
+                            classActive
+                          }
+                          id="list-nProject-list"
+                          data-bs-toggle="list"
+                          href="#list-nProject"
+                          role="tab"
+                          aria-controls="nProject"
+                        >
+                          New
+                        </a>
+                      )}
+
                       <a
                         className="list-group-item list-group-item-action"
                         id="list-iProject-list"
@@ -255,6 +281,7 @@ class ProjectManagement extends Component<Props, State> {
                               value={this.state.projectName}
                               onChange={(e) => this.handleUpdateNameProject(e)}
                               onKeyDown={this.onEnterSaveProject}
+                              autoComplete="off"
                             />
                             <label htmlFor="floatingInput">Enter name</label>
                           </div>
@@ -299,6 +326,7 @@ class ProjectManagement extends Component<Props, State> {
                             placeholder="VariaMosProject"
                             onChange={(e) => this.handleUpdateNameProject(e)}
                             onKeyPress={this.onEnterFocusPL}
+                            autoComplete="off"
                           />
                           <label htmlFor="floatingInput">Project name</label>
                         </div>
@@ -315,6 +343,7 @@ class ProjectManagement extends Component<Props, State> {
                                   this.handleUpdateNameProductLine(e)
                                 }
                                 onKeyDown={this.onEnterCreateProject}
+                                autoComplete="off"
                               />
                               <label htmlFor="floatingInputGrid">
                                 Product line name
@@ -387,15 +416,20 @@ class ProjectManagement extends Component<Props, State> {
                         aria-labelledby="list-help-list"
                       >
                         <div className="list-group">
+                        <a
+                            className="list-group-item list-group-item-action"
+                          >
+                            Version: {this.state.version}
+                          </a>
                           <a
-                            href="https://github.com/VariaMosORG/VariaMos/wiki"
+                            href="https://github.com/mauroagudeloz/VariaMosPLE/wiki"
                             target="_blanck"
                             className="list-group-item list-group-item-action"
                           >
                             What is VariaMos?
                           </a>
                           <a
-                            href="https://github.com/VariaMosORG/VariaMos/wiki"
+                            href="https://github.com/mauroagudeloz/VariaMosPLE/wiki/Language-definition"
                             target="_blanck"
                             className="list-group-item list-group-item-action"
                           >
