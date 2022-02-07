@@ -83,7 +83,7 @@ export default class ProjectService {
 
     externalFunction.request = {
       transactionId: "callExternalFuntion_Frontend",
-      data: { modelSelectedId: me.treeItemSelected, project: me._project },
+      data: { modelSelectedId: me.treeIdItemSelected, project: me._project },
     };
     // Standard Request End
 

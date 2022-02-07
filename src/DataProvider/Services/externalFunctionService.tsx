@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { Method } from "axios";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
 import { ResponseAPISuccess } from "./languageService";
 import config from "../../Infraestructure/config.json";
@@ -36,10 +36,11 @@ export default class ExternalFuntionService {
   callExternalFuntion(callback: any, externalFunction: ExternalFuntion): any {
     const config = {
       baseURL: externalFunction.url,
-      method: externalFunction.method,
+      method: "POST" as Method, 
       headers: externalFunction.header,
-      data: externalFunction.request,
+      data: externalFunction.request
     };
+
     try {
       axios(config).then((res) => {
         let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();

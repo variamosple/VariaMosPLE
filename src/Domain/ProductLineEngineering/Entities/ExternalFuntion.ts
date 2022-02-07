@@ -5,7 +5,6 @@ export class ExternalFuntion {
   name: string;
   label: string;
   url: string;
-  method: Method;
   header: object;
   request: object;
   resulting_action: string;
@@ -16,7 +15,6 @@ export class ExternalFuntion {
     name: string,
     label: string,
     url: string,
-    method: Method,
     header: object,
     request: object,
     resulting_action: string,
@@ -26,7 +24,6 @@ export class ExternalFuntion {
     this.name = name;
     this.label = label;
     this.url = url;
-    this.method = method;
     this.header = header;
     this.request = request;
     this.resulting_action = resulting_action;
