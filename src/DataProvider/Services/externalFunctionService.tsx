@@ -48,6 +48,7 @@ export default class ExternalFuntionService {
 
         if (responseAPISuccess.message?.includes("Error"))
           throw new Error(JSON.stringify(res.data));
+          
 
         callback(responseAPISuccess);
       });
