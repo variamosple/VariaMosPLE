@@ -12,9 +12,9 @@ class PropiertiesPannel extends Component<Props, State> {
 
   render() {
     return (
-      <div id="PropiertiesPannel" style={{ height: "60vh" }}>
+      <div id="PropiertiesPannel" style={{ height: "60vh"}}>
         <div className="col-sm h-100 distribution-variamos">
-          <div className="card text-center h-100 distribution-variamos shadow-sm bg-body rounded">
+          <div className="card text-center h-100 distribution-variamos shadow-sm bg-body rounded" style={{overflow:"auto"}}>
             <button
               type="button"
               data-bs-toggle="modal"

@@ -31,7 +31,7 @@ class DashBoard extends Component<Props, State> {
           <TreeExplorer projectService={this.projectService} />
           <div className="col-sm">
             <NavBar projectService={this.projectService} />
-            <div className="row ">
+            <div className="row">
               <DiagramEditor projectService={this.projectService} />
               <div
                 className="col-2 col-sm-2 distribution-variamos"

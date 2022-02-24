@@ -24,6 +24,7 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/RestrictionsUseCases";
 import ProjectUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
+import { isJSDocThisTag } from "typescript";
 
 export default class ProjectService {
   private graph: any;
@@ -82,13 +83,15 @@ export default class ProjectService {
     externalFunction.request = {};
 
     externalFunction.request = {
-      transactionId: "callExternalFuntion_Frontend",
+      transactionId: me.generateId(),
       data: { modelSelectedId: me.treeIdItemSelected, project: me._project },
     };
     // Standard Request End
-
+    
+  
     let callback = function (response: any) {
       //Decode content.
+      alert(JSON.stringify(response));
       response.data.content = Buffer.from(
         response.data.content,
         "base64"
@@ -104,6 +107,10 @@ export default class ProjectService {
         showonscreen: function () {
           alert(JSON.stringify(response.data.content));
         },
+        updateproject: function() {
+          me.updateProject(response.data.content,me.treeIdItemSelected);
+          // document.getElementById(me.treeIdItemSelected).click();
+        }
       };
 
       resulting_action[externalFunction.resulting_action]();
@@ -454,9 +461,15 @@ export default class ProjectService {
   }
 
   importProject(file: string | undefined): void {
+    console.log(file);
     if (file) {
       this._project = Object.assign(this._project, JSON.parse(file));
     }
+    this.raiseEventUpdateProject(this._project);
+  }
+
+  updateProject(project: Project, modelSelectedId: string): void {
+      this._project = project;    
     this.raiseEventUpdateProject(this._project);
   }
 

@@ -5,11 +5,11 @@
   #properties-menu {
     top: inherit !important;
     left: auto !important;
-    right: 200px !important;
+    right: auto !important;
   }
 
   .dropdown-menu li {
-    position: relative;
+    position:absolute;
   }
 
   .dropdown-menu > li:hover {
