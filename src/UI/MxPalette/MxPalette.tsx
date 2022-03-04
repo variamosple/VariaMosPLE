@@ -157,7 +157,13 @@ export default class MxPalette extends Component<Props, State> {
         newCells[0].setAttribute("uid", element.id);
         newCells[0].setAttribute("label", element.name);
         newCells[0].setAttribute("title", element.name);
-        newCells[0].setAttribute("name", element.name);
+        newCells[0].setAttribute("Name", element.name);
+        for (let i = 0; i < element.properties.length; i++) {
+          const p = element.properties[i]; 
+          newCells[0].setAttribute(p.name, p.value);
+        }
+
+
         graph.setSelectionCells(newCells);
         // let g = vertex.geometry;
 
@@ -309,6 +315,8 @@ export default class MxPalette extends Component<Props, State> {
       let shape = atob(element.draw);
       let ne: any = mx.mxUtils.parseXml(shape).documentElement;
       ne.setAttribute("name", type);
+      let s:any=  mx.mxStencil;
+      s.allowEval=true;
       let stencil = new mx.mxStencil(ne);
       mx.mxStencilRegistry.addStencil( type, stencil);
     }

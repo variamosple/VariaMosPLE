@@ -77,6 +77,9 @@ export default class MxGEditor extends Component<Props, State> {
 
   LoadGraph(graph: mxGraph) {
     let me = this;
+    let ae=mx.mxStencil.prototype.allowEval;
+    mx.mxStencil.prototype.allowEval=true;
+
     mx.mxEvent.disableContextMenu(this.graphContainerRef.current);
     new mx.mxRubberband(graph);
     // var parent = graph.getDefaultParent();
@@ -87,7 +90,7 @@ export default class MxGEditor extends Component<Props, State> {
     graph.setEdgeLabelsMovable(false);
     graph.setVertexLabelsMovable(false);
     graph.setGridEnabled(true);
-    graph.setAllowDanglingEdges(false);
+    graph.setAllowDanglingEdges(false); 
 
     // Allows dropping cells into new lanes and
     // lanes into new pools, but disallows dropping
@@ -302,6 +305,8 @@ export default class MxGEditor extends Component<Props, State> {
       }
     });
 
+    graph.getView().setAllowEval(true);
+
     let keyHandler = new mx.mxKeyHandler(graph);
     keyHandler.bindKey(46, function (evt) {
       me.deleteSelection();
@@ -415,12 +420,20 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
       }
-    }
+    } 
     if (!label_property) {
       vertice.value.setAttribute("label", element.name);
     } else {
       vertice.value.setAttribute("label", "");
     }
+
+    vertice.value.setAttribute("Name", element.name);
+    for (let i = 0; i < element.properties.length; i++) {
+      const p = element.properties[i]; 
+      vertice.value.setAttribute(p.name, p.value);
+    }
+
+
   }
 
   pushIfNotExist(array: any, value: any) {
@@ -476,6 +489,11 @@ export default class MxGEditor extends Component<Props, State> {
           var node = doc.createElement(element.type);
           node.setAttribute("uid", element.id);
           node.setAttribute("label", element.name);
+          node.setAttribute("Name", element.name);
+          for (let i = 0; i < element.properties.length; i++) {
+            const p = element.properties[i]; 
+            node.setAttribute(p.name, p.value);
+          }
           var vertex = graph.insertVertex(
             parent,
             null,
