@@ -16,36 +16,40 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
-
-    - name: Log in to registry
-      uses: docker/login-action@v1
+    - uses: azure/docker-login@v1
+      name: Push Image to ACR
       with:
-        registry: https://index.docker.io/v1/
-        username: ${{ secrets.AzureAppService_ContainerUsername_dcb921d499e6434c901f5f15b252ad3b }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_c148c8f9beff4d02911bd151c8539b38 }}
+        login-server: 'variamos.azurecr.io'
+        username: ${{secrets.ACRUSERNAME}}
+        password: ${{secrets.ACRUSERPASSWORD}}
 
-    - name: Build and push container image to registry
-      uses: docker/build-push-action@v2
-      with:
-        push: true
-        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_dcb921d499e6434c901f5f15b252ad3b }}/variamos:${{ github.sha }}
-        file: ./Dockerfile
+#    - name: Log in to registry
+#      uses: docker/login-action@v1
+#      with:
+#        registry: https://index.docker.io/v1/
+#        username: ${{ secrets.AzureAppService_ContainerUsername_dcb921d499e6434c901f5f15b252ad3b }}
+#        password: ${{ secrets.AzureAppService_ContainerPassword_c148c8f9beff4d02911bd151c8539b38 }}
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: 'development'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+#    - name: Build and push container image to registry
+#      uses: docker/build-push-action@v2
+#      with:
+#        push: true
+#        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_dcb921d499e6434c901f5f15b252ad3b }}/variamos:${{ github.sha }}
+#        file: ./Dockerfile
 
-    steps:
-    - name: Deploy to Azure Web App
-      id: deploy-to-webapp
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: 'VariaMos'
-        slot-name: 'dev'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_7303893fa7264f6cb628bcfc51d974c8 }}
-        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_dcb921d499e6434c901f5f15b252ad3b }}/variamos:${{ github.sha }}'
+#  deploy:
+#    runs-on: ubuntu-latest
+#    needs: build
+#    environment:
+#      name: 'development'
+#      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+#    steps:
+#    - name: Deploy to Azure Web App
+#      id: deploy-to-webapp
+#      uses: azure/webapps-deploy@v2
+#      with:
+#        app-name: 'VariaMos'
+#        slot-name: 'dev'
+#        publish-profile: ${{ secrets.AzureAppService_PublishProfile_7303893fa7264f6cb628bcfc51d974c8 }}
+#        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_dcb921d499e6434c901f5f15b252ad3b }}/variamos:${{ github.sha }}'
