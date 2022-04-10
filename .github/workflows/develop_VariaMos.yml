@@ -16,19 +16,19 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - uses: azure/docker-login@v1
-      name: Push Image to ACR
+#    - uses: azure/docker-login@v1
+#      name: Login to ACR
+#      with:
+#        login-server: 'variamos.azurecr.io'
+#        username: ${{secrets.ACRUSERNAME}}
+#        password: ${{secrets.ACRUSERPASSWORD}}
+
+    - name: Login to ACR
+      uses: docker/login-action@v1
       with:
-        login-server: 'variamos.azurecr.io'
+        registry: variamos.azurecr.io
         username: ${{secrets.ACRUSERNAME}}
         password: ${{secrets.ACRUSERPASSWORD}}
-
-#    - name: Log in to registry
-#      uses: docker/login-action@v1
-#      with:
-#        registry: https://index.docker.io/v1/
-#        username: ${{ secrets.AzureAppService_ContainerUsername_dcb921d499e6434c901f5f15b252ad3b }}
-#        password: ${{ secrets.AzureAppService_ContainerPassword_c148c8f9beff4d02911bd151c8539b38 }}
 
 #    - name: Build and push container image to registry
 #      uses: docker/build-push-action@v2
