@@ -27,7 +27,7 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         push: true
-        tags: variamos.azurecr.io/${{secrets.ACRUSERNAME}}/variamos:${{ github.sha }}
+        tags: variamos.azurecr.io/${{secrets.ACRUSERNAME}}/variamos:latest
         file: ./Dockerfile
 
   deploy:
@@ -45,4 +45,4 @@ jobs:
         app-name: 'VariaMos'
         slot-name: 'dev'
         publish-profile: ${{secrets.DEVSLOTPUBLISHPROFILE}}
-        images: 'variamos.azurecr.io/${{secrets.ACRUSERNAME}}/variamos:${{ github.sha }}'
+        images: 'variamos.azurecr.io/${{secrets.ACRUSERNAME}}/variamos:latest'
