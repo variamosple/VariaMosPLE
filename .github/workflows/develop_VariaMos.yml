@@ -38,7 +38,7 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
-    - name: Deploy to Azure Web App
+    - name:  Deploy to Azure Web App VariaMos in dev slot
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
