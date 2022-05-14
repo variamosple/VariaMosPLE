@@ -226,25 +226,51 @@ export default class MxPalette extends Component<Props, State> {
       }
     }
 
+    let dic=[]; 
     if (languageDefinition.abstractSyntax.relationships) {
       for (elementName in languageDefinition.abstractSyntax.relationships) {
-        const relationship =
-          languageDefinition.abstractSyntax.relationships[elementName];
-        let mul = new mx.mxMultiplicity(
+        const relationship = languageDefinition.abstractSyntax.relationships[elementName];
+        if (!dic[relationship.source]) {
+          dic[relationship.source]=[];
+        }
+        dic[relationship.source]=dic[relationship.source].concat(relationship.target); 
+      }
+    }
+    for (var key in dic) { 
+          let mul = new mx.mxMultiplicity(
           true,
-          relationship.source,
+          key,
           null,
           null,
-          relationship.min,
-          relationship.max,
-          relationship.target,
+          0,
+          10000000,
+          dic[key],
           "Only 1 target is allowed",
-          "Only " + relationship.target.join(', ') + " targets allowed",
+          "Only " + dic[key].join(', ') + " targets allowed",
           true
         );
         graph.multiplicities.push(mul);
-      }
     }
+
+    // if (languageDefinition.abstractSyntax.relationships) {
+    //   for (elementName in languageDefinition.abstractSyntax.relationships) {
+    //     const relationship =
+    //       languageDefinition.abstractSyntax.relationships[elementName];
+    //     let mul = new mx.mxMultiplicity(
+    //       true,
+    //       relationship.source,
+    //       null,
+    //       null,
+    //       relationship.min,
+    //       relationship.max,
+    //       relationship.target,
+    //       "Only 1 target is allowed",
+    //       "Only " + relationship.target.join(', ') + " targets allowed",
+    //       true
+    //     );
+    //     graph.multiplicities.push(mul);
+    //   }
+    // }
 
     // for (const key in language.relationships) {
     //     const relationship = language.relationships[key];
