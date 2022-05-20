@@ -3,8 +3,8 @@
 } 
 
 .MxPaletteContainter img {
-  width: 64px;
-  max-width: 64px;
+  height: 32px;
+  max-height: 32px;
 } 
 
 .list-inline-item {

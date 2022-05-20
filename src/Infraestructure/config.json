@@ -1,5 +1,5 @@
 {
-  "version": "4.22.05.06.07",
+  "version": "4.22.05.20.12",
   "urlBackEndLanguage": "https://variamos-ms-languages.azurewebsites.net",
   "urlBackEndRestriction": "https://variamos-ms-restrictions.azurewebsites.net",
   "urlBackEndRestrictiondev": "http://localhost:4003",

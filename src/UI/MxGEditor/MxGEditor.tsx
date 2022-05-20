@@ -49,6 +49,7 @@ export default class MxGEditor extends Component<Props, State> {
     let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
     if (vertice) {
       this.refreshVertexLabel(vertice);
+      this.createOverlays(e.element,vertice);
     } else {
       let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
       if (edge) {
@@ -56,7 +57,7 @@ export default class MxGEditor extends Component<Props, State> {
         this.refreshEdgeStyle(edge);
       }
     }
-    this.graph.refresh();
+    this.graph.refresh(); 
   }
 
   componentDidMount() {
@@ -507,7 +508,8 @@ export default class MxGEditor extends Component<Props, State> {
             ";" +
             languageDefinition.concreteSyntax.elements[element.type].design
           );
-          this.refreshVertexLabel(vertex);
+          this.refreshVertexLabel(vertex); 
+          this.createOverlays(element, vertex);
           vertices[element.id] = vertex;
         }
 
@@ -549,7 +551,47 @@ export default class MxGEditor extends Component<Props, State> {
   //sacar esto en una libreria
 
 
+  createOverlays(element:any, cell:any){
+    this.createSelectionOverlay(element, cell);
+  }
 
+  createSelectionOverlay(element:any, cell:any){
+    let me=this;
+    for (let i = 0; i < element.properties.length; i++) {
+      const property = element.properties[i];
+      if (property.name=="Selected") { 
+        this.graph.removeCellOverlays(cell);
+        let icon='images/models/' + property.value + '.png'
+        let overlayFrame = new mx.mxCellOverlay(new mx.mxImage(icon, 24, 24), 'Overlay tooltip');
+        overlayFrame.align = mx.mxConstants.ALIGN_RIGHT;
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_TOP;
+        overlayFrame.offset = new mx.mxPoint(0, 0); 
+
+        overlayFrame.addListener(mx.mxEvent.CLICK, function (sender, evt) {
+          try {
+            evt.consume();
+            let parentCell=evt.properties.cell;
+            let uid=parentCell.value.attributes.uid.value;
+            let element = me.props.projectService.findModelElementById(me.currentModel, uid);
+            for (let i = 0; i < element.properties.length; i++) {
+              const property = element.properties[i];
+              if (property.name=="Selected") { 
+                switch(property.value){
+                  case "Selected":property.value="Unselected";break;
+                  case "Unselected":property.value="Undefined";break;
+                  case "Undefined":property.value="Selected";break;
+                } 
+              }
+            }
+            me.createOverlays(element, parentCell ); 
+          } catch (error) { }
+        });
+        
+        this.graph.addCellOverlay(cell, overlayFrame);
+        this.graph.refresh(); 
+      } 
+    }
+  }
 
 
 
