@@ -1,0 +1,44 @@
+name: VariaMosPLE LINT
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  
+  linter:
+    name: Super-linter
+    runs-on: 'ubuntu-latest'
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Super-Linter
+      uses: github/super-linter@v4.9.2
+      env: 
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        DISABLE_ERROR: true
+        LOG_FILE: log_file_from_super-linter
+        VALIDATE_MARKDOWN: true
+  
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 
+      - name: Install dependencies
+        run: yarn
+      - name: Test and coverage
+        run: yarn jest --coverage
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        
+        
