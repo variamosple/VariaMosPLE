@@ -22,7 +22,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         DISABLE_ERROR: true
 #        LOG_FILE: log_file_from_super-linter
-#        VALIDATE_MARKDOWN: true
+        VALIDATE_MARKDOWN: true #Markdown only for the moment because an analysis can take a few minutes
   
   sonarcloud:
     name: SonarCloud
