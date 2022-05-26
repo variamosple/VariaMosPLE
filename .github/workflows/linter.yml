@@ -1,4 +1,4 @@
-name: VariaMosPLE LINT
+name: VariaMosPLE_LINT
 
 on:
   push:
@@ -21,8 +21,8 @@ jobs:
       env: 
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         DISABLE_ERROR: true
-        LOG_FILE: log_file_from_super-linter
-        VALIDATE_MARKDOWN: true
+#        LOG_FILE: log_file_from_super-linter
+#        VALIDATE_MARKDOWN: true
   
   sonarcloud:
     name: SonarCloud
@@ -30,11 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0 
-      - name: Install dependencies
-        run: yarn
-      - name: Test and coverage
-        run: yarn jest --coverage
+          fetch-depth: 0
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:

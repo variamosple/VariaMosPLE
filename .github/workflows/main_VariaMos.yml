@@ -1,3 +1,5 @@
+name: VariaMosPLE_BUILD_AND_DEPLOY
+
 on:
   push:
     branches:
