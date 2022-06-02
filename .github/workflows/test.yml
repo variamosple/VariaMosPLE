@@ -1,0 +1,38 @@
+name: VariaMosPLE_TESTS
+
+on:
+  push:
+    branches:
+      - Cypress
+  workflow_dispatch:
+
+jobs:
+
+  running_unit_tests:
+    name: Running Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install modules
+        run: yarn
+      - name: Run tests
+        run: yarn test --coverage
+
+  cypress-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      # Install NPM dependencies, cache them correctly
+      # and run all Cypress tests
+#      - name: Install modules
+#        run: npm install
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v2
+        with:
+          build: npm run build
+          start: npm start
+
