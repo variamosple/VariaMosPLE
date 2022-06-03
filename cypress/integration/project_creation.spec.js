@@ -1,6 +1,6 @@
 describe('Create a project', () => {
     it('user can create a project', () => {
-        cy.visit('/')
+        cy.visit('http://localhost:3000')
         // add Project name
         cy.findByPlaceholderText(/variamosproject/i).type('My New Project');
         // add Product line
