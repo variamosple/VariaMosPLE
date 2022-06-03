@@ -3,7 +3,8 @@ name: VariaMosPLE_LINT
 on:
   push:
     branches:
-      - main,Cypress
+      - mai
+      - Cypress
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened]
