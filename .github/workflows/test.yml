@@ -18,7 +18,7 @@ jobs:
       - name: Install modules
         run: yarn
       - name: Run tests
-        run: yarn test
+        run: yarn test --coverage
 
   cypress-run:
     runs-on: ubuntu-latest
