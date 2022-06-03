@@ -1,5 +1,15 @@
 {
   "name": "variamos-ple",
+  "jest": {
+    "coverageThreshold": {
+      "global": {
+        "branches": 50,
+        "functions": 50,
+        "lines": 50,
+        "statements": 50
+      }
+    }
+  },
   "version": "1.0.0",
   "private": true,
   "dependencies": {
