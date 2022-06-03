@@ -3,7 +3,7 @@ name: VariaMosPLE_TESTS
 on:
   push:
     branches:
-      - Cypress
+      - main
   workflow_dispatch:
 
 jobs:
