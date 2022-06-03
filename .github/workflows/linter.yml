@@ -9,21 +9,21 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  
+
   linter:
     name: Super-linter
     runs-on: 'ubuntu-latest'
-    
+
     steps:
     - uses: actions/checkout@v2
     - name: Super-Linter
       uses: github/super-linter@v4.9.2
-      env: 
+      env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         DISABLE_ERROR: true
 #        LOG_FILE: log_file_from_super-linter
-        VALIDATE_MARKDOWN: true #Markdown only for the moment because an analysis can take a few minutes
-  
+#        VALIDATE_MARKDOWN: true #Markdown only for the moment because an analysis can take a few minutes
+
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
@@ -36,5 +36,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        
-        
+
+
