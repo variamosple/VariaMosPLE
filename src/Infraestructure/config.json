@@ -1,8 +1,10 @@
 {
-  "version": "4.22.05.20.12",
+  "version": "4.22.06.05.09",
   "urlBackEndLanguage": "https://variamos-ms-languages.azurewebsites.net",
   "urlBackEndRestriction": "https://variamos-ms-restrictions.azurewebsites.net",
   "urlBackEndRestrictiondev": "http://localhost:4003",
   "_comment.environment": "The environments available are development and production",
-  "environment": "development"
+  "environment": "development",
+  "urlVariamosDocumentation": "https://github.com/variamosple/VariaMosPLE/wiki",
+  "urlVariamosLangDocumentation": "https://github.com/variamosple/VariaMosPLE/wiki/Language-definition"
 }
