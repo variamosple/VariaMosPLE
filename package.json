@@ -50,6 +50,8 @@
     ]
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^6.0.2",
+    "@stryker-mutator/jest-runner": "^6.0.2",
     "@testing-library/cypress": "^8.0.2",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^12.1.5",
