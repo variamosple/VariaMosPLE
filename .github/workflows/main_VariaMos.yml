@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - unit_testing
   workflow_dispatch:
 
 env: # Comment env block if you do not want to apply fixes
@@ -94,7 +95,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          
+
   unit_integration_tests:
     name: Running Tests
     runs-on: ubuntu-latest

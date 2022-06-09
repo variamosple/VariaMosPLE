@@ -10,3 +10,31 @@ describe('Create a project', () => {
 
     })
 })
+
+describe('Create a (istar) Model', () =>{
+    it('user can create the model', () => {
+
+        cy.findByText(/domain engineering/i).rightclick();
+
+        cy.findByText(/application engineering/i).trigger('pointermove').rightclick();
+
+
+        //
+        //
+        //
+        // cy.wait(500);
+        // cy.get('button[class="close"]').should('be.visible').click();
+        //
+        // // go to the project feature model section
+        // cy.get('a').contains("FeatureModel").click();
+        //
+        // // create root element
+        // cy.get('img[class="mxToolbarModeSelected"]:first').trigger('pointerdown', { which: 1 });
+        // cy.get('div[id="vgraph-container"]').find('svg').trigger('pointermove');
+        // cy.get('div[id="vgraph-container"]').find('svg').trigger('pointerup', { force: true });
+        //
+        // //should contain root text inside svg
+        // cy.get('div[id="vgraph-container"]').find('svg').should('contain', 'root');
+
+    });
+})
