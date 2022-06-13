@@ -7,16 +7,42 @@ import TreeExplorer from "./TreeExplorer";
 import ProjectService from "../../Application/Project/ProjectService";
 
 test('The name of the project appears on the screen', ()=>{
-    screen.getByRole('')
+    // screen.getByRole('')
 
 });
 
 test('The name of the product line appears on the screen', ()=>{
-    screen.getByRole('')
+    // screen.getByRole('')
 
 });
 
-test('When you click on "New Application" the modal becomes visible', ()=>{
-    screen.getByRole('')
+test('When you left click on "Application Engineering" the + becomes -', ()=>{
+    // screen.getByRole('')
 
 });
+
+test('When you left click on "Application Engineering" the - becomes +', ()=>{
+    // screen.getByRole('')
+
+});
+
+test('When you left click on a created Application the + becomes -', ()=>{
+    // screen.getByRole('')
+
+});
+
+test('When you left click on a created Application the - becomes +', ()=>{
+    // screen.getByRole('')
+
+});
+
+test('When you left click on "Domain Engineering" the + becomes -', ()=>{
+    // screen.getByRole('')
+
+});
+
+test('When you left click on "Domain Engineering" the - becomes +', ()=>{
+    // screen.getByRole('')
+
+});
+

@@ -19,22 +19,7 @@ describe('Create a (istar) Model', () =>{
         cy.findByText(/application engineering/i).trigger('pointermove').rightclick();
 
 
+        // User should be able to drag elements from the element panel
         //
-        //
-        //
-        // cy.wait(500);
-        // cy.get('button[class="close"]').should('be.visible').click();
-        //
-        // // go to the project feature model section
-        // cy.get('a').contains("FeatureModel").click();
-        //
-        // // create root element
-        // cy.get('img[class="mxToolbarModeSelected"]:first').trigger('pointerdown', { which: 1 });
-        // cy.get('div[id="vgraph-container"]').find('svg').trigger('pointermove');
-        // cy.get('div[id="vgraph-container"]').find('svg').trigger('pointerup', { force: true });
-        //
-        // //should contain root text inside svg
-        // cy.get('div[id="vgraph-container"]').find('svg').should('contain', 'root');
-
     });
 })

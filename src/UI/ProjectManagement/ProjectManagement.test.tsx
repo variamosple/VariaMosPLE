@@ -39,7 +39,8 @@ describe('Testing the Project name input', ()=>{
 
    test('Project Name input should display name of the project once it is passed', ()=>{
 
-
+      //J'ai l'impression qu'il faut faire appel à une fonction en particulier.
+      //onEnterSaveProject ou handleUpdateNameProject (plus le deuxième) ou this.state.projectName L.281
 
    });
 
@@ -70,10 +71,8 @@ describe('Testing the Product line name input', ()=>{
       // @ts-ignore
       expect(inputElement.value).toBe("Product line name for testing");
    });
-
+   
 })
-
-
 
 
 test('Clicking on upload should shows the upload modal', ()=>{
@@ -81,16 +80,16 @@ test('Clicking on upload should shows the upload modal', ()=>{
 
    // expect(screen.getByPlaceholderText('VariaMosProject')).toHaveValue("test");
    // expect(screen.getByDisplayValue('The text changes')).toBeInTheDocument();
-   screen.getByRole('')
+   // screen.getByRole('')
 });
 
 test('Clicking on settings should shows the settings modal', ()=>{
    //Checks if the user can select the language
    //Have to check the LanguageManagement Component
-   screen.getByRole('')
+   // screen.getByRole('')
 });
 
 test('Clicking on help shows the help', ()=>{
    //Checks if the upload button is visible
-   screen.getByRole('')
+   // screen.getByRole('')
 });
