@@ -8,11 +8,11 @@ import {Relationship} from "../../../Domain/ProductLineEngineering/Entities/Rela
 
 describe('The passed argument should be correct',()=>{
     let project_service = new ProjectService();
-    let project = new Project('334', 'Project Name')
+    let project = new Project('Project Id', 'Project Name')
     let element: Element[]=[]
     let relationShip: Relationship[] = []
-    let model = new Model('442','Model Name','Type',element,relationShip, "Type Engineering")
-    let adaptation = new Adaptation("223","Adaptation Name", model)
+    let model = new Model('Model Id','Model Name','Type',element,relationShip, "Type Engineering")
+    let adaptation = new Adaptation("Adaptation Id","Adaptation Name", model)
 
     test('The target argument passed should be correct', ()=>{
         let newAdaptationEventArg = new NewAdaptationEventArg(project_service, project, adaptation);
