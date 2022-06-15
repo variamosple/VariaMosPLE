@@ -1,10 +1,15 @@
 import {fireEvent, render, screen, waitFor} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import '@testing-library/jest-dom/extend-expect';
+import ProjectService from "../../Application/Project/ProjectService";
+import PropiertiesPannel from "./PropiertiesPannel";
 
 // There is only the render method
 test('The propierties pannel should be visible', ()=>{
-  // screen.getByRole('')
+    //Arrange
+    // let project_service = new ProjectService();
+    // project_service.project.name = "VariaMos Project Name"
+    // render(<PropiertiesPannel projectService={project_service} />);
 
 });
 
