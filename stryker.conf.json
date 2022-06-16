@@ -9,7 +9,10 @@
   ],
   "coverageAnalysis": "off",
   "jest": {
-    "projectType": "create-react-app"
+    "projectType": "create-react-app",
+    "enableFindRelatedTests": false
   },
-  "tempDirName": "strykerTmp"
+  "tempDirName": "strykerTmp",
+  "timeoutMS": 10000,
+  "maxConcurrentTestRunners": 2
 }

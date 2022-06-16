@@ -160,7 +160,7 @@ class TreeExplorer extends Component<Props, State> {
               <div className="text-center p-2 bg-body">
                 <a
                   href="https://variamos.com/home/variamos-web/"
-                  target="_blanck"
+                  target="_blank"
                 >
                   <img
                     src={VariaMosLogo}

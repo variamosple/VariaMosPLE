@@ -424,14 +424,14 @@ class ProjectManagement extends Component<Props, State> {
                           </a>
                           <a
                             href="https://github.com/mauroagudeloz/VariaMosPLE/wiki"
-                            target="_blanck"
+                            target="_blank"
                             className="list-group-item list-group-item-action"
                           >
                             What is VariaMos?
                           </a>
                           <a
                             href="https://github.com/mauroagudeloz/VariaMosPLE/wiki/Language-definition"
-                            target="_blanck"
+                            target="_blank"
                             className="list-group-item list-group-item-action"
                           >
                             how can i define a language?
