@@ -1,4 +1,5 @@
-describe('Create a project', () => {
+describe('User should be able to create a simple project', ()=>{
+
     it('user can create a project', () => {
         cy.visit('http://localhost:3000')
         // add Project name
@@ -9,15 +10,27 @@ describe('Create a project', () => {
         cy.findByRole('button', {  name: /create/i}).click();
 
     })
-})
-
-describe('Create a (istar) Model', () =>{
+    it('user should be able to close and open the side menu',()=>{
+        cy.get('#hiddenProject').trigger('click');
+        cy.get('#hiddenProject').trigger('click');
+        cy.get('#hiddenProject').trigger('click');
+        cy.get('#hiddenProject').trigger('click');
+    })
     it('user can create the model', () => {
 
         cy.findByText(/domain engineering/i).rightclick();
 
-        cy.findByText(/application engineering/i).trigger('pointermove').rightclick();
+        cy.findByText(/application engineering/i).rightclick();
 
+        cy.findByText(/new model/i).trigger('pointermove')
+
+        // // create root element
+        // cy.get('img[class="mxToolbarModeSelected"]:first').trigger('pointerdown', { which: 1 });
+        // cy.get('div[id="vgraph-container"]').find('svg').trigger('pointermove');
+        // cy.get('div[id="vgraph-container"]').find('svg').trigger('pointerup', { force: true });
+        //
+        // //should contain root text inside svg
+        // cy.get('div[id="vgraph-container"]').find('svg').should('contain', 'root');
 
         // User should be able to drag elements from the element panel
         //
