@@ -5,14 +5,6 @@ import NavBar from "./navBar";
 
 describe('The navbar should be displayed', ()=>{
 
-    //CSS test to kill a mutant (Css test are not really useful in testing the functionnality of the system)
-    test('The navBar should be the right size', ()=>{
-        const project_service = new ProjectService();
-        render(<NavBar projectService={project_service} />);
-
-        const navBar = document.getElementsByClassName('row distribution-variamos background-variamos');
-        expect(navBar[0]).toContainHTML('style="height: 4vh; z-index: 5;"')
-    })
     test('The menu button should be visible', ()=>{
         const project_service = new ProjectService();
         render(<NavBar projectService={project_service} />);
@@ -51,5 +43,14 @@ describe('The navbar should be displayed', ()=>{
         render(<NavBar projectService={project_service} />);
 
         expect(screen.getByRole('listitem', {name: /user setting/i})).toBeVisible()
+    })
+
+    //CSS test to kill a mutant (Css test are not really useful in testing the functionnality of the system)
+    test('The navBar should be the right size', ()=>{
+        const project_service = new ProjectService();
+        render(<NavBar projectService={project_service} />);
+
+        const navBar = document.getElementsByClassName('row distribution-variamos background-variamos');
+        expect(navBar[0]).toContainHTML('style="height: 4vh; z-index: 5;"')
     })
 })

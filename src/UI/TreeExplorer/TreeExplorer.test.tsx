@@ -1,10 +1,7 @@
-import {fireEvent, render, screen, waitFor} from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import {render, screen} from "@testing-library/react";
 import '@testing-library/jest-dom/extend-expect';
 import TreeExplorer from "./TreeExplorer";
 import ProjectService from "../../Application/Project/ProjectService";
-import ProjectManagement from "../ProjectManagement/ProjectManagement";
-import TreeMenu from "./TreeMenu";
 
 test('The name of the project should appear on the screen', ()=>{
 
@@ -93,14 +90,3 @@ test('When you left click on "Domain Engineering" the + becomes -', ()=>{
     //Assert
     expect(clickableElement).not.toHaveAttribute("class", "fa fa-plus-square fa-minus-square-o domainE")
 });
-
-test('When you left click on a created Application the - should become +', ()=>{
-    // screen.getByRole('')
-
-});
-
-test('When you left click on a created Adaptation the - should become +', ()=>{
-    // screen.getByRole('')
-
-});
-

@@ -10,5 +10,6 @@ describe('User should be able to visit VariaMos Website', ()=>{
         cy.get('a[href="https://variamos.com/home/variamos-web/"]').should('have.attr', 'target', '_blank')
         cy.get('a[href="https://github.com/VariaMosORG/VariaMos/wiki"]').should('have.attr', 'target', '_blank')
 
+        cy.findByRole('tab', { name: /upload/i }).click();
     })
 })

@@ -1,7 +1,5 @@
-import {fireEvent, render, screen, waitFor} from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import {render, screen} from "@testing-library/react";
 import '@testing-library/jest-dom/extend-expect';
-import ProjectService from "../../Application/Project/ProjectService";
 import DashBoard from "./DashBoard";
 
 describe('On initial render, the dashboard should contains the required elements', ()=>{
