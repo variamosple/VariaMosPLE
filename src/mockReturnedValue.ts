@@ -422,20 +422,6 @@ export const mockReturnedValue = {
                                                "min": 3,
                                                "element": "RootFeatureForTest"
                                              }
-                                           ],
-                                           "quantity_element2": [
-                                             {
-                                               "max": 2,
-                                               "min": 3,
-                                               "element": "RootFeatureForTest"
-                                             }
-                                           ],
-                                           "quantity_element3": [
-                                             {
-                                               "max": 2,
-                                               "min": 3,
-                                               "element": "RootFeatureForTest"
-                                             }
                                            ]
                                          },
                                          "relationships": {
