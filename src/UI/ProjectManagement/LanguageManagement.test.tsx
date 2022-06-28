@@ -31,7 +31,7 @@ describe('Testing the LanguageManagement Component', ()=>{
             name: /new language/i
         })).toBeEnabled();
     });
-    test('The method componentDidMount should work as expected', ()=>{
+    test('componentDidMount should work as expected', ()=>{
 
         //Arrange
         let addLanguagesDetailListenerMock = jest.spyOn(ProjectService.prototype, "addLanguagesDetailListener").mockImplementation(() => {});
@@ -46,7 +46,7 @@ describe('Testing the LanguageManagement Component', ()=>{
         expect(addLanguagesDetailListenerMock).toHaveBeenCalledTimes(1)
         expect(addLanguagesDetailListenerMock).toHaveBeenCalledWith(languageManagement.projectService_addListener)
     })
-    test('The method projectService_addListener should work as expected', ()=>{
+    test('projectService_addListener should work as expected', ()=>{
 
         //Arrange
         let forceUpdateMock = jest.spyOn(LanguageManagement.prototype, "forceUpdate").mockImplementation(() => {});
@@ -61,7 +61,7 @@ describe('Testing the LanguageManagement Component', ()=>{
         expect(forceUpdateMock).toHaveBeenCalledTimes(1)
         expect(forceUpdateMock).toHaveBeenCalledWith()
     })
-    test('The method validateSchemaConcreteSyntax should return true', ()=>{
+    test('validateSchemaConcreteSyntax should return true', ()=>{
 
         //Arrange
         let project_service = new ProjectService();
@@ -73,7 +73,7 @@ describe('Testing the LanguageManagement Component', ()=>{
         //Assert
         expect(result).toBe(true)
     })
-    test('The method validateSchemaAbstractSyntax should return true', ()=>{
+    test('validateSchemaAbstractSyntax should return true', ()=>{
 
         //Arrange
         let project_service = new ProjectService();
@@ -85,7 +85,7 @@ describe('Testing the LanguageManagement Component', ()=>{
         //Assert
         expect(result).toBe(true)
     })
-    test('The method activeCreate should use getElementById', ()=>{
+    test('activeCreate should use getElementById', ()=>{
 
         //Arrange
         let getElementByIdMock = jest.spyOn(document, "getElementById");
@@ -101,7 +101,7 @@ describe('Testing the LanguageManagement Component', ()=>{
         expect(getElementByIdMock).toHaveBeenCalledTimes(2)
         expect(getElementByIdMock).toHaveBeenCalledWith('nav-createlanguage-tab')
     })
-    test('The method updateLanguageListSelected should use clearForm and setState', ()=>{
+    test('updateLanguageListSelected should use clearForm and setState', ()=>{
 
         //Arrange
         let clearFormMock = jest.spyOn(LanguageManagement.prototype, "clearForm").mockImplementation(() => {});

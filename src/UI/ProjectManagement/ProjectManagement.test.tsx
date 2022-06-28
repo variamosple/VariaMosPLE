@@ -69,7 +69,7 @@ describe('Testing the Product line name input', ()=>{
 })
 
 describe('Testing the methods', ()=>{
-   test('The method btnCreateProject_onClick should use alertify and return false when project name = ""', ()=>{
+   test('btnCreateProject_onClick should use alertify and return false when project name = ""', ()=>{
 
       //Arrange
       let alertifyMock = jest.spyOn(alertify, "error");
@@ -96,7 +96,7 @@ describe('Testing the methods', ()=>{
 
       expect(result).toBe(false);
    })
-   test('The method btnCreateProject_onClick should use alertify and return false when product name = ""', ()=>{
+   test('btnCreateProject_onClick should use alertify and return false when product name = ""', ()=>{
 
       //Arrange
       let alertifyMock = jest.spyOn(alertify, "error");
@@ -124,7 +124,7 @@ describe('Testing the methods', ()=>{
 
       expect(result).toBe(false);
    })
-   test('The method btnCreateProject_onClick should use PropertyService', ()=>{
+   test('btnCreateProject_onClick should use PropertyService', ()=>{
 
       //Arrange
       let updateProjectNameMock = jest.spyOn(ProjectService.prototype, "updateProjectName");
@@ -160,7 +160,7 @@ describe('Testing the methods', ()=>{
       expect(saveProjectMock).toHaveBeenCalledTimes(1);
       expect(saveProjectMock).toHaveBeenCalledWith();
    })
-   test('The method btnCreateProject_onClick should use getElementById', ()=>{
+   test('btnCreateProject_onClick should use getElementById', ()=>{
 
       //Arrange
       let getElementByIdMock = jest.spyOn(document, "getElementById");
@@ -181,7 +181,7 @@ describe('Testing the methods', ()=>{
       expect(getElementByIdMock).toHaveBeenCalledTimes(1);
       expect(getElementByIdMock).toHaveBeenCalledWith('openModal');
    })
-   test('The method btnSaveProject_onClick should return false when project name =""', ()=>{
+   test('btnSaveProject_onClick should return false when project name =""', ()=>{
 
       //Arrange
       let alertifyMock = jest.spyOn(alertify, "error");
@@ -206,7 +206,7 @@ describe('Testing the methods', ()=>{
       expect(result).toBe(false)
 
    })
-   test('The method btnSaveProject_onClick should use ProjectService, alertify, getElementById', ()=>{
+   test('btnSaveProject_onClick should use ProjectService, alertify, getElementById', ()=>{
 
       //Arrange
       let getElementByIdMock = jest.spyOn(document, "getElementById");
@@ -242,7 +242,7 @@ describe('Testing the methods', ()=>{
       expect(saveProjectMock).toHaveBeenCalledTimes(1);
       expect(saveProjectMock).toHaveBeenCalledWith();
    })
-   test('The method importProject should use ProjectService, getElementById', ()=>{
+   test('importProject should use ProjectService, getElementById', ()=>{
 
       //Arrange
       let getElementByIdMock = jest.spyOn(document, "getElementById");
@@ -267,7 +267,7 @@ describe('Testing the methods', ()=>{
       expect(importProjectMock).toHaveBeenCalledWith(projectManagement.state.importProject);
 
    })
-   test('The method componentDidMount should use ProjectService', ()=>{
+   test('componentDidMount should use ProjectService', ()=>{
 
       //Arrange
       let addUpdateProjectListenerMock = jest.spyOn(ProjectService.prototype, "addUpdateProjectListener").mockImplementation(() => {});
@@ -281,7 +281,7 @@ describe('Testing the methods', ()=>{
       expect(addUpdateProjectListenerMock).toHaveBeenCalledTimes(1)
       expect(addUpdateProjectListenerMock).toHaveBeenCalledWith(projectManagement.projectService_addListener)
    })
-   test('The method projectService_addListener should use forceUpdate and loadProject', ()=>{
+   test('projectService_addListener should use forceUpdate and loadProject', ()=>{
 
       //Arrange
       let forceUpdateMock = jest.spyOn(ProjectManagement.prototype, "forceUpdate").mockImplementation(() => {});
@@ -298,7 +298,7 @@ describe('Testing the methods', ()=>{
       expect(loadProjectMock).toHaveBeenCalledTimes(2) //loadProject is run once in the constructor
       expect(loadProjectMock).toHaveBeenCalledWith()
    })
-   test('The method onEnterSaveProject should use btnSaveProject_onClick', ()=>{
+   test('onEnterSaveProject should use btnSaveProject_onClick', ()=>{
 
       //Arrange
       let btnSaveProject_onClickMock = jest.spyOn(ProjectManagement.prototype, "btnSaveProject_onClick").mockImplementation(() => {});
@@ -319,7 +319,7 @@ describe('Testing the methods', ()=>{
       projectManagement.onEnterSaveProject(event);
       expect(btnSaveProject_onClickMock).toHaveBeenCalledTimes(1)
    })
-   test('The method onEnterCreateProject should use btnSaveProject_onClick', ()=>{
+   test('onEnterCreateProject should use btnSaveProject_onClick', ()=>{
 
       //Arrange
       let btnCreateProject_onClickMock = jest.spyOn(ProjectManagement.prototype, "btnCreateProject_onClick").mockImplementation(() => {});
@@ -340,7 +340,7 @@ describe('Testing the methods', ()=>{
       projectManagement.onEnterSaveProject(event);
       expect(btnCreateProject_onClickMock).toHaveBeenCalledTimes(1)
    })
-   test('The method onEnterFocusPL should use getElementById', ()=>{
+   test('onEnterFocusPL should use getElementById', ()=>{
 
       //Arrange
       let getElementByIdMock = jest.spyOn(document, "getElementById").mockImplementation(() => {});
@@ -361,7 +361,7 @@ describe('Testing the methods', ()=>{
       projectManagement.onEnterSaveProject(event);
       expect(getElementByIdMock).toHaveBeenCalledTimes(1)
    })
-   test('The method handleUpdateNameProject should use setState', ()=>{
+   test('handleUpdateNameProject should use setState', ()=>{
 
       //Arrange
       let setStateMock = jest.spyOn(ProjectManagement.prototype, "setState").mockImplementation(() => {});
@@ -383,7 +383,7 @@ describe('Testing the methods', ()=>{
       expect(setStateMock).toHaveBeenCalledTimes(1)
       expect(setStateMock).toHaveBeenCalledWith(state)
    })
-   test('The method handleUpdateNameProductLine should use setState', ()=>{
+   test('handleUpdateNameProductLine should use setState', ()=>{
 
       //Arrange
       let setStateMock = jest.spyOn(ProjectManagement.prototype, "setState").mockImplementation(() => {});

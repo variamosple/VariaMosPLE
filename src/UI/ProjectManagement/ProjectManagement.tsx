@@ -278,8 +278,7 @@ class ProjectManagement extends Component<Props, State> {
                               className="form-control"
                               id="enterMyProjectName"
                               placeholder="VariaMosProject"
-                              // value={this.state.projectName}
-                              value={"project_name"}
+                              value={this.state.projectName}
                               onChange={(e) => this.handleUpdateNameProject(e)}
                               onKeyDown={this.onEnterSaveProject}
                               autoComplete="off"

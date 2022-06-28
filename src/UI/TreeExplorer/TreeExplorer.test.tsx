@@ -99,7 +99,7 @@ describe('The collaspe feature should be functional',()=>{
 
 describe('Each method should be functional',()=>{
 
-    test('The method btn_viewDomainModel should use ProjectServices', ()=>{
+    test('btn_viewDomainModel should use ProjectServices', ()=>{
 
         //Arrange
         let modelDomainSelectedMock = jest.spyOn(ProjectService.prototype, "modelDomainSelected").mockImplementation(() => {});
@@ -120,7 +120,7 @@ describe('Each method should be functional',()=>{
 
     });
 
-    test('The method btn_viewApplicationModel should use ProjectServices', ()=>{
+    test('btn_viewApplicationModel should use ProjectServices', ()=>{
 
         //Arrange
         let modelApplicationSelectedMock = jest.spyOn(ProjectService.prototype, "modelApplicationSelected").mockImplementation(() => {});
@@ -140,7 +140,7 @@ describe('Each method should be functional',()=>{
         expect(saveProjectMock).toHaveBeenCalledWith();
 
     });
-    test('The method btn_viewAdaptationModel should use ProjectServices', ()=>{
+    test('btn_viewAdaptationModel should use ProjectServices', ()=>{
 
         //Arrange
         let modelAdaptationSelectedMock = jest.spyOn(ProjectService.prototype, "modelAdaptationSelected").mockImplementation(() => {});
@@ -161,7 +161,7 @@ describe('Each method should be functional',()=>{
 
     });
 
-    test('The method btn_viewApplicationEngModel should use ProjectServices', ()=>{
+    test('btn_viewApplicationEngModel should use ProjectServices', ()=>{
 
         //Arrange
         let modelApplicationEngSelectedMock = jest.spyOn(ProjectService.prototype, "modelApplicationEngSelected").mockImplementation(() => {});
@@ -181,7 +181,7 @@ describe('Each method should be functional',()=>{
         expect(saveProjectMock).toHaveBeenCalledWith();
 
     });
-    test('The method updateLpSelected should use ProjectServices', ()=>{
+    test('updateLpSelected should use ProjectServices', ()=>{
 
         //Arrange
         let updateLpSelectedMock = jest.spyOn(ProjectService.prototype, "updateLpSelected").mockImplementation(() => {});
@@ -209,7 +209,7 @@ describe('Each method should be functional',()=>{
         expect(saveProjectMock).toHaveBeenCalledWith();
 
     });
-    test('The method updateLpSelected should use ProjectServices with domainEngineering', ()=>{
+    test('updateLpSelected should use ProjectServices with domainEngineering', ()=>{
 
         //Arrange
         let updateLpSelectedMock = jest.spyOn(ProjectService.prototype, "updateLpSelected").mockImplementation(() => {});
@@ -238,7 +238,7 @@ describe('Each method should be functional',()=>{
         expect(saveProjectMock).toHaveBeenCalledWith();
 
     });
-    test('The method updateLpSelected should use ProjectServices with applicationEngineering', ()=>{
+    test('updateLpSelected should use ProjectServices with applicationEngineering', ()=>{
 
         //Arrange
         let updateLpSelectedMock = jest.spyOn(ProjectService.prototype, "updateLpSelected").mockImplementation(() => {});
@@ -267,7 +267,7 @@ describe('Each method should be functional',()=>{
         expect(saveProjectMock).toHaveBeenCalledWith();
 
     });
-    test('The method updateApplicationSelected should use ProjectServices', ()=>{
+    test('updateApplicationSelected should use ProjectServices', ()=>{
 
         //Arrange
         let updateApplicationSelectedMock = jest.spyOn(ProjectService.prototype, "updateApplicationSelected").mockImplementation(() => {});
@@ -287,7 +287,7 @@ describe('Each method should be functional',()=>{
         expect(saveProjectMock).toHaveBeenCalledWith();
 
     });
-    test('The method updateAdaptationSelected should use ProjectServices', ()=>{
+    test('updateAdaptationSelected should use ProjectServices', ()=>{
 
         //Arrange
         let updateAdaptationSelectedMock = jest.spyOn(ProjectService.prototype, "updateAdaptationSelected").mockImplementation(() => {});
@@ -307,7 +307,7 @@ describe('Each method should be functional',()=>{
         expect(saveProjectMock).toHaveBeenCalledWith();
 
     });
-    test('The method projectService_addListener should use ProjectServices', ()=>{
+    test('projectService_addListener should use ProjectServices', ()=>{
 
         //Arrange
         let forceUpdateMock = jest.spyOn(TreeExplorer.prototype, "forceUpdate").mockImplementation(() => {});
@@ -327,7 +327,7 @@ describe('Each method should be functional',()=>{
         expect(saveProjectMock).toHaveBeenCalledWith();
 
     });
-    test('The method btnSave_onClick should use ProjectServices', ()=>{
+    test('btnSave_onClick should use ProjectServices', ()=>{
 
         //Arrange
         let saveProjectMock = jest.spyOn(ProjectService.prototype, "saveProject").mockImplementation(() => {});
@@ -344,7 +344,7 @@ describe('Each method should be functional',()=>{
         expect(saveProjectMock).toHaveBeenCalledWith();
 
     });
-    test('The method componentDidMount should use ProjectServices', ()=>{
+    test('componentDidMount should use ProjectServices', ()=>{
 
         //Arrange
         let addNewProductLineListenerMock = jest.spyOn(ProjectService.prototype, "addNewProductLineListener").mockImplementation(() => {});
