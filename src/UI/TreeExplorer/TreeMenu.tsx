@@ -460,7 +460,7 @@ class TreeMenu extends Component<Props, State> {
           </div>
         </div>
 
-        <ul className="dropdown-menu" id="context-menu" data-testid="dropdown-menu-test-id">
+        <ul className="dropdown-menu" id="context-menu">
           <li>
             <span
               className={
