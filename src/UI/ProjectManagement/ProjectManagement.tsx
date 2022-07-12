@@ -12,7 +12,9 @@ interface State {
   projectName: string;
   productLineName: string;
   importProject: string | undefined;
-  version: string
+  version: string;
+  urlVariamosDoc: string;
+  urlVariamosLangDoc: string;
 }
 
 let classActive: string = "active";
@@ -28,6 +30,8 @@ class ProjectManagement extends Component<Props, State> {
       projectName: this.props.projectService.project.name,
       importProject: "",
       version: _config.version,
+      urlVariamosDoc: _config.urlVariamosDocumentation,
+      urlVariamosLangDoc: _config.urlVariamosLangDocumentation,
     };
     this.loadProject();
 
@@ -172,7 +176,6 @@ class ProjectManagement extends Component<Props, State> {
                   Project management
                 </h5>
                 {this.props.projectService.project.enable === true && (
-
                   <div className="col d-flex justify-content-end">
                     <ul className="list-group icon-dark-variamos list-group-horizontal">
                       <li
@@ -416,21 +419,19 @@ class ProjectManagement extends Component<Props, State> {
                         aria-labelledby="list-help-list"
                       >
                         <div className="list-group">
-                        <a
-                            className="list-group-item list-group-item-action"
-                          >
+                          <a className="list-group-item list-group-item-action">
                             Version: {this.state.version}
                           </a>
                           <a
-                            href="https://github.com/mauroagudeloz/VariaMosPLE/wiki"
-                            target="_blank"
+                            href={this.state.urlVariamosDoc}
+                            target="_blanck"
                             className="list-group-item list-group-item-action"
                           >
                             What is VariaMos?
                           </a>
                           <a
-                            href="https://github.com/mauroagudeloz/VariaMosPLE/wiki/Language-definition"
-                            target="_blank"
+                            href={this.state.urlVariamosLangDoc}
+                            target="_blanck"
                             className="list-group-item list-group-item-action"
                           >
                             how can i define a language?
