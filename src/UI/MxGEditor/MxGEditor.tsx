@@ -306,6 +306,41 @@ export default class MxGEditor extends Component<Props, State> {
       }
     });
 
+    graph.addListener(mx.mxEvent.LABEL_CHANGED, function (sender, evt) {
+      let t=0;
+      let name=evt.properties.value; 
+      evt.properties.value=evt.properties.old;
+      evt.properties.cell.value=evt.properties.old;
+      evt.consume(); 
+
+      let cell = evt.properties.cell;
+      let uid = cell.value.getAttribute("uid");
+      if (me.currentModel) {
+        const element: any =me.props.projectService.findModelElementById(me.currentModel, uid);
+        if (element) {
+          element.name = name;
+          me.props.projectService.raiseEventUpdatedElement(
+            me.currentModel,
+            element
+          );
+        }else{
+          const relationship: any =me.props.projectService.findModelRelationshipById(me.currentModel, uid);
+          if (relationship) {
+            relationship.name = name;
+            me.props.projectService.raiseEventUpdatedElement(
+              me.currentModel,
+              relationship
+            );
+          }
+        } 
+      } 
+    });   
+
+    // graph.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
+    //   let t=0;
+    //   evt.consume(); 
+    // });
+
     graph.getView().setAllowEval(true);
 
     let keyHandler = new mx.mxKeyHandler(graph);
