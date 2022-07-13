@@ -1,8 +1,8 @@
 {
   "version": "4.22.06.05.09",
-  "urlBackEndLanguage": "http://vlang.default.svc.cluster.local:4000",
-  "urlBackEndRestriction": "http://vrest.default.svc.cluster.local:4003",
-  "urlBackEndRestrictiondev": "http://localhost:4003",
+  "urlBackEndLanguage": "http://vlang:4000",
+  "urlBackEndRestriction": "http://vrest:4003",
+  "urlBackEndRestrictiondev": "http://vrest:4003",
   "_comment.environment": "The environments available are development and production",
   "environment": "development",
   "urlVariamosDocumentation": "https://github.com/variamosple/VariaMosPLE/wiki",
