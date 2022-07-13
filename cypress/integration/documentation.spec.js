@@ -53,7 +53,7 @@ describe('User should be able to manage a project', ()=>{
         cy.findByText('Project name is required').should('be.visible');
 
         //Changing the name and saving
-        cy.findByRole('textbox').type('My New Project Name')
+        cy.findByRole('textbox').type('My New Project Name', {force: true})
         cy.findByRole('button', {
             name: /save/i
         }).click()
