@@ -16,7 +16,7 @@ COPY ./ .
 # # check files list
 # RUN ls -a
 
-RUN npm install
+RUN npm ci
 # RUN npm install -g ts-node
 # RUN npm run build
 
