@@ -7,9 +7,6 @@ describe('User should be able to visit VariaMos Website', ()=>{
         cy.get('a[href="https://variamos.com/home/variamos-web/"]').should('have.attr', 'target', '_blank')
         cy.get('a[href="https://github.com/VariaMosORG/VariaMos/wiki"]').should('have.attr', 'target', '_blank')
 
-        cy.findByRole('tab', {
-            name: /upload/i
-        }).click();
     })
 
 })
@@ -49,7 +46,6 @@ describe('User should be able to manage a project', ()=>{
         }).click()
 
         //Verify that an empty name returns an error
-        cy.findByRole('textbox').type('N')
         cy.findByRole('textbox').clear()
         cy.findByRole('button', {
             name: /save/i
