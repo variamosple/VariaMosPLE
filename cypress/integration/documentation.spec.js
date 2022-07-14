@@ -297,7 +297,7 @@ describe('User should be able to create graphs', ()=>{
         cy.get('#domainEngineering').rightclick('left');
         //List of equivalent command : cy.findByText(/domain engineering/i).rightclick(); cy.findByText(/domain engineering/i).rightclick('left'); cy.findByText(/domain engineering/i).rightclick('topLeft'); cy.findByText(/domain engineering/i).rightclick('bottomLeft'); cy.findByText(/domain engineering/i).rightclick('top'); cy.findByText(/domain engineering/i).rightclick('bottom'); cy.findByText(/domain engineering/i).rightclick('topRight'); cy.findByText(/domain engineering/i).rightclick('right'); cy.findByText(/domain engineering/i).rightclick('bottomRight');
 
-        // cy.findByText(/new model/i).trigger('pointermove')
+        cy.findByText(/new model/i).trigger('pointermove')
 
         //Click and drop an element on the display panel
         // cy.get('img[class="mxToolbarModeSelected"]:first').trigger('pointerdown', { which: 1 });
@@ -308,19 +308,19 @@ describe('User should be able to create graphs', ()=>{
 
     it('user should be able to create a new product line', () => {
         cy.findByText(/my new product line/i).rightclick();
-        // cy.findByText(/new product line/i).trigger('pointermove')
+        cy.findByText(/new product line/i).trigger('pointermove')
 
     });
 
     it('user should be able to rename a product line', () => {
         cy.findByText(/my new product line/i).rightclick();
-        // cy.findByText(/rename/i).trigger('pointermove')
+        cy.findByText(/rename/i).trigger('pointermove')
 
     });
 
     it('user should be able to delete a product line', () => {
         cy.findByText(/my new product line/i).rightclick();
-        // cy.findByText(/delete/i).trigger('pointermove')
+        cy.findByText(/delete/i).trigger('pointermove')
 
     });
 })
