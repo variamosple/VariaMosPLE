@@ -424,14 +424,14 @@ class ProjectManagement extends Component<Props, State> {
                           </a>
                           <a
                             href={this.state.urlVariamosDoc}
-                            target="_blanck"
+                            target="_blank"
                             className="list-group-item list-group-item-action"
                           >
                             What is VariaMos?
                           </a>
                           <a
                             href={this.state.urlVariamosLangDoc}
-                            target="_blanck"
+                            target="_blank"
                             className="list-group-item list-group-item-action"
                           >
                             how can i define a language?
