@@ -49,7 +49,7 @@ export default class MxGEditor extends Component<Props, State> {
     let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
     if (vertice) {
       this.refreshVertexLabel(vertice);
-      this.createOverlays(e.element,vertice);
+      this.createOverlays(e.element, vertice);
     } else {
       let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
       if (edge) {
@@ -57,7 +57,7 @@ export default class MxGEditor extends Component<Props, State> {
         this.refreshEdgeStyle(edge);
       }
     }
-    this.graph.refresh(); 
+    this.graph.refresh();
   }
 
   componentDidMount() {
@@ -78,8 +78,8 @@ export default class MxGEditor extends Component<Props, State> {
 
   LoadGraph(graph: mxGraph) {
     let me = this;
-    let ae=mx.mxStencil.prototype.allowEval;
-    mx.mxStencil.prototype.allowEval=true;
+    let ae = mx.mxStencil.prototype.allowEval;
+    mx.mxStencil.prototype.allowEval = true;
 
     mx.mxEvent.disableContextMenu(this.graphContainerRef.current);
     new mx.mxRubberband(graph);
@@ -91,7 +91,7 @@ export default class MxGEditor extends Component<Props, State> {
     graph.setEdgeLabelsMovable(false);
     graph.setVertexLabelsMovable(false);
     graph.setGridEnabled(true);
-    graph.setAllowDanglingEdges(false); 
+    graph.setAllowDanglingEdges(false);
 
     // Allows dropping cells into new lanes and
     // lanes into new pools, but disallows dropping
@@ -307,24 +307,24 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
     graph.addListener(mx.mxEvent.LABEL_CHANGED, function (sender, evt) {
-      let t=0;
-      let name=evt.properties.value; 
-      evt.properties.value=evt.properties.old;
-      evt.properties.cell.value=evt.properties.old;
-      evt.consume(); 
+      let t = 0;
+      let name = evt.properties.value;
+      evt.properties.value = evt.properties.old;
+      evt.properties.cell.value = evt.properties.old;
+      evt.consume();
 
       let cell = evt.properties.cell;
       let uid = cell.value.getAttribute("uid");
       if (me.currentModel) {
-        const element: any =me.props.projectService.findModelElementById(me.currentModel, uid);
+        const element: any = me.props.projectService.findModelElementById(me.currentModel, uid);
         if (element) {
           element.name = name;
           me.props.projectService.raiseEventUpdatedElement(
             me.currentModel,
             element
           );
-        }else{
-          const relationship: any =me.props.projectService.findModelRelationshipById(me.currentModel, uid);
+        } else {
+          const relationship: any = me.props.projectService.findModelRelationshipById(me.currentModel, uid);
           if (relationship) {
             relationship.name = name;
             me.props.projectService.raiseEventUpdatedElement(
@@ -332,9 +332,9 @@ export default class MxGEditor extends Component<Props, State> {
               relationship
             );
           }
-        } 
-      } 
-    });   
+        }
+      }
+    });
 
     // graph.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
     //   let t=0;
@@ -456,7 +456,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
       }
-    } 
+    }
     if (!label_property) {
       vertice.value.setAttribute("label", element.name);
     } else {
@@ -465,7 +465,7 @@ export default class MxGEditor extends Component<Props, State> {
 
     vertice.value.setAttribute("Name", element.name);
     for (let i = 0; i < element.properties.length; i++) {
-      const p = element.properties[i]; 
+      const p = element.properties[i];
       vertice.value.setAttribute(p.name, p.value);
     }
 
@@ -515,7 +515,7 @@ export default class MxGEditor extends Component<Props, State> {
             let stencil = new mx.mxStencil(ne);
             mx.mxStencilRegistry.addStencil(element.type, stencil);
           }
- 
+
           let parent = graph.getDefaultParent();
           if (element.parentId) {
             parent = vertices[element.parentId];
@@ -527,7 +527,7 @@ export default class MxGEditor extends Component<Props, State> {
           node.setAttribute("label", element.name);
           node.setAttribute("Name", element.name);
           for (let i = 0; i < element.properties.length; i++) {
-            const p = element.properties[i]; 
+            const p = element.properties[i];
             node.setAttribute(p.name, p.value);
           }
           var vertex = graph.insertVertex(
@@ -543,7 +543,7 @@ export default class MxGEditor extends Component<Props, State> {
             ";" +
             languageDefinition.concreteSyntax.elements[element.type].design
           );
-          this.refreshVertexLabel(vertex); 
+          this.refreshVertexLabel(vertex);
           this.createOverlays(element, vertex);
           vertices[element.id] = vertex;
         }
@@ -586,46 +586,173 @@ export default class MxGEditor extends Component<Props, State> {
   //sacar esto en una libreria
 
 
-  createOverlays(element:any, cell:any){
+  createOverlays(element: any, cell: any) {
+    this.graph.removeCellOverlays(cell);
     this.createSelectionOverlay(element, cell);
+    this.createCustomOverlays(element, cell);
   }
 
-  createSelectionOverlay(element:any, cell:any){
-    let me=this;
+  createSelectionOverlay(element: any, cell: any) {
+    let me = this;
     for (let i = 0; i < element.properties.length; i++) {
       const property = element.properties[i];
-      if (property.name=="Selected") { 
-        this.graph.removeCellOverlays(cell);
-        let icon='images/models/' + property.value + '.png'
+      if (property.name == "Selected") {
+        let icon = 'images/models/' + property.value + '.png'
         let overlayFrame = new mx.mxCellOverlay(new mx.mxImage(icon, 24, 24), 'Overlay tooltip');
         overlayFrame.align = mx.mxConstants.ALIGN_RIGHT;
         overlayFrame.verticalAlign = mx.mxConstants.ALIGN_TOP;
-        overlayFrame.offset = new mx.mxPoint(0, 0); 
+        overlayFrame.offset = new mx.mxPoint(0, 0);
 
         overlayFrame.addListener(mx.mxEvent.CLICK, function (sender, evt) {
           try {
             evt.consume();
-            let parentCell=evt.properties.cell;
-            let uid=parentCell.value.attributes.uid.value;
+            let parentCell = evt.properties.cell;
+            let uid = parentCell.value.attributes.uid.value;
             let element = me.props.projectService.findModelElementById(me.currentModel, uid);
             for (let i = 0; i < element.properties.length; i++) {
               const property = element.properties[i];
-              if (property.name=="Selected") { 
-                switch(property.value){
-                  case "Selected":property.value="Unselected";break;
-                  case "Unselected":property.value="Undefined";break;
-                  case "Undefined":property.value="Selected";break;
-                } 
+              if (property.name == "Selected") {
+                switch (property.value) {
+                  case "Selected": property.value = "Unselected"; break;
+                  case "Unselected": property.value = "Undefined"; break;
+                  case "Undefined": property.value = "Selected"; break;
+                }
               }
             }
-            me.createOverlays(element, parentCell ); 
+            me.createOverlays(element, parentCell);
           } catch (error) { }
         });
-        
+
         this.graph.addCellOverlay(cell, overlayFrame);
-        this.graph.refresh(); 
-      } 
+        this.graph.refresh();
+      }
     }
+  }
+
+  createCustomOverlays(element: any, cell: any) {
+    let me = this;
+    let languageDefinition: any =
+      me.props.projectService.getLanguageDefinition(
+        "" + me.currentModel.name
+      );
+
+    if (languageDefinition.concreteSyntax.elements) {
+      if (languageDefinition.concreteSyntax.elements[element.type]) {
+        if (languageDefinition.concreteSyntax.elements[element.type].overlays) {
+          let overs = [];
+          for (let i = 0; i < languageDefinition.concreteSyntax.elements[element.type].overlays.length; i++) {
+            let overlayDef = languageDefinition.concreteSyntax.elements[element.type].overlays[i];
+            if (!overlayDef.linked_property) {
+              overs[overlayDef.align] = overlayDef;
+            }
+          }
+          for (let i = 0; i < languageDefinition.concreteSyntax.elements[element.type].overlays.length; i++) {
+            let overlayDef = languageDefinition.concreteSyntax.elements[element.type].overlays[i];
+            if (overlayDef.linked_property) {
+              for (let p = 0; p < element.properties.length; p++) {
+                const property = element.properties[p];
+                if (property.name == overlayDef.linked_property && property.value == overlayDef.linked_value) {
+                  overs[overlayDef.align] = overlayDef;
+                }
+              }
+            }
+          }
+          for (let key in overs) {
+            let overlayDef = overs[key];
+            this.createCustomOverlay(cell, overlayDef.icon, overlayDef.align, overlayDef.width, overlayDef.height);
+          }
+        }
+      }
+    }
+  }
+
+  createCustomOverlay(cell: any, base64Icon: any, align: any, width: any, height: any) {
+    let me = this;
+    let url = "data:image/png;base64," + base64Icon;
+    //let icon=this.DecodeImage(base64Icon);
+    //icon=icon.substring(5);
+    //icon='images/models/Undefined.png';
+    if (!width) {
+      width = 24;
+    }
+    if (!height) {
+      height = 24;
+    }
+    let overlayFrame = new mx.mxCellOverlay(new mx.mxImage(url, width, height), 'Overlay tooltip');
+    overlayFrame.verticalAlign = mx.mxConstants.ALIGN_BOTTOM;
+    overlayFrame.align = mx.mxConstants.ALIGN_LEFT;
+    switch (align) {
+      case "top-left":
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_TOP;
+        overlayFrame.align = mx.mxConstants.ALIGN_LEFT;
+        break;
+      case "top-right":
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_TOP;
+        overlayFrame.align = mx.mxConstants.ALIGN_RIGHT;
+        break;
+      case "bottom-left":
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_BOTTOM;
+        overlayFrame.align = mx.mxConstants.ALIGN_LEFT;
+        break;
+      case "bottom-right":
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_BOTTOM;
+        overlayFrame.align = mx.mxConstants.ALIGN_RIGHT;
+        break;
+      case "middle":
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_MIDDLE;
+        overlayFrame.align = mx.mxConstants.ALIGN_CENTER;
+        break;
+      case "middle-left":
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_MIDDLE;
+        overlayFrame.align = mx.mxConstants.ALIGN_LEFT;
+        break;
+      case "middle-right":
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_MIDDLE;
+        overlayFrame.align = mx.mxConstants.ALIGN_RIGHT;
+        break;
+      case "middle-top":
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_TOP;
+        overlayFrame.align = mx.mxConstants.ALIGN_CENTER;
+        break;
+      case "middle-bottom":
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_BOTTOM;
+        overlayFrame.align = mx.mxConstants.ALIGN_CENTER;
+        break;
+
+
+
+    }
+
+    overlayFrame.offset = new mx.mxPoint(0, 0);
+    this.graph.addCellOverlay(cell, overlayFrame);
+    this.graph.refresh();
+  }
+
+  DecodeImage(imageBase64: any) {
+    let contentType = "image/png";
+    let blob = this.b64toBlob(imageBase64, contentType);
+    let iconUrl = URL.createObjectURL(blob);
+    return iconUrl;
+  }
+
+  b64toBlob(b64Data, contentType = "", sliceSize = 512) {
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
+
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+
+    const blob = new Blob(byteArrays, { type: contentType });
+    return blob;
   }
 
 
