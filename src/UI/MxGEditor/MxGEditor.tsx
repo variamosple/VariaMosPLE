@@ -755,8 +755,9 @@ export default class MxGEditor extends Component<Props, State> {
     return blob;
   }
 
-
-
+  test(){
+    return "hello world...";
+  }
 
   render() {
     return (
