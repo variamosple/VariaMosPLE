@@ -44,6 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # ADD YOUR CUSTOM ENV VARIABLES HERE OR DEFINE THEM IN A FILE .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
           # DISABLE: COPYPASTE,SPELL # Uncomment to disable copy-paste and spell checks
+          ENABLE_LINTERS: JAVASCRIPT_ES,TYPESCRIPT_ES,PHP_BUILTIN,MARKDOWN_MARKDOWNLINT,JSON_ESLINT_PLUGIN_JSONC
 
       # Upload MegaLinter artifacts
       - name: Archive production artifacts
@@ -123,9 +124,9 @@ jobs:
         with:
           build: npm run build
           start: npm start
-#          record: true
+          record: true
         env:
-#          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 

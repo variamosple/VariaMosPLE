@@ -1,3 +1,4 @@
+/* eslint no-use-before-define: 0 */
 describe('User should be able to visit VariaMos Website', ()=>{
     it('User should get to the page by clicking on the home button', () => {
         // visit the url
