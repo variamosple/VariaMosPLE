@@ -44,7 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # ADD YOUR CUSTOM ENV VARIABLES HERE OR DEFINE THEM IN A FILE .mega-linter.yml AT THE ROOT OF YOUR REPOSITORY
           # DISABLE: COPYPASTE,SPELL # Uncomment to disable copy-paste and spell checks
-          ENABLE_LINTERS: JAVASCRIPT_ES,TYPESCRIPT_ES,PHP_BUILTIN,MARKDOWN_MARKDOWNLINT,JSON_ESLINT_PLUGIN_JSONC
+          ENABLE_LINTERS: TYPESCRIPT_ES,MARKDOWN_MARKDOWNLINT,JSON_ESLINT_PLUGIN_JSONC
 
       # Upload MegaLinter artifacts
       - name: Archive production artifacts
