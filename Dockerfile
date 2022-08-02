@@ -10,13 +10,16 @@ WORKDIR /variamos
 COPY package*.json ./
 COPY tsconfig.json ./
 
+RUN npm ci
+
 # copy source code to /variamos/src folder
 COPY ./ . 
 
 # # check files list
 # RUN ls -a
 
-RUN npm ci
+# No sense to run this after copying!!!
+# RUN npm ci
 # RUN npm install -g ts-node
 # RUN npm run build
 

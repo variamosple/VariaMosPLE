@@ -92,12 +92,13 @@ export default class ProjectService {
     let callback = function (response: any) {
       //Decode content.
       alert(JSON.stringify(response));
-      response.data.content = Buffer.from(
-        response.data.content,
-        "base64"
-      ).toString();
+      if(externalFunction.resulting_action === 'download')
+        response.data.content = Buffer.from(
+          response.data.content,
+          "base64"
+        ).toString();
 
-      if (response.data.name.indexOf("json") > -1)
+      if (response.data.name?.indexOf("json") > -1)
         response.data.content = JSON.parse(response.data.content);
 
       const resulting_action: any = {
