@@ -659,14 +659,14 @@ export default class MxGEditor extends Component<Props, State> {
           }
           for (let key in overs) {
             let overlayDef = overs[key];
-            this.createCustomOverlay(cell, overlayDef.icon, overlayDef.align, overlayDef.width, overlayDef.height);
+            this.createCustomOverlay(cell, overlayDef.icon, overlayDef.align, overlayDef.width, overlayDef.height, overlayDef.offset_x, overlayDef.offset_y);
           }
         }
       }
     }
   }
 
-  createCustomOverlay(cell: any, base64Icon: any, align: any, width: any, height: any) {
+  createCustomOverlay(cell: any, base64Icon: any, align: any, width: any, height: any, offset_x: any, offset_y: any) {
     let me = this;
     let url = "data:image/png;base64," + base64Icon;
     //let icon=this.DecodeImage(base64Icon);
@@ -722,8 +722,15 @@ export default class MxGEditor extends Component<Props, State> {
 
 
     }
-
-    overlayFrame.offset = new mx.mxPoint(0, 0);
+    let offx=0;
+    let offy=0;
+    if(offset_x){
+      offx=offset_x;
+    }
+    if(offset_y){
+      offy=offset_y;
+    } 
+    overlayFrame.offset = new mx.mxPoint(offx, offy);
     this.graph.addCellOverlay(cell, overlayFrame);
     this.graph.refresh();
   }
