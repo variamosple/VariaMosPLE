@@ -10,6 +10,7 @@
 // password={your_password} 
 // sslmode=require
 
+// host=variamos-db.postgres.database.azure.com
 // user: adminpg
 // pwd: D6w9yRIWw7r92opvkVzp
 
