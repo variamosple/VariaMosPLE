@@ -124,8 +124,11 @@ export default class ProjectService {
     let callback = function (data: any) {
       me._externalFunctions = data;
     };
-
-    this.languageUseCases.getExternalFunctions(callback, language[0].id);
+    if (language) {
+      if (language.length>0) {
+        this.languageUseCases.getExternalFunctions(callback, language[0].id);
+      }
+    } 
   }
 
   //Search Model functions_ START***********
