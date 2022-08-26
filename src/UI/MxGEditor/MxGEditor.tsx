@@ -8,6 +8,7 @@ import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
+import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 
@@ -364,13 +365,29 @@ export default class MxGEditor extends Component<Props, State> {
       }
     });
 
-    // graph.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
-    //   let t=0;
-    //   evt.consume(); 
-    // });
+    graph.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
+      try {
+        evt.consume();
+        var changes = evt.getProperty('edit').changes;
+        for (var i = 0; i < changes.length; i++) {
+          if (changes[i].constructor.name == "mxTerminalChange") {
+            // DO SOMETHING
+          }
+        }
+      } catch (error) {
+        alert(error);
+      }
+    });
+    
+    let gmodel = graph.model;
+    gmodel.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
+      me.graphModel_onChange(sender, evt);
+    });
+
 
     graph.getView().setAllowEval(true);
 
+    
     let keyHandler = new mx.mxKeyHandler(graph);
     keyHandler.bindKey(46, function (evt) {
       me.deleteSelection();
@@ -591,7 +608,41 @@ export default class MxGEditor extends Component<Props, State> {
     array.push(value);
   }
 
+  graphModel_onChange(sender, evt) {
+    let me = this;
+    try {
+      evt.consume();
+      var changes = evt.getProperty('edit').changes;
+      for (var i = 0; i < changes.length; i++) {
+        let change = changes[i];
+        if (change.constructor.name == "mxGeometryChange") {
+          if (change.cell) {
+            let cell = change.cell;
+            if (!cell.value.attributes) {
+              return;
+            }
+            let uid = cell.value.getAttribute("uid");
+            const relationship: Relationship = me.props.projectService.findModelRelationshipById(me.currentModel, uid);
+            if (!relationship) {
+              return;
+            }
+            relationship.points = [];
+            if (change.geometry.points) {
+              for (let i = 0; i < change.geometry.points.length; i++) {
+                const p = cell.geometry.points[i];
+                relationship.points.push(new Point(p.x, p.y))
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      me.processException(error);
+    }
+  }
+
   loadModel(model: Model) {
+    let me = this;
     let languageDefinition: any =
       this.props.projectService.getLanguageDefinition("" + model.name);
 
@@ -658,8 +709,9 @@ export default class MxGEditor extends Component<Props, State> {
         }
 
         let parent = graph.getDefaultParent();
+
         for (let i = 0; i < model.relationships.length; i++) {
-          const relationship = model.relationships[i];
+          const relationship: Relationship = model.relationships[i];
           let source = MxgraphUtils.findVerticeById(graph, relationship.sourceId, null);
           let target = MxgraphUtils.findVerticeById(graph, relationship.targetId, null);
           let doc = mx.mxUtils.createXmlDocument();
@@ -668,23 +720,14 @@ export default class MxGEditor extends Component<Props, State> {
           node.setAttribute("label", relationship.name);
           node.setAttribute("type", relationship.type);
 
-          //var cell = new mx.mxCell(node, new mx.mxGeometry(0, 0, 50, 50), 'curved=1;endArrow=classic;html=1;');
-          var cell = new mx.mxCell(
-            node,
-            new mx.mxGeometry(0, 0, 50, 50),
-            "strokeColor=#446E79;strokeWidth=2;"
-          );
-          cell.geometry.setTerminalPoint(new mx.mxPoint(50, 150), true);
-          cell.geometry.setTerminalPoint(new mx.mxPoint(150, 50), false);
-          cell.geometry.relative = true;
-          cell.edge = true;
-
-          //cell = this.graph?.addCell(cell);
-
-          let index = null;
-          this.graph?.addEdge(cell, parent, source, target, index);
-
-          //this.graph?.fireEvent(new mx.mxEventObject('cellsInserted', 'cells', [cell]));
+          var cell = this.graph?.insertEdge(parent, null, node, source, target, 'strokeColor=#69b630;strokeWidth=3;endArrow=block;endSize=8;edgeStyle=elbowEdgeStyle;');
+          cell.geometry.points = [];
+          if (relationship.points) {
+            for (let k = 0; k < relationship.points.length; k++) {
+              const p = relationship.points[k];
+              cell.geometry.points.push(new mx.mxPoint(p.x, p.y));
+            }
+          }
         }
       } finally {
         this.graph?.getModel().endUpdate();
@@ -883,6 +926,10 @@ export default class MxGEditor extends Component<Props, State> {
     this.graph.zoomOut();
   }
 
+  downloadImage() {
+    MxgraphUtils.exportFile(this.graph, "png");
+  }
+
   processException(ex) {
     alert(JSON.stringify(ex));
   }
@@ -903,12 +950,21 @@ export default class MxGEditor extends Component<Props, State> {
     }
   }
 
+  btnDownloadImage_onClick(e) {
+    try {
+      this.downloadImage();
+    } catch (ex) {
+      this.processException(ex);
+    }
+  }
+
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">
         <div>
-          <a onClick={this.btnZoomIn_onClick.bind(this)}><i className="bi bi-zoom-in"></i></a>{" "}
-          <a onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>
+          <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><i className="bi bi-zoom-in"></i></a>{" "}
+          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "}
+          {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
         </div>
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
       </div>
