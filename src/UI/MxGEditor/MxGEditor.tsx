@@ -10,6 +10,7 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
+import { isLabeledStatement } from "typescript";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 
 interface Props {
@@ -378,7 +379,7 @@ export default class MxGEditor extends Component<Props, State> {
         alert(error);
       }
     });
-    
+
     let gmodel = graph.model;
     gmodel.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
       me.graphModel_onChange(sender, evt);
@@ -387,7 +388,7 @@ export default class MxGEditor extends Component<Props, State> {
 
     graph.getView().setAllowEval(true);
 
-    
+
     let keyHandler = new mx.mxKeyHandler(graph);
     keyHandler.bindKey(46, function (evt) {
       me.deleteSelection();
@@ -462,39 +463,56 @@ export default class MxGEditor extends Component<Props, State> {
             if (def.style) {
               style = def.style;
             }
-            let label = "";
+            let labels = [];
             if (def.label_fixed) {
-              label = def.label_fixed;
+              labels.push("" + def.label_fixed);
             } else if (def.label_property) {
+              let ls = [];
+              if (Array.isArray(def.label_property)) {
+                ls = def.label_property;
+              } else {
+                ls = [def.label_property];
+              }
               for (let p = 0; p < relationship.properties.length; p++) {
                 const property = relationship.properties[p];
-                if (property.name == def.label_property) {
+                if (ls.includes(property.name)) {
                   if (property.value) {
-                    label = "" + property.value;
+                    labels.push("" + property.value);
+                  } else {
+                    labels.push("");
                   }
                 }
               }
             }
-            if (label != "") {
+            if (labels.length > 0) {
+              let separator = ", "
+              if (def.label_separator) {
+                separator = def.label_separator;
+              }
+              let label = labels.join(separator);
               let x = 0;
               let y = 0;
-              let offx = 0; //-edge.geometry.width / 2;
-              let offy = 0; //-edge.geometry.height / 2;
+              let offx = 0; 
+              if (def.offset_x) {
+                offx = (def.offset_x/100);
+              }
+              let offy = 0;
+              if (def.offset_y) {
+                offy = def.offset_y
+              }
               switch (def.align) {
-                case "top-left":
-                  x = -0.75;
-                  offy = -edge.geometry.height / 2;
+                case "left":
+                  x = -1 + offx;
                   break;
-                case "top-right":
-                  x = +0.75;
-                  offy = -edge.geometry.height / 2;
+                case "right":
+                  x = +1 + offx;
                   break;
-                case "bottom-left":
-                  x = -0.75;
-                  break;
-                case "bottom-right":
-                  x = +0.75;
-                  break;
+              }
+              if (def.offset_x) {
+                offx = def.offset_x
+              }
+              if (def.offset_y) {
+                offy = def.offset_y
               }
               var e21 = this.graph.insertVertex(edge, null, label, x, y, 1, 1, style, true);
               e21.setConnectable(false);
@@ -503,20 +521,8 @@ export default class MxGEditor extends Component<Props, State> {
               e21.geometry.width += 2;
               e21.geometry.height += 2;
 
-
-              // switch (def.align) {
-              //   case "top-left": 
-              //     offx=0;
-              //     offy=-edge.geometry.height / 2;
-              //     break;
-              //   case "top-right": 
-              //     offx=-e21.geometry.width;
-              //     offy=-edge.geometry.height / 2;
-              //     break;
-              // }
-
-
-              e21.geometry.offset = new mx.mxPoint(offx, offy);
+              offx=0;
+              e21.geometry.offset = new mx.mxPoint(offx, offy); //offsetx aqui no funciona correctamente cuando la dirección se invierte
             }
           }
         }
