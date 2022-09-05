@@ -461,6 +461,9 @@ export default class ProjectService {
     return project;
   }
 
+  //This gets called when one uploads a project file
+  //It takes as the parameters the file one selects from the
+  //dialog
   importProject(file: string | undefined): void {
     console.log(file);
     if (file) {

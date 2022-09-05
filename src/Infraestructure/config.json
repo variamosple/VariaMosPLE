@@ -1,8 +1,8 @@
 {
   "version": "4.22.06.05.09",
-  "urlBackEndLanguage": "http://vmos.local:53812",
-  "urlBackEndRestriction": "http://vmos.local:53757",
-  "urlBackEndRestrictiondev": "http://vmos.local:53757",
+  "urlBackEndLanguage": "http://vmos.local:30002",
+  "urlBackEndRestriction": "http://vmos.local:30003",
+  "urlBackEndRestrictiondev": "http://vmos.local:30003",
   "_comment.environment": "The environments available are development and production",
   "environment": "development",
   "urlVariamosDocumentation": "https://github.com/variamosple/VariaMosPLE/wiki",
