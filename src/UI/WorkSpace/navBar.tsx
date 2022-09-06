@@ -53,7 +53,7 @@ class navBar extends Component<Props, State> {
                 <a
                   className="bi bi-house-door shadow rounded"
                   href="https://variamos.com/home/variamos-web/"
-                  target="_blanck"
+                  target="_blank"
                 >
                   {/* Home */}
                 </a>
@@ -70,7 +70,7 @@ class navBar extends Component<Props, State> {
                 <a
                   className="bi bi-file-richtext shadow rounded"
                   href="https://github.com/VariaMosORG/VariaMos/wiki"
-                  target="_blanck"
+                  target="_blank"
                 >
                   {/* Docs */}
                 </a>

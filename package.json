@@ -1,5 +1,15 @@
 {
   "name": "variamos-ple",
+  "jest": {
+    "coverageThreshold": {
+      "global": {
+        "branches": 1,
+        "functions": 1,
+        "lines": 1,
+        "statements": 1
+      }
+    }
+  },
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -17,7 +27,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "CI=false && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -40,6 +50,13 @@
     ]
   },
   "devDependencies": {
-    "@typed-mxgraph/typed-mxgraph": "^1.0.0"
+    "@stryker-mutator/core": "^6.0.2",
+    "@stryker-mutator/jest-runner": "^6.0.2",
+    "@testing-library/cypress": "^8.0.2",
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^12.1.5",
+    "@testing-library/user-event": "^14.2.0",
+    "@typed-mxgraph/typed-mxgraph": "^1.0.0",
+    "cypress": "^9.7.0"
   }
 }

@@ -543,7 +543,7 @@ class LanguageManagement extends Component<Props, State> {
                       id="updateLanguageName"
                       value={this.state.formLanguage.name}
                       onChange={this.updateName}
-                      autoComplete="off" 
+                      autoComplete="off"
                     />
                     <label htmlFor="floatingInput">Enter name</label>
                   </div>
@@ -570,8 +570,8 @@ class LanguageManagement extends Component<Props, State> {
                   <div className="form-floating">
                     <select
                       className="form-select"
-                      id="updateLanguageType"
-                      aria-label="Select type"
+                      id="updateLanguageState"
+                      aria-label="Select state"
                       value={this.state.formLanguage.stateAccept}
                       onChange={this.updateStateAccept}
                     >
@@ -579,7 +579,7 @@ class LanguageManagement extends Component<Props, State> {
                       <option value="PENDING">Pending</option>
                       <option value="DISABLED">Disabled</option>
                     </select>
-                    <label htmlFor="newLanguageType">
+                    <label htmlFor="newLanguageState">
                       Select language state
                     </label>
                   </div>
@@ -596,7 +596,7 @@ class LanguageManagement extends Component<Props, State> {
                       style={{ height: "100px" }}
                       value={this.state.formLanguage.abstractSyntax}
                       onChange={this.updateAbstractSyntax}
-                      autoComplete="off" 
+                      autoComplete="off"
                     ></textarea>
                     <label htmlFor="newLanguageAbSy">
                       Enter abstract syntax
@@ -612,7 +612,7 @@ class LanguageManagement extends Component<Props, State> {
                       style={{ height: "100px" }}
                       value={this.state.formLanguage.concreteSyntax}
                       onChange={this.updateConcreteSyntax}
-                      autoComplete="off" 
+                      autoComplete="off"
                     ></textarea>
                     <label htmlFor="newLanguageCoSy">
                       Enter concrete syntax

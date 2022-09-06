@@ -1,8 +1,8 @@
 {
-  "version": "4.22.06.05.09",
-  "urlBackEndLanguage": "http://vmos.local:30002",
-  "urlBackEndRestriction": "http://vmos.local:30003",
-  "urlBackEndRestrictiondev": "http://vmos.local:30003",
+  "version": "4.22.08.29.21",
+  "urlBackEndLanguage": "https://variamos-ms-languages.azurewebsites.net",
+  "urlBackEndRestriction": "https://variamos-ms-restrictions.azurewebsites.net",
+  "urlBackEndRestrictiondev": "http://localhost:4003",
   "_comment.environment": "The environments available are development and production",
   "environment": "development",
   "urlVariamosDocumentation": "https://github.com/variamosple/VariaMosPLE/wiki",
