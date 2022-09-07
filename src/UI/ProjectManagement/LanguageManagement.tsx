@@ -21,6 +21,8 @@ class LanguageManagement extends Component<Props, State> {
       name: "",
       abstractSyntax: "",
       concreteSyntax: "",
+      //These state fields hold the content of the form
+      semantics: "",
       type: "DOMAIN",
       stateAccept: "PENDING",
     },
@@ -525,6 +527,7 @@ class LanguageManagement extends Component<Props, State> {
               <div className="col"></div>
             </div>
           </div>
+          {/* This the pane containing the tab for language updates */}
           <div
             className="tab-pane fade"
             id="nav-updatelanguage"
@@ -619,6 +622,22 @@ class LanguageManagement extends Component<Props, State> {
                     </label>
                   </div>
                 </div>
+                {/*We'll add a new text area for the semantic spec*/}
+                <div className="col-md">
+                  <div className="form-floating">
+                    <textarea
+                      className="form-control"
+                      placeholder="Enter Semantics"
+                      id="newLanguageSem"
+                      style={{ height: "100px" }}
+                      value={this.state.formLanguage.concreteSyntax}
+                      onChange={this.updateConcreteSyntax}
+                    ></textarea>
+                    <label htmlFor="newLanguageSem">
+                      Enter semantics
+                    </label>
+                  </div>
+                </div>
               </div>
               <br />
               <div className="row">
@@ -656,6 +675,7 @@ class LanguageManagement extends Component<Props, State> {
               </div>
             </div>
           </div>
+          {/* This Div holds the language creation tab */}
           <div
             className="tab-pane fade"
             id="nav-createlanguage"
@@ -698,6 +718,7 @@ class LanguageManagement extends Component<Props, State> {
                 </div>
               </div>
               <br />
+              {/*This div holds the text areas for the specs*/}
               <div className="row">
                 <div className="col-md">
                   <div className="form-floating">
@@ -726,6 +747,22 @@ class LanguageManagement extends Component<Props, State> {
                     ></textarea>
                     <label htmlFor="newLanguageCoSy">
                       Enter concrete syntax
+                    </label>
+                  </div>
+                </div>
+                {/*We'll add a new text area for the semantic spec*/}
+                <div className="col-md">
+                  <div className="form-floating">
+                    <textarea
+                      className="form-control"
+                      placeholder="Enter Semantics"
+                      id="newLanguageSem"
+                      style={{ height: "100px" }}
+                      value={this.state.formLanguage.concreteSyntax}
+                      onChange={this.updateConcreteSyntax}
+                    ></textarea>
+                    <label htmlFor="newLanguageSem">
+                      Enter semantics
                     </label>
                   </div>
                 </div>
