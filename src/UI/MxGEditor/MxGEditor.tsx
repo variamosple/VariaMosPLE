@@ -442,6 +442,8 @@ export default class MxGEditor extends Component<Props, State> {
                 const property = relationship.properties[p];
                 if (property.name == styleDef.linked_property && property.value == styleDef.linked_value) {
                   edge.style = styleDef.style;
+                  i=languageDefinition.concreteSyntax.relationships[relationship.type].styles.length;
+                  break;
                 }
               }
             }
