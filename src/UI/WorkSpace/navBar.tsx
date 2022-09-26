@@ -89,34 +89,6 @@ class navBar extends Component<Props, State> {
                 {/* Export Project */}
               </span>
             </li>
-            {/*  */}
-            <li
-              className="list-group-item nav-bar-variamos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="bottom"
-              title="Zoom in"
-            >
-              <span
-                onClick={this.exportProject}
-                className="bi bi-zoom-in shadow rounded"
-              >
-                {/* Zoom In */}
-              </span>
-            </li>
-            <li
-              className="list-group-item nav-bar-variamos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="bottom"
-              title="Zoom out"
-            >
-              <span
-                onClick={this.exportProject}
-                className="bi bi-zoom-out shadow rounded"
-              >
-                {/* Zoom Out */}
-              </span>
-            </li>
-            {/*  */}
             <li
               className="list-group-item nav-bar-variamos"
               data-bs-toggle="tooltip"
