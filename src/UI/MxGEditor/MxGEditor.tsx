@@ -84,7 +84,8 @@ export default class MxGEditor extends Component<Props, State> {
     mx.mxStencil.prototype.allowEval = true;
 
     mx.mxEvent.disableContextMenu(this.graphContainerRef.current);
-    new mx.mxRubberband(graph);
+    const rubber = new mx.mxRubberband(graph);
+    //rubber.setEnabled(true);
     // var parent = graph.getDefaultParent();
     graph.setPanning(true);
     graph.setTooltips(true);
@@ -100,6 +101,8 @@ export default class MxGEditor extends Component<Props, State> {
     // cells on edges to split edges
     graph.setDropEnabled(true);
     graph.setSplitEnabled(false);
+
+
 
     //graph.getStylesheet().getDefaultEdgeStyle()["edgeStyle"] = "orthogonalEdgeStyle"; 
 
@@ -122,6 +125,16 @@ export default class MxGEditor extends Component<Props, State> {
       }
     };
     graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
+      if(evt.properties.cells){
+        for(const c of evt.properties.cells){
+          console.log(c)
+          if(c.getGeometry().x < 0 || c.getGeometry().y < 0){
+            c.getGeometry().x -= evt.properties.dx;
+            c.getGeometry().y -= evt.properties.dy;
+            alert("Out of bounds, position reset");
+          }
+        }
+      }
       evt.consume();
       if (evt.properties.cells) {
         let cell = evt.properties.cells[0];
