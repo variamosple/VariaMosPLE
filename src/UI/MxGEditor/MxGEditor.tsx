@@ -789,6 +789,7 @@ export default class MxGEditor extends Component<Props, State> {
                   case "Selected": property.value = "Unselected"; break;
                   case "Unselected": property.value = "Undefined"; break;
                   case "Undefined": property.value = "Selected"; break;
+                  default: property.value = "Unselected"; break;
                 }
               }
             }
