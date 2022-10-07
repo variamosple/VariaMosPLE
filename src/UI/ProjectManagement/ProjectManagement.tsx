@@ -49,6 +49,7 @@ class ProjectManagement extends Component<Props, State> {
     this.onEnterFocusPL = this.onEnterFocusPL.bind(this);
   }
 
+  //This gets called when one selects the file on the dialog
   handleImportProject(files: FileList | null) {
     if (files) {
       let selectedFile = files[0];
@@ -64,6 +65,7 @@ class ProjectManagement extends Component<Props, State> {
     }
   }
 
+  //This gets called by the upload project modal.
   importProject() {
     this.props.projectService.importProject(this.state.importProject);
     document.getElementById("list-iProject-list")?.classList.remove("active");

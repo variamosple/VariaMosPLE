@@ -1,6 +1,6 @@
 .GraphContainer {
     overflow-block: scroll;
-    overflow-x: auto;
+    overflow-x: scroll;
     overflow-y: auto;
     height: 80vh;
     /* background: url("../../Infraestructure/Images/grid.gif"); */
