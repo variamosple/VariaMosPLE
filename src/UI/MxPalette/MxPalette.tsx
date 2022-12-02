@@ -120,6 +120,8 @@ export default class MxPalette extends Component<Props, State> {
 
     if (!parentsAllowed.includes(parentType)) {
       throw ("Child not allowed by the parent element.");
+    }else{
+      //todo: min max
     }
 
     let element: any;
