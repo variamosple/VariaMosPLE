@@ -10,6 +10,7 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 import CustomProperties from "./CustomProperties";
 import "./PropertiesMenu.css";
 import * as alertify from "alertifyjs";
+import SuggestionInput from "../SuggestionInput/SuggestionInput";
 
 interface Props {
   projectService: ProjectService;
@@ -98,7 +99,13 @@ export default class MxProperties extends Component<Props, State> {
   }
 
   input_onChange(e: any) {
-    let name = e.target.attributes["data-name"].value;
+    let name=null;
+    if(e.target.attributes){
+      name = e.target.attributes["data-name"].value;
+    }
+    else if(e.target.props){
+      name = e.target.props["data-name"];
+    }
     let value = e.target.value;
     this.property_onChange(name, value);
   }
@@ -342,6 +349,7 @@ export default class MxProperties extends Component<Props, State> {
   renderProperties() {
     let ret = [];
     if (this.currentObject) {
+      let concreteSyntaxElement:any=null;
       let languageDefinition: any =
         this.props.projectService.getLanguageDefinition(
           "" + this.currentModel?.name
@@ -354,20 +362,37 @@ export default class MxProperties extends Component<Props, State> {
             languageDefinition.abstractSyntax.elements[this.currentObject.type];
         } else if (
           languageDefinition.abstractSyntax.relationships[
-            this.currentObject.type
+          this.currentObject.type
           ]
         ) {
           this.elementDefinition =
             languageDefinition.abstractSyntax.relationships[
-              this.currentObject.type
+            this.currentObject.type
             ];
         }
+
+        if (
+          languageDefinition.concreteSyntax.elements[this.currentObject.type]
+        ) {
+          concreteSyntaxElement =
+            languageDefinition.concreteSyntax.elements[this.currentObject.type];
+        } else if (
+          languageDefinition.concreteSyntax.relationships[
+          this.currentObject.type
+          ]
+        ) {
+          concreteSyntaxElement =
+            languageDefinition.concreteSyntax.relationships[
+            this.currentObject.type
+            ];
+        }
+ 
         let property = {
           name: "Name",
           type: "String",
         };
         this.state.values["Name"] = this.currentObject.name;
-        ret.push(this.createControl(property, this.currentObject.name, true));
+        ret.push(this.createControl(property, this.currentObject.name, true, concreteSyntaxElement));
         if (this.elementDefinition.properties) {
           for (let i = 0; i < this.elementDefinition.properties.length; i++) {
             let property: any = this.elementDefinition.properties[i];
@@ -417,13 +442,14 @@ export default class MxProperties extends Component<Props, State> {
           }
         }
         for (let p = 0; p < this.currentObject.properties.length; p++) {
-          let pr=this.currentObject.properties[p]; 
-          this.state.values[pr.name] =  pr.value;
+          let pr = this.currentObject.properties[p];
+          this.state.values[pr.name] = pr.value;
           ret.push(
             this.createControl(
               this.currentObject.properties[p],
               this.currentObject.properties[p].value,
-              this.currentObject.properties[p].display
+              this.currentObject.properties[p].display, 
+              concreteSyntaxElement
             )
           );
         }
@@ -432,7 +458,7 @@ export default class MxProperties extends Component<Props, State> {
     return ret;
   }
 
-  createControl(property: any, value: any, display: any) {
+  createControl(property: any, value: any, display: any, concreteSyntax: any) {
     let control: any;
     let style = null;
     if (display) {
@@ -641,6 +667,17 @@ export default class MxProperties extends Component<Props, State> {
           );
         }
         break;
+      case "Autocomplete":
+        control = (
+          <SuggestionInput
+            className="form-control"
+            data-name={property.name}
+            onChange={this.input_onChange}
+            value={this.state.values[property.name]}
+            endPoint={this.getAutoCompleteEndPoint(property.name, concreteSyntax)}
+          />
+        );
+        break;
     }
     return (
       <div
@@ -654,6 +691,16 @@ export default class MxProperties extends Component<Props, State> {
         <hr style={{ marginTop: 10, color: "gray" }} />
       </div>
     );
+  }
+
+  getAutoCompleteEndPoint(propertyName: any, concreteSyntax: any){ 
+     for (let i = 0; i < concreteSyntax.autocomplete_services.length; i++) {
+      const item = concreteSyntax.autocomplete_services[i];
+      if (item.property==propertyName) {
+        return item.endpoint;
+      }
+     }
+     return null;
   }
 
   render() {
