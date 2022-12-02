@@ -11,6 +11,7 @@ import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relat
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
 import { isLabeledStatement } from "typescript";
+import SuggestionInput from "../SuggestionInput/SuggestionInput";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 
 interface Props {
@@ -84,7 +85,8 @@ export default class MxGEditor extends Component<Props, State> {
     mx.mxStencil.prototype.allowEval = true;
 
     mx.mxEvent.disableContextMenu(this.graphContainerRef.current);
-    new mx.mxRubberband(graph);
+    const rubber = new mx.mxRubberband(graph);
+    //rubber.setEnabled(true);
     // var parent = graph.getDefaultParent();
     graph.setPanning(true);
     graph.setTooltips(true);
@@ -100,6 +102,8 @@ export default class MxGEditor extends Component<Props, State> {
     // cells on edges to split edges
     graph.setDropEnabled(true);
     graph.setSplitEnabled(false);
+
+
 
     //graph.getStylesheet().getDefaultEdgeStyle()["edgeStyle"] = "orthogonalEdgeStyle"; 
 
@@ -122,6 +126,16 @@ export default class MxGEditor extends Component<Props, State> {
       }
     };
     graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
+      if(evt.properties.cells){
+        for(const c of evt.properties.cells){
+          console.log(c)
+          if(c.getGeometry().x < 0 || c.getGeometry().y < 0){
+            c.getGeometry().x -= evt.properties.dx;
+            c.getGeometry().y -= evt.properties.dy;
+            alert("Out of bounds, position reset");
+          }
+        }
+      }
       evt.consume();
       if (evt.properties.cells) {
         let cell = evt.properties.cells[0];
@@ -776,6 +790,7 @@ export default class MxGEditor extends Component<Props, State> {
                   case "Selected": property.value = "Unselected"; break;
                   case "Unselected": property.value = "Undefined"; break;
                   case "Undefined": property.value = "Selected"; break;
+                  default: property.value = "Unselected"; break;
                 }
               }
             }
@@ -924,7 +939,7 @@ export default class MxGEditor extends Component<Props, State> {
 
   test() {
     return "hello world...";
-  }
+  } 
 
   zoomIn() {
     this.graph.zoomIn();
@@ -964,16 +979,16 @@ export default class MxGEditor extends Component<Props, State> {
     } catch (ex) {
       this.processException(ex);
     }
-  }
+  } 
 
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">
         <div>
           <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><i className="bi bi-zoom-in"></i></a>{" "}
-          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "}
+          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "} 
           {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
-        </div>
+        </div> 
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
       </div>
     );

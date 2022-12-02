@@ -1,10 +1,13 @@
+//modify this to handle the semantics
+
 export class Language {
   id?: number;
   name: string;
   abstractSyntax: string;
   concreteSyntax: string;
   type: string;
-  stateAccept?: string;
+  stateAccept: string;
+  semantics: string;
 
   constructor(
     id: number,
@@ -12,7 +15,8 @@ export class Language {
     abstractSyntax: string,
     concreteSyntax: string,
     type: string,
-    stateAccept?: string
+    stateAccept?: string,
+    semantics?: string,
   ) {
     this.id = id;
     this.name = name;
@@ -20,5 +24,6 @@ export class Language {
     this.concreteSyntax = concreteSyntax;
     this.type = type;
     this.stateAccept = stateAccept;
+    this.semantics = semantics;
   }
 }

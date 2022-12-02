@@ -25,6 +25,7 @@ import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/RestrictionsUseCases";
 import ProjectUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
 import { isJSDocThisTag } from "typescript";
+import * as alertify from "alertifyjs";
 
 export default class ProjectService {
   private graph: any;
@@ -81,23 +82,31 @@ export default class ProjectService {
 
     // Standard Request Start
     externalFunction.request = {};
+    
+    //pack the semantics
+    const semantics = me._languages.filter((lang) => lang.id === externalFunction.language_id)[0].semantics;
 
     externalFunction.request = {
       transactionId: me.generateId(),
-      data: { modelSelectedId: me.treeIdItemSelected, project: me._project },
+      data: { 
+        modelSelectedId: me.treeIdItemSelected, 
+        project: me._project,
+        rules: semantics 
+      },
     };
     // Standard Request End
     
   
     let callback = function (response: any) {
       //Decode content.
-      alert(JSON.stringify(response));
-      response.data.content = Buffer.from(
-        response.data.content,
-        "base64"
-      ).toString();
+      //alert(JSON.stringify(response));
+      if(externalFunction.resulting_action === 'download')
+        response.data.content = Buffer.from(
+          response.data.content,
+          "base64"
+        ).toString();
 
-      if (response.data.name.indexOf("json") > -1)
+      if (response.data.name?.indexOf("json") > -1)
         response.data.content = JSON.parse(response.data.content);
 
       const resulting_action: any = {
@@ -105,16 +114,28 @@ export default class ProjectService {
           me.utils.downloadFile(response.data.name, response.data.content);
         },
         showonscreen: function () {
-          alert(JSON.stringify(response.data.content));
+          // alert(JSON.stringify(response.data.content));
+          if('error' in response.data) {
+            alertify.error(response.data.error);
+          } else {
+            alertify.success(response.data.content);
+          // document.getElementById(me.treeIdItemSelected).click();
+          }
         },
         updateproject: function() {
-          me.updateProject(response.data.content,me.treeIdItemSelected);
+
+          if('error' in response.data) {
+            alertify.error(response.data.error);
+          } else {
+            me.updateProject(response.data.content,me.treeIdItemSelected);
           // document.getElementById(me.treeIdItemSelected).click();
+          }
         }
       };
 
       resulting_action[externalFunction.resulting_action]();
     };
+    alertify.success('request sent ...');
     me.languageUseCases.callExternalFuntion(callback, externalFunction);
   }
 
@@ -353,6 +374,7 @@ export default class ProjectService {
   createLanguage(callback: any, language: any) {
     language.abstractSyntax = JSON.parse(language.abstractSyntax);
     language.concreteSyntax = JSON.parse(language.concreteSyntax);
+    language.semantics = JSON.parse(language.semantics);
 
     return this.languageUseCases.createLanguage(callback, language);
   }
@@ -361,6 +383,7 @@ export default class ProjectService {
     language.id = languageId;
     language.abstractSyntax = JSON.parse(language.abstractSyntax);
     language.concreteSyntax = JSON.parse(language.concreteSyntax);
+    language.semantics = JSON.parse(language.semantics);
 
     return this.languageUseCases.updateLanguage(callback, language);
   }
@@ -463,6 +486,9 @@ export default class ProjectService {
     return project;
   }
 
+  //This gets called when one uploads a project file
+  //It takes as the parameters the file one selects from the
+  //dialog
   importProject(file: string | undefined): void {
     console.log(file);
     if (file) {
