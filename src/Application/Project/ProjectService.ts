@@ -99,7 +99,7 @@ export default class ProjectService {
   
     let callback = function (response: any) {
       //Decode content.
-      alert(JSON.stringify(response));
+      //alert(JSON.stringify(response));
       if(externalFunction.resulting_action === 'download')
         response.data.content = Buffer.from(
           response.data.content,

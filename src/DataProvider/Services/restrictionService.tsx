@@ -38,6 +38,24 @@ export default class RestrictionService {
           throw new Error(JSON.stringify(res.data));
 
         callback(responseAPISuccess);
+      }).catch(function (error) {
+        let m=JSON.stringify(error);
+        console.log(m);
+        alert(m);
+
+        // if (error.response) {
+        //   // Request made and server responded
+        //   alert(error.response.data);
+        //   alert(error.response.status);
+        //   alert(error.response.headers);
+        // } else if (error.request) {
+        //   // The request was made but no response was received
+        //   alert(error.request);
+        // } else {
+        //   // Something happened in setting up the request that triggered an Error
+        //   alert('Error ' + error.message);
+        // }
+    
       });
     } catch (error) {
       response = "Something wrong in apply restriction Service: " + error;
