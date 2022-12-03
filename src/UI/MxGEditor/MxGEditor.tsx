@@ -11,6 +11,7 @@ import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relat
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
 import { isLabeledStatement } from "typescript";
+import SuggestionInput from "../SuggestionInput/SuggestionInput";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 
 interface Props {
@@ -941,7 +942,7 @@ export default class MxGEditor extends Component<Props, State> {
 
   test() {
     return "hello world...";
-  }
+  } 
 
   zoomIn() {
     this.graph.zoomIn();
@@ -981,16 +982,16 @@ export default class MxGEditor extends Component<Props, State> {
     } catch (ex) {
       this.processException(ex);
     }
-  }
+  } 
 
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">
         <div>
           <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><i className="bi bi-zoom-in"></i></a>{" "}
-          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "}
+          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "} 
           {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
-        </div>
+        </div> 
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
       </div>
     );
