@@ -49,8 +49,12 @@ export default class SuggestionInput extends Component<Props, State> {
       return;
     }
     let url = this.props.endPoint;
+    let input= this.state.text;
+    if (!input) {
+      input="";
+    }
     let request = {
-      input: this.state.text
+      input: input
     };
 
     const config = {
@@ -63,6 +67,12 @@ export default class SuggestionInput extends Component<Props, State> {
       axios(config).then((res) => {
         let data = res.data;
         this.state.data = data;
+        this.state.text=data.input;
+        if (data.input.length>0) {
+          if (!this.state.text.endsWith(" ")) {
+            this.state.text+=" ";
+          }
+        }
         this.state.showModal = true;
         this.modalDialogRef.current.classList.add("show");
         this.forceUpdate();
@@ -85,43 +95,7 @@ export default class SuggestionInput extends Component<Props, State> {
     } catch (error) {
       console.log("Something wrong in getExternalFunctions Service: " + error);
     }
-  }
-
-  loadSuggestionsHiba() {
-    let url = "http://193.52.45.42:8989/suggest";
-    let data = new URLSearchParams();
-    data.append('q', 'The system shall provide');
-    const config = {
-      baseURL: url,
-      method: "POST" as Method,
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      data: data.toString(),
-    };
-
-    try {
-      axios(config).then((res) => {
-        let data = res.data;
-        let x = 0;
-      }).catch(function (error) {
-        let x = 0;
-        if (error.response) {
-          // Request made and server responded
-          console.log(error.response.data);
-          console.log(error.response.status);
-          console.log(error.response.headers);
-        } else if (error.request) {
-          // The request was made but no response was received
-          console.log(error.request);
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          console.log('Error', error.message);
-        }
-
-      });
-    } catch (error) {
-      console.log("Something wrong in getExternalFunctions Service: " + error);
-    }
-  }
+  } 
 
   inputText_onKeyDown(e) {
     if (e.keyCode == 32) {
@@ -130,10 +104,23 @@ export default class SuggestionInput extends Component<Props, State> {
   }
 
   inputText_onChange(e) {
-    this.setState({
-      text: e.target.value
-    });
+    if (!e.target.value) {
+      this.state.text=e.target.value;
+      this.forceUpdate();
+      this.loadSuggestions();
+    }else{
+      this.setState({
+        text: e.target.value
+      });
+    } 
     this.raiseOnChange(e.target.value);
+  }
+
+  inputText_onFocus(e) {
+    let me=this;
+    // if (!this.state.text) {
+      this.loadSuggestions();
+    // }
   }
 
   inputOption_onClick(e) {
@@ -141,8 +128,9 @@ export default class SuggestionInput extends Component<Props, State> {
     let value = e.target.attributes["data-value"].value;
     let text = this.state.text
     if (!value.startsWith("<")) {
-      text += value;
+      text += value + " "; 
     }
+    this.state.text=text;
     this.setState({
       text: text
     })
@@ -176,7 +164,7 @@ export default class SuggestionInput extends Component<Props, State> {
     return (
       <span>
         <div className="autocomplete">
-          <textarea className="form-control" ref={this.inputTextRef} onKeyDown={this.inputText_onKeyDown.bind(this)} onChange={this.inputText_onChange.bind(this)} value={this.state.text} />
+          <textarea className="form-control" ref={this.inputTextRef} onKeyDown={this.inputText_onKeyDown.bind(this)} onChange={this.inputText_onChange.bind(this)} onFocus={this.inputText_onFocus.bind(this)} value={this.state.text} />
           <div ref={this.modalDialogRef} className="autocomplete-items" >
             {this.renderOptions()}
           </div>
