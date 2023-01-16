@@ -253,6 +253,8 @@ export default class MxGEditor extends Component<Props, State> {
       } catch (error) { }
     });
 
+
+
     graph.addListener(mx.mxEvent.CELL_CONNECTED, function (sender, evt) {
       try {
         evt.consume();
@@ -332,6 +334,7 @@ export default class MxGEditor extends Component<Props, State> {
       } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         let m = error;
+        console.error("something went wrong: ", error)
       }
     });
 

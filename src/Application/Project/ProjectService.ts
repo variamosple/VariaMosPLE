@@ -77,7 +77,7 @@ export default class ProjectService {
     return this._environment;
   }
 
-  callExternalFuntion(externalFunction: ExternalFuntion) {
+  callExternalFuntion(externalFunction: ExternalFuntion, query: any) {
     let me = this;
 
     // Standard Request Start
@@ -86,13 +86,15 @@ export default class ProjectService {
     //pack the semantics
     const semantics = me._languages.filter((lang) => lang.id === externalFunction.language_id)[0].semantics;
 
+    const data = { 
+      modelSelectedId: me.treeIdItemSelected, 
+      project: me._project,
+      rules: semantics 
+    };
+
     externalFunction.request = {
       transactionId: me.generateId(),
-      data: { 
-        modelSelectedId: me.treeIdItemSelected, 
-        project: me._project,
-        rules: semantics 
-      },
+      data: !query ? data : { ...data, query },
     };
     // Standard Request End
     
@@ -118,7 +120,7 @@ export default class ProjectService {
           if('error' in response.data) {
             alertify.error(response.data.error);
           } else {
-            alertify.success(response.data.content);
+            alertify.success(String(response.data.content));
           // document.getElementById(me.treeIdItemSelected).click();
           }
         },
@@ -132,8 +134,18 @@ export default class ProjectService {
           }
         }
       };
-
-      resulting_action[externalFunction.resulting_action]();
+      //Set the resulting action to be conditional on the query itself
+      //since we will have a single mechanism for making these queries
+      // TODO: FIXME: This is a dirty hack...
+      if(!query){
+        resulting_action[externalFunction.resulting_action]();
+      } else {
+        if(response.data.content?.productLines) {
+          resulting_action['updateproject']()
+        } else {
+          resulting_action['showonscreen']()
+        }
+      }
     };
     alertify.success('request sent ...');
     me.languageUseCases.callExternalFuntion(callback, externalFunction);

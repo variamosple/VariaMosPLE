@@ -16,6 +16,10 @@ class TreeMenu extends Component<Props, State> {
     modalTittle: "",
     modalInputText: "",
     modalInputValue: "",
+    // Placeholder, we will handle the querys here for now
+    query: "",
+    selectedFunction: -1,
+    // End query state
     optionAllowModelEnable: false,
     optionAllowModelDomain: false,
     optionAllowModelApplication: false,
@@ -45,6 +49,11 @@ class TreeMenu extends Component<Props, State> {
       this.projectService_addListener.bind(this);
     this.handleUpdateEditorText = this.handleUpdateEditorText.bind(this);
     this.handleUpdateNewSelected = this.handleUpdateNewSelected.bind(this);
+    //Query bindings
+    this.runQuery = this.runQuery.bind(this);
+    this.updateQuery = this.updateQuery.bind(this);
+    this.setSelectedFunction = this.setSelectedFunction.bind(this);
+    //End Query bindings
     this.addNewFolder = this.addNewFolder.bind(this);
     this.updateModal = this.updateModal.bind(this);
     this.removeHidden = this.removeHidden.bind(this);
@@ -55,8 +64,8 @@ class TreeMenu extends Component<Props, State> {
     this.callExternalFuntion = this.callExternalFuntion.bind(this);
   }
 
-  callExternalFuntion(efunction: ExternalFuntion): void {
-    this.props.projectService.callExternalFuntion(efunction);
+  callExternalFuntion(efunction: ExternalFuntion, query: any = null): void {
+    this.props.projectService.callExternalFuntion(efunction, query);
   }
 
   onEnterModal(event: any) {
@@ -216,6 +225,24 @@ class TreeMenu extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
+  updateQuery(event: React.ChangeEvent<HTMLTextAreaElement>){
+    this.setState({
+      query: event.target.value
+    })
+  }
+
+  setSelectedFunction(idx){
+    this.setState({
+      selectedFunction: idx
+    })
+  }
+
+  runQuery(_event: any){
+    document.getElementById("closeQueryModal")?.click();
+    const query_json = JSON.parse(this.state.query);
+    this.callExternalFuntion(this.props.projectService.externalFunctions[this.state.selectedFunction], query_json)
+  }
+  
   addNewFolder(event: any) {
     if (this.state.modalInputValue === "") {
       alertify.error("The name is required");
@@ -416,6 +443,68 @@ class TreeMenu extends Component<Props, State> {
           </div>
         </div>
 
+        {/* Create a modal for entering the query as a placeholder */}
+        <div
+          className="modal fade"
+          id="queryModal"
+          tabIndex={-1}
+          aria-labelledby="queryModalLabel"
+          aria-hidden="true"
+        >
+          <div className="modal-dialog modalQuery-center-variamos">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="queryModalLabel">
+                  Please input your query
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="form-floating">
+                  <textarea
+                      className="form-control"
+                      placeholder="Enter your query"
+                      id="queryInputTxtArea"
+                      style={{ height: "150px" }}
+                      value={this.state.query}
+                      onChange={this.updateQuery}
+                      autoComplete="off"
+                    ></textarea>
+                    <label htmlFor="newLanguageAbSy">
+                      Enter your query
+                    </label>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-Variamos"
+                  onClick={this.runQuery}
+                >
+                  Run Query
+                </button>
+                <div
+                  hidden={true}
+                  id="closeQueryModal"
+                  data-bs-dismiss="modal"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* End new modal */}
         <div
           className="modal fade"
           id="deleteModal"
@@ -519,7 +608,10 @@ class TreeMenu extends Component<Props, State> {
                         <li>
                           <span
                             className={"dropdown-item"}
-                            onClick={() => this.callExternalFuntion(efunction)}
+                            //Check if the external function needs extra data
+                            // TODO: (HACK) for now we trigger this if the header is non-empty.
+                            {...(Object.getOwnPropertyNames(efunction.header).length > 0 ? {"data-bs-toggle":"modal", "data-bs-target":"#queryModal", onClick: () => this.setSelectedFunction(i)} : { onClick: () => this.callExternalFuntion(efunction) })}
+                            // onClick={() => this.callExternalFuntion(efunction)}
                           >
                             {efunction.label}
                           </span>
