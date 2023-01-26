@@ -5,7 +5,7 @@ import ProjectService from "../../Application/Project/ProjectService";
 interface Props {
   projectService: ProjectService;
 }
-interface State {}
+interface State { }
 
 class navBar extends Component<Props, State> {
   state = {};
@@ -87,6 +87,16 @@ class navBar extends Component<Props, State> {
                 className="bi bi-download shadow rounded"
               >
                 {/* Export Project */}
+              </span>
+            </li>
+            <li title="Queries" 
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom" 
+              className="list-group-item nav-bar-variamos"
+              onClick={() => console.log("Query")}
+            >
+              <span className="bi bi-tools shadow rounded">
+                {/* Queries */}
               </span>
             </li>
             <li

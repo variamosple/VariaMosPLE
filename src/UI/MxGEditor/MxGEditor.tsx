@@ -989,6 +989,7 @@ export default class MxGEditor extends Component<Props, State> {
       <div ref={this.containerRef} className="MxGEditor">
         <div>
           <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><i className="bi bi-zoom-in"></i></a>{" "}
+          <a onClick={() => alert("hello world")}><i className="bi bi-vector-pen"></i></a>
           <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "} 
           {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
         </div> 
