@@ -37,7 +37,7 @@ export default class ProjectService {
   private utils: Utils = new Utils();
 
   private _environment: string = _config.environment;
-  private _languages: any = this.getLanguagesDetail();
+  private _languages: any = this.getLanguagesByUser();
   private _externalFunctions: ExternalFuntion[] = [];
   private _project: Project = this.createProject("");
   private treeItemSelected: string = "";
@@ -363,6 +363,24 @@ export default class ProjectService {
     return this._languages;
   }
 
+  getUser(){
+    let userId="0";
+    let databaseUserProfile=sessionStorage.getItem("databaseUserProfile");
+    if(databaseUserProfile){
+      let data=JSON.parse(databaseUserProfile);
+      userId=data.user.id;
+    } 
+    if (!userId) {
+      userId="0"; 
+    }
+    return userId;
+  }
+
+  getLanguagesByUser(): Language[] {
+    let user=this.getUser();
+    return this.languageUseCases.getLanguagesByUser(user);
+  }
+
   getLanguagesDetail(): Language[] {
     return this.languageUseCases.getLanguagesDetail();
   }
@@ -384,24 +402,29 @@ export default class ProjectService {
   }
 
   createLanguage(callback: any, language: any) {
-    language.abstractSyntax = JSON.parse(language.abstractSyntax);
-    language.concreteSyntax = JSON.parse(language.concreteSyntax);
-    language.semantics = JSON.parse(language.semantics);
-
-    return this.languageUseCases.createLanguage(callback, language);
+    let user=this.getUser(); 
+    if (user) {
+      language.abstractSyntax = JSON.parse(language.abstractSyntax);
+      language.concreteSyntax = JSON.parse(language.concreteSyntax);
+      language.semantics = JSON.parse(language.semantics);
+      return this.languageUseCases.createLanguage(callback, language, user);
+    }
   }
 
   updateLanguage(callback: any, language: any, languageId: string) {
-    language.id = languageId;
-    language.abstractSyntax = JSON.parse(language.abstractSyntax);
-    language.concreteSyntax = JSON.parse(language.concreteSyntax);
-    language.semantics = JSON.parse(language.semantics);
-
-    return this.languageUseCases.updateLanguage(callback, language);
+    let user=this.getUser(); 
+    if (user) {
+      language.id = languageId;
+      language.abstractSyntax = JSON.parse(language.abstractSyntax);
+      language.concreteSyntax = JSON.parse(language.concreteSyntax);
+      language.semantics = JSON.parse(language.semantics);  
+      return this.languageUseCases.updateLanguage(callback, language, user);
+    }
   }
 
   deleteLanguage(callback: any, languageId: string) {
-    return this.languageUseCases.deleteLanguage(callback, languageId);
+    let user=this.getUser();
+    return this.languageUseCases.deleteLanguage(callback, languageId, user);
   }
 
   existDomainModel(language: string): boolean {
@@ -545,7 +568,7 @@ export default class ProjectService {
   }
 
   refreshLanguageList() {
-    this._languages = this.getLanguagesDetail();
+    this._languages = this.getLanguagesByUser();
     this.raiseEventLanguagesDetail(this._languages);
   }
 
