@@ -9,3 +9,7 @@ export function logoutUser() {
 export function getUserProfile() {
   return JSON.parse(sessionStorage.getItem(SignUpKeys.CurrentUserProfile))
 }
+
+export function getDataBaseUserProfile() {
+  return JSON.parse(sessionStorage.getItem(SignUpKeys.DataBaseUserProfile))
+}
