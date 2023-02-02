@@ -364,12 +364,16 @@ export default class ProjectService {
   }
 
   getUser(){
-    let value=localStorage.getItem('utoken')
-    if (!value) {
-      value="0";
-      localStorage.setItem('utoken', value);
+    let userId="0";
+    let databaseUserProfile=sessionStorage.getItem("databaseUserProfile");
+    if(databaseUserProfile){
+      let data=JSON.parse(databaseUserProfile);
+      userId=data.user.id;
+    } 
+    if (!userId) {
+      userId="0"; 
     }
-    return value;
+    return userId;
   }
 
   getLanguagesByUser(): Language[] {
@@ -398,22 +402,24 @@ export default class ProjectService {
   }
 
   createLanguage(callback: any, language: any) {
-    language.abstractSyntax = JSON.parse(language.abstractSyntax);
-    language.concreteSyntax = JSON.parse(language.concreteSyntax);
-    language.semantics = JSON.parse(language.semantics);
-    language.user=this.getUser();
-
-    return this.languageUseCases.createLanguage(callback, language);
+    let user=this.getUser(); 
+    if (user) {
+      language.abstractSyntax = JSON.parse(language.abstractSyntax);
+      language.concreteSyntax = JSON.parse(language.concreteSyntax);
+      language.semantics = JSON.parse(language.semantics);
+      return this.languageUseCases.createLanguage(callback, language, user);
+    }
   }
 
   updateLanguage(callback: any, language: any, languageId: string) {
-    language.id = languageId;
-    language.abstractSyntax = JSON.parse(language.abstractSyntax);
-    language.concreteSyntax = JSON.parse(language.concreteSyntax);
-    language.semantics = JSON.parse(language.semantics);
-    language.user=this.getUser();
-
-    return this.languageUseCases.updateLanguage(callback, language);
+    let user=this.getUser(); 
+    if (user) {
+      language.id = languageId;
+      language.abstractSyntax = JSON.parse(language.abstractSyntax);
+      language.concreteSyntax = JSON.parse(language.concreteSyntax);
+      language.semantics = JSON.parse(language.semantics);  
+      return this.languageUseCases.updateLanguage(callback, language, user);
+    }
   }
 
   deleteLanguage(callback: any, languageId: string) {
