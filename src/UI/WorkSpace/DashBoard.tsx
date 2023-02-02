@@ -7,21 +7,31 @@ import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import NavBar from "./navBar";
 import ProjectService from "../../Application/Project/ProjectService";
 import TreeMenu from "../TreeExplorer/TreeMenu";
+import { getUserProfile } from "../SignUp/SignUp.utils";
 
-interface Props {}
+interface Props {
+  loginEnabled?: boolean
+}
 interface State {}
 
 class DashBoard extends Component<Props, State> {
   state = {};
   projectService: ProjectService = new ProjectService();
 
-  // constructor(props: Props) {
-  //   super(props);
-  // }
+  constructor(props: Props) {
+    super(props);
+  }
 
   componentDidMount() {}
 
   render() {
+    const userProfile = getUserProfile();
+
+    if (this.props.loginEnabled && !userProfile) {
+      window.location.href = '/';
+      return (null)
+    }
+
     return (
       <div className="container-fluid">
         <ProjectManagement projectService={this.projectService} />

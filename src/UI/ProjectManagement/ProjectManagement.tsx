@@ -4,6 +4,8 @@ import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import * as alertify from "alertifyjs";
 import LanguageManagement from "./LanguageManagement";
 import _config from "../../Infraestructure/config.json";
+import { getUserProfile } from "../SignUp/SignUp.utils";
+import { SignUpUserTypes } from "../SignUp/SignUp.constants";
 
 interface Props {
   projectService: ProjectService;
@@ -15,6 +17,8 @@ interface State {
   version: string;
   urlVariamosDoc: string;
   urlVariamosLangDoc: string;
+  firstName: string;
+  userType: string;
 }
 
 let classActive: string = "active";
@@ -32,6 +36,8 @@ class ProjectManagement extends Component<Props, State> {
       version: _config.version,
       urlVariamosDoc: _config.urlVariamosDocumentation,
       urlVariamosLangDoc: _config.urlVariamosLangDocumentation,
+      firstName: "",
+      userType: ""
     };
     this.loadProject();
 
@@ -79,6 +85,12 @@ class ProjectManagement extends Component<Props, State> {
     me.props.projectService.addUpdateProjectListener(
       this.projectService_addListener
     );
+
+    const userProfile = getUserProfile();
+
+    if (userProfile) {
+      this.setState({ userType: userProfile.userType })
+    }
   }
 
   projectService_addListener(e: any) {
@@ -179,7 +191,8 @@ class ProjectManagement extends Component<Props, State> {
                 </h5>
                 {this.props.projectService.project.enable === true && (
                   <div className="col d-flex justify-content-end">
-                    <ul className="list-group icon-dark-variamos list-group-horizontal">
+                    <ul className="list-group icon-dark-variamos list-group-horizontal"
+                        onClick={(e) => this.btnSaveProject_onClick(e)}>
                       <li
                         className="list-group-item nav-bar-variamos"
                         data-bs-toggle="tooltip"
@@ -189,7 +202,6 @@ class ProjectManagement extends Component<Props, State> {
                         <span
                           className="bi bi-x-lg shadow rounded"
                           id="userSetting"
-                          onClick={(e) => this.btnSaveProject_onClick(e)}
                         ></span>
                       </li>
                     </ul>
@@ -240,19 +252,22 @@ class ProjectManagement extends Component<Props, State> {
                       >
                         Upload
                       </a>
-                      <a
-                        className="list-group-item list-group-item-action"
-                        id="list-settings-list"
-                        data-bs-toggle="list"
-                        href="#list-settings"
-                        role="tab"
-                        aria-controls="settings"
-                        onClick={() =>
-                          LanguageManagement.bind(this.forceUpdate())
-                        }
-                      >
-                        Settings
-                      </a>
+                      {this.state.userType === SignUpUserTypes.Registered && (
+                          <a
+                          className="list-group-item list-group-item-action"
+                          id="list-settings-list"
+                          data-bs-toggle="list"
+                          href="#list-settings"
+                          role="tab"
+                          aria-controls="settings"
+                          onClick={() =>
+                            LanguageManagement.bind(this.forceUpdate())
+                          }
+                        >
+                          Settings
+                        </a>
+                      )}
+                      
                       <a
                         className="list-group-item list-group-item-action"
                         id="list-help-list"
