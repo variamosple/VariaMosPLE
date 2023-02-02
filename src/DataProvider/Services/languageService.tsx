@@ -26,6 +26,25 @@ export default class LanguageService {
     return languages;
   }
 
+  getLanguagesByUser(user:string): Language[] {
+    let languages: Language[] = []; 
+    try {
+      let url="/languagesbyuser/" + user;
+      this.apiVariamos.get(url).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+
+        if (responseAPISuccess.message?.includes("Error"))
+          throw new Error(JSON.stringify(res.data));
+
+        languages = Object.assign(languages, responseAPISuccess.data);
+      });
+    } catch (error) {
+      console.log("Something wrong in getLanguageDetail Service: " + error);
+    }
+    return languages;
+  }
+
   createLanguage(callback: any, language: Language) {
     let response: string;
 
@@ -59,7 +78,7 @@ export default class LanguageService {
     }
   }
 
-  deleteLanguage(callback: any, languageId: string) {
+  deleteLanguage(callback: any, languageId: string, user: string) {
     let response: string;
 
     // Standard Request Start
@@ -69,7 +88,7 @@ export default class LanguageService {
     // Standard Request End
 
     const config = {
-      baseURL: _config.urlBackEndLanguage + "/languages/" + languageId,
+      baseURL: _config.urlBackEndLanguage + "/languages/" + languageId + "/" + user,
       method: "delete" as Method,
       data: requestBody,
     };

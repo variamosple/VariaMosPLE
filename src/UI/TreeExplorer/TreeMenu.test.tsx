@@ -192,7 +192,7 @@ describe('Testing the Tree menu', ()=>{
 
         // Assert
         expect(callExternalFuntionMock).toHaveBeenCalledTimes(1);
-        expect(callExternalFuntionMock).toHaveBeenCalledWith(externalFuntion);
+        expect(callExternalFuntionMock).toHaveBeenCalledWith(externalFuntion, null);
     });
     test('the method addNewFolder should use alertify and return false', ()=>{
 

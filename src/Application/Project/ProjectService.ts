@@ -37,7 +37,7 @@ export default class ProjectService {
   private utils: Utils = new Utils();
 
   private _environment: string = _config.environment;
-  private _languages: any = this.getLanguagesDetail();
+  private _languages: any = this.getLanguagesByUser();
   private _externalFunctions: ExternalFuntion[] = [];
   private _project: Project = this.createProject("");
   private treeItemSelected: string = "";
@@ -77,7 +77,7 @@ export default class ProjectService {
     return this._environment;
   }
 
-  callExternalFuntion(externalFunction: ExternalFuntion) {
+  callExternalFuntion(externalFunction: ExternalFuntion, query: any) {
     let me = this;
 
     // Standard Request Start
@@ -86,13 +86,15 @@ export default class ProjectService {
     //pack the semantics
     const semantics = me._languages.filter((lang) => lang.id === externalFunction.language_id)[0].semantics;
 
+    const data = { 
+      modelSelectedId: me.treeIdItemSelected, 
+      project: me._project,
+      rules: semantics 
+    };
+
     externalFunction.request = {
       transactionId: me.generateId(),
-      data: { 
-        modelSelectedId: me.treeIdItemSelected, 
-        project: me._project,
-        rules: semantics 
-      },
+      data: !query ? data : { ...data, query },
     };
     // Standard Request End
     
@@ -118,7 +120,7 @@ export default class ProjectService {
           if('error' in response.data) {
             alertify.error(response.data.error);
           } else {
-            alertify.success(response.data.content);
+            alertify.success(String(response.data.content));
           // document.getElementById(me.treeIdItemSelected).click();
           }
         },
@@ -132,8 +134,18 @@ export default class ProjectService {
           }
         }
       };
-
-      resulting_action[externalFunction.resulting_action]();
+      //Set the resulting action to be conditional on the query itself
+      //since we will have a single mechanism for making these queries
+      // TODO: FIXME: This is a dirty hack...
+      if(!query){
+        resulting_action[externalFunction.resulting_action]();
+      } else {
+        if(response.data.content?.productLines) {
+          resulting_action['updateproject']()
+        } else {
+          resulting_action['showonscreen']()
+        }
+      }
     };
     alertify.success('request sent ...');
     me.languageUseCases.callExternalFuntion(callback, externalFunction);
@@ -351,6 +363,20 @@ export default class ProjectService {
     return this._languages;
   }
 
+  getUser(){
+    let value=localStorage.getItem('utoken')
+    if (!value) {
+      value="0";
+      localStorage.setItem('utoken', value);
+    }
+    return value;
+  }
+
+  getLanguagesByUser(): Language[] {
+    let user=this.getUser();
+    return this.languageUseCases.getLanguagesByUser(user);
+  }
+
   getLanguagesDetail(): Language[] {
     return this.languageUseCases.getLanguagesDetail();
   }
@@ -375,6 +401,7 @@ export default class ProjectService {
     language.abstractSyntax = JSON.parse(language.abstractSyntax);
     language.concreteSyntax = JSON.parse(language.concreteSyntax);
     language.semantics = JSON.parse(language.semantics);
+    language.user=this.getUser();
 
     return this.languageUseCases.createLanguage(callback, language);
   }
@@ -384,12 +411,14 @@ export default class ProjectService {
     language.abstractSyntax = JSON.parse(language.abstractSyntax);
     language.concreteSyntax = JSON.parse(language.concreteSyntax);
     language.semantics = JSON.parse(language.semantics);
+    language.user=this.getUser();
 
     return this.languageUseCases.updateLanguage(callback, language);
   }
 
   deleteLanguage(callback: any, languageId: string) {
-    return this.languageUseCases.deleteLanguage(callback, languageId);
+    let user=this.getUser();
+    return this.languageUseCases.deleteLanguage(callback, languageId, user);
   }
 
   existDomainModel(language: string): boolean {
@@ -533,7 +562,7 @@ export default class ProjectService {
   }
 
   refreshLanguageList() {
-    this._languages = this.getLanguagesDetail();
+    this._languages = this.getLanguagesByUser();
     this.raiseEventLanguagesDetail(this._languages);
   }
 
