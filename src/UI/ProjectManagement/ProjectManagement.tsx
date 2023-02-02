@@ -150,7 +150,7 @@ class ProjectManagement extends Component<Props, State> {
       return false;
     }
 
-    let languages = this.props.projectService.getLanguagesDetail();
+    let languages = this.props.projectService.getLanguagesByUser();
 
     this.props.projectService.updateProjectName(this.state.projectName);
 
