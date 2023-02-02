@@ -1,7 +1,9 @@
 export enum SignUpMessages {
   Welcome = 'Welcome',
   ContinueAsGuest = 'Continue as a Guest',
-  SignUpWithGoogle = 'Sign up with Google'
+  SignUpWithGoogle = 'Sign up with Google',
+  Loading = 'Loading...',
+  LoginError = 'Something went wrong, try again later'
 }
 
 export enum SignUpURLs {
@@ -15,5 +17,6 @@ export enum SignUpUserTypes {
 }
 
 export enum SignUpKeys {
-  CurrentUserProfile = 'currentUserProfile'
+  CurrentUserProfile = 'currentUserProfile',
+  DataBaseUserProfile = 'databaseUserProfile'
 }
