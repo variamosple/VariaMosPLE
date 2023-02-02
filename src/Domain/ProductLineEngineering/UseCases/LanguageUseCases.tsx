@@ -34,12 +34,12 @@ export default class LanguageUseCases {
     return this.languageService.getLanguages(callBack);
   }
 
-  createLanguage(callback: any, language: Language) {
-    return this.languageService.createLanguage(callback, language);
+  createLanguage(callback: any, language: Language, user: string) {
+    return this.languageService.createLanguage(callback, language, user);
   }
 
-  updateLanguage(callback: any, language: Language) {
-    return this.languageService.updateLanguage(callback, language);
+  updateLanguage(callback: any, language: Language, user: string) {
+    return this.languageService.updateLanguage(callback, language, user);
   }
 
   deleteLanguage(callback: any, languageId: string, user: string) {

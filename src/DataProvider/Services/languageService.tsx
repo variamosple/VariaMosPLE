@@ -45,13 +45,14 @@ export default class LanguageService {
     return languages;
   }
 
-  createLanguage(callback: any, language: Language) {
+  createLanguage(callback: any, language: Language, user: string) {
     let response: string;
 
     // Standard Request Start
     let requestBody = {
       transactionId: "createLanguage_Frontend",
       data: language,
+      user: user
     };
     // Standard Request End
 
@@ -111,13 +112,14 @@ export default class LanguageService {
     }
   }
 
-  updateLanguage(callback: any, language: Language) {
+  updateLanguage(callback: any, language: Language, user: string) {
     let response: string;
 
     // Standard Request Start
     let requestBody = {
       transactionId: "updateLanguage_Frontend",
       data: language,
+      user: user
     };
     // Standard Request End
 
