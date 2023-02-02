@@ -3,7 +3,7 @@ export enum SignUpMessages {
   ContinueAsGuest = 'Continue as a Guest',
   SignUpWithGoogle = 'Sign up with Google',
   Loading = 'Loading...',
-  LoginError = 'Something went wrong, try again later'
+  LoginError = 'Something went wrong, try again later.'
 }
 
 export enum SignUpURLs {
