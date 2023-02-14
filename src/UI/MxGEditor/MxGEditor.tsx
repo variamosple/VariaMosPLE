@@ -12,15 +12,21 @@ import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
 import { isLabeledStatement } from "typescript";
 import SuggestionInput from "../SuggestionInput/SuggestionInput";
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
+import * as alertify from "alertifyjs";
 
 interface Props {
   projectService: ProjectService;
 }
-interface State { }
+interface State {
+  showConstraintModal: boolean;
+  currentModelConstraints: string;
+}
 
 export default class MxGEditor extends Component<Props, State> {
-  state = {};
+  //state = {};
   containerRef: any;
   graphContainerRef: any;
   graph?: mxGraph;
@@ -30,12 +36,20 @@ export default class MxGEditor extends Component<Props, State> {
     super(props);
     this.containerRef = React.createRef();
     this.graphContainerRef = React.createRef();
+    this.state = {
+      showConstraintModal: false,
+      currentModelConstraints: ""
+    }
     this.projectService_addNewProductLineListener =
       this.projectService_addNewProductLineListener.bind(this);
     this.projectService_addSelectedModelListener =
       this.projectService_addSelectedModelListener.bind(this);
     this.projectService_addUpdatedElementListener =
       this.projectService_addUpdatedElementListener.bind(this);
+    //handle constraints modal
+    this.showConstraintModal = this.showConstraintModal.bind(this);
+    this.hideConstraintModal = this.hideConstraintModal.bind(this);
+    this.saveConstraints = this.saveConstraints.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -86,7 +100,8 @@ export default class MxGEditor extends Component<Props, State> {
 
     mx.mxEvent.disableContextMenu(this.graphContainerRef.current);
     const rubber = new mx.mxRubberband(graph);
-    //rubber.setEnabled(true);
+    //@ts-ignore
+    rubber.setEnabled(true);
     // var parent = graph.getDefaultParent();
     graph.setPanning(true);
     graph.setTooltips(true);
@@ -126,10 +141,10 @@ export default class MxGEditor extends Component<Props, State> {
       }
     };
     graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
-      if(evt.properties.cells){
-        for(const c of evt.properties.cells){
+      if (evt.properties.cells) {
+        for (const c of evt.properties.cells) {
           console.log(c)
-          if(c.getGeometry().x < 0 || c.getGeometry().y < 0){
+          if (c.getGeometry().x < 0 || c.getGeometry().y < 0) {
             c.getGeometry().x -= evt.properties.dx;
             c.getGeometry().y -= evt.properties.dy;
             alert("Out of bounds, position reset");
@@ -459,7 +474,7 @@ export default class MxGEditor extends Component<Props, State> {
                 const property = relationship.properties[p];
                 if (property.name == styleDef.linked_property && property.value == styleDef.linked_value) {
                   edge.style = styleDef.style;
-                  i=languageDefinition.concreteSyntax.relationships[relationship.type].styles.length;
+                  i = languageDefinition.concreteSyntax.relationships[relationship.type].styles.length;
                   break;
                 }
               }
@@ -511,9 +526,9 @@ export default class MxGEditor extends Component<Props, State> {
               let label = labels.join(separator);
               let x = 0;
               let y = 0;
-              let offx = 0; 
+              let offx = 0;
               if (def.offset_x) {
-                offx = (def.offset_x/100);
+                offx = (def.offset_x / 100);
               }
               let offy = 0;
               if (def.offset_y) {
@@ -540,7 +555,7 @@ export default class MxGEditor extends Component<Props, State> {
               e21.geometry.width += 2;
               e21.geometry.height += 2;
 
-              offx=0;
+              offx = 0;
               e21.geometry.offset = new mx.mxPoint(offx, offy); //offsetx aqui no funciona correctamente cuando la dirección se invierte
             }
           }
@@ -942,7 +957,7 @@ export default class MxGEditor extends Component<Props, State> {
 
   test() {
     return "hello world...";
-  } 
+  }
 
   zoomIn() {
     this.graph.zoomIn();
@@ -982,17 +997,79 @@ export default class MxGEditor extends Component<Props, State> {
     } catch (ex) {
       this.processException(ex);
     }
-  } 
+  }
+
+  showConstraintModal() {
+    if(this.currentModel){
+      if(this.currentModel.constraints != ""){
+        this.setState({currentModelConstraints: this.currentModel.constraints})
+      }
+      this.setState({ showConstraintModal: true })
+    } else {
+      alertify.error("You have not opened a model")
+    }
+  }
+
+  hideConstraintModal() {
+    this.setState({ showConstraintModal: false })
+  }
+
+  saveConstraints() {
+    if(this.currentModel){
+      // TODO: Everything we are doing with respect to
+      // the model management is an anti pattern
+      this.currentModel.constraints = this.state.currentModelConstraints;
+    }
+  }
 
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">
         <div>
           <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><i className="bi bi-zoom-in"></i></a>{" "}
-          <a onClick={() => alert("hello world")}><i className="bi bi-vector-pen"></i></a>
-          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "} 
+          <a onClick={this.showConstraintModal}><i className="bi bi-vector-pen"></i></a>
+          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "}
           {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
-        </div> 
+          <Modal
+            show={this.state.showConstraintModal}
+            onHide={this.hideConstraintModal}
+            size="lg"
+            centered
+          >
+            <Modal.Header closeButton>
+              <Modal.Title>
+                Add arbitrary constraints for your model
+              </Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <textarea
+                style={{ width: "100%", height: "400px" }}
+                value={this.state.currentModelConstraints}
+                onChange={e => this.setState({ currentModelConstraints: e.target.value })}
+              />
+            </Modal.Body>
+            <Modal.Footer>
+              <Button
+                variant="secondary"
+                onClick={this.hideConstraintModal}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={this.hideConstraintModal}
+              >
+                Save Constraints
+              </Button>
+              <Button
+                variant="primary"
+                onClick={this.hideConstraintModal}
+              >
+                Validate Constraints
+              </Button>
+            </Modal.Footer>
+          </Modal>
+        </div>
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
       </div>
     );

@@ -82,14 +82,14 @@ export default class ProjectService {
 
     // Standard Request Start
     externalFunction.request = {};
-    
+
     //pack the semantics
     const semantics = me._languages.filter((lang) => lang.id === externalFunction.language_id)[0].semantics;
 
-    const data = { 
-      modelSelectedId: me.treeIdItemSelected, 
+    const data = {
+      modelSelectedId: me.treeIdItemSelected,
       project: me._project,
-      rules: semantics 
+      rules: semantics
     };
 
     externalFunction.request = {
@@ -97,12 +97,12 @@ export default class ProjectService {
       data: !query ? data : { ...data, query },
     };
     // Standard Request End
-    
-  
+
+
     let callback = function (response: any) {
       //Decode content.
       //alert(JSON.stringify(response));
-      if(externalFunction.resulting_action === 'download')
+      if (externalFunction.resulting_action === 'download')
         response.data.content = Buffer.from(
           response.data.content,
           "base64"
@@ -117,30 +117,36 @@ export default class ProjectService {
         },
         showonscreen: function () {
           // alert(JSON.stringify(response.data.content));
-          if('error' in response.data) {
+          if ('error' in response.data) {
             alertify.error(response.data.error);
           } else {
-            alertify.success(String(response.data.content));
-          // document.getElementById(me.treeIdItemSelected).click();
+            if (String(response.data.content).includes("(model")) {
+              // alertify.alert("Model semantics", `${String(response.data.content)}`)
+              alert(`${String(response.data.content)}`)
+            }
+            else {
+              alertify.success(String(response.data.content))
+            };
+            // document.getElementById(me.treeIdItemSelected).click();
           }
         },
-        updateproject: function() {
+        updateproject: function () {
 
-          if('error' in response.data) {
+          if ('error' in response.data) {
             alertify.error(response.data.error);
           } else {
-            me.updateProject(response.data.content,me.treeIdItemSelected);
-          // document.getElementById(me.treeIdItemSelected).click();
+            me.updateProject(response.data.content, me.treeIdItemSelected);
+            // document.getElementById(me.treeIdItemSelected).click();
           }
         }
       };
       //Set the resulting action to be conditional on the query itself
       //since we will have a single mechanism for making these queries
       // TODO: FIXME: This is a dirty hack...
-      if(!query){
+      if (!query) {
         resulting_action[externalFunction.resulting_action]();
       } else {
-        if(response.data.content?.productLines) {
+        if (response.data.content?.productLines) {
           resulting_action['updateproject']()
         } else {
           resulting_action['showonscreen']()
@@ -158,10 +164,10 @@ export default class ProjectService {
       me._externalFunctions = data;
     };
     if (language) {
-      if (language.length>0) {
+      if (language.length > 0) {
         this.languageUseCases.getExternalFunctions(callback, language[0].id);
       }
-    } 
+    }
   }
 
   //Search Model functions_ START***********
@@ -510,7 +516,7 @@ export default class ProjectService {
   }
 
   updateProject(project: Project, modelSelectedId: string): void {
-      this._project = project;    
+    this._project = project;
     this.raiseEventUpdateProject(this._project);
   }
 

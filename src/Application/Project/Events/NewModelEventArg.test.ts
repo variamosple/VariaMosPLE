@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { Project } from "../../../Domain/ProductLineEngineering/Entities/Project";
 import {NewModelEventArg} from "./NewModelEventArg";
 import ProjectService from "../ProjectService";

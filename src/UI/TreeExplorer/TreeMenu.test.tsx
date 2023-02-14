@@ -1,3 +1,4 @@
+//@ts-nocheck
 import {render, screen} from "@testing-library/react";
 import '@testing-library/jest-dom/extend-expect';
 import TreeMenu from "./TreeMenu";
