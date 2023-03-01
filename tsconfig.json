@@ -25,7 +25,8 @@
     ],
     "noImplicitAny": false,
     "suppressImplicitAnyIndexErrors": true,
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "sourceMap": true
   },
   "include": [
     "src"

@@ -58,6 +58,7 @@ export default class MxGEditor extends Component<Props, State> {
 
   projectService_addSelectedModelListener(e: any) {
     this.currentModel = e.model;
+    this.setState({ currentModelConstraints: e.model.constraints })
     this.loadModel(e.model);
     this.forceUpdate();
   }
@@ -1001,7 +1002,7 @@ export default class MxGEditor extends Component<Props, State> {
 
   showConstraintModal() {
     if(this.currentModel){
-      if(this.currentModel.constraints != ""){
+      if(this.currentModel.constraints !== ""){
         this.setState({currentModelConstraints: this.currentModel.constraints})
       }
       this.setState({ showConstraintModal: true })
@@ -1020,6 +1021,7 @@ export default class MxGEditor extends Component<Props, State> {
       // the model management is an anti pattern
       this.currentModel.constraints = this.state.currentModelConstraints;
     }
+    //this.hideConstraintModal();
   }
 
   render() {
@@ -1057,7 +1059,7 @@ export default class MxGEditor extends Component<Props, State> {
               </Button>
               <Button
                 variant="primary"
-                onClick={this.hideConstraintModal}
+                onClick={this.saveConstraints}
               >
                 Save Constraints
               </Button>
