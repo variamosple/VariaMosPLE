@@ -1,28 +1,44 @@
 import React, { Component } from "react";
 
 import ProjectService from "../../Application/Project/ProjectService";
+import { getUserProfile, logoutUser } from "../SignUp/SignUp.utils";
 
 interface Props {
   projectService: ProjectService;
 }
-interface State { }
+interface State {
+  firstName: string;
+}
 
 class navBar extends Component<Props, State> {
-  state = {};
-
   constructor(props: any) {
     super(props);
+    this.state = {
+      firstName: "",
+    }
 
     this.exportProject = this.exportProject.bind(this);
     this.refreshNavBar = this.refreshNavBar.bind(this);
   }
 
+  componentDidMount() {
+    const userProfile = getUserProfile();
+
+    if (userProfile) {
+      this.setState({ firstName: userProfile.givenName })
+    }
+  }
+  
   exportProject() {
     this.props.projectService.exportProject();
   }
 
   refreshNavBar() {
     this.forceUpdate();
+  }
+
+  handlerLogout() {
+    logoutUser();
   }
 
   render() {
@@ -81,9 +97,9 @@ class navBar extends Component<Props, State> {
               data-bs-toggle="tooltip"
               data-bs-placement="bottom"
               title="Download project"
+              onClick={this.exportProject}
             >
               <span
-                onClick={this.exportProject}
                 className="bi bi-download shadow rounded"
               >
                 {/* Export Project */}
@@ -104,6 +120,9 @@ class navBar extends Component<Props, State> {
               data-bs-toggle="tooltip"
               data-bs-placement="bottom"
               title="Project management"
+              onClick={() =>
+                document.getElementById("projectManagement").click()
+              }
             >
               <button
                 type="button"
@@ -116,9 +135,6 @@ class navBar extends Component<Props, State> {
                 Project Management
               </button>
               <span
-                onClick={() =>
-                  document.getElementById("projectManagement").click()
-                }
                 className="bi bi-gear shadow rounded"
               >
                 {/* Project Management */}
@@ -134,9 +150,23 @@ class navBar extends Component<Props, State> {
               data-bs-placement="bottom"
               title="User setting"
             >
+              
               <span
                 className="bi bi-person-bounding-box shadow rounded"
                 id="userSetting"
+              ></span>
+              <span className="p-2">{this.state.firstName}</span>
+            </li>
+            <li
+              className="list-group-item nav-bar-variamos"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              title="Logout"
+              onClick={this.handlerLogout}
+            >
+              <span
+                className="bi bi-box-arrow-in-right shadow rounded"
+                id="logout"
               ></span>
             </li>
           </ul>

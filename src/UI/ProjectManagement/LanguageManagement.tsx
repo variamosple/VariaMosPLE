@@ -126,11 +126,15 @@ class LanguageManagement extends Component<Props, State> {
 
       let me = this;
       let callback = function (data: any) {
-        me.refreshLanguages();
-        alertify.success(data);
+        if (data.messageError) {
+          alertify.error(data.messageError);
+        } else {
+          me.refreshLanguages();
+          alertify.success(data);
+          me.clearForm();
+        }
         document.getElementById("btnCreateLanguage").classList.remove("hidden");
         document.getElementById("btnCreateLoading").classList.add("hidden");
-        me.clearForm();
       };
 
       this.props.projectService.createLanguage(
@@ -152,11 +156,15 @@ class LanguageManagement extends Component<Props, State> {
 
       let me = this;
       let callback = function (data: any) {
-        me.refreshLanguages();
-        alertify.success(data);
+        if (data.messageError) {
+          alertify.error(data.messageError);
+        } else {
+          me.refreshLanguages();
+          alertify.success(data);
+          me.clearForm();
+        }
         document.getElementById("btnUpdateLanguage").classList.remove("hidden");
         document.getElementById("btnUpdateLoading").classList.add("hidden");
-        me.clearForm();
       };
 
       this.props.projectService.updateLanguage(
@@ -232,9 +240,13 @@ class LanguageManagement extends Component<Props, State> {
   deleteLanguage() {
     let me = this;
     let callback = function (data: any) {
-      alertify.success(data);
-      me.refreshLanguages();
-      me.clearForm();
+      if (data.messageError) {
+        alertify.error(data.messageError);
+      } else {
+        alertify.success(data);
+        me.refreshLanguages();
+        me.clearForm();
+      }
     };
 
     this.props.projectService.deleteLanguage(

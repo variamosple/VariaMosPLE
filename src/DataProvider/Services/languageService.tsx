@@ -1,6 +1,7 @@
 import axios, { Method } from "axios";
 import _config from "../../Infraestructure/config.json";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
+import { json } from "react-router-dom";
 
 export default class LanguageService {
   apiVariamos = axios.create({
@@ -26,13 +27,33 @@ export default class LanguageService {
     return languages;
   }
 
-  createLanguage(callback: any, language: Language) {
+  getLanguagesByUser(user: string): Language[] {
+    let languages: Language[] = [];
+    try {
+      let url = "/languagesbyuser/" + user;
+      this.apiVariamos.get(url).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+
+        if (responseAPISuccess.message?.includes("Error"))
+          throw new Error(JSON.stringify(res.data));
+
+        languages = Object.assign(languages, responseAPISuccess.data);
+      });
+    } catch (error) {
+      console.log("Something wrong in getLanguageDetail Service: " + error);
+    }
+    return languages;
+  }
+
+  createLanguage(callback: any, language: Language, user: string) {
     let response: string;
 
     // Standard Request Start
     let requestBody = {
       transactionId: "createLanguage_Frontend",
       data: language,
+      user: user
     };
     // Standard Request End
 
@@ -51,6 +72,19 @@ export default class LanguageService {
           throw new Error(JSON.stringify(res.data));
 
         callback(response);
+      }).catch(function (error) {
+        console.log(JSON.stringify(error));
+        let response = {
+          messageError: "Something wrong in createLanguage Service."
+        }
+        if (error.response) { 
+          if (error.response.data) { 
+            if (error.response.data.data) { 
+              response = JSON.parse(error.response.data.data);
+            }
+          }
+        }
+        callback(response);
       });
     } catch (error) {
       response = "Something wrong in createLanguage Service: " + error;
@@ -59,7 +93,7 @@ export default class LanguageService {
     }
   }
 
-  deleteLanguage(callback: any, languageId: string) {
+  deleteLanguage(callback: any, languageId: string, user: string) {
     let response: string;
 
     // Standard Request Start
@@ -69,7 +103,7 @@ export default class LanguageService {
     // Standard Request End
 
     const config = {
-      baseURL: _config.urlBackEndLanguage + "/languages/" + languageId,
+      baseURL: _config.urlBackEndLanguage + "/languages/" + languageId + "/" + user,
       method: "delete" as Method,
       data: requestBody,
     };
@@ -84,6 +118,19 @@ export default class LanguageService {
           throw new Error(JSON.stringify(res.data));
 
         callback(response);
+      }).catch(function (error) {
+        console.log(JSON.stringify(error));
+        let response = {
+          messageError: "Something wrong in createLanguage Service."
+        }
+        if (error.response) { 
+          if (error.response.data) { 
+            if (error.response.data.data) { 
+              response = JSON.parse(error.response.data.data);
+            }
+          }
+        }
+        callback(response);
       });
     } catch (error) {
       response = "Something wrong in deleteLanguage Service: " + error;
@@ -92,13 +139,14 @@ export default class LanguageService {
     }
   }
 
-  updateLanguage(callback: any, language: Language) {
+  updateLanguage(callback: any, language: Language, user: string) {
     let response: string;
 
     // Standard Request Start
     let requestBody = {
       transactionId: "updateLanguage_Frontend",
       data: language,
+      user: user
     };
     // Standard Request End
 
@@ -117,6 +165,19 @@ export default class LanguageService {
         if (responseAPISuccess.message?.includes("Error"))
           throw new Error(JSON.stringify(res.data));
 
+        callback(response);
+      }).catch(function (error) {
+        console.log(JSON.stringify(error));
+        let response = {
+          messageError: "Something wrong in createLanguage Service."
+        }
+        if (error.response) { 
+          if (error.response.data) { 
+            if (error.response.data.data) { 
+              response = JSON.parse(error.response.data.data);
+            }
+          }
+        }
         callback(response);
       });
     } catch (error) {
