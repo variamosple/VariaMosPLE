@@ -36,6 +36,12 @@ export default class ProjectService {
 
   private utils: Utils = new Utils();
 
+  //Since we have no access to the current language,
+  //We will need a parameter query when we need it
+  // more and more it's clear we need redux or something like it
+  // to manage the state of the application
+  private _currentLanguage: Language = null;
+
   private _environment: string = _config.environment;
   private _languages: any = this.getLanguagesByUser();
   private _externalFunctions: ExternalFuntion[] = [];
@@ -68,6 +74,10 @@ export default class ProjectService {
 
   //   this.languageService.getLanguages(fun);
   // }
+
+  public get currentLanguage(): Language {
+    return this._currentLanguage;
+  }
 
   public get externalFunctions(): ExternalFuntion[] {
     return this._externalFunctions;
@@ -166,6 +176,11 @@ export default class ProjectService {
     if (language) {
       if (language.length > 0) {
         this.languageUseCases.getExternalFunctions(callback, language[0].id);
+        // HACK: FIXME: This is a dirty hack...
+        // We will se the current language to be the first one
+        // so that we can get it instead of passing through a million different
+        // functions
+        this._currentLanguage = language[0];
       }
     }
   }
@@ -335,6 +350,11 @@ export default class ProjectService {
   updateAppEngSelected() {
     this.treeItemSelected = "applicationEngineering";
     this.raiseEventUpdateSelected(this.treeItemSelected);
+  }
+
+  //Function ot get currently selected model
+  getTreeIdItemSelected(): string {
+    return this.treeIdItemSelected;
   }
 
   getTreeItemSelected() {
@@ -541,6 +561,9 @@ export default class ProjectService {
   updateProject(project: Project, modelSelectedId: string): void {
     this._project = project;
     this.raiseEventUpdateProject(this._project);
+    //find the model selected
+    //By default, only a single product line is supported
+    
   }
 
   loadProject(project: Project): Project {
@@ -928,5 +951,35 @@ export default class ProjectService {
 
   generateId() {
     return ProjectUseCases.generateId();
+  }
+
+  visualizeModel() {
+    
+  }
+  //Reset the selection on the currently selected model
+  resetModelConfig() {
+    const modelLookupResult = this.projectManager.findModel(this._project, this.getTreeIdItemSelected());
+    if (modelLookupResult) {
+      this.projectManager.resetSelection(modelLookupResult);
+      // We should have the enum available here
+      switch (modelLookupResult.modelType) {
+        case "Domain":
+          this.modelDomainSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
+          break;
+        case "Application":
+          this.modelApplicationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.modelIdx);
+          break;
+        case "Adaptation":
+          this.modelAdaptationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.adapIdx, modelLookupResult.modelIdx);
+          break;
+        case "ApplicationEng":
+          this.modelApplicationEngSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
+          break;
+        default:
+          console.error("Unknown model type: " + modelLookupResult.modelType)
+          console.error("could not reset model config")
+          break;
+      }
+    }
   }
 }
