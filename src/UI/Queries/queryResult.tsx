@@ -29,6 +29,10 @@ export default function QueryResult(
         result as Project, projectService.getTreeIdItemSelected()
       );
     }else{
+      if (result.some((elem) => typeof elem === "boolean")){
+        console.error("Cannot visualize a solution that contains a boolean value");
+        return;
+      }
       projectService.updateProject(
         result[paginationSelection] as Project, projectService.getTreeIdItemSelected()
       );
