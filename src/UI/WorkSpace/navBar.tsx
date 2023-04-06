@@ -3,11 +3,15 @@ import React, { Component } from "react";
 import ProjectService from "../../Application/Project/ProjectService";
 import { getUserProfile, logoutUser } from "../SignUp/SignUp.utils";
 
+//Dependencies for the query modal
+import QueryModal from "../Queries/queryModal";
+
 interface Props {
   projectService: ProjectService;
 }
 interface State {
   firstName: string;
+  show_query_modal: boolean;
 }
 
 class navBar extends Component<Props, State> {
@@ -15,10 +19,15 @@ class navBar extends Component<Props, State> {
     super(props);
     this.state = {
       firstName: "",
+      show_query_modal: false,
     }
 
     this.exportProject = this.exportProject.bind(this);
     this.refreshNavBar = this.refreshNavBar.bind(this);
+
+    //modal functions binding
+    this.handleShowQueryModal = this.handleShowQueryModal.bind(this);
+    this.handleCloseQueryModal = this.handleCloseQueryModal.bind(this);
   }
 
   componentDidMount() {
@@ -28,7 +37,7 @@ class navBar extends Component<Props, State> {
       this.setState({ firstName: userProfile.givenName })
     }
   }
-  
+
   exportProject() {
     this.props.projectService.exportProject();
   }
@@ -39,6 +48,15 @@ class navBar extends Component<Props, State> {
 
   handlerLogout() {
     logoutUser();
+  }
+
+  //Modal functions
+  handleShowQueryModal() {
+    this.setState({ show_query_modal: true });
+  }
+
+  handleCloseQueryModal() {
+    this.setState({ show_query_modal: false });
   }
 
   render() {
@@ -105,6 +123,16 @@ class navBar extends Component<Props, State> {
                 {/* Export Project */}
               </span>
             </li>
+            <li title="Queries"
+              data-bs-toggle="tooltip"
+              data-bs-placement="bottom"
+              className="list-group-item nav-bar-variamos"
+              onClick={() => this.handleShowQueryModal()}
+            >
+              <span className="bi bi-tools shadow rounded">
+                {/* Queries */}
+              </span>
+            </li>
             <li
               className="list-group-item nav-bar-variamos"
               data-bs-toggle="tooltip"
@@ -140,7 +168,7 @@ class navBar extends Component<Props, State> {
               data-bs-placement="bottom"
               title="User setting"
             >
-              
+
               <span
                 className="bi bi-person-bounding-box shadow rounded"
                 id="userSetting"
@@ -161,6 +189,8 @@ class navBar extends Component<Props, State> {
             </li>
           </ul>
         </div>
+        {/* Modal for query handling */}
+        <QueryModal show={this.state.show_query_modal} handleCloseCallback={this.handleCloseQueryModal} projectService={this.props.projectService} />
       </div>
     );
   }

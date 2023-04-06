@@ -6,7 +6,24 @@ import { Project } from "../Entities/Project";
 import { Relationship } from "../Entities/Relationship";
 import { Point } from "../Entities/Point";
 import { Property } from "../Entities/Property";
+import { Element } from "../Entities/Element";
 
+
+enum ModelType {
+  Domain = "Domain",
+  ApplicationEng = "ApplicationEng",
+  Application = "Application",
+  Adaptation = "Adaptation"
+};
+
+type ModelLookupResult = {
+  model: Model;
+  modelType: ModelType;
+  plIdx: number;
+  modelIdx: number;
+  appIdx?: number;
+  adapIdx?: number;
+};
 export default class ProjectUseCases {
   // constructor() {
   // }
@@ -538,5 +555,54 @@ export default class ProjectUseCases {
         }
       }
     }
+  }
+
+  _findProperty(propName: string, element: Element){
+    const property = element.properties.find(p => p.name === propName);
+    return property;
+  }
+
+  // Perform a reset of the selection state of all elements in the currently
+  // active model
+  resetSelection(modelLookupResult: ModelLookupResult) {
+    if (modelLookupResult.model) {
+      for (const element of modelLookupResult.model.elements) {
+        this._findProperty('Selected', element).value = "Undefined";
+      }
+    } else {
+      console.error("Model not found");
+    }
+  }
+
+
+  // find a specific model based on the currently active model
+  findModel(project: Project, modelId: string): ModelLookupResult | null {
+    for (const [plIdx, productLine] of project.productLines.entries()) {
+      for (const [modelIdx, model] of productLine.domainEngineering.models.entries()) {
+        if (model.id === modelId) {
+          return {model, modelType: ModelType.Domain, plIdx: plIdx, modelIdx: modelIdx};
+        }
+      }
+      for (const [appEngIdx, appEngModel] of productLine.applicationEngineering.models.entries()) {
+        if (appEngModel.id === modelId) {
+          return {model: appEngModel, modelType: ModelType.ApplicationEng, plIdx: plIdx, modelIdx: appEngIdx};
+        }
+      }
+      for (const [applicationIdx, application] of productLine.applicationEngineering.applications.entries()) {
+        for (const [modelIdx, model] of application.models.entries()) {
+          if (model.id === modelId) {
+            return {model, modelType: ModelType.Application, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx};
+          }
+        }
+        for (const [adaptationIdx, adaptation] of application.adaptations.entries()) {
+          for (const [modelIdx, model] of adaptation.models.entries()) {
+            if (model.id === modelId) {
+              return {model, modelType: ModelType.Adaptation, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx, adapIdx: adaptationIdx};
+            }
+          }
+        }
+      }
+    }
+    return null;
   }
 }

@@ -1,4 +1,4 @@
-
+//@ts-nocheck
 import ProjectManagement from "./ProjectManagement";
 import ProjectService from "./../../Application/Project/ProjectService"
 import {fireEvent, render, screen} from "@testing-library/react";

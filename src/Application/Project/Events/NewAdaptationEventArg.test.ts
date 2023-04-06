@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { Project } from "../../../Domain/ProductLineEngineering/Entities/Project";
 import { Adaptation } from "../../../Domain/ProductLineEngineering/Entities/Adaptation";
 import {NewAdaptationEventArg} from "./NewAdaptationEventArg";
