@@ -24,6 +24,8 @@ interface State {
   propertyDomain: string;
   propertyPossibleValues: string;
   propertyComment: string;
+  propertyMinCardinality: string;
+  propertyMaxCardinality: string;
   customPropertyFlag: boolean;
   customPropertyCreateFlag: boolean;
   customPropertyUpdateFlag: boolean;
@@ -48,6 +50,8 @@ export default class MxProperties extends Component<Props, State> {
       propertyDomain: "String",
       propertyPossibleValues: "",
       propertyComment: "",
+      propertyMinCardinality: "",
+      propertyMaxCardinality: "",
       customPropertyFlag: true,
       customPropertyCreateFlag: true,
       customPropertyUpdateFlag: true,
@@ -75,8 +79,9 @@ export default class MxProperties extends Component<Props, State> {
     this.selectNameChange = this.selectNameChange.bind(this);
     this.selectDomainChange = this.selectDomainChange.bind(this);
     this.selectCommentChange = this.selectCommentChange.bind(this);
-    this.selectPossibleValuesChange =
-      this.selectPossibleValuesChange.bind(this);
+    this.selectPossibleValuesChange = this.selectPossibleValuesChange.bind(this);
+    this.selectMinCardinalityChange = this.selectMinCardinalityChange.bind(this);
+    this.selectMaxCardinalityChange = this.selectMaxCardinalityChange.bind(this);
     this.customPropertySelected = this.customPropertySelected.bind(this);
 
 
@@ -254,7 +259,9 @@ export default class MxProperties extends Component<Props, State> {
         true,
         true,
         this.state.propertyComment,
-        this.state.propertyPossibleValues
+        this.state.propertyPossibleValues,
+        this.state.propertyMinCardinality,
+        this.state.propertyMaxCardinality
       )
     );
 
@@ -363,6 +370,19 @@ export default class MxProperties extends Component<Props, State> {
     });
   }
 
+  selectMinCardinalityChange(event: any) {
+    this.setState({
+      propertyMinCardinality: event.target.value,
+    });
+  }
+
+  selectMaxCardinalityChange(event: any) {
+    this.setState({
+      propertyMaxCardinality: event.target.value,
+    });
+  }
+
+
   renderProperties() {
     let ret = [];
 
@@ -442,7 +462,9 @@ export default class MxProperties extends Component<Props, State> {
                   false,
                   true,
                   property.comment,
-                  property.possibleValues
+                  property.possibleValues,
+                  property.minCardinality,
+                  property.maxCardinality
                 )
               );
               index = this.currentObject.properties.length - 1;
@@ -856,6 +878,38 @@ export default class MxProperties extends Component<Props, State> {
                       id="customPropertyPossibleValues"
                       value={this.state.propertyPossibleValues}
                       onChange={this.selectPossibleValuesChange}
+                    />
+                  </div>
+                </div>
+              </div>
+              <br />
+              <div className="row">
+                <div className="col-md">
+                  <div>
+                    <label>Min cardinality</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Min cardinality"
+                      id="customPropertyMinCardinality"
+                      value={this.state.propertyMinCardinality}
+                      onChange={this.selectMinCardinalityChange}
+                    />
+                  </div>
+                </div>
+              </div>
+              <br />
+              <div className="row">
+                <div className="col-md">
+                  <div>
+                    <label>Max cardinality</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="Max cardinality"
+                      id="customPropertyMinCardinality"
+                      value={this.state.propertyMaxCardinality}
+                      onChange={this.selectMaxCardinalityChange}
                     />
                   </div>
                 </div>

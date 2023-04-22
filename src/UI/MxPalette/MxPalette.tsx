@@ -151,7 +151,7 @@ export default class MxPalette extends Component<Props, State> {
     if (def.properties) {
       for (let i = 0; i < def.properties.length; i++) {
         const p = def.properties[i];
-        const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues);
+        const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.minCardinality, p.maxCardinality);
         if (p.linked_property) {
           property.display = false;
         }
