@@ -36,6 +36,12 @@ export default class ProjectService {
 
   private utils: Utils = new Utils();
 
+  //Since we have no access to the current language,
+  //We will need a parameter query when we need it
+  // more and more it's clear we need redux or something like it
+  // to manage the state of the application
+  private _currentLanguage: Language = null;
+
   private _environment: string = _config.environment;
   private _languages: any = this.getLanguagesByUser();
   private _externalFunctions: ExternalFuntion[] = [];
@@ -69,6 +75,10 @@ export default class ProjectService {
   //   this.languageService.getLanguages(fun);
   // }
 
+  public get currentLanguage(): Language {
+    return this._currentLanguage;
+  }
+
   public get externalFunctions(): ExternalFuntion[] {
     return this._externalFunctions;
   }
@@ -82,14 +92,14 @@ export default class ProjectService {
 
     // Standard Request Start
     externalFunction.request = {};
-    
+
     //pack the semantics
     const semantics = me._languages.filter((lang) => lang.id === externalFunction.language_id)[0].semantics;
 
-    const data = { 
-      modelSelectedId: me.treeIdItemSelected, 
+    const data = {
+      modelSelectedId: me.treeIdItemSelected,
       project: me._project,
-      rules: semantics 
+      rules: semantics
     };
 
     externalFunction.request = {
@@ -97,12 +107,12 @@ export default class ProjectService {
       data: !query ? data : { ...data, query },
     };
     // Standard Request End
-    
-  
+
+
     let callback = function (response: any) {
       //Decode content.
       //alert(JSON.stringify(response));
-      if(externalFunction.resulting_action === 'download')
+      if (externalFunction.resulting_action === 'download')
         response.data.content = Buffer.from(
           response.data.content,
           "base64"
@@ -117,30 +127,36 @@ export default class ProjectService {
         },
         showonscreen: function () {
           // alert(JSON.stringify(response.data.content));
-          if('error' in response.data) {
+          if ('error' in response.data) {
             alertify.error(response.data.error);
           } else {
-            alertify.success(String(response.data.content));
-          // document.getElementById(me.treeIdItemSelected).click();
+            if (String(response.data.content).includes("(model")) {
+              // alertify.alert("Model semantics", `${String(response.data.content)}`)
+              alert(`${String(response.data.content)}`)
+            }
+            else {
+              alertify.success(String(response.data.content))
+            };
+            // document.getElementById(me.treeIdItemSelected).click();
           }
         },
-        updateproject: function() {
+        updateproject: function () {
 
-          if('error' in response.data) {
+          if ('error' in response.data) {
             alertify.error(response.data.error);
           } else {
-            me.updateProject(response.data.content,me.treeIdItemSelected);
-          // document.getElementById(me.treeIdItemSelected).click();
+            me.updateProject(response.data.content, me.treeIdItemSelected);
+            // document.getElementById(me.treeIdItemSelected).click();
           }
         }
       };
       //Set the resulting action to be conditional on the query itself
       //since we will have a single mechanism for making these queries
       // TODO: FIXME: This is a dirty hack...
-      if(!query){
+      if (!query) {
         resulting_action[externalFunction.resulting_action]();
       } else {
-        if(response.data.content?.productLines) {
+        if (response.data.content?.productLines) {
           resulting_action['updateproject']()
         } else {
           resulting_action['showonscreen']()
@@ -158,10 +174,15 @@ export default class ProjectService {
       me._externalFunctions = data;
     };
     if (language) {
-      if (language.length>0) {
+      if (language.length > 0) {
         this.languageUseCases.getExternalFunctions(callback, language[0].id);
+        // HACK: FIXME: This is a dirty hack...
+        // We will se the current language to be the first one
+        // so that we can get it instead of passing through a million different
+        // functions
+        this._currentLanguage = language[0];
       }
-    } 
+    }
   }
 
   //Search Model functions_ START***********
@@ -329,6 +350,11 @@ export default class ProjectService {
   updateAppEngSelected() {
     this.treeItemSelected = "applicationEngineering";
     this.raiseEventUpdateSelected(this.treeItemSelected);
+  }
+
+  //Function ot get currently selected model
+  getTreeIdItemSelected(): string {
+    return this.treeIdItemSelected;
   }
 
   getTreeItemSelected() {
@@ -533,8 +559,11 @@ export default class ProjectService {
   }
 
   updateProject(project: Project, modelSelectedId: string): void {
-      this._project = project;    
+    this._project = project;
     this.raiseEventUpdateProject(this._project);
+    //find the model selected
+    //By default, only a single product line is supported
+    
   }
 
   loadProject(project: Project): Project {
@@ -922,5 +951,35 @@ export default class ProjectService {
 
   generateId() {
     return ProjectUseCases.generateId();
+  }
+
+  visualizeModel() {
+    
+  }
+  //Reset the selection on the currently selected model
+  resetModelConfig() {
+    const modelLookupResult = this.projectManager.findModel(this._project, this.getTreeIdItemSelected());
+    if (modelLookupResult) {
+      this.projectManager.resetSelection(modelLookupResult);
+      // We should have the enum available here
+      switch (modelLookupResult.modelType) {
+        case "Domain":
+          this.modelDomainSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
+          break;
+        case "Application":
+          this.modelApplicationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.modelIdx);
+          break;
+        case "Adaptation":
+          this.modelAdaptationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.adapIdx, modelLookupResult.modelIdx);
+          break;
+        case "ApplicationEng":
+          this.modelApplicationEngSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
+          break;
+        default:
+          console.error("Unknown model type: " + modelLookupResult.modelType)
+          console.error("could not reset model config")
+          break;
+      }
+    }
   }
 }

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es6",
     "lib": [
       "dom",
       "dom.iterable",
@@ -25,7 +25,8 @@
     ],
     "noImplicitAny": false,
     "suppressImplicitAnyIndexErrors": true,
-    "strictNullChecks": false 
+    "strictNullChecks": false,
+    "sourceMap": true
   },
   "include": [
     "src"

@@ -1,3 +1,4 @@
+//@ts-nocheck
 import '@testing-library/jest-dom/extend-expect';
 import MxgraphUtils from "./MxgraphUtils";
 import {Model} from "../../Domain/ProductLineEngineering/Entities/Model";

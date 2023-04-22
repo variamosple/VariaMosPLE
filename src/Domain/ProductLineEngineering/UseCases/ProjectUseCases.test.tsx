@@ -1,4 +1,4 @@
-
+//@ts-nocheck
 import { Point } from "../Entities/Point";
 import { Property } from "../Entities/Property";
 import '@testing-library/jest-dom/extend-expect';

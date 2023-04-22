@@ -1,3 +1,4 @@
+//@ts-nocheck
 import LanguageUseCases from "./LanguageUseCases";
 import {mockReturnedValue} from "../../../mockReturnedValue";
 import LanguageService from "../../../DataProvider/Services/languageService";
