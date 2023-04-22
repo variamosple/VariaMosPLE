@@ -11,6 +11,8 @@ import CustomProperties from "./CustomProperties";
 import "./PropertiesMenu.css";
 import * as alertify from "alertifyjs";
 import SuggestionInput from "../SuggestionInput/SuggestionInput";
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
 
 interface Props {
   projectService: ProjectService;
@@ -26,6 +28,7 @@ interface State {
   customPropertyCreateFlag: boolean;
   customPropertyUpdateFlag: boolean;
   currentCustomProperty: any;
+  showAddPropertyModal: boolean;
 }
 
 export default class MxProperties extends Component<Props, State> {
@@ -49,6 +52,7 @@ export default class MxProperties extends Component<Props, State> {
       customPropertyCreateFlag: true,
       customPropertyUpdateFlag: true,
       currentCustomProperty: {},
+      showAddPropertyModal: false
     };
 
     this.projectService_addNewProductLineListener =
@@ -74,6 +78,10 @@ export default class MxProperties extends Component<Props, State> {
     this.selectPossibleValuesChange =
       this.selectPossibleValuesChange.bind(this);
     this.customPropertySelected = this.customPropertySelected.bind(this);
+
+
+    this.showAddPropertyModal = this.showAddPropertyModal.bind(this);
+    this.hideAddPropertyModal = this.hideAddPropertyModal.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -99,11 +107,11 @@ export default class MxProperties extends Component<Props, State> {
   }
 
   input_onChange(e: any) {
-    let name=null;
-    if(e.target.attributes){
+    let name = null;
+    if (e.target.attributes) {
       name = e.target.attributes["data-name"].value;
     }
-    else if(e.target.props){
+    else if (e.target.props) {
       name = e.target.props["data-name"];
     }
     let value = e.target.value;
@@ -223,6 +231,14 @@ export default class MxProperties extends Component<Props, State> {
     return true;
   }
 
+  showAddPropertyModal() {
+    this.setState({ showAddPropertyModal: true })
+  }
+
+  hideAddPropertyModal() {
+    this.setState({ showAddPropertyModal: false })
+  }
+
   createCustomProperty() {
     if (!this.nullValidate()) return false;
     if (!this.validatePropertyExist()) return false;
@@ -250,6 +266,7 @@ export default class MxProperties extends Component<Props, State> {
 
     alertify.success("Property created successfully");
     this.clearForm();
+    this.setState({ showAddPropertyModal: false })
   }
 
   updateCustomProperty() {
@@ -348,8 +365,10 @@ export default class MxProperties extends Component<Props, State> {
 
   renderProperties() {
     let ret = [];
+
+
     if (this.currentObject) {
-      let concreteSyntaxElement:any=null;
+      let concreteSyntaxElement: any = null;
       let languageDefinition: any =
         this.props.projectService.getLanguageDefinition(
           "" + this.currentModel?.name
@@ -386,12 +405,14 @@ export default class MxProperties extends Component<Props, State> {
             this.currentObject.type
             ];
         }
- 
+
         let property = {
           name: "Name",
           type: "String",
         };
         this.state.values["Name"] = this.currentObject.name;
+
+        ret.push(<a onClick={this.showAddPropertyModal} title="Add property"><i className="bi bi-plus-square"></i></a>);
         ret.push(this.createControl(property, this.currentObject.name, true, concreteSyntaxElement));
         if (this.elementDefinition.properties) {
           for (let i = 0; i < this.elementDefinition.properties.length; i++) {
@@ -448,7 +469,7 @@ export default class MxProperties extends Component<Props, State> {
             this.createControl(
               this.currentObject.properties[p],
               this.currentObject.properties[p].value,
-              this.currentObject.properties[p].display, 
+              this.currentObject.properties[p].display,
               concreteSyntaxElement
             )
           );
@@ -506,7 +527,7 @@ export default class MxProperties extends Component<Props, State> {
         }
         control = (
           <select
-            className="form-select"
+            className="form-control form-control-sm"
             data-name={property.name}
             onChange={this.input_onChange}
           >
@@ -517,7 +538,7 @@ export default class MxProperties extends Component<Props, State> {
       case "Text":
         control = (
           <textarea
-            className="form-control"
+            className="form-control form-control-sm"
             data-name={property.name}
             onChange={this.input_onChange}
             value={this.state.values[property.name]}
@@ -531,7 +552,7 @@ export default class MxProperties extends Component<Props, State> {
         ) {
           control = (
             <input
-              className="form-control"
+              className="form-control form-control-sm"
               type="number"
               data-name={property.name}
               onChange={this.input_onChange}
@@ -547,7 +568,7 @@ export default class MxProperties extends Component<Props, State> {
           const max = values[1];
           control = (
             <input
-              className="form-control"
+              className="form-control form-control-sm"
               type="number"
               min={min}
               max={max}
@@ -580,7 +601,7 @@ export default class MxProperties extends Component<Props, State> {
 
           control = (
             <select
-              className="form-select"
+              className="form-control form-control-sm"
               data-name={property.name}
               onChange={this.input_onChange}
             >
@@ -598,7 +619,7 @@ export default class MxProperties extends Component<Props, State> {
         ) {
           control = (
             <input
-              className="form-control"
+              className="form-control form-control-sm"
               type="text"
               title={titleToolTip}
               data-name={property.name}
@@ -631,7 +652,7 @@ export default class MxProperties extends Component<Props, State> {
 
           control = (
             <select
-              className="form-select"
+              className="form-control form-control-sm"
               data-name={property.name}
               onChange={this.input_onChange}
               title={titleToolTip}
@@ -670,7 +691,7 @@ export default class MxProperties extends Component<Props, State> {
       case "Autocomplete":
         control = (
           <SuggestionInput
-            className="form-control"
+            className="form-control form-control-sm"
             data-name={property.name}
             onChange={this.input_onChange}
             value={this.state.values[property.name]}
@@ -680,27 +701,24 @@ export default class MxProperties extends Component<Props, State> {
         break;
     }
     return (
-      <div
-        id={"prop_" + property.name}
-        style={style}
+      <div className="form-group" id={"prop_" + property.name} style={style}
         onAuxClick={() => this.customPropertySelected(property)}
       >
         <label title={titleToolTip}>{property.name}</label>
         <br />
         {control}
-        <hr style={{ marginTop: 10, color: "gray" }} />
       </div>
     );
   }
 
-  getAutoCompleteEndPoint(propertyName: any, concreteSyntax: any){ 
-     for (let i = 0; i < concreteSyntax.autocomplete_services.length; i++) {
+  getAutoCompleteEndPoint(propertyName: any, concreteSyntax: any) {
+    for (let i = 0; i < concreteSyntax.autocomplete_services.length; i++) {
       const item = concreteSyntax.autocomplete_services[i];
-      if (item.property==propertyName) {
+      if (item.property == propertyName) {
         return item.endpoint;
       }
-     }
-     return null;
+    }
+    return null;
   }
 
   render() {
@@ -708,82 +726,6 @@ export default class MxProperties extends Component<Props, State> {
       <div key="a" id="MxPalette" className="MxPalette">
         <div className="card-body bg-white-Variamos" id="renderProperties">
           <div hidden={this.state.customPropertyFlag}>
-            <div className="row">
-              <div className="col-md">
-                <div className="form-floating">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="property name"
-                    id="newPropertyName"
-                    value={this.state.propertyName}
-                    onChange={this.selectNameChange}
-                  />
-                  <label htmlFor="newPropertyName">Enter name</label>
-                </div>
-              </div>
-            </div>
-            <br />
-            <div className="row">
-              <div className="col-md">
-                <div className="form-floating">
-                  <select
-                    className="form-select"
-                    id="newPropertySelectDomain"
-                    aria-label="Select property domain"
-                    value={this.state.propertyDomain}
-                    onChange={this.selectDomainChange}
-                  >
-                    <option value="String" selected>
-                      String
-                    </option>
-                    <option value="Integer">Integer</option>
-                    <option value="Boolean">Boolean</option>
-                  </select>
-                  <label
-                    htmlFor="newPropertySelectDomain"
-                    style={{ fontSize: 12 }}
-                  >
-                    Select property domain
-                  </label>
-                </div>
-              </div>
-            </div>
-            <br />
-            <div className="row">
-              <div className="col-md">
-                <div className="form-floating">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="property possible values"
-                    id="customPropertyPossibleValues"
-                    value={this.state.propertyPossibleValues}
-                    onChange={this.selectPossibleValuesChange}
-                  />
-                  <label htmlFor="customPropertyPossibleValues">
-                    Enter possible values
-                  </label>
-                </div>
-              </div>
-            </div>
-            <br />
-            <div className="row">
-              <div className="col-md">
-                <div className="form-floating">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="property comment"
-                    id="customPropertyComment"
-                    value={this.state.propertyComment}
-                    onChange={this.selectCommentChange}
-                  />
-                  <label htmlFor="customPropertyComment">Enter comment</label>
-                </div>
-              </div>
-            </div>
-            <br />
             <div className="row">
               <div className="col-md">
                 <button
@@ -857,6 +799,90 @@ export default class MxProperties extends Component<Props, State> {
           projectService={this.props.projectService}
           currentObject={this.currentObject}
         />
+
+        <Modal show={this.state.showAddPropertyModal} onHide={this.hideAddPropertyModal} size="lg" centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              New property
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div>
+              <div className="row">
+                <div className="col-md">
+                  <div>
+                    <label>Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="property name"
+                      id="newPropertyName"
+                      value={this.state.propertyName}
+                      onChange={this.selectNameChange}
+                    />
+                  </div>
+                </div>
+              </div>
+              <br />
+              <div className="row">
+                <div className="col-md">
+                  <div>
+                    <label >Domain</label>
+                    <select
+                      className="form-select"
+                      id="newPropertySelectDomain"
+                      aria-label="Select property domain"
+                      value={this.state.propertyDomain}
+                      onChange={this.selectDomainChange}
+                    >
+                      <option value="String" selected>
+                        String
+                      </option>
+                      <option value="Integer">Integer</option>
+                      <option value="Boolean">Boolean</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <br />
+              <div className="row">
+                <div className="col-md">
+                  <div>
+                    <label >Values  </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Possible values separated by semicolons"
+                      id="customPropertyPossibleValues"
+                      value={this.state.propertyPossibleValues}
+                      onChange={this.selectPossibleValuesChange}
+                    />
+                  </div>
+                </div>
+              </div>
+              <br />
+              <div className="row">
+                <div className="col-md">
+                  <div>
+                    <label>Comments</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Comments"
+                      id="customPropertyComment"
+                      value={this.state.propertyComment}
+                      onChange={this.selectCommentChange}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="primary" onClick={this.createCustomProperty}  > Accept </Button>
+            <Button variant="secondary" onClick={this.hideAddPropertyModal} > Cancel </Button>
+          </Modal.Footer>
+        </Modal>
       </div>
     );
   }
