@@ -697,6 +697,7 @@ export default class MxGEditor extends Component<Props, State> {
             );
             let ne: any = mx.mxUtils.parseXml(shape).documentElement;
             ne.setAttribute("name", element.type);
+            MxgraphUtils.modifyShape(ne);
             let stencil = new mx.mxStencil(ne);
             mx.mxStencilRegistry.addStencil(element.type, stencil);
           }

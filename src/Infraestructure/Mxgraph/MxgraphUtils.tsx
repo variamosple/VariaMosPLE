@@ -57,7 +57,7 @@ export default class MxgraphUtils {
         }
         return null;
     }
- 
+
     static exportFile(graph: mxGraph, format) {
         var bg = '#ffffff';
         var scale = 1;
@@ -89,7 +89,66 @@ export default class MxgraphUtils {
             bg = '&bg=' + bg;
         }
 
-        var req= new mx.mxXmlRequest('/Export', 'filename=export.' + format + '&format=' + format + bg + '&w=' + w + '&h=' + h + '&xml=' + encodeURIComponent(xml), "POST", false, null, null).simulate(document, '_blank');
+        var req = new mx.mxXmlRequest('/Export', 'filename=export.' + format + '&format=' + format + bg + '&w=' + w + '&h=' + h + '&xml=' + encodeURIComponent(xml), "POST", false, null, null).simulate(document, '_blank');
+    }
+
+    static modifyShape(ne: any) {
+        let foreground = ne.children[1];
+        for (let i = 0; i < foreground.children.length; i++) {
+            const child = foreground.children[i];
+            if (child.tagName == 'text') {
+                if (child.attributes['dynamicproperties']) {
+                    child.innerHTML = `<![CDATA[
+                        function(shape)
+                        {
+                            try{
+                                if(!shape.state.cell){
+                                    return;
+                                }
+                                if(!shape.state.cell.value){
+                                    return;
+                                }
+                                if(!shape.state.cell.value.attributes){
+                                    return;
+                                }
+                                
+                                let attributes=shape.state.cell.value.attributes; 
+                                var keys = Object.keys(attributes);
+                                console.log(keys); 
+                                keys = Object.getOwnPropertyNames(attributes);
+                                console.log(keys); 
+                                
+                                let strs=[];
+                                for (let i=0; i<keys.length; i++) {
+                                    let key=keys[i]; 
+                                    if (!attributes.hasOwnProperty(key)) continue; 
+                                    if (!isNaN(key)) continue; 
+                                    if (['uid', 'label', 'Name', 'Selected', 'type', 'title'].includes(key)) continue; 
+                                    let name=key; 
+                                    let value=attributes[key].value;
+                                    strs.push(name + ": " + value); 
+                                }  
+                                return strs.join('\\r\\n');
+                            }
+                            catch(e){
+                                alert(JSON.stringify(e));
+                            }
+                        }
+                    ]]>`; 
+                } else if (child.attributes['propertyname']) {
+                    let propertyName = child.attributes['propertyname'].value;
+                    child.innerHTML = `<![CDATA[ 
+                        function(shape)
+                        {
+                            return shape.state.cell.value.attributes['` + propertyName + `'].value;
+                        }
+                        ]]>`; 
+                }else{
+                   // child.innerHTML = ``;
+                }
+            }
+        }
+        return;
     }
 
 }

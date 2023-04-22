@@ -41,7 +41,7 @@ export default class RestrictionService {
       }).catch(function (error) {
         let m=JSON.stringify(error);
         console.log(m);
-        alert(m);
+        // alert(m);
 
         // if (error.response) {
         //   // Request made and server responded
