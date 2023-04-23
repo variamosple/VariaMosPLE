@@ -231,8 +231,8 @@ describe('Testing the methods', ()=>{
       expect(getElementByIdMock).toHaveBeenCalledTimes(1);
       expect(getElementByIdMock).toHaveBeenCalledWith('openModal');
 
-      // expect(getLanguagesDetailMock).toHaveBeenCalledTimes(2); //Called once at new ProjectService()
-      // expect(getLanguagesDetailMock).toHaveBeenCalledWith();
+      expect(getLanguagesDetailMock).toHaveBeenCalledTimes(2); //Called once at new ProjectService()
+      expect(getLanguagesDetailMock).toHaveBeenCalledWith();
 
       expect(updateProjectNameMock).toHaveBeenCalledTimes(1);
       expect(updateProjectNameMock).toHaveBeenCalledWith(state.projectName);
