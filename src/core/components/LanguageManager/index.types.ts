@@ -20,7 +20,6 @@ export interface Language {
   semantics: string;
 }
 
-
 export interface LanguageManagerProps {
   setLanguage: (value) => void;
   setCreatingLanguage: (value) => void;
