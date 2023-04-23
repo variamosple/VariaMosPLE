@@ -1,0 +1,7 @@
+{
+  "title": "Create language",
+  "inputLabel": "Language name",
+  "inputPlaceHolder": "Name of the language",
+  "primaryButtonLabel": "Create Language",
+  "closeButtonLabel": "Close"
+}
