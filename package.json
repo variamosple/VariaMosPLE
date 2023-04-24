@@ -14,7 +14,7 @@
   "private": true,
   "dependencies": {
     "@types/node": "^12.20.13",
-    "@types/prismjs": "1.26.0",
+    "@types/prismjs": "^1.26.0",
     "@types/react": "^17.0.3",
     "@types/react-bootstrap": "^0.32.32",
     "@types/react-dom": "^17.0.2",
