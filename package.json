@@ -23,6 +23,7 @@
     "immer": "^9.0.12",
     "mxgraph": "^4.2.2",
     "prism-themes": "^1.9.0",
+    "prismjs": "^1.29.0",
     "react": "^17.0.1",
     "react-bootstrap": "^2.7.0",
     "react-bootstrap-icons": "^1.10.3",
@@ -37,7 +38,9 @@
     "start": "react-scripts start",
     "build": "CI=false && react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "docker:ci": "docker build -t variamos:latest .",
+    "docker:deploy": "docker run -d --name variamos -p 3000:3000 variamos:latest "
   },
   "eslintConfig": {
     "extends": [

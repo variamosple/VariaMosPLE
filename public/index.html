@@ -55,7 +55,7 @@
         const projectManagement = document.getElementById("projectManagement");
         const hiddenProject = document.getElementById("hiddenProject");
 
-        if (enterMyProjectName && !projectManagement) {
+        if (!enterMyProjectName && projectManagement) {
           projectManagement.click();
         }
 
