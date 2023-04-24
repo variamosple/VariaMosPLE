@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { GoogleLogin } from "react-google-login";
 import VariaMosLogo from "../../Addons/images/VariaMosLogo.png";
@@ -10,7 +10,14 @@ function SignInUp() {
   const [loginProgress, setLoginProgress] = useState(SignUpMessages.Welcome);
   const [hasErrors, setErrors] = useState(false);
 
-  const responseGoogle = (response) => {
+  useEffect(() => {
+    const isUserLoggedIn = !!sessionStorage.getItem(SignUpKeys.CurrentUserProfile)
+    if (isUserLoggedIn) {
+      window.location.href = SignUpURLs.Dashboard;
+    }
+  }, [])
+
+  const handleResponse = (response) => {
     const userProfile = { ...response.profileObj, userType: SignUpUserTypes.Registered };
     sessionStorage.setItem(SignUpKeys.CurrentUserProfile, JSON.stringify(userProfile));
 
@@ -53,11 +60,12 @@ function SignInUp() {
           <GoogleLogin
             clientId="89157287881-nmvv2flktr85loou6tr5ae2cfggo6tl7.apps.googleusercontent.com"
             buttonText={SignUpMessages.SignUpWithGoogle}
-            onSuccess={responseGoogle}
-            onFailure={responseGoogle}
+            onSuccess={handleResponse}
+            onFailure={handleResponse}
           />
         </div>
         <div className="signup__guest">
+          {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
           <a href="#" onClick={signUpAsAGuestHandler} className="signup__guest-link">{SignUpMessages.ContinueAsGuest}</a>
         </div>
       </div>

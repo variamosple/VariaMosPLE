@@ -4,7 +4,7 @@ import {Element} from "./Element";
 
 beforeEach(() => {
   jest.spyOn(global.Math, 'random').mockReturnValue(0.123456789);
-  jest.useFakeTimers('modern');
+  jest.useFakeTimers();
   jest.setSystemTime(1655108206699);
 });
 
