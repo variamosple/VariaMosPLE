@@ -11,6 +11,7 @@ import { mxStencil } from "mxgraph";
 import * as alertify from "alertifyjs";
 import { stringify } from "querystring";
 import { join } from "path";
+import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
 import "./MxPalette.css"
 
 interface Props {
@@ -150,7 +151,7 @@ export default class MxPalette extends Component<Props, State> {
     if (def.properties) {
       for (let i = 0; i < def.properties.length; i++) {
         const p = def.properties[i];
-        const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues);
+        const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.minCardinality, p.maxCardinality);
         if (p.linked_property) {
           property.display = false;
         }
@@ -363,6 +364,7 @@ export default class MxPalette extends Component<Props, State> {
       let shape = atob(element.draw);
       let ne: any = mx.mxUtils.parseXml(shape).documentElement;
       ne.setAttribute("name", type);
+      MxgraphUtils.modifyShape(ne);
       let s: any = mx.mxStencil;
       s.allowEval = true;
       let stencil = new mx.mxStencil(ne);
