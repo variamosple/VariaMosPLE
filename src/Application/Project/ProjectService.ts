@@ -428,7 +428,7 @@ export default class ProjectService {
   }
 
   createLanguage(callback: any, language: any) {
-    let user=this.getUser(); 
+    let user = this.getUser(); 
     if (user) {
       language.abstractSyntax = JSON.parse(language.abstractSyntax);
       language.concreteSyntax = JSON.parse(language.concreteSyntax);
