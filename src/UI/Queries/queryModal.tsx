@@ -7,9 +7,15 @@ import Button from "react-bootstrap/Button";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
 import Spinner from "react-bootstrap/Spinner";
+import Container from "react-bootstrap/Container";
+//Prism Stuff
+import { highlight, languages } from "prismjs";
+import "prismjs/components/prism-lisp";
+import "prism-themes/themes/prism-vsc-dark-plus.css";
+import Editor from "react-simple-code-editor";
 
 //Import the code to run the query
-import { runQuery } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
+import { runQuery, syncSemantics } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
 import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import ProjectService from "../../Application/Project/ProjectService";
 import QueryResult from "./queryResult";
@@ -29,6 +35,9 @@ export default function QueryModal(
   const [queryInProgress, setQueryInProgress] = useState(false);
   const [resultsReady, setResultsReady] = useState(false);
   const [results, setResults] = useState([]);
+  const [semantics, setSemantics] = useState("");
+  const [semanticsInProgress, setSemanticsInProgress] = useState(false);
+  const [semanticsReady, setSemanticsReady] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("currentResults", JSON.stringify(results));
@@ -46,6 +55,19 @@ export default function QueryModal(
 
   const populateResultsTab = (results) => {
     setResults((prevResults) => [...prevResults, results]);
+  }
+
+  const handleSyncSemantics = async () => {
+    setSemanticsInProgress(true);
+    setSemanticsReady(false);
+    console.log("Syncing Semantics for the model")
+    const result = await syncSemantics(projectService, translatorEndpoint);
+    console.log("Result,", result);
+    if (result) {
+      setSemanticsReady(true);
+      setSemantics(result);
+    }
+    setSemanticsInProgress(false);
   }
 
   //Handle submiting the query
@@ -114,6 +136,26 @@ export default function QueryModal(
                 />
               )}
             </Tab>
+            <Tab eventKey="semantics" title="Semantics" disabled={!semanticsReady}>
+              <Container style={{ maxHeight: "800px", overflow: "auto" }}>
+                <Editor
+                  value={semantics}
+                  onValueChange={setSemantics}
+                  highlight={(semantics) => highlight(semantics, languages.lisp, "lisp")}
+                  padding={10}
+                  className="editor"
+                  style={{
+                    fontFamily: '"Fira code", "Fira Mono", monospace',
+                    fontSize: 18,
+                    backgroundColor: "#1e1e1e",
+                    caretColor: "gray",
+                    color: "gray",
+                    borderRadius: "10px",
+                    overflow: "auto"
+                  }}
+                />
+              </Container>
+            </Tab>
           </Tabs>
         </Modal.Body>
         <Modal.Footer>
@@ -137,6 +179,18 @@ export default function QueryModal(
             key === "results" && 
             <Button variant="primary" onClick={clearResults}>
               Clear Query Results
+            </Button>
+          }
+          { key !== "results" &&
+            <Button variant="primary" onClick={handleSyncSemantics}>
+              {semanticsInProgress && <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                  />}
+              Sync Semantics
             </Button>
           }
           <Button variant="primary" onClick={handleResetModelConfig}>

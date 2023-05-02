@@ -4,6 +4,10 @@ import ProjectService from "../../../Application/Project/ProjectService";
 import * as alertify from "alertifyjs";
 import { Query } from "../Entities/Query";
 
+export function syncSemantics(projectService: ProjectService, translatorEndpoint: string){
+    return runQuery(projectService, translatorEndpoint, new Query(JSON.parse('{"solver": "minizinc","operation": "get_model"}')))
+}
+
 export function runQuery(
     projectService: ProjectService, translatorEndpoint: string, query: Query
 ) {
