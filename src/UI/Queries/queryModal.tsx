@@ -30,7 +30,7 @@ export default function QueryModal(
   { show, handleCloseCallback, projectService }: QueryModalProps
 ) {
   const [key, setKey] = useState("query");
-  const [translatorEndpoint, setTranslatorEndpoint] = useState("");
+  const [translatorEndpoint, setTranslatorEndpoint] = useState("https://localhost:5000/query");
   const [query, setQuery] = useState("");
   const [queryInProgress, setQueryInProgress] = useState(false);
   const [resultsReady, setResultsReady] = useState(false);
