@@ -20,6 +20,7 @@ export default class MxgraphUtils {
         }
     }
 
+    //This does a recursive descent to find the vertice with the given uid
     static findVerticeById(graph, uid, parentVertice) {
         if (!parentVertice) {
             parentVertice = graph.getDefaultParent();
