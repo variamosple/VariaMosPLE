@@ -65,7 +65,7 @@ class TreeMenu extends Component<Props, State> {
   }
 
   callExternalFuntion(efunction: ExternalFuntion, query: any = null): void {
-    this.props.projectService.callExternalFuntion(efunction, query);
+    this.props.projectService.callExternalFuntion(efunction, query, null, null);
   }
 
   onEnterModal(event: any) {

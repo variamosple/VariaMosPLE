@@ -723,13 +723,10 @@ export default class MxProperties extends Component<Props, State> {
         break;
     }
     return (
-      <div className="form-group" id={"prop_" + property.name} style={style}
-        onAuxClick={() => this.customPropertySelected(property)}
-      >
-        <label title={titleToolTip}>{property.name}</label>
-        <br />
-        {control}
-      </div>
+      <tr>
+        <td><label title={titleToolTip}>{property.name}</label></td>
+        <td>{control}</td>
+      </tr>
     );
   }
 
@@ -781,7 +778,9 @@ export default class MxProperties extends Component<Props, State> {
             </div>
             <br />
           </div>
-          {this.renderProperties()}
+          <table>
+            {this.renderProperties()}
+          </table>
           <ul className="dropdown-menu" id="properties-menu">
             <li>
               <span
@@ -883,7 +882,7 @@ export default class MxProperties extends Component<Props, State> {
                 </div>
               </div>
               <br />
-              <div className="row">
+              {/* <div className="row">
                 <div className="col-md">
                   <div>
                     <label>Min cardinality</label>
@@ -913,7 +912,7 @@ export default class MxProperties extends Component<Props, State> {
                     />
                   </div>
                 </div>
-              </div>
+              </div> */}
               <br />
               <div className="row">
                 <div className="col-md">

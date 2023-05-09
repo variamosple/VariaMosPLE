@@ -87,7 +87,7 @@ export default class ProjectService {
     return this._environment;
   }
 
-  callExternalFuntion(externalFunction: ExternalFuntion, query: any) {
+  callExternalFuntion(externalFunction: ExternalFuntion, query: any, selectedElementsIds:string[], selectedRelationshipsIds:string[]) {
     let me = this;
 
     // Standard Request Start
@@ -99,7 +99,9 @@ export default class ProjectService {
     const data = {
       modelSelectedId: me.treeIdItemSelected,
       project: me._project,
-      rules: semantics
+      rules: semantics,
+      selectedElementsIds: selectedElementsIds,
+      selectedRelationshipsIds: selectedRelationshipsIds
     };
 
     externalFunction.request = {

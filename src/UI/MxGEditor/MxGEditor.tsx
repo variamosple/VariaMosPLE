@@ -14,6 +14,7 @@ import { isLabeledStatement } from "typescript";
 import SuggestionInput from "../SuggestionInput/SuggestionInput";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import Dropdown from 'react-bootstrap/Dropdown';
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 import * as alertify from "alertifyjs";
 
@@ -23,6 +24,7 @@ interface Props {
 interface State {
   showConstraintModal: boolean;
   currentModelConstraints: string;
+  showContextMenuElement:boolean;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -38,7 +40,8 @@ export default class MxGEditor extends Component<Props, State> {
     this.graphContainerRef = React.createRef();
     this.state = {
       showConstraintModal: false,
-      currentModelConstraints: ""
+      currentModelConstraints: "",
+      showContextMenuElement: false
     }
     this.projectService_addNewProductLineListener =
       this.projectService_addNewProductLineListener.bind(this);
@@ -250,6 +253,9 @@ export default class MxGEditor extends Component<Props, State> {
                   me.currentModel,
                   element
                 );
+                if (evt.properties.event.button == 2) {
+                  me.showContexMenu(element);
+                }
               }
             }
             for (let i = 0; i < me.currentModel.relationships.length; i++) {
@@ -434,6 +440,9 @@ export default class MxGEditor extends Component<Props, State> {
 
   deleteSelection() {
     let me = this;
+    if(!window.confirm("do you really want to delete the items?")){
+     return;
+    }
     let graph = this.graph;
     if (graph.isEnabled()) {
       let cells = graph.getSelectionCells();
@@ -1001,10 +1010,38 @@ export default class MxGEditor extends Component<Props, State> {
     }
   }
 
+  contexMenuElement_onClick(e) {
+    try {
+      e.preventDefault();
+      this.setState({ showContextMenuElement: false });
+      let command=e.target.attributes['data-command'].value;
+      switch (command) {
+        case "Delete":
+          this.deleteSelection();
+          break; 
+        case "CreateRelatedRequirements":
+          this.callExternalFuntion();
+          break;
+        default:
+          break;
+      } 
+    } catch (ex) {
+      this.processException(ex);
+    }
+  }
+
+  callExternalFuntion( ): void {
+    let efunction=this.props.projectService.externalFunctions[0]; 
+    let query=null;
+    let selectedElementsIds=MxgraphUtils.GetSelectedElementsIds(this.graph, this.currentModel);
+    let selectedRelationshipsIds=MxgraphUtils.GetSelectedRelationshipsIds(this.graph, this.currentModel);
+    this.props.projectService.callExternalFuntion(efunction, query, selectedElementsIds, selectedRelationshipsIds);
+  }
+
   showConstraintModal() {
-    if(this.currentModel){
-      if(this.currentModel.constraints !== ""){
-        this.setState({currentModelConstraints: this.currentModel.constraints})
+    if (this.currentModel) {
+      if (this.currentModel.constraints !== "") {
+        this.setState({ currentModelConstraints: this.currentModel.constraints })
       }
       this.setState({ showConstraintModal: true })
     } else {
@@ -1017,12 +1054,16 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   saveConstraints() {
-    if(this.currentModel){
+    if (this.currentModel) {
       // TODO: Everything we are doing with respect to
       // the model management is an anti pattern
       this.currentModel.constraints = this.state.currentModelConstraints;
     }
     //this.hideConstraintModal();
+  }
+
+  showContexMenu(element) {
+    this.setState({showContextMenuElement:true});
   }
 
   render() {
@@ -1072,7 +1113,11 @@ export default class MxGEditor extends Component<Props, State> {
               </Button>
             </Modal.Footer>
           </Modal>
-        </div>
+          <Dropdown.Menu show={this.state.showContextMenuElement}>
+            <Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command="Delete">Delete</Dropdown.Item> 
+            <Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command="CreateRelatedRequirements">Create related requirements</Dropdown.Item> 
+          </Dropdown.Menu>
+        </div> 
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
       </div>
     );
