@@ -557,12 +557,12 @@ export default class ProjectService {
     if (file) {
       this._project = Object.assign(this._project, JSON.parse(file));
     }
-    this.raiseEventUpdateProject(this._project);
+    this.raiseEventUpdateProject(this._project, null);
   }
 
   updateProject(project: Project, modelSelectedId: string): void {
     this._project = project;
-    this.raiseEventUpdateProject(this._project);
+    this.raiseEventUpdateProject(this._project, modelSelectedId);
     //find the model selected
     //By default, only a single product line is supported
     
@@ -595,7 +595,7 @@ export default class ProjectService {
       this._project,
       this.treeIdItemSelected
     );
-    this.raiseEventUpdateProject(this._project);
+    this.raiseEventUpdateProject(this._project, null);
   }
 
   refreshLanguageList() {
@@ -609,17 +609,17 @@ export default class ProjectService {
       this.treeIdItemSelected,
       newName
     );
-    this.raiseEventUpdateProject(this._project);
+    this.raiseEventUpdateProject(this._project, this.treeIdItemSelected);
   }
 
   updateProjectState(state: boolean) {
     this._project.enable = state;
-    this.raiseEventUpdateProject(this._project);
+    this.raiseEventUpdateProject(this._project, this.treeIdItemSelected);
   }
 
   updateProjectName(name: string) {
     this._project.name = name;
-    this.raiseEventUpdateProject(this._project);
+    this.raiseEventUpdateProject(this._project, this.treeIdItemSelected);
   }
 
   addUpdateProjectListener(listener: any) {
@@ -630,9 +630,9 @@ export default class ProjectService {
     this.updateProjectListeners[listener] = null;
   }
 
-  raiseEventUpdateProject(project: Project) {
+  raiseEventUpdateProject(project: Project, modelSelectedId: string) {
     let me = this;
-    let e = new ProjectEventArg(me, project);
+    let e = new ProjectEventArg(me, project, modelSelectedId);
     for (let index = 0; index < me.updateProjectListeners.length; index++) {
       let callback = this.updateProjectListeners[index];
       callback(e);
@@ -921,6 +921,10 @@ export default class ProjectService {
       properties
     );
     return r;
+  }
+
+  findModelById(project: Project, uid: any) {
+    return ProjectUseCases.findModelById(project, uid);
   }
 
   findModelElementById(model: Model, uid: any) {

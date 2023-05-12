@@ -24,7 +24,7 @@ interface Props {
 interface State {
   showConstraintModal: boolean;
   currentModelConstraints: string;
-  showContextMenuElement:boolean;
+  showContextMenuElement: boolean;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -43,12 +43,10 @@ export default class MxGEditor extends Component<Props, State> {
       currentModelConstraints: "",
       showContextMenuElement: false
     }
-    this.projectService_addNewProductLineListener =
-      this.projectService_addNewProductLineListener.bind(this);
-    this.projectService_addSelectedModelListener =
-      this.projectService_addSelectedModelListener.bind(this);
-    this.projectService_addUpdatedElementListener =
-      this.projectService_addUpdatedElementListener.bind(this);
+    this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
+    this.projectService_addSelectedModelListener = this.projectService_addSelectedModelListener.bind(this);
+    this.projectService_addUpdatedElementListener = this.projectService_addUpdatedElementListener.bind(this);
+    this.projectService_addUpdateProjectListener = this.projectService_addUpdateProjectListener.bind(this);
     //handle constraints modal
     this.showConstraintModal = this.showConstraintModal.bind(this);
     this.hideConstraintModal = this.hideConstraintModal.bind(this);
@@ -60,8 +58,6 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   projectService_addSelectedModelListener(e: any) {
-    this.currentModel = e.model;
-    this.setState({ currentModelConstraints: e.model.constraints })
     this.loadModel(e.model);
     this.forceUpdate();
   }
@@ -81,6 +77,13 @@ export default class MxGEditor extends Component<Props, State> {
     this.graph.refresh();
   }
 
+  projectService_addUpdateProjectListener(e: any) {
+    let me = this;
+    let model = me.props.projectService.findModelById(e.project, e.modelSelectedId);
+    me.loadModel(model);
+    me.forceUpdate();
+  }
+
   componentDidMount() {
     let me = this;
     this.graph = new mx.mxGraph(this.graphContainerRef.current);
@@ -94,6 +97,9 @@ export default class MxGEditor extends Component<Props, State> {
     );
     me.props.projectService.addUpdatedElementListener(
       this.projectService_addUpdatedElementListener
+    );
+    me.props.projectService.addUpdateProjectListener(
+      this.projectService_addUpdateProjectListener
     );
   }
 
@@ -239,13 +245,13 @@ export default class MxGEditor extends Component<Props, State> {
     graph.addListener(mx.mxEvent.CLICK, function (sender, evt) {
       try {
         evt.consume();
+        if (!me.currentModel) {
+          return;
+        }
         if (evt.properties.cell) {
           let cell = evt.properties.cell;
-          if (!cell.value.attributes) {
-            return;
-          }
-          let uid = cell.value.getAttribute("uid");
-          if (me.currentModel) {
+          if (cell.value.attributes) {
+            let uid = cell.value.getAttribute("uid");
             for (let i = 0; i < me.currentModel.elements.length; i++) {
               const element: any = me.currentModel.elements[i];
               if (element.id === uid) {
@@ -253,9 +259,6 @@ export default class MxGEditor extends Component<Props, State> {
                   me.currentModel,
                   element
                 );
-                if (evt.properties.event.button == 2) {
-                  me.showContexMenu(element);
-                }
               }
             }
             for (let i = 0; i < me.currentModel.relationships.length; i++) {
@@ -270,7 +273,14 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
         else {
-          me.graph.clearSelection();
+          if (evt.properties.event.button != 2) { 
+            me.graph.clearSelection();
+          }
+        }
+        if (evt.properties.event.button == 2) {
+          me.showContexMenu();
+        } else {
+          me.hideContexMenu();
         }
       } catch (error) { }
     });
@@ -440,8 +450,8 @@ export default class MxGEditor extends Component<Props, State> {
 
   deleteSelection() {
     let me = this;
-    if(!window.confirm("do you really want to delete the items?")){
-     return;
+    if (!window.confirm("do you really want to delete the items?")) {
+      return;
     }
     let graph = this.graph;
     if (graph.isEnabled()) {
@@ -693,90 +703,103 @@ export default class MxGEditor extends Component<Props, State> {
 
   loadModel(model: Model) {
     let me = this;
-    let languageDefinition: any =
-      this.props.projectService.getLanguageDefinition("" + model.name);
+    this.currentModel = model;
+    if (!model) {
+      this.setState({
+        currentModelConstraints: null
+      });
+    } else {
+      this.setState({
+        currentModelConstraints: model.constraints
+      });
+    }
+    this.setState({
+      showContextMenuElement: false
+    });
 
     let graph: mxGraph | undefined = this.graph;
     if (graph) {
       graph.getModel().beginUpdate();
       try {
         graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
-
-        let orden = [];
-        for (let i = 0; i < model.elements.length; i++) {
-          let element: any = model.elements[i];
-          if (element.parentId) {
-            this.pushIfNotExist(orden, element.parentId);
+        if (model) {
+          let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.name);
+          let orden = [];
+          for (let i = 0; i < model.elements.length; i++) {
+            let element: any = model.elements[i];
+            if (element.parentId) {
+              this.pushIfNotExist(orden, element.parentId);
+            }
+            this.pushIfNotExist(orden, element.id);
           }
-          this.pushIfNotExist(orden, element.id);
-        }
 
-        let vertices = [];
+          let vertices = [];
 
-        for (let i = 0; i < orden.length; i++) {
-          let element: any = this.props.projectService.findModelElementById(model, orden[i]);
+          for (let i = 0; i < orden.length; i++) {
+            let element: any = this.props.projectService.findModelElementById(model, orden[i]);
 
-          if (languageDefinition.concreteSyntax.elements[element.type].draw) {
-            let shape = atob(
-              languageDefinition.concreteSyntax.elements[element.type].draw
+            if (languageDefinition.concreteSyntax.elements[element.type].draw) {
+              let shape = atob(
+                languageDefinition.concreteSyntax.elements[element.type].draw
+              );
+              let ne: any = mx.mxUtils.parseXml(shape).documentElement;
+              ne.setAttribute("name", element.type);
+              MxgraphUtils.modifyShape(ne);
+              let stencil = new mx.mxStencil(ne);
+              mx.mxStencilRegistry.addStencil(element.type, stencil);
+            }
+
+            let parent = graph.getDefaultParent();
+            if (element.parentId) {
+              parent = vertices[element.parentId];
+            }
+
+            var doc = mx.mxUtils.createXmlDocument();
+            var node = doc.createElement(element.type);
+            node.setAttribute("uid", element.id);
+            node.setAttribute("label", element.name);
+            node.setAttribute("Name", element.name);
+            for (let i = 0; i < element.properties.length; i++) {
+              const p = element.properties[i];
+              node.setAttribute(p.name, p.value);
+            }
+            var vertex = graph.insertVertex(
+              parent,
+              null,
+              node,
+              element.x,
+              element.y,
+              element.width,
+              element.height,
+              "shape=" +
+              element.type +
+              ";" +
+              languageDefinition.concreteSyntax.elements[element.type].design
             );
-            let ne: any = mx.mxUtils.parseXml(shape).documentElement;
-            ne.setAttribute("name", element.type);
-            MxgraphUtils.modifyShape(ne);
-            let stencil = new mx.mxStencil(ne);
-            mx.mxStencilRegistry.addStencil(element.type, stencil);
+            this.refreshVertexLabel(vertex);
+            this.createOverlays(element, vertex);
+            vertices[element.id] = vertex;
           }
 
           let parent = graph.getDefaultParent();
-          if (element.parentId) {
-            parent = vertices[element.parentId];
-          }
 
-          var doc = mx.mxUtils.createXmlDocument();
-          var node = doc.createElement(element.type);
-          node.setAttribute("uid", element.id);
-          node.setAttribute("label", element.name);
-          node.setAttribute("Name", element.name);
-          for (let i = 0; i < element.properties.length; i++) {
-            const p = element.properties[i];
-            node.setAttribute(p.name, p.value);
-          }
-          var vertex = graph.insertVertex(
-            parent,
-            null,
-            node,
-            element.x,
-            element.y,
-            element.width,
-            element.height,
-            "shape=" +
-            element.type +
-            ";" +
-            languageDefinition.concreteSyntax.elements[element.type].design
-          );
-          this.refreshVertexLabel(vertex);
-          this.createOverlays(element, vertex);
-          vertices[element.id] = vertex;
-        }
+          for (let i = 0; i < model.relationships.length; i++) {
+            const relationship: Relationship = model.relationships[i];
+            let source = MxgraphUtils.findVerticeById(graph, relationship.sourceId, null);
+            let target = MxgraphUtils.findVerticeById(graph, relationship.targetId, null);
+            let doc = mx.mxUtils.createXmlDocument();
+            let node = doc.createElement("relationship");
+            node.setAttribute("uid", relationship.id);
+            node.setAttribute("label", relationship.name);
+            node.setAttribute("type", relationship.type);
 
-        let parent = graph.getDefaultParent();
-
-        for (let i = 0; i < model.relationships.length; i++) {
-          const relationship: Relationship = model.relationships[i];
-          let source = MxgraphUtils.findVerticeById(graph, relationship.sourceId, null);
-          let target = MxgraphUtils.findVerticeById(graph, relationship.targetId, null);
-          let doc = mx.mxUtils.createXmlDocument();
-          let node = doc.createElement("relationship");
-          node.setAttribute("uid", relationship.id);
-          node.setAttribute("label", relationship.name);
-          node.setAttribute("type", relationship.type);
-
-          var cell = this.graph?.insertEdge(parent, null, node, source, target, 'strokeColor=#69b630;strokeWidth=3;endArrow=block;endSize=8;edgeStyle=elbowEdgeStyle;');
-          cell.geometry.points = [];
-          if (relationship.points) {
-            for (let k = 0; k < relationship.points.length; k++) {
-              const p = relationship.points[k];
-              cell.geometry.points.push(new mx.mxPoint(p.x, p.y));
+            var cell = this.graph?.insertEdge(parent, null, node, source, target, 'strokeColor=#69b630;strokeWidth=3;endArrow=block;endSize=8;edgeStyle=elbowEdgeStyle;');
+            cell.geometry.points = [];
+            if (relationship.points) {
+              for (let k = 0; k < relationship.points.length; k++) {
+                const p = relationship.points[k];
+                cell.geometry.points.push(new mx.mxPoint(p.x, p.y));
+              }
             }
           }
         }
@@ -1014,27 +1037,25 @@ export default class MxGEditor extends Component<Props, State> {
     try {
       e.preventDefault();
       this.setState({ showContextMenuElement: false });
-      let command=e.target.attributes['data-command'].value;
+      let command = e.target.attributes['data-command'].value;
       switch (command) {
         case "Delete":
           this.deleteSelection();
-          break; 
-        case "CreateRelatedRequirements":
-          this.callExternalFuntion();
           break;
         default:
+          this.callExternalFuntion(command);
           break;
-      } 
+      }
     } catch (ex) {
       this.processException(ex);
     }
   }
 
-  callExternalFuntion( ): void {
-    let efunction=this.props.projectService.externalFunctions[0]; 
-    let query=null;
-    let selectedElementsIds=MxgraphUtils.GetSelectedElementsIds(this.graph, this.currentModel);
-    let selectedRelationshipsIds=MxgraphUtils.GetSelectedRelationshipsIds(this.graph, this.currentModel);
+  callExternalFuntion(index: number): void {
+    let efunction = this.props.projectService.externalFunctions[index];
+    let query = null;
+    let selectedElementsIds = MxgraphUtils.GetSelectedElementsIds(this.graph, this.currentModel);
+    let selectedRelationshipsIds = MxgraphUtils.GetSelectedRelationshipsIds(this.graph, this.currentModel);
     this.props.projectService.callExternalFuntion(efunction, query, selectedElementsIds, selectedRelationshipsIds);
   }
 
@@ -1062,8 +1083,40 @@ export default class MxGEditor extends Component<Props, State> {
     //this.hideConstraintModal();
   }
 
-  showContexMenu(element) {
-    this.setState({showContextMenuElement:true});
+  showContexMenu() {
+    this.setState({ showContextMenuElement: true });
+  }
+
+  hideContexMenu() {
+    this.setState({ showContextMenuElement: false });
+  }
+
+  renderContexMenu() {
+    if (!this.graph || !this.currentModel) {
+      return;
+    }
+
+    let items = [];
+
+    let selectedElementsIds = MxgraphUtils.GetSelectedElementsIds(this.graph, this.currentModel);
+    let selectedRelationshipsIds = MxgraphUtils.GetSelectedRelationshipsIds(this.graph, this.currentModel);
+
+    if (selectedElementsIds.length > 0 || selectedRelationshipsIds.length > 0) {
+      items.push(<Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command="Delete">Delete</Dropdown.Item>);
+    }
+
+    if (this.props.projectService.externalFunctions) {
+      for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
+        const externalFunction = this.props.projectService.externalFunctions[i];
+        items.push(<Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command={i}>{externalFunction.label}</Dropdown.Item>);
+      }
+    }
+
+    return (
+      <Dropdown.Menu show={this.state.showContextMenuElement}>
+        {items}
+      </Dropdown.Menu>
+    );
   }
 
   render() {
@@ -1113,11 +1166,8 @@ export default class MxGEditor extends Component<Props, State> {
               </Button>
             </Modal.Footer>
           </Modal>
-          <Dropdown.Menu show={this.state.showContextMenuElement}>
-            <Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command="Delete">Delete</Dropdown.Item> 
-            <Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command="CreateRelatedRequirements">Create related requirements</Dropdown.Item> 
-          </Dropdown.Menu>
-        </div> 
+          {this.renderContexMenu()}
+        </div>
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
       </div>
     );
