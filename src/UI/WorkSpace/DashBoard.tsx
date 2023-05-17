@@ -8,9 +8,10 @@ import NavBar from "./navBar";
 import ProjectService from "../../Application/Project/ProjectService";
 import TreeMenu from "../TreeExplorer/TreeMenu";
 import { getUserProfile } from "../SignUp/SignUp.utils";
+import Layout from "../../core/components/Layout";
 
 interface Props {
-  loginEnabled?: boolean
+  loginEnabled?: boolean;
 }
 interface State {}
 
@@ -28,32 +29,34 @@ class DashBoard extends Component<Props, State> {
     const userProfile = getUserProfile();
 
     if (this.props.loginEnabled && !userProfile) {
-      window.location.href = '/';
-      return (null)
+      window.location.href = "/";
+      return null;
     }
 
     return (
-      <div className="container-fluid">
-        <ProjectManagement projectService={this.projectService} />
+      <Layout>
+        <div className="container-fluid">
+          <ProjectManagement projectService={this.projectService} />
 
-        <div className="row" id="explorer">
-          <TreeMenu projectService={this.projectService} />
-          <TreeExplorer projectService={this.projectService} />
-          <div className="col-sm">
-            <NavBar projectService={this.projectService} />
-            <div className="row">
-              <DiagramEditor projectService={this.projectService} />
-              <div
-                className="col-2 col-sm-2 distribution-variamos"
-                style={{ height: "96vh" }}
-              >
-                <ElementsPannel projectService={this.projectService} />
-                <PropiertiesPannel projectService={this.projectService} />
+          <div className="row" id="explorer">
+            <TreeMenu projectService={this.projectService} />
+            <TreeExplorer projectService={this.projectService} />
+            <div className="col-sm">
+              <NavBar projectService={this.projectService} />
+              <div className="row">
+                <DiagramEditor projectService={this.projectService} />
+                <div
+                  className="col-2 col-sm-2 distribution-variamos"
+                  style={{ height: "96vh" }}
+                >
+                  <ElementsPannel projectService={this.projectService} />
+                  <PropiertiesPannel projectService={this.projectService} />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 }
