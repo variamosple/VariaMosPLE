@@ -81,39 +81,6 @@ class navBar extends Component<Props, State> {
               className="list-group-item nav-bar-variamos"
               data-bs-toggle="tooltip"
               data-bs-placement="bottom"
-              title="Home"
-            >
-              <span>
-                <a
-                  className="bi bi-house-door shadow rounded"
-                  href="https://variamos.com/home/variamos-web/"
-                  target="_blank"
-                >
-                  {/* Home */}
-                </a>
-              </span>
-            </li>
-
-            <li
-              className="list-group-item nav-bar-variamos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="bottom"
-              title="View docs"
-            >
-              <span>
-                <a
-                  className="bi bi-file-richtext shadow rounded"
-                  href="https://github.com/VariaMosORG/VariaMos/wiki"
-                  target="_blank"
-                >
-                  {/* Docs */}
-                </a>
-              </span>
-            </li>
-            <li
-              className="list-group-item nav-bar-variamos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="bottom"
               title="Download project"
               onClick={this.exportProject}
             >
@@ -161,33 +128,6 @@ class navBar extends Component<Props, State> {
           </ul>
         </div>
         <div className="col d-flex justify-content-end">
-          <ul className="list-group list-group-horizontal">
-            <li
-              className="list-group-item nav-bar-variamos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="bottom"
-              title="User setting"
-            >
-
-              <span
-                className="bi bi-person-bounding-box shadow rounded"
-                id="userSetting"
-              ></span>
-              <span className="p-2">{this.state.firstName}</span>
-            </li>
-            <li
-              className="list-group-item nav-bar-variamos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="bottom"
-              title="Logout"
-              onClick={this.handlerLogout}
-            >
-              <span
-                className="bi bi-box-arrow-in-right shadow rounded"
-                id="logout"
-              ></span>
-            </li>
-          </ul>
         </div>
         {/* Modal for query handling */}
         <QueryModal show={this.state.show_query_modal} handleCloseCallback={this.handleCloseQueryModal} projectService={this.props.projectService} />
