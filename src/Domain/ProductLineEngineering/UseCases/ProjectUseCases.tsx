@@ -180,10 +180,12 @@ export default class ProjectUseCases {
     return project;
   }
 
-  createLps(project: Project, producLineName: string): ProductLine {
+  createLps(project: Project, producLineName: string, type: string, domain: string): ProductLine {
     let productLine: ProductLine = new ProductLine(
       ProjectUseCases.generateId(),
-      producLineName
+      producLineName, 
+      type, 
+      domain
     );
     project.productLines.push(productLine);
     return productLine;

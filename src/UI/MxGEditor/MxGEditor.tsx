@@ -16,6 +16,7 @@ import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import Dropdown from 'react-bootstrap/Dropdown';
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
+import MxProperties from "../MxProperties/MxProperties";
 import * as alertify from "alertifyjs";
 
 interface Props {
@@ -25,6 +26,8 @@ interface State {
   showConstraintModal: boolean;
   currentModelConstraints: string;
   showContextMenuElement: boolean;
+  showPropertiesModal: boolean;
+  selectedObject: any;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -39,9 +42,11 @@ export default class MxGEditor extends Component<Props, State> {
     this.containerRef = React.createRef();
     this.graphContainerRef = React.createRef();
     this.state = {
+      showPropertiesModal: false,
       showConstraintModal: false,
       currentModelConstraints: "",
-      showContextMenuElement: false
+      showContextMenuElement: false,
+      selectedObject: null
     }
     this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
     this.projectService_addSelectedModelListener = this.projectService_addSelectedModelListener.bind(this);
@@ -51,6 +56,10 @@ export default class MxGEditor extends Component<Props, State> {
     this.showConstraintModal = this.showConstraintModal.bind(this);
     this.hideConstraintModal = this.hideConstraintModal.bind(this);
     this.saveConstraints = this.saveConstraints.bind(this);
+    //handle properties modal
+    this.showPropertiesModal = this.showPropertiesModal.bind(this);
+    this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    this.savePropertiesModal = this.savePropertiesModal.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -242,6 +251,13 @@ export default class MxGEditor extends Component<Props, State> {
       evt.consume();
     });
 
+    graph.addListener(mx.mxEvent.DOUBLE_CLICK, function (sender, evt) {
+      evt.consume();
+      if (me.state.selectedObject) {
+        me.showPropertiesModal();
+      }
+    });
+
     graph.addListener(mx.mxEvent.CLICK, function (sender, evt) {
       try {
         evt.consume();
@@ -259,6 +275,9 @@ export default class MxGEditor extends Component<Props, State> {
                   me.currentModel,
                   element
                 );
+                me.setState({
+                  selectedObject: element
+                });
               }
             }
             for (let i = 0; i < me.currentModel.relationships.length; i++) {
@@ -268,12 +287,15 @@ export default class MxGEditor extends Component<Props, State> {
                   me.currentModel,
                   relationship
                 );
+                me.setState({
+                  selectedObject: relationship
+                });
               }
             }
           }
         }
         else {
-          if (evt.properties.event.button != 2) { 
+          if (evt.properties.event.button != 2) {
             me.graph.clearSelection();
           }
         }
@@ -1042,6 +1064,9 @@ export default class MxGEditor extends Component<Props, State> {
         case "Delete":
           this.deleteSelection();
           break;
+        case "Properties":
+          this.showPropertiesModal();
+          break;
         default:
           this.callExternalFuntion(command);
           break;
@@ -1083,6 +1108,31 @@ export default class MxGEditor extends Component<Props, State> {
     //this.hideConstraintModal();
   }
 
+  showPropertiesModal() {
+    // if (this.currentModel) {
+    //   if (this.currentModel.constraints !== "") {
+    //     this.setState({ currentModelConstraints: this.currentModel.constraints })
+    //   }
+    //   this.setState({ showConstraintModal: true })
+    // } else {
+    //   alertify.error("You have not opened a model")
+    // }
+    this.setState({ showPropertiesModal: true });
+  }
+
+  hidePropertiesModal() {
+    this.setState({ showPropertiesModal: false })
+  }
+
+  savePropertiesModal() {
+    // if (this.currentModel) {
+    //   // TODO: Everything we are doing with respect to
+    //   // the model management is an anti pattern
+    //   this.currentModel.constraints = this.state.currentModelConstraints;
+    // }
+    // //this.hideConstraintModal();
+  }
+
   showContexMenu() {
     this.setState({ showContextMenuElement: true });
   }
@@ -1103,6 +1153,7 @@ export default class MxGEditor extends Component<Props, State> {
 
     if (selectedElementsIds.length > 0 || selectedRelationshipsIds.length > 0) {
       items.push(<Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command="Delete">Delete</Dropdown.Item>);
+      items.push(<Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command="Properties">Properties</Dropdown.Item>);
     }
 
     if (this.props.projectService.externalFunctions) {
@@ -1123,8 +1174,9 @@ export default class MxGEditor extends Component<Props, State> {
     return (
       <div ref={this.containerRef} className="MxGEditor">
         <div>
+          <a title="Edit properties" onClick={this.showPropertiesModal}><i className="bi bi-pencil-square"></i></a>
+          <a title="Edit constraints" onClick={this.showConstraintModal}><i className="bi bi-vector-pen"></i></a>
           <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><i className="bi bi-zoom-in"></i></a>{" "}
-          <a onClick={this.showConstraintModal}><i className="bi bi-vector-pen"></i></a>
           <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "}
           {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
           <Modal
@@ -1163,6 +1215,32 @@ export default class MxGEditor extends Component<Props, State> {
                 onClick={this.hideConstraintModal}
               >
                 Validate Constraints
+              </Button>
+            </Modal.Footer>
+          </Modal>
+
+          <Modal
+            show={this.state.showPropertiesModal}
+            onHide={this.hidePropertiesModal}
+            size="lg"
+            centered
+          >
+            <Modal.Header closeButton>
+              <Modal.Title>
+                Properties
+              </Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <div style={{ maxHeight: "65vh", overflow:"auto" }}>
+                <MxProperties projectService={this.props.projectService} model={this.currentModel} item={this.state.selectedObject} />
+              </div>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button
+                variant="primary"
+                onClick={this.hidePropertiesModal}
+              >
+                Close
               </Button>
             </Modal.Footer>
           </Modal>

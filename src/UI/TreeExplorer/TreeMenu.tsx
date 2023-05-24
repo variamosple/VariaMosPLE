@@ -3,12 +3,17 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 import * as alertify from "alertifyjs";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
+import Dropdown from 'react-bootstrap/Dropdown';
 import "./TreeMenu.css";
+import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 
 interface Props {
   projectService: ProjectService;
 }
-interface State {}
+interface State {
+}
 
 class TreeMenu extends Component<Props, State> {
   state = {
@@ -31,10 +36,16 @@ class TreeMenu extends Component<Props, State> {
     optionAllowDelete: false,
     optionAllowEFunctions: false,
     newSelected: "default",
+    showPropertiesModal: false,
+    plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution'],
+    plTypes: ['Software', 'System'],
+    plDomain: 'Agriculture',
+    plType: 'System'
   };
 
   constructor(props: any) {
     super(props);
+
 
     this.addNewProductLine = this.addNewProductLine.bind(this);
     this.addNewApplication = this.addNewApplication.bind(this);
@@ -62,6 +73,51 @@ class TreeMenu extends Component<Props, State> {
     this.renameItemProject = this.renameItemProject.bind(this);
     this.onEnterModal = this.onEnterModal.bind(this);
     this.callExternalFuntion = this.callExternalFuntion.bind(this);
+
+
+    //handle constraints modal
+    this.showPropertiesModal = this.showPropertiesModal.bind(this);
+    this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    this.saveProperties = this.saveProperties.bind(this);
+
+    this.selectProductLineDomainChange = this.selectProductLineDomainChange.bind(this);
+    this.selectProductLineTypeChange = this.selectProductLineTypeChange.bind(this);
+  }
+
+  selectProductLineDomainChange(e) {
+    let me = this;
+    this.setState({ 
+      plDomain: e.target.value
+    })
+  }
+
+  selectProductLineTypeChange(e) {
+    let me = this;
+    this.setState({ 
+      plType: e.target.value
+    })
+  }
+
+  showPropertiesModal(e) {
+    let me = this;
+    let pl: ProductLine = me.props.projectService.getProductLineSelected();
+    this.setState({
+      showPropertiesModal: true,
+      plDomain: pl.domain,
+      plType: pl.type
+    })
+  }
+
+  hidePropertiesModal() {
+    this.setState({ showPropertiesModal: false })
+  }
+
+  saveProperties() {
+    let me = this;
+    let pl: ProductLine = me.props.projectService.getProductLineSelected();
+    pl.domain=me.state.plDomain;
+    pl.type=me.state.plType; 
+    me.hidePropertiesModal();
   }
 
   callExternalFuntion(efunction: ExternalFuntion, query: any = null): void {
@@ -225,24 +281,24 @@ class TreeMenu extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
-  updateQuery(event: React.ChangeEvent<HTMLTextAreaElement>){
+  updateQuery(event: React.ChangeEvent<HTMLTextAreaElement>) {
     this.setState({
       query: event.target.value
     })
   }
 
-  setSelectedFunction(idx){
+  setSelectedFunction(idx) {
     this.setState({
       selectedFunction: idx
     })
   }
 
-  runQuery(_event: any){
+  runQuery(_event: any) {
     document.getElementById("closeQueryModal")?.click();
     const query_json = JSON.parse(this.state.query);
     this.callExternalFuntion(this.props.projectService.externalFunctions[this.state.selectedFunction], query_json)
   }
-  
+
   addNewFolder(event: any) {
     if (this.state.modalInputValue === "") {
       alertify.error("The name is required");
@@ -253,7 +309,7 @@ class TreeMenu extends Component<Props, State> {
     let me = this;
     const add: any = {
       PRODUCTLINE: function () {
-        me.addNewProductLine(me.state.modalInputValue);
+        me.addNewProductLine(me.state.modalInputValue, 'System', 'Retail');
       },
       APPLICATION: function () {
         me.addNewApplication(me.state.modalInputValue);
@@ -275,10 +331,12 @@ class TreeMenu extends Component<Props, State> {
     });
   }
 
-  addNewProductLine(productLineName: string) {
+  addNewProductLine(productLineName: string, type: string, domain: string) {
     let productLine = this.props.projectService.createLPS(
       this.props.projectService.project,
-      productLineName
+      productLineName,
+      type,
+      domain
     );
     this.props.projectService.raiseEventNewProductLine(productLine);
     this.props.projectService.saveProject();
@@ -467,17 +525,17 @@ class TreeMenu extends Component<Props, State> {
               <div className="modal-body">
                 <div className="form-floating">
                   <textarea
-                      className="form-control"
-                      placeholder="Enter your query"
-                      id="queryInputTxtArea"
-                      style={{ height: "150px" }}
-                      value={this.state.query}
-                      onChange={this.updateQuery}
-                      autoComplete="off"
-                    ></textarea>
-                    <label htmlFor="newLanguageAbSy">
-                      Enter your query
-                    </label>
+                    className="form-control"
+                    placeholder="Enter your query"
+                    id="queryInputTxtArea"
+                    style={{ height: "150px" }}
+                    value={this.state.query}
+                    onChange={this.updateQuery}
+                    autoComplete="off"
+                  ></textarea>
+                  <label htmlFor="newLanguageAbSy">
+                    Enter your query
+                  </label>
                 </div>
               </div>
               <div className="modal-footer">
@@ -567,8 +625,8 @@ class TreeMenu extends Component<Props, State> {
                 (language: Language, i: number) => (
                   <div key={i}>
                     {language.type === this.state.newSelected &&
-                    (language.stateAccept === "ACTIVE" ||
-                      this.props.projectService.environment ===
+                      (language.stateAccept === "ACTIVE" ||
+                        this.props.projectService.environment ===
                         "development") ? (
                       <li>
                         <span
@@ -610,8 +668,8 @@ class TreeMenu extends Component<Props, State> {
                             className={"dropdown-item"}
                             //Check if the external function needs extra data
                             // TODO: (HACK) for now we trigger this if the header is non-empty.
-                            {...(Object.getOwnPropertyNames(efunction.header).length > 0 ? {"data-bs-toggle":"modal", "data-bs-target":"#queryModal", onClick: () => this.setSelectedFunction(i)} : { onClick: () => this.callExternalFuntion(efunction) })}
-                            // onClick={() => this.callExternalFuntion(efunction)}
+                            {...(Object.getOwnPropertyNames(efunction.header).length > 0 ? { "data-bs-toggle": "modal", "data-bs-target": "#queryModal", onClick: () => this.setSelectedFunction(i) } : { onClick: () => this.callExternalFuntion(efunction) })}
+                          // onClick={() => this.callExternalFuntion(efunction)}
                           >
                             {efunction.label}
                           </span>
@@ -640,6 +698,18 @@ class TreeMenu extends Component<Props, State> {
               data-bs-target="#editorTextModal"
             >
               New product line
+            </span>
+          </li>
+          <li>
+            <span
+              className={
+                this.state.optionAllowProductLine
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
+              onClick={this.showPropertiesModal}
+            >
+              Properties
             </span>
           </li>
           <li>
@@ -710,6 +780,79 @@ class TreeMenu extends Component<Props, State> {
           </li>
         </ul>
         <script></script>
+
+        <Modal
+          show={this.state.showPropertiesModal}
+          onHide={this.hidePropertiesModal}
+          size="lg"
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Properties
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div>
+              <div className="row">
+                <div className="col-md-3">
+                  <label >Type</label>
+                </div>
+                <div className="col-md-9">
+                  <select
+                    className="form-select"
+                    id="newPropertySelectDomain"
+                    aria-label="Select type"
+                    value={this.state.plType}
+                    onChange={this.selectProductLineTypeChange}
+                  >
+                    {this.state.plTypes.map((option, index) => (
+                      <option key={index} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <br />
+              <div className="row">
+                <div className="col-md-3">
+                  <label >Domain</label>
+                </div>
+                <div className="col-md-9">
+                  <select
+                    className="form-select"
+                    id="newPropertySelectDomain"
+                    aria-label="Select domain"
+                    value={this.state.plDomain}
+                    onChange={this.selectProductLineDomainChange}
+                  >
+                    {this.state.plDomains.map((option, index) => (
+                      <option key={index} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={this.hidePropertiesModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={this.saveProperties}
+            >
+              Accept
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
       </div>
     );
   }

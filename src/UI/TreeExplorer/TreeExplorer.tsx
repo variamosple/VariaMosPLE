@@ -152,7 +152,7 @@ class TreeExplorer extends Component<Props, State> {
       <div
         id="TreePannel"
         className="col-sm-2 distribution-variamos shadow"
-        style={{ height: "100vh", zIndex: 5 }}
+        style={{ height: "95vh", zIndex: 5 }}
       >
         <div className="col-sm-12 h-100">
           <div className="col-sm-12 h-100">

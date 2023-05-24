@@ -19,7 +19,7 @@ class DiagramEditor extends Component<Props, State> {
       <div
         id="EditorPannel"
         className="col-10 col-sm-10 distribution-variamos"
-        style={{ height: "95vh"}}
+        style={{ height: "91vh"}}
       >
         <div className="col-sm-12 h-100">
           <div className="card text-center h-100 shadow-sm bg-body rounded">

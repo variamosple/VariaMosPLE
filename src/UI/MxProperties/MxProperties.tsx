@@ -16,6 +16,8 @@ import Button from "react-bootstrap/Button";
 
 interface Props {
   projectService: ProjectService;
+  model: any;
+  item: any;
 }
 interface State {
   values: any[];
@@ -178,6 +180,8 @@ export default class MxProperties extends Component<Props, State> {
 
   componentDidMount() {
     let me = this;
+    me.currentModel = me.props.model;
+    me.currentObject = me.props.item;
     me.props.projectService.addNewProductLineListener(
       this.projectService_addNewProductLineListener
     );
@@ -187,6 +191,7 @@ export default class MxProperties extends Component<Props, State> {
     me.props.projectService.addSelectedElementListener(
       this.projectService_addSelectedElementListener
     );
+    this.forceUpdate();
   }
 
   newCustomPropertyForm() {
@@ -723,10 +728,14 @@ export default class MxProperties extends Component<Props, State> {
         break;
     }
     return (
-      <tr>
-        <td><label title={titleToolTip}>{property.name}</label></td>
-        <td>{control}</td>
-      </tr>
+      <div className="row">
+        <div className="col-md-3">
+          <label title={titleToolTip}>{property.name}</label> 
+        </div>
+        <div className="col-md-9"> 
+          {control}
+        </div>
+      </div>
     );
   }
 
@@ -743,7 +752,7 @@ export default class MxProperties extends Component<Props, State> {
   render() {
     return (
       <div key="a" id="MxPalette" className="MxPalette">
-        <div className="card-body bg-white-Variamos" id="renderProperties">
+        <div className="card-body bg-white-Variamos" id="renderProperties" style={{maxWidth:"95%"}}>
           <div hidden={this.state.customPropertyFlag}>
             <div className="row">
               <div className="col-md">
@@ -778,9 +787,9 @@ export default class MxProperties extends Component<Props, State> {
             </div>
             <br />
           </div>
-          <table>
+          <div>
             {this.renderProperties()}
-          </table>
+          </div>
           <ul className="dropdown-menu" id="properties-menu">
             <li>
               <span

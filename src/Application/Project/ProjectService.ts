@@ -87,6 +87,11 @@ export default class ProjectService {
     return this._environment;
   }
 
+  public getProductLineSelected(): ProductLine {
+    let i= this.productLineSelected;
+    return this.project.productLines[i];
+  }
+
   callExternalFuntion(externalFunction: ExternalFuntion, query: any, selectedElementsIds:string[], selectedRelationshipsIds:string[]) {
     let me = this;
 
@@ -641,8 +646,8 @@ export default class ProjectService {
   //Project functions_ END***********
 
   //Product Line functions_ START***********
-  createLPS(project: Project, productLineName: string) {
-    return this.projectManager.createLps(project, productLineName);
+  createLPS(project: Project, productLineName: string, type: string, domain: string) {
+    return this.projectManager.createLps(project, productLineName, type , domain);
   }
 
   addNewProductLineListener(listener: any) {

@@ -44,11 +44,10 @@ class DashBoard extends Component<Props, State> {
             <div className="row">
               <DiagramEditor projectService={this.projectService} />
               <div
-                className="col-2 col-sm-2 distribution-variamos"
-                style={{ height: "96vh" }}
+                className="col-2 col-sm-2 distribution-variamos" 
               >
                 <ElementsPannel projectService={this.projectService} />
-                <PropiertiesPannel projectService={this.projectService} />
+                {/* <PropiertiesPannel projectService={this.projectService} /> */}
               </div>
             </div>
           </div>

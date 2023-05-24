@@ -16,7 +16,7 @@ class ElementsPannel extends Component<Props, State> {
 
   render() {
     return (
-      <div id="ElementsPannel" className="" style={{ height: "35vh",overflow:"auto" }}>
+      <div id="ElementsPannel" className="" style={{ height: "91vh",overflow:"auto" }}>
         <div className="col-sm h-100 distribution-variamos">
           <div className="card text-center h-100 distribution-variamos shadow-sm bg-body rounded">
             <div className="card-header background-variamos">Elements</div>

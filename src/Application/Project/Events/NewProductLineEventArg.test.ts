@@ -10,7 +10,7 @@ describe('The passed argument should be correct',()=>{
     let project = new Project('Project Id', 'Project Name')
     let domainEngineering: DomainEngineering = new DomainEngineering();
     let applicationEngineering: ApplicationEngineering = new ApplicationEngineering();
-    let productLine = new ProductLine('Product Line Id', 'Product Line Name', domainEngineering, applicationEngineering)
+    let productLine = new ProductLine('Product Line Id', 'Product Line Name', 'System', 'Retail', domainEngineering, applicationEngineering)
 
     test('The target argument passed should be correct', ()=>{
         let newModelEventArg = new NewProductLineEventArg(project_service, project, productLine);

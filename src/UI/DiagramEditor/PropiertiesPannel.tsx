@@ -28,7 +28,7 @@ class PropiertiesPannel extends Component<Props, State> {
               Propierties 
             </div> 
             <div >
-              <MxProperties projectService={this.props.projectService} />
+               <MxProperties projectService={this.props.projectService} model={null} item={null} /> 
             </div>
           </div>
         </div>

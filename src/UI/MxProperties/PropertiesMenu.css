@@ -29,4 +29,8 @@
 .hidden {
   display: none;
 }
+
+.row {
+  padding-bottom:0.5rem !important ;
+}
 /* ---------------------------- */
