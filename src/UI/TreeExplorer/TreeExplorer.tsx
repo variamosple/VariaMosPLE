@@ -152,12 +152,12 @@ class TreeExplorer extends Component<Props, State> {
       <div
         id="TreePannel"
         className="col-sm-2 distribution-variamos shadow"
-        style={{ height: "95vh", zIndex: 5 }}
+        style={{ height: "90vh", zIndex: 5 }}
       >
         <div className="col-sm-12 h-100">
           <div className="col-sm-12 h-100">
             <div className="card h-100 shadow bg-body rounded">
-              <div className="text-center p-2 bg-body">
+              {/* <div className="text-center p-2 bg-body">
                 <a
                   href="https://variamos.com/home/variamos-web/"
                   target="_blank"
@@ -171,7 +171,7 @@ class TreeExplorer extends Component<Props, State> {
                   />
                 </a>
                 <hr style={{ marginTop: 10, color: "gray" }} />
-              </div>
+              </div> */}
               <div
                 className="card-body bg-white-Variamos"
                 style={{ overflowX: "auto" }}
