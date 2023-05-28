@@ -26,6 +26,8 @@ interface State {
   showConstraintModal: boolean;
   currentModelConstraints: string;
   showContextMenuElement: boolean;
+  contextMenuX: number;
+  contextMenuY: number;
   showPropertiesModal: boolean;
   selectedObject: any;
 }
@@ -46,6 +48,8 @@ export default class MxGEditor extends Component<Props, State> {
       showConstraintModal: false,
       currentModelConstraints: "",
       showContextMenuElement: false,
+      contextMenuX: 0,
+      contextMenuY: 0,
       selectedObject: null
     }
     this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
@@ -300,7 +304,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
         if (evt.properties.event.button == 2) {
-          me.showContexMenu();
+          me.showContexMenu(evt.properties.event);
         } else {
           me.hideContexMenu();
         }
@@ -1133,8 +1137,10 @@ export default class MxGEditor extends Component<Props, State> {
     // //this.hideConstraintModal();
   }
 
-  showContexMenu() {
-    this.setState({ showContextMenuElement: true });
+  showContexMenu(e) {
+    let mx = e.clientX;
+    let my = e.clientY;
+    this.setState({ showContextMenuElement: true, contextMenuX: mx, contextMenuY: my });
   }
 
   hideContexMenu() {
@@ -1163,8 +1169,13 @@ export default class MxGEditor extends Component<Props, State> {
       }
     }
 
+     let left=this.state.contextMenuX + "px";
+     let top=this.state.contextMenuY + "px";
+
     return (
-      <Dropdown.Menu show={this.state.showContextMenuElement}>
+      <Dropdown.Menu
+        show={this.state.showContextMenuElement}
+        style={{ left: left, top: top }}>
         {items}
       </Dropdown.Menu>
     );
@@ -1173,12 +1184,16 @@ export default class MxGEditor extends Component<Props, State> {
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">
-        <div>
-          <a title="Edit properties" onClick={this.showPropertiesModal}><i className="bi bi-pencil-square"></i></a>
-          <a title="Edit constraints" onClick={this.showConstraintModal}><i className="bi bi-vector-pen"></i></a>
-          <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><i className="bi bi-zoom-in"></i></a>{" "}
-          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "}
+        <div className="header">
+          <a title="Edit properties" onClick={this.showPropertiesModal}><span><img src="/images/editor/properties.png"></img></span></a>{" "}
+          <a title="Edit constraints" onClick={this.showConstraintModal}><span><img src="/images/editor/constraints.png"></img></span></a>{" "}
+          <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><span><img src="/images/editor/zoomIn.png"></img></span></a>{" "}
+          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><span><img src="/images/editor/zoomOut.png"></img></span></a>
           {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
+        </div>
+        {this.renderContexMenu()}
+        <div ref={this.graphContainerRef} className="GraphContainer"></div>
+        <div>
           <Modal
             show={this.state.showConstraintModal}
             onHide={this.hideConstraintModal}
@@ -1231,7 +1246,7 @@ export default class MxGEditor extends Component<Props, State> {
               </Modal.Title>
             </Modal.Header>
             <Modal.Body>
-              <div style={{ maxHeight: "65vh", overflow:"auto" }}>
+              <div style={{ maxHeight: "65vh", overflow: "auto" }}>
                 <MxProperties projectService={this.props.projectService} model={this.currentModel} item={this.state.selectedObject} />
               </div>
             </Modal.Body>
@@ -1244,9 +1259,7 @@ export default class MxGEditor extends Component<Props, State> {
               </Button>
             </Modal.Footer>
           </Modal>
-          {this.renderContexMenu()}
         </div>
-        <div ref={this.graphContainerRef} className="GraphContainer"></div>
       </div>
     );
   }

@@ -19,7 +19,7 @@ function Layout({ children }) {
   return (
     <>
       <Navbar bg="dark" variant="dark">
-        <Container>
+        <Container fluid>
           <Navbar.Brand href="/dashboard">
             <img
               src={VariaMosLogo}
@@ -52,7 +52,48 @@ function Layout({ children }) {
           </Navbar.Collapse>
         </Container>
       </Navbar>
-      {children}
+      <div className="bodyContent">
+        {children}
+      </div>
+      <footer>
+        <div className="row">
+          <div className="col-md-3">
+            <h3>Help</h3>
+            <div><a href="#">Link 1</a></div>
+            <div><a href="#">Link 2</a></div>
+            <div><a href="#">Link 3</a></div>
+            <div><a href="#">Link 4</a></div>
+            <div><a href="#">Link 5</a></div>
+          </div>
+          <div className="col-md-3">
+            <h3>Help</h3>
+            <div><a href="#">Link 1</a></div>
+            <div><a href="#">Link 2</a></div>
+            <div><a href="#">Link 3</a></div>
+            <div><a href="#">Link 4</a></div>
+            <div><a href="#">Link 5</a></div>
+          </div>
+          <div className="col-md-3">
+            <h3>Help</h3>
+            <div><a href="#">Link 1</a></div>
+            <div><a href="#">Link 2</a></div>
+            <div><a href="#">Link 3</a></div>
+            <div><a href="#">Link 4</a></div>
+            <div><a href="#">Link 5</a></div>
+          </div>
+          <div className="col-md-3">
+            <h3>Help</h3>
+            <div><a href="#">Link 1</a></div>
+            <div><a href="#">Link 2</a></div>
+            <div><a href="#">Link 3</a></div>
+            <div><a href="#">Link 4</a></div>
+            <div><a href="#">Link 5</a></div>
+          </div>
+        </div>
+        <div className="row copyright">
+          <p>© Copyright 2023 VariaMos.</p>
+        </div>
+      </footer>
     </>
   );
 }

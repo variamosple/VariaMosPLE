@@ -2,15 +2,22 @@ import React, { Component } from "react";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import ProjectService from "../../Application/Project/ProjectService";
 import VariaMosLogo from "../../Addons/images/VariaMosLogo.png";
+import TreeMenu from "./TreeMenu";
+import NavBar from "../WorkSpace/navBar";
+import "./TreeExplorer.css";
 
 interface Props {
   projectService: ProjectService;
 }
 
-interface State {}
+interface State { }
 
 class TreeExplorer extends Component<Props, State> {
-  state = {};
+  state = {
+    contextMenuX: 100,
+    contextMenuY: 100,
+    showContextMenu: false
+  };
 
   constructor(props: any) {
     super(props);
@@ -28,14 +35,30 @@ class TreeExplorer extends Component<Props, State> {
       this.btn_viewApplicationEngModel.bind(this);
     this.btn_viewApplicationModel = this.btn_viewApplicationModel.bind(this);
     this.btn_viewAdaptationModel = this.btn_viewAdaptationModel.bind(this);
+
+    this.onContextMenuHide = this.onContextMenuHide.bind(this);
   }
 
-  btn_viewDomainModel(idPl: number, idDomainModel: number) {
+  onContextMenuHide(e) {
+    this.setState({
+      showContextMenu: false
+    });
+  }
+
+  btn_viewDomainModel(e: any, idPl: number, idDomainModel: number) {
     this.props.projectService.modelDomainSelected(idPl, idDomainModel);
     this.props.projectService.saveProject();
+    if (e) {
+      this.setState({
+        showContextMenu: true,
+        contextMenuX: e.clientX,
+        contextMenuY: e.clientY
+      })
+    }
   }
 
   btn_viewApplicationModel(
+    e: any,
     idPl: number,
     idApplication: number,
     idApplicationModel: number
@@ -46,9 +69,17 @@ class TreeExplorer extends Component<Props, State> {
       idApplicationModel
     );
     this.props.projectService.saveProject();
+    if (e) {
+      this.setState({
+        showContextMenu: true,
+        contextMenuX: e.clientX,
+        contextMenuY: e.clientY
+      })
+    }
   }
 
   btn_viewAdaptationModel(
+    e: any,
     idPl: number,
     idApplication: number,
     idAdaptation: number,
@@ -61,6 +92,13 @@ class TreeExplorer extends Component<Props, State> {
       idAdaptationModel
     );
     this.props.projectService.saveProject();
+    if (e) {
+      this.setState({
+        showContextMenu: true,
+        contextMenuX: e.clientX,
+        contextMenuY: e.clientY
+      })
+    }
   }
 
   btn_viewApplicationEngModel(idPl: number, idApplicationEngModel: number) {
@@ -79,14 +117,25 @@ class TreeExplorer extends Component<Props, State> {
       this.props.projectService.updateAppEngSelected();
     }
     this.props.projectService.saveProject();
+    this.setState({
+      showContextMenu: true,
+      contextMenuX: e.clientX,
+      contextMenuY: e.clientY
+    })
   }
 
-  updateApplicationSelected(idPl: number, idApplication: number) {
+  updateApplicationSelected(e: any, idPl: number, idApplication: number) {
     this.props.projectService.updateApplicationSelected(idPl, idApplication);
     this.props.projectService.saveProject();
+    this.setState({
+      showContextMenu: true,
+      contextMenuX: e.clientX,
+      contextMenuY: e.clientY
+    })
   }
 
   updateAdaptationSelected(
+    e: any,
     idPl: number,
     idApplication: number,
     idAdaptation: number
@@ -97,6 +146,11 @@ class TreeExplorer extends Component<Props, State> {
       idAdaptation
     );
     this.props.projectService.saveProject();
+    this.setState({
+      showContextMenu: true,
+      contextMenuX: e.clientX,
+      contextMenuY: e.clientY
+    })
   }
 
   lps_onClick(e: any, i: number) {
@@ -151,36 +205,19 @@ class TreeExplorer extends Component<Props, State> {
     return (
       <div
         id="TreePannel"
-        className="col-sm-2 distribution-variamos shadow"
-        style={{ height: "90vh", zIndex: 5 }}
+        className="TreeExplorer"
+        style={{ zIndex: 5 }}
+        onContextMenu={(e) => { e.preventDefault(); }}
       >
-        <div className="col-sm-12 h-100">
-          <div className="col-sm-12 h-100">
-            <div className="card h-100 shadow bg-body rounded">
-              {/* <div className="text-center p-2 bg-body">
-                <a
-                  href="https://variamos.com/home/variamos-web/"
-                  target="_blank"
-                >
-                  <img
-                    src={VariaMosLogo}
-                    alt=""
-                    className="img-fluid"
-                    width="191"
-                    height="39"
-                  />
-                </a>
-                <hr style={{ marginTop: 10, color: "gray" }} />
-              </div> */}
+        <NavBar projectService={this.props.projectService} />
+        <div className="treeView">
+          <div className="">
+            <div className="">
               <div
-                className="card-body bg-white-Variamos"
+                className="card-body bg-white-Variamos divTreeExplorer"
                 style={{ overflowX: "auto" }}
               >
-                <div className="text-center projectName shadow-sm p-2 rounded">
-                  &nbsp; {this.props.projectService.project.name}
-                </div>
-                <br />
-
+                <span><img src="/images/treeView/project.png"></img>{this.props.projectService.project.name}</span>
                 <ul id="ul">
                   {this.props.projectService.project.productLines.map(
                     (pl: ProductLine, idPl: number) => (
@@ -190,25 +227,26 @@ class TreeExplorer extends Component<Props, State> {
                             className="fa fa-plus-square fa-minus-square-o lps"
                             id="productLine"
                             onClick={() => this.lps_onClick(window.event, idPl)}
-                            onAuxClick={() =>
-                              this.updateLpSelected(window.event, idPl)
+                            onAuxClick={(e) => {
+                              this.updateLpSelected(e, idPl)
+                            }
                             }
                           >
-                            {pl.name}
+                            <span id="productLine"><img id="productLine" src="/images/treeView/productLine.png"></img>{pl.name}</span>
                           </span>
                           <ul className="nested active">
                             <li>
                               <span
                                 className="fa fa-plus-square fa-minus-square-o domainE"
-                                onAuxClick={() =>
-                                  this.updateLpSelected(window.event, idPl)
+                                onAuxClick={(e) =>
+                                  this.updateLpSelected(e, idPl)
                                 }
                                 id="domainEngineering"
-                                onClick={() =>
+                                onClick={(e) =>
                                   this.lps_onClick(window.event, idPl)
                                 }
                               >
-                                Domain Engineering
+                                <span id="domainEngineering"><img id="domainEngineering" src="/images/treeView/domainEngineering.png"></img>Domain Engineering</span>
                               </span>
                               <ul className="nested active">
                                 {pl.domainEngineering?.models?.map(
@@ -216,20 +254,23 @@ class TreeExplorer extends Component<Props, State> {
                                     <div key={idDomainModel}>
                                       <li
                                         id="model"
-                                        onClick={() =>
+                                        title={domainModel.name}
+                                        onClick={(e) =>
                                           this.btn_viewDomainModel(
+                                            null,
                                             idPl,
                                             idDomainModel
                                           )
                                         }
-                                        onAuxClick={() =>
+                                        onAuxClick={(e) =>
                                           this.btn_viewDomainModel(
+                                            e,
                                             idPl,
                                             idDomainModel
                                           )
                                         }
                                       >
-                                        {domainModel.name}
+                                        <span id="model"><img id="model" src="/images/treeView/model.png"></img>{domainModel.name}</span>
                                       </li>
                                     </div>
                                   )
@@ -240,14 +281,14 @@ class TreeExplorer extends Component<Props, State> {
                               <span
                                 id="applicationEngineering"
                                 className="fa fa-plus-square fa-minus-square-o appE"
-                                onAuxClick={() =>
-                                  this.updateLpSelected(window.event, idPl)
+                                onAuxClick={(e) =>
+                                  this.updateLpSelected(e, idPl)
                                 }
-                                onClick={() =>
-                                  this.lps_onClick(window.event, idPl)
+                                onClick={(e) =>
+                                  this.lps_onClick(e, idPl)
                                 }
                               >
-                                Application Engineering
+                                <span id="applicationEngineering"><img id="applicationEngineering" src="/images/treeView/applicationEngineering.png"></img>Application Engineering</span>
                               </span>
                               <ul className="nested active">
                                 {pl.applicationEngineering?.models?.map(
@@ -258,14 +299,15 @@ class TreeExplorer extends Component<Props, State> {
                                     <div key={idApplicationEngModel}>
                                       <li
                                         id="model"
-                                        onClick={() =>
+                                        title={appEModel.name}
+                                        onClick={(e) =>
                                           this.btn_viewApplicationEngModel(
                                             idPl,
                                             idApplicationEngModel
                                           )
                                         }
                                       >
-                                        {appEModel.name}
+                                        <span id="model"><img id="model" src="/images/treeView/model.png"></img>{appEModel.name}</span>
                                       </li>
                                     </div>
                                   )
@@ -276,21 +318,23 @@ class TreeExplorer extends Component<Props, State> {
                                       <div key={idApplication}>
                                         <span
                                           id="application"
+                                          title={aeApp.name}
                                           className="fa fa-plus-square fa-minus-square-o aeApp"
-                                          onAuxClick={() =>
+                                          onAuxClick={(e) =>
                                             this.updateApplicationSelected(
+                                              e,
                                               idPl,
                                               idApplication
                                             )
                                           }
-                                          onClick={() =>
+                                          onClick={(e) =>
                                             this.lps_onClick(
                                               window.event,
                                               idApplication
                                             )
                                           }
                                         >
-                                          {aeApp.name}
+                                          <span id="application"><img id="application" src="/images/treeView/application.png"></img>{aeApp.name}</span>
                                         </span>
                                         <ul className="nested active">
                                           {aeApp.models?.map(
@@ -301,22 +345,25 @@ class TreeExplorer extends Component<Props, State> {
                                               <div key={idApplicationModel}>
                                                 <li
                                                   id="model"
-                                                  onClick={() =>
+                                                  title={aeApp.name}
+                                                  onClick={(e) =>
                                                     this.btn_viewApplicationModel(
+                                                      null,
                                                       idPl,
                                                       idApplication,
                                                       idApplicationModel
                                                     )
                                                   }
-                                                  onAuxClick={() =>
+                                                  onAuxClick={(e) =>
                                                     this.btn_viewApplicationModel(
+                                                      e,
                                                       idPl,
                                                       idApplication,
                                                       idApplicationModel
                                                     )
                                                   }
                                                 >
-                                                  {aeApp.name}
+                                                  <span id="model"><img id="model" src="/images/treeView/model.png"></img>{aeApp.name}</span>
                                                 </li>
                                               </div>
                                             )
@@ -330,22 +377,24 @@ class TreeExplorer extends Component<Props, State> {
                                                 <li>
                                                   <span
                                                     id="adaptation"
+                                                    title={aeCotext.name}
                                                     className="fa fa-plus-square fa-minus-square-o aeContext"
-                                                    onAuxClick={() =>
+                                                    onAuxClick={(e) =>
                                                       this.updateAdaptationSelected(
+                                                        e,
                                                         idPl,
                                                         idApplication,
                                                         idAdaptation
                                                       )
                                                     }
-                                                    onClick={() =>
+                                                    onClick={(e) =>
                                                       this.lps_onClick(
                                                         window.event,
                                                         idAdaptation
                                                       )
                                                     }
                                                   >
-                                                    {aeCotext.name}
+                                                    <span id="adaptation"><img id="adaptation" src="/images/treeView/adaptation.png"></img>{aeCotext.name}</span>
                                                   </span>
                                                   <ul className="nested active">
                                                     {aeCotext.models?.map(
@@ -360,16 +409,19 @@ class TreeExplorer extends Component<Props, State> {
                                                         >
                                                           <li
                                                             id="model"
-                                                            onClick={() =>
+                                                            title={aeCotextModel.name}
+                                                            onClick={(e) =>
                                                               this.btn_viewAdaptationModel(
+                                                                null,
                                                                 idPl,
                                                                 idApplication,
                                                                 idAdaptation,
                                                                 idAdaptationModel
                                                               )
                                                             }
-                                                            onAuxClick={() =>
+                                                            onAuxClick={(e) =>
                                                               this.btn_viewAdaptationModel(
+                                                                e,
                                                                 idPl,
                                                                 idApplication,
                                                                 idAdaptation,
@@ -377,7 +429,7 @@ class TreeExplorer extends Component<Props, State> {
                                                               )
                                                             }
                                                           >
-                                                            {aeCotextModel.name}
+                                                            <span id="model"><img id="model" src="/images/treeView/model.png"></img>{aeCotextModel.name}</span>
                                                           </li>
                                                         </div>
                                                       )
@@ -407,6 +459,11 @@ class TreeExplorer extends Component<Props, State> {
             </div>
           </div>
         </div>
+        <TreeMenu projectService={this.props.projectService}
+          contextMenuX={this.state.contextMenuX}
+          contextMenuY={this.state.contextMenuY}
+          showContextMenu={this.state.showContextMenu}
+          onContextMenuHide={this.onContextMenuHide} />
       </div>
     );
   }

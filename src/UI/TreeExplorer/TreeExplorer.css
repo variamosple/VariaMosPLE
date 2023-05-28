@@ -1,0 +1,18 @@
+.TreeExplorer img{
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
+  /* filter: grayscale(1);
+  display: none; */
+}
+
+.TreeExplorer li span{
+  white-space: nowrap;
+}
+
+.TreeExplorer .treeView{ 
+  /* border: solid 1px red; */
+  height: 80vh;
+  max-height: 80vh;
+  overflow: auto;
+}

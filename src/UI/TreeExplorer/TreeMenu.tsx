@@ -5,14 +5,44 @@ import * as alertify from "alertifyjs";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
-import Dropdown from 'react-bootstrap/Dropdown';
+import { Dropdown, DropdownButton } from 'react-bootstrap';
 import "./TreeMenu.css";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 
 interface Props {
   projectService: ProjectService;
+  contextMenuX: number;
+  contextMenuY: number;
+  showContextMenu: boolean;
+  onContextMenuHide: any;
 }
 interface State {
+  menu: boolean,
+  modalTittle: string,
+  modalInputText: string,
+  modalInputValue: string,
+  query: string,
+  selectedFunction: number,
+  optionAllowModelEnable: boolean,
+  optionAllowModelDomain: boolean,
+  optionAllowModelApplication: boolean,
+  optionAllowModelAdaptation: boolean,
+  optionAllowProductLine: boolean,
+  optionAllowApplication: boolean,
+  optionAllowAdaptation: boolean,
+  optionAllowRename: boolean,
+  optionAllowDelete: boolean,
+  optionAllowEFunctions: boolean,
+  newSelected: string,
+  showPropertiesModal: boolean,
+  plDomains: string[],
+  plTypes: string[],
+  plDomain: string,
+  plType: string,
+  showContextMenu: boolean,
+  showEditorTextModal: boolean,
+  showQueryModal: boolean,
+  showDeleteModal: boolean
 }
 
 class TreeMenu extends Component<Props, State> {
@@ -21,10 +51,8 @@ class TreeMenu extends Component<Props, State> {
     modalTittle: "",
     modalInputText: "",
     modalInputValue: "",
-    // Placeholder, we will handle the querys here for now
     query: "",
     selectedFunction: -1,
-    // End query state
     optionAllowModelEnable: false,
     optionAllowModelDomain: false,
     optionAllowModelApplication: false,
@@ -40,7 +68,11 @@ class TreeMenu extends Component<Props, State> {
     plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution'],
     plTypes: ['Software', 'System'],
     plDomain: 'Agriculture',
-    plType: 'System'
+    plType: 'System',
+    showContextMenu: false,
+    showEditorTextModal: false,
+    showQueryModal: false,
+    showDeleteModal: false
   };
 
   constructor(props: any) {
@@ -75,7 +107,19 @@ class TreeMenu extends Component<Props, State> {
     this.callExternalFuntion = this.callExternalFuntion.bind(this);
 
 
-    //handle constraints modal
+    //handle editortext modal
+    this.showEditorTextModal = this.showEditorTextModal.bind(this);
+    this.hideEditorTextModal = this.hideEditorTextModal.bind(this);
+
+    //handle query modal
+    this.showQueryModal = this.showQueryModal.bind(this);
+    this.hideQueryModal = this.hideQueryModal.bind(this);
+
+    //handle delete modal
+    this.showDeleteModal = this.showDeleteModal.bind(this);
+    this.hideDeleteModal = this.hideDeleteModal.bind(this);
+
+    //handle properties modal
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.saveProperties = this.saveProperties.bind(this);
@@ -86,14 +130,14 @@ class TreeMenu extends Component<Props, State> {
 
   selectProductLineDomainChange(e) {
     let me = this;
-    this.setState({ 
+    this.setState({
       plDomain: e.target.value
     })
   }
 
   selectProductLineTypeChange(e) {
     let me = this;
-    this.setState({ 
+    this.setState({
       plType: e.target.value
     })
   }
@@ -106,17 +150,43 @@ class TreeMenu extends Component<Props, State> {
       plDomain: pl.domain,
       plType: pl.type
     })
+    this.hideContextMenu();
   }
 
   hidePropertiesModal() {
     this.setState({ showPropertiesModal: false })
   }
 
+  showEditorTextModal() {
+    this.setState({ showEditorTextModal: true })
+  }
+
+  hideEditorTextModal() {
+    this.setState({ showEditorTextModal: false })
+  }
+
+  showQueryModal() {
+    this.setState({ showQueryModal: true })
+  }
+
+  hideQueryModal() {
+    this.setState({ showQueryModal: false })
+  }
+
+  showDeleteModal() {
+    this.hideContextMenu();
+    this.setState({ showDeleteModal: true })
+  }
+
+  hideDeleteModal() {
+    this.setState({ showDeleteModal: false })
+  }
+
   saveProperties() {
     let me = this;
     let pl: ProductLine = me.props.projectService.getProductLineSelected();
-    pl.domain=me.state.plDomain;
-    pl.type=me.state.plType; 
+    pl.domain = me.state.plDomain;
+    pl.type = me.state.plType;
     me.hidePropertiesModal();
   }
 
@@ -129,11 +199,27 @@ class TreeMenu extends Component<Props, State> {
   }
 
   deleteItemProject() {
+    this.hideDeleteModal();
     this.props.projectService.deleteItemProject();
   }
 
   renameItemProject(newName: string) {
     this.props.projectService.renameItemProject(newName);
+  }
+
+  showContextMenu() {
+    this.setState({
+      showContextMenu: true
+    })
+  }
+
+  hideContextMenu() {
+    this.setState({
+      showContextMenu: false
+    })
+    if (this.props.onContextMenuHide) {
+      this.props.onContextMenuHide({ target: this });
+    }
   }
 
   viewMenuTree_addListener() {
@@ -231,6 +317,16 @@ class TreeMenu extends Component<Props, State> {
     );
   }
 
+  componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any): void {
+    let me = this;
+    if (prevProps.contextMenuX != this.props.contextMenuX || prevProps.contextMenuY != this.props.contextMenuY) {
+      me.viewMenuTree_addListener();
+      me.setState({
+        showContextMenu: this.props.showContextMenu
+      })
+    }
+  }
+
   handleUpdateEditorText(event: any) {
     this.setState({
       modalInputValue: event.target.value,
@@ -238,11 +334,11 @@ class TreeMenu extends Component<Props, State> {
   }
 
   handleUpdateNewSelected(event: any) {
+    this.hideContextMenu();
     this.updateModal(event.target.id);
   }
 
   updateModal(eventId: string) {
-    document.getElementById("modalInputValue").focus();
 
     let me = this;
     const updateModal: any = {
@@ -274,6 +370,9 @@ class TreeMenu extends Component<Props, State> {
       modalInputText: me.state.modalInputText,
       newSelected: eventId,
     });
+
+    this.hideContextMenu();
+    this.showEditorTextModal();
   }
 
   projectService_addListener(e: any) {
@@ -294,7 +393,7 @@ class TreeMenu extends Component<Props, State> {
   }
 
   runQuery(_event: any) {
-    document.getElementById("closeQueryModal")?.click();
+    this.hideQueryModal();
     const query_json = JSON.parse(this.state.query);
     this.callExternalFuntion(this.props.projectService.externalFunctions[this.state.selectedFunction], query_json)
   }
@@ -329,6 +428,8 @@ class TreeMenu extends Component<Props, State> {
     this.setState({
       modalInputValue: "",
     });
+
+    this.hideEditorTextModal();
   }
 
   addNewProductLine(productLineName: string, type: string, domain: string) {
@@ -362,6 +463,8 @@ class TreeMenu extends Component<Props, State> {
 
   addNewEModel(language: Language) {
     let me = this;
+
+    me.hideContextMenu();
 
     const add: any = {
       DOMAIN: function () {
@@ -437,175 +540,217 @@ class TreeMenu extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
+  renderContexMenu() {
+    let items = [];
+
+    if (this.state.optionAllowProductLine) {
+      items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="PRODUCTLINE">New product line</Dropdown.Item>);
+      items.push(<Dropdown.Item href="#" onClick={this.showPropertiesModal}>Properties</Dropdown.Item>);
+    }
+    if (this.state.optionAllowApplication) {
+      items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="APPLICATION">New application</Dropdown.Item>);
+    }
+    if (this.state.optionAllowAdaptation) {
+      items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="ADAPTATION">New adaptation</Dropdown.Item>);
+    }
+    if (this.state.optionAllowRename) {
+      items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="renameItem">Rename</Dropdown.Item>);
+    }
+    if (this.state.optionAllowDelete) {
+      items.push(<Dropdown.Item href="#" onClick={this.showDeleteModal} id="deleteItem">Delete</Dropdown.Item>);
+    }
+    if (this.state.optionAllowModelEnable) {
+      let children = [];
+      for (let i = 0; i < this.props.projectService.languages.length; i++) {
+        const language: Language = this.props.projectService.languages[i];
+        if (language.type === this.state.newSelected &&
+          (language.stateAccept === "ACTIVE" || this.props.projectService.environment === "development")) {
+          children.push(<Dropdown.Item href="#" onClick={() => this.addNewEModel(language)} id="newModel" key={i}>{language.name + " model"}</Dropdown.Item>)
+        }
+      }
+      items.push(<DropdownButton id="nested-dropdown" title="New model" key="end" drop="end" variant="Info">{children}</DropdownButton>);
+    }
+    if (this.state.optionAllowEFunctions) {
+      if (this.props.projectService.externalFunctions) {
+        if (this.props.projectService.externalFunctions.length >= 1) {
+          let children = [];
+          for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
+            const efunction: ExternalFuntion = this.props.projectService.externalFunctions[i];
+            if(Object.getOwnPropertyNames(efunction.header).length > 0){
+              children.push(<Dropdown.Item href="#" onClick={() => this.setSelectedFunction(i)} id="newModel" key={i}>{efunction.label}</Dropdown.Item>)
+            }else{
+              children.push(<Dropdown.Item href="#" onClick={() => this.callExternalFuntion(efunction)} id="newModel" key={i}>{efunction.label}</Dropdown.Item>)
+            } 
+          }
+          items.push(<DropdownButton id="nested-dropdown" title="Tools" key="end" drop="end" variant="Info">{children}</DropdownButton>);
+        }
+      }
+    }
+ 
+
+    let left = this.props.contextMenuX + "px";
+    let top = this.props.contextMenuY + "px";
+    return (
+      <Dropdown.Menu show={this.state.showContextMenu} style={{ left: left, top: top }}>
+        {items}
+      </Dropdown.Menu>
+    );
+  }
+
   render() {
     return (
       <div className="treeMenu">
-        <div
-          className="modal fade"
-          id="editorTextModal"
-          tabIndex={-1}
-          aria-labelledby="editorTextModalLabel"
-          aria-hidden="true"
-        >
-          <div className="modal-dialog modalTreeMenu-left-variamos">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title" id="editorTextModalLabel">
-                  {this.state.modalTittle}
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  data-bs-dismiss="modal"
-                  aria-label="Close"
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="form-floating">
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="modalInputValue"
-                    placeholder="VariaMosTextEditor"
-                    value={this.state.modalInputValue}
-                    onChange={this.handleUpdateEditorText}
-                    onKeyDown={this.onEnterModal}
-                  />
-                  <label htmlFor="floatingInput">
-                    {this.state.modalInputText}
-                  </label>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  data-bs-dismiss="modal"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-Variamos"
-                  onClick={this.addNewFolder}
-                >
-                  Save changes
-                </button>
-                <div
-                  hidden={true}
-                  id="closeModal"
-                  data-bs-dismiss="modal"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {this.renderContexMenu()}
 
-        {/* Create a modal for entering the query as a placeholder */}
-        <div
-          className="modal fade"
-          id="queryModal"
-          tabIndex={-1}
-          aria-labelledby="queryModalLabel"
-          aria-hidden="true"
-        >
-          <div className="modal-dialog modalQuery-center-variamos">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title" id="queryModalLabel">
-                  Please input your query
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  data-bs-dismiss="modal"
-                  aria-label="Close"
-                ></button>
-              </div>
-              <div className="modal-body">
-                <div className="form-floating">
-                  <textarea
-                    className="form-control"
-                    placeholder="Enter your query"
-                    id="queryInputTxtArea"
-                    style={{ height: "150px" }}
-                    value={this.state.query}
-                    onChange={this.updateQuery}
-                    autoComplete="off"
-                  ></textarea>
-                  <label htmlFor="newLanguageAbSy">
-                    Enter your query
-                  </label>
+        <Modal id="editorTextModal" show={this.state.showEditorTextModal} onHide={this.hideEditorTextModal} size="lg" centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {this.state.modalTittle}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="form-floating">
+              <input
+                type="text"
+                className="form-control"
+                id="modalInputValue"
+                placeholder="VariaMosTextEditor"
+                value={this.state.modalInputValue}
+                onChange={this.handleUpdateEditorText}
+                onKeyDown={this.onEnterModal}
+              />
+              <label htmlFor="floatingInput">
+                {this.state.modalInputText}
+              </label>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.hideEditorTextModal} >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={this.addNewFolder} >
+              Accept
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        <Modal id="queryModal" show={this.state.showQueryModal} onHide={this.hideQueryModal} size="lg" centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Please input your query
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="form-floating">
+              <textarea
+                className="form-control"
+                placeholder="Enter your query"
+                id="queryInputTxtArea"
+                style={{ height: "150px" }}
+                value={this.state.query}
+                onChange={this.updateQuery}
+                autoComplete="off"
+              ></textarea>
+              <label htmlFor="newLanguageAbSy">
+                Enter your query
+              </label>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.hideQueryModal} >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={this.runQuery} >
+              Accept
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        <Modal show={this.state.showPropertiesModal} onHide={this.hidePropertiesModal} size="lg" centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Properties
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div>
+              <div className="row">
+                <div className="col-md-3">
+                  <label >Type</label>
+                </div>
+                <div className="col-md-9">
+                  <select
+                    className="form-select"
+                    id="newPropertySelectDomain"
+                    aria-label="Select type"
+                    value={this.state.plType}
+                    onChange={this.selectProductLineTypeChange}
+                  >
+                    {this.state.plTypes.map((option, index) => (
+                      <option key={index} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  data-bs-dismiss="modal"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-Variamos"
-                  onClick={this.runQuery}
-                >
-                  Run Query
-                </button>
-                <div
-                  hidden={true}
-                  id="closeQueryModal"
-                  data-bs-dismiss="modal"
-                ></div>
+              <br />
+              <div className="row">
+                <div className="col-md-3">
+                  <label >Domain</label>
+                </div>
+                <div className="col-md-9">
+                  <select
+                    className="form-select"
+                    id="newPropertySelectDomain"
+                    aria-label="Select domain"
+                    value={this.state.plDomain}
+                    onChange={this.selectProductLineDomainChange}
+                  >
+                    {this.state.plDomains.map((option, index) => (
+                      <option key={index} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-        {/* End new modal */}
-        <div
-          className="modal fade"
-          id="deleteModal"
-          tabIndex={-1}
-          aria-labelledby="deleteModalLabel"
-          aria-hidden="true"
-        >
-          <div className="modal-dialog modalTreeMenu-left-variamos">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title" id="deleteModalLabel">
-                  Delete
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  data-bs-dismiss="modal"
-                  aria-label="Close"
-                ></button>
-              </div>
-              <div className="modal-body">
-                <p>Are you sure you wish to delete this item?</p>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  data-bs-dismiss="modal"
-                >
-                  No
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-Variamos"
-                  onClick={this.deleteItemProject}
-                  data-bs-dismiss="modal"
-                >
-                  Yes
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={this.hidePropertiesModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={this.saveProperties}
+            >
+              Accept
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        <Modal show={this.state.showDeleteModal} onHide={this.hideDeleteModal} size="lg" centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Delete
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p>Are you sure you wish to delete this item?</p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.hideDeleteModal} >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={this.deleteItemProject} >
+              Accept
+            </Button>
+          </Modal.Footer>
+        </Modal>
 
         <ul className="dropdown-menu" id="context-menu">
           <li>
@@ -781,77 +926,6 @@ class TreeMenu extends Component<Props, State> {
         </ul>
         <script></script>
 
-        <Modal
-          show={this.state.showPropertiesModal}
-          onHide={this.hidePropertiesModal}
-          size="lg"
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>
-              Properties
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <div>
-              <div className="row">
-                <div className="col-md-3">
-                  <label >Type</label>
-                </div>
-                <div className="col-md-9">
-                  <select
-                    className="form-select"
-                    id="newPropertySelectDomain"
-                    aria-label="Select type"
-                    value={this.state.plType}
-                    onChange={this.selectProductLineTypeChange}
-                  >
-                    {this.state.plTypes.map((option, index) => (
-                      <option key={index} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <br />
-              <div className="row">
-                <div className="col-md-3">
-                  <label >Domain</label>
-                </div>
-                <div className="col-md-9">
-                  <select
-                    className="form-select"
-                    id="newPropertySelectDomain"
-                    aria-label="Select domain"
-                    value={this.state.plDomain}
-                    onChange={this.selectProductLineDomainChange}
-                  >
-                    {this.state.plDomains.map((option, index) => (
-                      <option key={index} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button
-              variant="secondary"
-              onClick={this.hidePropertiesModal}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={this.saveProperties}
-            >
-              Accept
-            </Button>
-          </Modal.Footer>
-        </Modal>
 
       </div>
     );

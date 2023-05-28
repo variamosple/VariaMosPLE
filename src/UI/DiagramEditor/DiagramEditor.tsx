@@ -16,19 +16,8 @@ class DiagramEditor extends Component<Props, State> {
 
   render() {
     return (
-      <div
-        id="EditorPannel"
-        className="col-10 col-sm-10 distribution-variamos"
-        style={{ height: "86vh"}}
-      >
-        <div className="col-sm-12 h-100">
-          <div className="card text-center h-100 shadow-sm bg-body rounded">
-            <div className="card-body">
-              <MxGEditor projectService={this.props.projectService} />
-            </div>
-            {/* <div className="card-footer text-muted"></div> */}
-          </div>
-        </div>
+      <div id="EditorPannel" className="">
+            <MxGEditor projectService={this.props.projectService} />
       </div>
     );
   }

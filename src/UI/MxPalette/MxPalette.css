@@ -7,6 +7,12 @@
   max-height: 32px;
 } 
 
+.MxPaletteContainter {
+  text-align: center; 
+  display:grid;
+} 
+
 .list-inline-item {
-  padding-bottom: 10px;
+  padding-bottom: 0.5rem;  
+  text-align: center;  
 }

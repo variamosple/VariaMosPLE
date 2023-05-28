@@ -229,7 +229,7 @@ export default class MxPalette extends Component<Props, State> {
     graph.multiplicities = [];
 
     let divToolbar: any = document.getElementById("graph_palette");
-    divToolbar.classList.add("list-inline");
+    //divToolbar.classList.add("list-inline");
     if (!divToolbar) {
       throw new Error("The element #portal wasn't found");
     }
@@ -416,7 +416,7 @@ export default class MxPalette extends Component<Props, State> {
     return (
       <div className="MxPalette">
         <div
-          style={{ fontSize: 8 }}
+          style={{ fontSize: 10 }}
           ref={this.containerRef}
           className="MxPaletteContainter"
           id="graph_palette"
