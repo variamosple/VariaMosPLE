@@ -5,7 +5,7 @@ import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/Produc
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { NewModelEventArg } from "./Events/NewModelEventArg";
-import ProjectManager from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
+import ProjectManager, { ModelLookupResult } from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
@@ -956,30 +956,42 @@ export default class ProjectService {
   visualizeModel() {
     
   }
+
   //Reset the selection on the currently selected model
   resetModelConfig() {
     const modelLookupResult = this.projectManager.findModel(this._project, this.getTreeIdItemSelected());
     if (modelLookupResult) {
       this.projectManager.resetSelection(modelLookupResult);
       // We should have the enum available here
-      switch (modelLookupResult.modelType) {
-        case "Domain":
-          this.modelDomainSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
-          break;
-        case "Application":
-          this.modelApplicationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.modelIdx);
-          break;
-        case "Adaptation":
-          this.modelAdaptationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.adapIdx, modelLookupResult.modelIdx);
-          break;
-        case "ApplicationEng":
-          this.modelApplicationEngSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
-          break;
-        default:
-          console.error("Unknown model type: " + modelLookupResult.modelType)
-          console.error("could not reset model config")
-          break;
-      }
+      this.reSelectModel(modelLookupResult);
+    }
+  }
+
+  lookupAndReselectModel() {
+    const modelLookupResult = this.projectManager.findModel(this._project, this.getTreeIdItemSelected());
+    if (modelLookupResult) {
+      this.reSelectModel(modelLookupResult);
+    }
+  }
+
+  reSelectModel(modelLookupResult: ModelLookupResult) {
+    switch (modelLookupResult.modelType) {
+      case "Domain":
+        this.modelDomainSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
+        break;
+      case "Application":
+        this.modelApplicationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.modelIdx);
+        break;
+      case "Adaptation":
+        this.modelAdaptationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.adapIdx, modelLookupResult.modelIdx);
+        break;
+      case "ApplicationEng":
+        this.modelApplicationEngSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
+        break;
+      default:
+        console.error("Unknown model type: " + modelLookupResult.modelType)
+        console.error("could not reset model config")
+        break;
     }
   }
 }

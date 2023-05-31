@@ -81,6 +81,8 @@ export default function QueryResult(
       projectService.updateProject(
         result as Project, projectService.getTreeIdItemSelected()
       );
+      projectService.lookupAndReselectModel();
+      projectService.getGraph().refresh();
     } else {
       if (isIterationResult(result)) {
         handleIterationQueryVisualization();
@@ -88,6 +90,8 @@ export default function QueryResult(
         projectService.updateProject(
           result[paginationSelection] as Project, projectService.getTreeIdItemSelected()
         );
+        projectService.lookupAndReselectModel();
+        projectService.getGraph().refresh();
       }
     }
   }

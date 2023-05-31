@@ -16,7 +16,7 @@ enum ModelType {
   Adaptation = "Adaptation"
 };
 
-type ModelLookupResult = {
+export type ModelLookupResult = {
   model: Model;
   modelType: ModelType;
   plIdx: number;
@@ -567,7 +567,10 @@ export default class ProjectUseCases {
   resetSelection(modelLookupResult: ModelLookupResult) {
     if (modelLookupResult.model) {
       for (const element of modelLookupResult.model.elements) {
-        this._findProperty('Selected', element).value = "Undefined";
+        const property = this._findProperty('Selected', element);
+        if (property) {
+          property.value = "Undefined";
+        }
       }
     } else {
       console.error("Model not found");
