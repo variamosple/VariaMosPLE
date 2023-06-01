@@ -13,12 +13,16 @@ interface Props {
 interface State {
   projectName: string;
   productLineName: string;
+  productLineType: string;
+  productLineDomain: string;
   importProject: string | undefined;
   version: string;
   urlVariamosDoc: string;
   urlVariamosLangDoc: string;
   firstName: string;
   userType: string;
+  plDomains: string[];
+  plTypes: string[]; 
 }
 
 let classActive: string = "active";
@@ -37,7 +41,11 @@ class ProjectManagement extends Component<Props, State> {
       urlVariamosDoc: _config.urlVariamosDocumentation,
       urlVariamosLangDoc: _config.urlVariamosLangDocumentation,
       firstName: "",
-      userType: ""
+      userType: "",
+      plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution'],
+      plTypes: ['Software', 'System'],
+      productLineDomain: 'Retail',
+      productLineType: 'System'
     };
     this.loadProject();
 
@@ -53,6 +61,23 @@ class ProjectManagement extends Component<Props, State> {
     this.onEnterSaveProject = this.onEnterSaveProject.bind(this);
     this.onEnterCreateProject = this.onEnterCreateProject.bind(this);
     this.onEnterFocusPL = this.onEnterFocusPL.bind(this);
+
+    this.selectProductLineDomainChange = this.selectProductLineDomainChange.bind(this);
+    this.selectProductLineTypeChange = this.selectProductLineTypeChange.bind(this);
+  }
+
+  selectProductLineDomainChange(e) {
+    let me = this;
+    this.setState({ 
+      productLineDomain: e.target.value
+    })
+  }
+
+  selectProductLineTypeChange(e) {
+    let me = this;
+    this.setState({ 
+      productLineType: e.target.value
+    })
   }
 
   //This gets called when one selects the file on the dialog
@@ -146,7 +171,9 @@ class ProjectManagement extends Component<Props, State> {
 
     let productLine = this.props.projectService.createLPS(
       this.props.projectService.project,
-      this.state.productLineName
+      this.state.productLineName,
+      this.state.productLineType,
+      this.state.productLineDomain
     );
     this.props.projectService.raiseEventNewProductLine(productLine);
 
@@ -192,7 +219,7 @@ class ProjectManagement extends Component<Props, State> {
                 {this.props.projectService.project.enable === true && (
                   <div className="col d-flex justify-content-end">
                     <ul className="list-group icon-dark-variamos list-group-horizontal"
-                        onClick={(e) => this.btnSaveProject_onClick(e)}>
+                      onClick={(e) => this.btnSaveProject_onClick(e)}>
                       <li
                         className="list-group-item nav-bar-variamos"
                         data-bs-toggle="tooltip"
@@ -253,7 +280,7 @@ class ProjectManagement extends Component<Props, State> {
                         Upload
                       </a>
                       {this.state.userType === SignUpUserTypes.Registered && (
-                          <a
+                        <a
                           className="list-group-item list-group-item-action"
                           id="list-settings-list"
                           data-bs-toggle="list"
@@ -267,7 +294,7 @@ class ProjectManagement extends Component<Props, State> {
                           Settings
                         </a>
                       )}
-                      
+
                       <a
                         className="list-group-item list-group-item-action"
                         id="list-help-list"
@@ -371,6 +398,56 @@ class ProjectManagement extends Component<Props, State> {
                             </div>
                           </div>
                         </div>
+
+
+                        <br />
+                        <div className="row g-2">
+                          <div className="col-md">
+                            <div className="form-floating">
+                              <select
+                                className="form-select"
+                                id="newPropertySelectDomain"
+                                aria-label="Select type"
+                                value={this.state.productLineType}
+                                onChange={this.selectProductLineTypeChange}
+                              >
+                                {this.state.plTypes.map((option, index) => (
+                                  <option key={index} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                              <label htmlFor="floatingInputGrid">
+                                Product line type
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                        <br />
+                        <div className="row g-2">
+                          <div className="col-md">
+                            <div className="form-floating">
+                              <select
+                                className="form-select"
+                                id="newPropertySelectDomain"
+                                aria-label="Select domain"
+                                value={this.state.productLineDomain}
+                                onChange={this.selectProductLineDomainChange}
+                              >
+                                {this.state.plDomains.map((option, index) => (
+                                  <option key={index} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                              <label htmlFor="floatingInputGrid">
+                                Product line domain
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+
                         <br />
                         <button
                           type="button"

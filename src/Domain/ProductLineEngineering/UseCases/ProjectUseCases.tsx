@@ -180,10 +180,12 @@ export default class ProjectUseCases {
     return project;
   }
 
-  createLps(project: Project, producLineName: string): ProductLine {
+  createLps(project: Project, producLineName: string, type: string, domain: string): ProductLine {
     let productLine: ProductLine = new ProductLine(
       ProjectUseCases.generateId(),
-      producLineName
+      producLineName, 
+      type, 
+      domain
     );
     project.productLines.push(productLine);
     return productLine;
@@ -462,6 +464,45 @@ export default class ProjectUseCases {
     return uuid;
   }
 
+  static findModelById(project: Project, uid: any) {
+    if (project && uid) {
+      for (let pl = 0; pl < project.productLines.length; pl++) {
+        const productLine: ProductLine = project.productLines[pl];
+        for (let m = 0; m < productLine.domainEngineering.models.length; m++) {
+          const model: Model = productLine.domainEngineering.models[m];
+          if (model.id == uid) {
+            return model;
+          }
+        }
+        for (let m = 0; m < productLine.applicationEngineering.models.length; m++) {
+          const model: Model = productLine.applicationEngineering.models[m];
+          if (model.id == uid) {
+            return model;
+          }
+        }
+        for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+          const application: Application = productLine.applicationEngineering.applications[ap];
+          for (let m = 0; m < application.models.length; m++) { 
+            const model: Model = application.models[m];
+            if (model.id == uid) {
+              return model;
+            }
+          }
+          for (let ad = 0; ad < application.adaptations.length; ad++) {
+            const adaptation: Adaptation = application.adaptations[ad];
+            for (let m = 0; m < adaptation.models.length; m++) { 
+              const model: Model = adaptation.models[m];
+              if (model.id == uid) {
+                return model;
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   static findModelElementById(model: Model, uid: any) {
     if (model) {
       for (let i = 0; i < model.elements.length; i++) {
@@ -557,7 +598,7 @@ export default class ProjectUseCases {
     }
   }
 
-  _findProperty(propName: string, element: Element){
+  _findProperty(propName: string, element: Element) {
     const property = element.properties.find(p => p.name === propName);
     return property;
   }
@@ -583,24 +624,24 @@ export default class ProjectUseCases {
     for (const [plIdx, productLine] of project.productLines.entries()) {
       for (const [modelIdx, model] of productLine.domainEngineering.models.entries()) {
         if (model.id === modelId) {
-          return {model, modelType: ModelType.Domain, plIdx: plIdx, modelIdx: modelIdx};
+          return { model, modelType: ModelType.Domain, plIdx: plIdx, modelIdx: modelIdx };
         }
       }
       for (const [appEngIdx, appEngModel] of productLine.applicationEngineering.models.entries()) {
         if (appEngModel.id === modelId) {
-          return {model: appEngModel, modelType: ModelType.ApplicationEng, plIdx: plIdx, modelIdx: appEngIdx};
+          return { model: appEngModel, modelType: ModelType.ApplicationEng, plIdx: plIdx, modelIdx: appEngIdx };
         }
       }
       for (const [applicationIdx, application] of productLine.applicationEngineering.applications.entries()) {
         for (const [modelIdx, model] of application.models.entries()) {
           if (model.id === modelId) {
-            return {model, modelType: ModelType.Application, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx};
+            return { model, modelType: ModelType.Application, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx };
           }
         }
         for (const [adaptationIdx, adaptation] of application.adaptations.entries()) {
           for (const [modelIdx, model] of adaptation.models.entries()) {
             if (model.id === modelId) {
-              return {model, modelType: ModelType.Adaptation, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx, adapIdx: adaptationIdx};
+              return { model, modelType: ModelType.Adaptation, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx, adapIdx: adaptationIdx };
             }
           }
         }

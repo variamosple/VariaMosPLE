@@ -152,4 +152,39 @@ export default class MxgraphUtils {
         return;
     }
 
+    
+    static GetSelectedElementsIds(graph: mxGraph, model: Model) {
+        let ids=[];
+        if (graph.isEnabled()) {
+            let cells = graph.getSelectionCells();
+            for (let i = 0; i < cells.length; i++) {
+                const cell = cells[i];
+                if (cell.value) {
+                    let uid = cell.value.getAttribute("uid");
+                    if (uid) {
+                        ids.push(uid);
+                    }
+                }
+            } 
+        }
+        return ids;
+    }
+
+    static GetSelectedRelationshipsIds(graph: mxGraph, model: Model) {
+        let ids=[];
+        if (graph.isEnabled()) {
+            let cells = graph.getSelectionCells();
+            for (let i = 0; i < cells.length; i++) {
+                const cell = cells[i];
+                if (cell.value) {
+                    let uid = cell.value.getAttribute("uid");
+                    if (uid) {
+                        ids.push(uid);
+                    }
+                }
+            } 
+        }
+        return ids;
+    }
+
 }
