@@ -39,7 +39,7 @@ export default class MxPalette extends Component<Props, State> {
 
   projectService_addSelectedModelListener(e: any) {
     this.currentModel = e.model;
-    this.createPalette(e.model.name);
+    this.createPalette(e.model.type);
     this.forceUpdate();
   }
 
@@ -53,9 +53,9 @@ export default class MxPalette extends Component<Props, State> {
     );
   }
 
-  createPalette(modelName: string) {
+  createPalette(modelType: string) {
     this.props.projectService.getStyleDefinition(
-      modelName,
+      modelType,
       this.callbackGetStyle
     );
   }
@@ -90,7 +90,7 @@ export default class MxPalette extends Component<Props, State> {
 
     let languageDefinition: any =
       me.props.projectService.getLanguageDefinition(
-        "" + me.currentModel.name
+        "" + me.currentModel.type
       );
 
     let type = vertex.getAttribute("type");
@@ -151,7 +151,7 @@ export default class MxPalette extends Component<Props, State> {
     if (def.properties) {
       for (let i = 0; i < def.properties.length; i++) {
         const p = def.properties[i];
-        const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.minCardinality, p.maxCardinality);
+        const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.possibleValuesLinks, p.minCardinality, p.maxCardinality);
         if (p.linked_property) {
           property.display = false;
         }

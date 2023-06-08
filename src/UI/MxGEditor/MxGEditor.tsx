@@ -324,7 +324,7 @@ export default class MxGEditor extends Component<Props, State> {
 
         let languageDefinition: any =
           me.props.projectService.getLanguageDefinition(
-            "" + me.currentModel.name
+            "" + me.currentModel.type
           );
 
         if (languageDefinition.abstractSyntax.relationships) {
@@ -355,7 +355,7 @@ export default class MxGEditor extends Component<Props, State> {
           if (rel.properties) {
             for (let i = 0; i < rel.properties.length; i++) {
               const p = rel.properties[i];
-              const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.minCardinality, p.maxCardinality);
+              const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.possibleValuesLinks, p.minCardinality, p.maxCardinality);
               if (p.linked_property) {
                 property.display = false;
               }
@@ -504,7 +504,7 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let languageDefinition: any =
       me.props.projectService.getLanguageDefinition(
-        "" + me.currentModel.name
+        "" + me.currentModel.type
       );
     let relationship = me.props.projectService.findModelRelationshipById(me.currentModel, edge.value.getAttribute("uid"));
     if (languageDefinition.concreteSyntax.relationships) {
@@ -614,7 +614,7 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let languageDefinition: any =
       me.props.projectService.getLanguageDefinition(
-        "" + me.currentModel.name
+        "" + me.currentModel.type
       );
     let label_property = null;
     let relationship = me.props.projectService.findModelRelationshipById(me.currentModel, edge.value.getAttribute("uid"));
@@ -647,7 +647,7 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let languageDefinition: any =
       me.props.projectService.getLanguageDefinition(
-        "" + me.currentModel.name
+        "" + me.currentModel.type
       );
     let label_property = null;
     let element = me.props.projectService.findModelElementById(me.currentModel, vertice.value.getAttribute("uid"));
@@ -749,7 +749,7 @@ export default class MxGEditor extends Component<Props, State> {
       try {
         graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
         if (model) {
-          let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.name);
+          let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
           let orden = [];
           for (let i = 0; i < model.elements.length; i++) {
             let element: any = model.elements[i];
@@ -886,7 +886,7 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let languageDefinition: any =
       me.props.projectService.getLanguageDefinition(
-        "" + me.currentModel.name
+        "" + me.currentModel.type
       );
 
     if (languageDefinition.concreteSyntax.elements) {

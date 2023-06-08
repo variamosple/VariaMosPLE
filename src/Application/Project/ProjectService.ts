@@ -420,7 +420,7 @@ export default class ProjectService {
 
   applyRestrictions(callback: any, model: Model) {
     let languageByName: Language = this.languageUseCases.getLanguageByName(
-      model.name,
+      model.type,
       this._languages
     );
 
@@ -463,7 +463,7 @@ export default class ProjectService {
   existDomainModel(language: string): boolean {
     let existModel = this._project.productLines[
       this.productLineSelected
-    ].domainEngineering.models.filter((model) => model.name === language)[0];
+    ].domainEngineering.models.filter((model) => model.type === language)[0];
 
     if (existModel) return true;
 
@@ -474,7 +474,7 @@ export default class ProjectService {
     let existModel = this._project.productLines[
       this.productLineSelected
     ].applicationEngineering.models.filter(
-      (model) => model.name === language
+      (model) => model.type === language
     )[0];
 
     if (existModel) return true;
@@ -487,7 +487,7 @@ export default class ProjectService {
       this.productLineSelected
     ].applicationEngineering.applications[
       this.applicationSelected
-    ].models.filter((model) => model.name === language)[0];
+    ].models.filter((model) => model.type === language)[0];
 
     if (existModel) return true;
 
@@ -499,7 +499,7 @@ export default class ProjectService {
       this.productLineSelected
     ].applicationEngineering.applications[this.applicationSelected].adaptations[
       this.adaptationSelected
-    ].models.filter((model) => model.name === language)[0];
+    ].models.filter((model) => model.type === language)[0];
 
     if (existModel) return true;
 
@@ -617,6 +617,13 @@ export default class ProjectService {
     this.raiseEventUpdateProject(this._project, this.treeIdItemSelected);
   }
 
+  getItemProjectName( ) {
+    return this.projectManager.getItemProjectName(
+      this._project,
+      this.treeIdItemSelected 
+    ); 
+  }
+
   updateProjectState(state: boolean) {
     this._project.enable = state;
     this.raiseEventUpdateProject(this._project, this.treeIdItemSelected);
@@ -724,11 +731,12 @@ export default class ProjectService {
   //Adaptation functions_ END***********
 
   //createDomainEngineeringModel functions_ START***********
-  createDomainEngineeringModel(project: Project, languageType: string) {
+  createDomainEngineeringModel(project: Project, languageType: string, name:string) {
     return this.projectManager.createDomainEngineeringModel(
       project,
       languageType,
-      this.productLineSelected
+      this.productLineSelected,
+      name
     );
   }
 
@@ -755,11 +763,12 @@ export default class ProjectService {
   //createDomainEngineeringModel functions_ END***********
 
   //createApplicationEngineeringModel functions_ START***********
-  createApplicationEngineeringModel(project: Project, languageType: string) {
+  createApplicationEngineeringModel(project: Project, languageType: string, name:string) {
     return this.projectManager.createApplicationEngineeringModel(
       project,
       languageType,
-      this.productLineSelected
+      this.productLineSelected,
+      name
     );
   }
 
@@ -786,12 +795,13 @@ export default class ProjectService {
   //createApplicationEngineeringModel functions_ END***********
 
   //createApplicationModel functions_ START***********
-  createApplicationModel(project: Project, languageType: string) {
+  createApplicationModel(project: Project, languageType: string, name:string) {
     return this.projectManager.createApplicationModel(
       project,
       languageType,
       this.productLineSelected,
-      this.applicationSelected
+      this.applicationSelected,
+      name
     );
   }
 
@@ -818,13 +828,14 @@ export default class ProjectService {
   //createApplicationModel functions_ END***********
 
   //createAdaptationModel functions_ START***********
-  createAdaptationModel(project: Project, languageType: string) {
+  createAdaptationModel(project: Project, languageType: string, name:string) {
     return this.projectManager.createAdaptationModel(
       project,
       languageType,
       this.productLineSelected,
       this.applicationSelected,
-      this.adaptationSelected
+      this.adaptationSelected, 
+      name
     );
   }
 

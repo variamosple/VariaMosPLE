@@ -39,10 +39,12 @@ interface State {
   plTypes: string[],
   plDomain: string,
   plType: string,
+  plName: string,
   showContextMenu: boolean,
   showEditorTextModal: boolean,
   showQueryModal: boolean,
-  showDeleteModal: boolean
+  showDeleteModal: boolean,
+  newModelLanguage?:Language
 }
 
 class TreeMenu extends Component<Props, State> {
@@ -69,10 +71,12 @@ class TreeMenu extends Component<Props, State> {
     plTypes: ['Software', 'System'],
     plDomain: 'Agriculture',
     plType: 'System',
+    plName: null,
     showContextMenu: false,
     showEditorTextModal: false,
     showQueryModal: false,
-    showDeleteModal: false
+    showDeleteModal: false,
+    newModelLanguage:null
   };
 
   constructor(props: any) {
@@ -124,8 +128,16 @@ class TreeMenu extends Component<Props, State> {
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.saveProperties = this.saveProperties.bind(this);
 
+    this.selectProductLineNameChange = this.selectProductLineNameChange.bind(this);
     this.selectProductLineDomainChange = this.selectProductLineDomainChange.bind(this);
     this.selectProductLineTypeChange = this.selectProductLineTypeChange.bind(this);
+  }
+
+  selectProductLineNameChange(e) {
+    let me = this;
+    this.setState({
+      plName: e.target.value
+    })
   }
 
   selectProductLineDomainChange(e) {
@@ -147,6 +159,7 @@ class TreeMenu extends Component<Props, State> {
     let pl: ProductLine = me.props.projectService.getProductLineSelected();
     this.setState({
       showPropertiesModal: true,
+      plName: pl.name,
       plDomain: pl.domain,
       plType: pl.type
     })
@@ -185,6 +198,7 @@ class TreeMenu extends Component<Props, State> {
   saveProperties() {
     let me = this;
     let pl: ProductLine = me.props.projectService.getProductLineSelected();
+    pl.name = me.state.plName;
     pl.domain = me.state.plDomain;
     pl.type = me.state.plType;
     me.hidePropertiesModal();
@@ -205,6 +219,10 @@ class TreeMenu extends Component<Props, State> {
 
   renameItemProject(newName: string) {
     this.props.projectService.renameItemProject(newName);
+  }
+
+  getItemProjectName() {
+    return this.props.projectService.getItemProjectName();
   }
 
   showContextMenu() {
@@ -249,7 +267,7 @@ class TreeMenu extends Component<Props, State> {
       },
       applicationEngineering: () => {
         me.setState({
-          optionAllowModelEnable: true,
+          optionAllowModelEnable: false,
           optionAllowModelApplication: true,
           optionAllowApplication: true,
           newSelected: "APPLICATION",
@@ -277,6 +295,7 @@ class TreeMenu extends Component<Props, State> {
       },
       model: function () {
         me.setState({
+          optionAllowRename: true,
           optionAllowDelete: true,
           optionAllowEFunctions: true,
         });
@@ -335,12 +354,13 @@ class TreeMenu extends Component<Props, State> {
 
   handleUpdateNewSelected(event: any) {
     this.hideContextMenu();
-    this.updateModal(event.target.id);
+    this.updateModal(event.target.id,event.target.value);
   }
 
-  updateModal(eventId: string) {
+  updateModal(eventId: string, value:string) {
 
     let me = this;
+    me.state.modalInputValue = value;
     const updateModal: any = {
       PRODUCTLINE: function () {
         me.state.modalTittle = "New product line";
@@ -354,9 +374,14 @@ class TreeMenu extends Component<Props, State> {
         me.state.modalTittle = "New Adaptation";
         me.state.modalInputText = "Enter new adaptation name";
       },
+      MODEL: function () {
+        me.state.modalTittle = "New model";
+        me.state.modalInputText = "Enter new model name";
+      },
       renameItem: function () {
         me.state.modalTittle = "Rename";
         me.state.modalInputText = "Enter new name";
+        me.state.modalInputValue = me.getItemProjectName();
       },
       default: function () {
         me.state.modalTittle = "New ";
@@ -416,14 +441,15 @@ class TreeMenu extends Component<Props, State> {
       ADAPTATION: function () {
         me.addNewAdaptation(me.state.modalInputValue);
       },
+      MODEL: function () {
+        me.addNewModel(me.state.modalInputValue);
+      },
       renameItem: function () {
         me.renameItemProject(me.state.modalInputValue);
       },
     };
 
     add[this.state.newSelected]();
-
-    document.getElementById("closeModal")?.click();
 
     this.setState({
       modalInputValue: "",
@@ -463,44 +489,60 @@ class TreeMenu extends Component<Props, State> {
 
   addNewEModel(language: Language) {
     let me = this;
-
     me.hideContextMenu();
+    me.state.newModelLanguage=language;
+    let e = { target: { id: "MODEL", value:language.name } }
+    this.handleUpdateNewSelected(e);
 
+    // const add: any = {
+    //   DOMAIN: function () {
+    //     me.addNewDomainEModel(language.name, name );
+    //   },
+    //   APPLICATION: function () {
+    //     if (me.props.projectService.getTreeItemSelected() === "applicationEngineering") {
+    //       me.addNewApplicationEModel(language.name, name );
+    //     }
+    //     else {
+    //       me.addNewApplicationModel(language.name, name );
+    //     } 
+    //   },
+    //   ADAPTATION: function () {
+    //     me.addNewAdaptationModel(language.name, name );
+    //   },
+    // };
+
+    // add[language.type]();
+  }
+
+  addNewModel(name:string) {
+    let me = this; 
+    let language:Language=me.state.newModelLanguage;
     const add: any = {
       DOMAIN: function () {
-        if (!me.props.projectService.existDomainModel(language.name))
-          me.addNewDomainEModel(language.name);
-        else alertify.error(language.name + " model already exist.");
+        me.addNewDomainEModel(language.name, name );
       },
       APPLICATION: function () {
-        if (
-          me.props.projectService.getTreeItemSelected() ===
-          "applicationEngineering"
-        ) {
-          if (!me.props.projectService.existApplicaioninEngModel(language.name))
-            me.addNewApplicationEModel(language.name);
-          else alertify.error(language.name + " model already exist.");
-        } else if (
-          !me.props.projectService.existApplicaioninModel(language.name)
-        )
-          me.addNewApplicationModel(language.name);
-        else alertify.error(language.name + " model already exist.");
+        if (me.props.projectService.getTreeItemSelected() === "applicationEngineering") {
+          me.addNewApplicationEModel(language.name, name );
+        }
+        else {
+          me.addNewApplicationModel(language.name, name );
+        } 
       },
       ADAPTATION: function () {
-        if (!me.props.projectService.existAdaptationModel(language.name))
-          me.addNewAdaptationModel(language.name);
-        else alertify.error(language.name + " model already exist.");
+        me.addNewAdaptationModel(language.name, name );
       },
     };
 
     add[language.type]();
   }
 
-  addNewDomainEModel(languageName: string) {
+  addNewDomainEModel(languageName: string, name: string) {
     let domainEngineeringModel =
       this.props.projectService.createDomainEngineeringModel(
         this.props.projectService.project,
-        languageName
+        languageName,
+        name
       );
 
     this.props.projectService.raiseEventDomainEngineeringModel(
@@ -509,11 +551,12 @@ class TreeMenu extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
-  addNewApplicationEModel(languageName: string) {
+  addNewApplicationEModel(languageName: string, name: string) {
     let applicationEngineeringModel =
       this.props.projectService.createApplicationEngineeringModel(
         this.props.projectService.project,
-        languageName
+        languageName,
+        name
       );
 
     this.props.projectService.raiseEventApplicationEngineeringModel(
@@ -522,19 +565,21 @@ class TreeMenu extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
-  addNewApplicationModel(languageName: string) {
+  addNewApplicationModel(languageName: string, name: string) {
     let applicationModel = this.props.projectService.createApplicationModel(
       this.props.projectService.project,
-      languageName
+      languageName,
+      name
     );
     this.props.projectService.raiseEventApplicationModelModel(applicationModel);
     this.props.projectService.saveProject();
   }
 
-  addNewAdaptationModel(languageName: string) {
+  addNewAdaptationModel(languageName: string, name: string) {
     let adaptationModel = this.props.projectService.createAdaptationModel(
       this.props.projectService.project,
-      languageName
+      languageName,
+      name
     );
     this.props.projectService.raiseEventAdaptationModelModel(adaptationModel);
     this.props.projectService.saveProject();
@@ -576,17 +621,17 @@ class TreeMenu extends Component<Props, State> {
           let children = [];
           for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
             const efunction: ExternalFuntion = this.props.projectService.externalFunctions[i];
-            if(Object.getOwnPropertyNames(efunction.header).length > 0){
+            if (Object.getOwnPropertyNames(efunction.header).length > 0) {
               children.push(<Dropdown.Item href="#" onClick={() => this.setSelectedFunction(i)} id="newModel" key={i}>{efunction.label}</Dropdown.Item>)
-            }else{
+            } else {
               children.push(<Dropdown.Item href="#" onClick={() => this.callExternalFuntion(efunction)} id="newModel" key={i}>{efunction.label}</Dropdown.Item>)
-            } 
+            }
           }
           items.push(<DropdownButton id="nested-dropdown" title="Tools" key="end" drop="end" variant="Info">{children}</DropdownButton>);
         }
       }
     }
- 
+
 
     let left = this.props.contextMenuX + "px";
     let top = this.props.contextMenuY + "px";
@@ -674,6 +719,20 @@ class TreeMenu extends Component<Props, State> {
           </Modal.Header>
           <Modal.Body>
             <div>
+              <div className="row">
+                <div className="col-md-3">
+                  <label >Name</label>
+                </div>
+                <div className="col-md-9">
+                  <input
+                    className="form-control"
+                    id="newPropertyInputName"
+                    aria-label="Name"
+                    value={this.state.plName}
+                    onChange={this.selectProductLineNameChange}
+                  />
+                </div>
+              </div>
               <div className="row">
                 <div className="col-md-3">
                   <label >Type</label>

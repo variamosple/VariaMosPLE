@@ -42,6 +42,12 @@ export default class ProjectUseCases {
     let currentAp = 0;
     let currentAdapt = 0;
 
+    let model= ProjectUseCases.findModelById(project, idItem);
+    if(model){
+      model.name=newName;
+      return project;
+    }
+
     project.productLines.forEach((productLine) => {
       // search productLine
       if (productLine.id === idItem) {
@@ -74,6 +80,45 @@ export default class ProjectUseCases {
       currentLP = currentLP + 1;
     });
     return project;
+  }
+
+  getItemProjectName(
+    project: Project,
+    idItem: string 
+  ): string {
+    let currentLP = 0;
+    let currentAp = 0;
+    let currentAdapt = 0;
+
+    let model= ProjectUseCases.findModelById(project, idItem);
+    if(model){
+      return model.name;
+    } 
+    for (let pl = 0; pl < project.productLines.length; pl++) {
+      const productLine = project.productLines[pl]; 
+      // search productLine
+      if (productLine.id === idItem) {
+        return project.productLines[currentLP].name ;
+      }
+      for (let ae = 0; ae < productLine.applicationEngineering.applications.length; ae++) {
+        const application = productLine.applicationEngineering.applications[ae]; 
+        // search application
+        if (application.id === idItem) {
+          return project.productLines[currentLP].applicationEngineering.applications[currentAp].name ;
+        }
+        for (let ad = 0; ad < application.adaptations.length; ad++) {
+          const adaptation = application.adaptations[ad]; 
+          // search adaptation
+          if (adaptation.id === idItem) {
+            return project.productLines[currentLP].applicationEngineering.applications[  currentAp ].adaptations[currentAdapt].name ;
+          } 
+          currentAdapt = currentAdapt + 1;
+        } 
+        currentAp = currentAp + 1;
+      } 
+      currentLP = currentLP + 1;
+    } 
+    return null;
   }
 
   deleteItemProject(project: Project, idItem: string): Project {
@@ -228,9 +273,10 @@ export default class ProjectUseCases {
   createDomainEngineeringModel(
     project: Project,
     languageType: string,
-    productLine: number
+    productLine: number, 
+    name:string
   ): Model {
-    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType);
     project.productLines[productLine].domainEngineering?.models.push(model);
 
     //Ejecutar el consumo de mxGraph.
@@ -241,9 +287,10 @@ export default class ProjectUseCases {
   createApplicationEngineeringModel(
     project: Project,
     languageType: string,
-    productLine: number
+    productLine: number, 
+    name:string
   ): Model {
-    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType);
     project.productLines[productLine].applicationEngineering?.models.push(
       model
     );
@@ -257,11 +304,12 @@ export default class ProjectUseCases {
     project: Project,
     languageType: string,
     productLine: number,
-    application: number
+    application: number, 
+    name:string
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType); 
 
     project.productLines[productLine].applicationEngineering?.applications[
       application
@@ -277,11 +325,12 @@ export default class ProjectUseCases {
     languageType: string,
     productLine: number,
     application: number,
-    adaptation: number
+    adaptation: number, 
+    name:string
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType); 
 
     project.productLines[productLine].applicationEngineering.applications[
       application
