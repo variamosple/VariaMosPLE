@@ -1,10 +1,22 @@
 .GraphContainer {
-    overflow-block: scroll;
+  /* overflow-block: scroll;
     overflow-x: scroll;
     overflow-y: auto;
     height: 75vh;
-    /* background: url("../../Infraestructure/Images/grid.gif"); */
     cursor: default;
     padding-right: 0px;
-    padding-left: 0px;
-  }
+    padding-left: 0px; */
+  /* background: url("../../Infraestructure/Images/grid.gif"); */
+  /* border: solid 1px red; */
+  height: 80vh;
+  max-height: 80vh;
+  overflow: auto;
+  width: 74.5vw;
+  max-width: 74.5vw; 
+}
+
+.MxGEditor img {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
+}

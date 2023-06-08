@@ -5,6 +5,7 @@ import { getUserProfile, logoutUser } from "../SignUp/SignUp.utils";
 
 //Dependencies for the query modal
 import QueryModal from "../Queries/queryModal";
+import "./NavBar.css";
 
 interface Props {
   projectService: ProjectService;
@@ -61,76 +62,27 @@ class navBar extends Component<Props, State> {
 
   render() {
     return (
-      <div
-        className="row distribution-variamos background-variamos"
-        style={{ height: "4vh", zIndex: 5 }}
-      >
-        <div className="col d-flex justify-content-start">
-          <ul className="list-group list-group-horizontal">
-            <li className="list-group-item nav-bar-variamos">
-              <span
-                className="bi bi-box-arrow-left shadow rounded"
-                id="hiddenProject"
-              ></span>
-            </li>
-          </ul>
+      <div className="NavBar">
+        <div className="header">
+          <a title="Save project" onClick={this.exportProject}><span><img src="/images/menuIcons/save.png"></img></span></a>{" "}
+          <a title="Queries" onClick={() => this.handleShowQueryModal()}><span><img src="/images/menuIcons/queries.png"></img></span></a>{" "}
+          <a title="Project management" onClick={() =>
+            document.getElementById("projectManagement").click()
+          }><span><img src="/images/menuIcons/open.png"></img></span></a>{" "}
+          <button
+            type="button"
+            data-bs-toggle="modal"
+            data-bs-target="#staticBackdrop"
+            className="nav-bar-variamos"
+            id="projectManagement"
+            hidden={true}
+          >
+            Project Management
+          </button>
         </div>
-        <div className="col d-flex justify-content-center">
-          <ul className="list-group list-group-horizontal">
-            <li
-              className="list-group-item nav-bar-variamos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="bottom"
-              title="Download project"
-              onClick={this.exportProject}
-            >
-              <span
-                className="bi bi-download shadow rounded"
-              >
-                {/* Export Project */}
-              </span>
-            </li>
-            <li title="Queries"
-              data-bs-toggle="tooltip"
-              data-bs-placement="bottom"
-              className="list-group-item nav-bar-variamos"
-              onClick={() => this.handleShowQueryModal()}
-            >
-              <span className="bi bi-tools shadow rounded">
-                {/* Queries */}
-              </span>
-            </li>
-            <li
-              className="list-group-item nav-bar-variamos"
-              data-bs-toggle="tooltip"
-              data-bs-placement="bottom"
-              title="Project management"
-              onClick={() =>
-                document.getElementById("projectManagement").click()
-              }
-            >
-              <button
-                type="button"
-                data-bs-toggle="modal"
-                data-bs-target="#staticBackdrop"
-                className="nav-bar-variamos"
-                id="projectManagement"
-                hidden={true}
-              >
-                Project Management
-              </button>
-              <span
-                className="bi bi-gear shadow rounded"
-              >
-                {/* Project Management */}
-              </span>
-            </li>
-          </ul>
+        <div>
+          <QueryModal show={this.state.show_query_modal} handleCloseCallback={this.handleCloseQueryModal} projectService={this.props.projectService} />
         </div>
-        <div className="col d-flex justify-content-end">
-        </div>
-        {/* Modal for query handling */}
-        <QueryModal show={this.state.show_query_modal} handleCloseCallback={this.handleCloseQueryModal} projectService={this.props.projectService} />
       </div>
     );
   }

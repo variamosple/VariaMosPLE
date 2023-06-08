@@ -110,7 +110,7 @@ describe('Each method should be functional',()=>{
         treeExplorer.props.projectService = project_service;
 
         //Act
-        treeExplorer.btn_viewDomainModel(345, 667);
+        treeExplorer.btn_viewDomainModel(window.event,345, 667);
 
         //Assert
         expect(modelDomainSelectedMock).toHaveBeenCalledTimes(1);
@@ -131,7 +131,7 @@ describe('Each method should be functional',()=>{
         treeExplorer.props.projectService = project_service;
 
         //Act
-        treeExplorer.btn_viewApplicationModel(345, 667, 910);
+        treeExplorer.btn_viewApplicationModel(window.event, 345, 667, 910);
 
         //Assert
         expect(modelApplicationSelectedMock).toHaveBeenCalledTimes(1);
@@ -151,7 +151,7 @@ describe('Each method should be functional',()=>{
         treeExplorer.props.projectService = project_service;
 
         //Act
-        treeExplorer.btn_viewAdaptationModel(345, 667, 910, 369);
+        treeExplorer.btn_viewAdaptationModel(window.event,345, 667, 910, 369);
 
         //Assert
         expect(modelAdaptationSelectedMock).toHaveBeenCalledTimes(1);
@@ -278,7 +278,7 @@ describe('Each method should be functional',()=>{
         treeExplorer.props.projectService = project_service;
 
         //Act
-        treeExplorer.updateApplicationSelected(345, 667);
+        treeExplorer.updateApplicationSelected(window.event,345, 667);
 
         // Assert
         expect(updateApplicationSelectedMock).toHaveBeenCalledTimes(1);
@@ -298,7 +298,7 @@ describe('Each method should be functional',()=>{
         treeExplorer.props.projectService = project_service;
 
         //Act
-        treeExplorer.updateAdaptationSelected(345, 667, 910);
+        treeExplorer.updateAdaptationSelected(window.event,345, 667, 910);
 
         // Assert
         expect(updateAdaptationSelectedMock).toHaveBeenCalledTimes(1);

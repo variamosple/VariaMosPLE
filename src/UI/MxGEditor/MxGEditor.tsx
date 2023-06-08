@@ -26,6 +26,8 @@ interface State {
   showConstraintModal: boolean;
   currentModelConstraints: string;
   showContextMenuElement: boolean;
+  contextMenuX: number;
+  contextMenuY: number;
   showPropertiesModal: boolean;
   selectedObject: any;
 }
@@ -46,6 +48,8 @@ export default class MxGEditor extends Component<Props, State> {
       showConstraintModal: false,
       currentModelConstraints: "",
       showContextMenuElement: false,
+      contextMenuX: 0,
+      contextMenuY: 0,
       selectedObject: null
     }
     this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
@@ -300,7 +304,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
         if (evt.properties.event.button == 2) {
-          me.showContexMenu();
+          me.showContexMenu(evt.properties.event);
         } else {
           me.hideContexMenu();
         }
@@ -320,7 +324,7 @@ export default class MxGEditor extends Component<Props, State> {
 
         let languageDefinition: any =
           me.props.projectService.getLanguageDefinition(
-            "" + me.currentModel.name
+            "" + me.currentModel.type
           );
 
         if (languageDefinition.abstractSyntax.relationships) {
@@ -351,7 +355,7 @@ export default class MxGEditor extends Component<Props, State> {
           if (rel.properties) {
             for (let i = 0; i < rel.properties.length; i++) {
               const p = rel.properties[i];
-              const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.minCardinality, p.maxCardinality);
+              const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.possibleValuesLinks, p.minCardinality, p.maxCardinality);
               if (p.linked_property) {
                 property.display = false;
               }
@@ -500,7 +504,7 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let languageDefinition: any =
       me.props.projectService.getLanguageDefinition(
-        "" + me.currentModel.name
+        "" + me.currentModel.type
       );
     let relationship = me.props.projectService.findModelRelationshipById(me.currentModel, edge.value.getAttribute("uid"));
     if (languageDefinition.concreteSyntax.relationships) {
@@ -610,7 +614,7 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let languageDefinition: any =
       me.props.projectService.getLanguageDefinition(
-        "" + me.currentModel.name
+        "" + me.currentModel.type
       );
     let label_property = null;
     let relationship = me.props.projectService.findModelRelationshipById(me.currentModel, edge.value.getAttribute("uid"));
@@ -643,7 +647,7 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let languageDefinition: any =
       me.props.projectService.getLanguageDefinition(
-        "" + me.currentModel.name
+        "" + me.currentModel.type
       );
     let label_property = null;
     let element = me.props.projectService.findModelElementById(me.currentModel, vertice.value.getAttribute("uid"));
@@ -745,7 +749,7 @@ export default class MxGEditor extends Component<Props, State> {
       try {
         graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
         if (model) {
-          let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.name);
+          let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
           let orden = [];
           for (let i = 0; i < model.elements.length; i++) {
             let element: any = model.elements[i];
@@ -882,7 +886,7 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let languageDefinition: any =
       me.props.projectService.getLanguageDefinition(
-        "" + me.currentModel.name
+        "" + me.currentModel.type
       );
 
     if (languageDefinition.concreteSyntax.elements) {
@@ -1133,8 +1137,10 @@ export default class MxGEditor extends Component<Props, State> {
     // //this.hideConstraintModal();
   }
 
-  showContexMenu() {
-    this.setState({ showContextMenuElement: true });
+  showContexMenu(e) {
+    let mx = e.clientX;
+    let my = e.clientY;
+    this.setState({ showContextMenuElement: true, contextMenuX: mx, contextMenuY: my });
   }
 
   hideContexMenu() {
@@ -1163,8 +1169,13 @@ export default class MxGEditor extends Component<Props, State> {
       }
     }
 
+     let left=this.state.contextMenuX + "px";
+     let top=this.state.contextMenuY + "px";
+
     return (
-      <Dropdown.Menu show={this.state.showContextMenuElement}>
+      <Dropdown.Menu
+        show={this.state.showContextMenuElement}
+        style={{ left: left, top: top }}>
         {items}
       </Dropdown.Menu>
     );
@@ -1173,12 +1184,16 @@ export default class MxGEditor extends Component<Props, State> {
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">
-        <div>
-          <a title="Edit properties" onClick={this.showPropertiesModal}><i className="bi bi-pencil-square"></i></a>
-          <a title="Edit constraints" onClick={this.showConstraintModal}><i className="bi bi-vector-pen"></i></a>
-          <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><i className="bi bi-zoom-in"></i></a>{" "}
-          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><i className="bi bi-zoom-out"></i></a>{" "}
+        <div className="header">
+          <a title="Edit properties" onClick={this.showPropertiesModal}><span><img src="/images/editor/properties.png"></img></span></a>{" "}
+          <a title="Edit constraints" onClick={this.showConstraintModal}><span><img src="/images/editor/constraints.png"></img></span></a>{" "}
+          <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><span><img src="/images/editor/zoomIn.png"></img></span></a>{" "}
+          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><span><img src="/images/editor/zoomOut.png"></img></span></a>
           {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
+        </div>
+        {this.renderContexMenu()}
+        <div ref={this.graphContainerRef} className="GraphContainer"></div>
+        <div>
           <Modal
             show={this.state.showConstraintModal}
             onHide={this.hideConstraintModal}
@@ -1231,7 +1246,7 @@ export default class MxGEditor extends Component<Props, State> {
               </Modal.Title>
             </Modal.Header>
             <Modal.Body>
-              <div style={{ maxHeight: "65vh", overflow:"auto" }}>
+              <div style={{ maxHeight: "65vh", overflow: "auto" }}>
                 <MxProperties projectService={this.props.projectService} model={this.currentModel} item={this.state.selectedObject} />
               </div>
             </Modal.Body>
@@ -1244,9 +1259,7 @@ export default class MxGEditor extends Component<Props, State> {
               </Button>
             </Modal.Footer>
           </Modal>
-          {this.renderContexMenu()}
         </div>
-        <div ref={this.graphContainerRef} className="GraphContainer"></div>
       </div>
     );
   }

@@ -1,0 +1,9 @@
+.NavBar img{
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
+}
+
+.NavBar span{
+  white-space: nowrap;
+}
