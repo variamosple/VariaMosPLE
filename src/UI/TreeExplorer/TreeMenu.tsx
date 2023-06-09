@@ -80,7 +80,7 @@ class TreeMenu extends Component<Props, State> {
   };
 
   constructor(props: any) {
-    super(props);
+    super(props); 
 
 
     this.addNewProductLine = this.addNewProductLine.bind(this);
@@ -334,6 +334,11 @@ class TreeMenu extends Component<Props, State> {
     me.props.projectService.addUpdateProjectListener(
       this.projectService_addListener
     );
+
+    this.setState({
+      plDomains: this.props.projectService.getProductLineDomainsList(),
+      plTypes: this.props.projectService.getProductLineTypesList()
+    })
   }
 
   componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any): void {
@@ -760,8 +765,7 @@ class TreeMenu extends Component<Props, State> {
                     ))}
                   </select>
                 </div>
-              </div>
-              <br />
+              </div> 
               <div className="row">
                 <div className="col-md-3">
                   <label >Domain</label>
