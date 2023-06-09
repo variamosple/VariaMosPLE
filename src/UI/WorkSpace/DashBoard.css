@@ -1,0 +1,24 @@
+table {
+   width: 100%; 
+}
+
+td {
+   border: solid 1px #f9fcff;
+  vertical-align:top;
+  /* border: solid 1px #eeeeee; */
+}
+
+.tdTreeExplorer {
+  width: 17vw; 
+  max-width: 17vw;   
+}
+
+.tdDiagramEditor {
+  width: 75vw; 
+  max-width: 75vw;  
+}
+
+.tdElements {
+  width: 8vw; 
+  max-width: 8vw;   
+}

@@ -43,10 +43,15 @@
 
 .modalQuery-center-variamos {
   margin-left: 45%;
-  margin-top: 7%;
+  margin-top: 7%; 
 }
 
 .hidden {
-  display: none;
+   display: none; 
+}
+
+
+.treeMenu{
+   /* border: solid 1px blue;  */
 }
 /* ---------------------------- */

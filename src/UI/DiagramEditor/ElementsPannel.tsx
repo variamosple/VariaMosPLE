@@ -1,11 +1,12 @@
 import React, { Component } from "react";
 import ProjectService from "../../Application/Project/ProjectService";
 import MxPalette from "../MxPalette/MxPalette";
+import "./ElementsPannel.css";
 
 interface Props {
   projectService: ProjectService;
 }
-interface State {}
+interface State { }
 
 class ElementsPannel extends Component<Props, State> {
   state = {};
@@ -16,14 +17,12 @@ class ElementsPannel extends Component<Props, State> {
 
   render() {
     return (
-      <div id="ElementsPannel" className="" style={{ height: "86vh",overflow:"auto" }}>
-        <div className="col-sm h-100 distribution-variamos">
-          <div className="card text-center h-100 distribution-variamos shadow-sm bg-body rounded">
-            <div className="card-header background-variamos">Elements</div>
-            <div className="card-body bg-white-Variamos">
-              <MxPalette projectService={this.props.projectService} />
-            </div>
-          </div>
+      <div id="ElementsPannel" className="ElementsPannel">
+        <div className="header">
+          <i title="Elements"><span><img src="/images/palette/diagram.png"></img></span></i>
+        </div>
+        <div className="mxPaletteContainer">
+          <MxPalette projectService={this.props.projectService} />
         </div>
       </div>
     );

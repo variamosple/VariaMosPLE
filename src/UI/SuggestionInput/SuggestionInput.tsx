@@ -1,8 +1,12 @@
 import React, { Component } from "react";
 import axios, { Method } from "axios";
 import "./SuggestionInput.css"
+import ProjectService from "../../Application/Project/ProjectService";
+import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 
-interface Props { }
+interface Props {
+  projectService: ProjectService;
+}
 interface State { }
 
 export default class SuggestionInput extends Component<Props, State> {
@@ -10,7 +14,8 @@ export default class SuggestionInput extends Component<Props, State> {
     className: null,
     onChange: null,
     value: null,
-    endPoint: null
+    endPoint: null,
+    projectService: null
   };
 
   state = {
@@ -49,14 +54,18 @@ export default class SuggestionInput extends Component<Props, State> {
       return;
     }
     let url = this.props.endPoint;
-    let input= this.state.text;
+    let input = this.state.text;
     if (!input) {
-      input="";
+      input = "";
     }
-    let request = {
-      input: input
-    };
 
+    let productLine: ProductLine = this.props.projectService.getProductLineSelected();
+ 
+    let request = {
+      input: input,
+      domain: productLine.domain,
+      type: productLine.type
+    };
     const config = {
       baseURL: url,
       method: "POST" as Method,
@@ -67,10 +76,10 @@ export default class SuggestionInput extends Component<Props, State> {
       axios(config).then((res) => {
         let data = res.data;
         this.state.data = data;
-        this.state.text=data.input;
-        if (data.input.length>0) {
+        this.state.text = data.input;
+        if (data.input.length > 0) {
           if (!this.state.text.endsWith(" ")) {
-            this.state.text+=" ";
+            this.state.text += " ";
           }
         }
         this.state.showModal = true;
@@ -95,7 +104,7 @@ export default class SuggestionInput extends Component<Props, State> {
     } catch (error) {
       console.log("Something wrong in getExternalFunctions Service: " + error);
     }
-  } 
+  }
 
   inputText_onKeyDown(e) {
     if (e.keyCode == 32) {
@@ -105,21 +114,21 @@ export default class SuggestionInput extends Component<Props, State> {
 
   inputText_onChange(e) {
     if (!e.target.value) {
-      this.state.text=e.target.value;
+      this.state.text = e.target.value;
       this.forceUpdate();
       this.loadSuggestions();
-    }else{
+    } else {
       this.setState({
         text: e.target.value
       });
-    } 
+    }
     this.raiseOnChange(e.target.value);
   }
 
   inputText_onFocus(e) {
-    let me=this;
+    let me = this;
     // if (!this.state.text) {
-      this.loadSuggestions();
+    this.loadSuggestions();
     // }
   }
 
@@ -128,9 +137,9 @@ export default class SuggestionInput extends Component<Props, State> {
     let value = e.target.attributes["data-value"].value;
     let text = this.state.text
     if (!value.startsWith("<")) {
-      text += value + " "; 
+      text += value + " ";
     }
-    this.state.text=text;
+    this.state.text = text;
     this.setState({
       text: text
     })
