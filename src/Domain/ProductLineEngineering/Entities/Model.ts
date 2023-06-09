@@ -4,7 +4,7 @@ import { Element } from "./Element";
 export class Model {
   id: string;
   name: string;
-  type?: string;
+  type: string;
   elements: Element[] = [];
   relationships: Relationship[] = [];
   typeEngineering?: string;
@@ -13,7 +13,7 @@ export class Model {
   constructor(
     id: string,
     name: string,
-    type?: string,
+    type: string,
     elements: Element[] = [],
     relationships: Relationship[] = [],
     typeEngineering?: string,

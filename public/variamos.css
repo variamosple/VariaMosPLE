@@ -2,8 +2,8 @@
  * Copyright 2021 VariaMos PLE. 
  */
 
-:root {
-  --primary-color: #2196f3;
+ :root {
+  --primary-color: #428DCF;
   --primary-color-text: #ffffff;
   --primary-color-constrast: #0f436d;
   --primary-color-constrast-text: #ffffff;
@@ -13,11 +13,30 @@
   --secondary-color-constrast: #344b1b;
   --secondary-color-constrast-text: #ffffff; */
 
-  --secondary-color: #2196f3;
+  --secondary-color: #428DCF;
   --secondary-color-text: #ffffff;
   --secondary-color-constrast: #0f436d;
   --secondary-color-constrast-text: #ffffff;
+
+  
+  --header-color: #dcdcdc;
+  --dark-color-font: #212529;
 }
+
+html{
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--dark-color-font) !important;
+}
+
+body{
+  margin: 0px;
+  padding: 0px;  
+  background-color: var(--dark-color-font);
+} 
+
+.bodyContent{ 
+  background-color: white;
+} 
 
 /* General design
 ---------------------------- */
@@ -96,7 +115,7 @@ label {
 
 /* Variamos Tree
 ---------------------------- */
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap");
+/* @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap"); */
 .outer {
   top: 30%;
   left: 40%;
@@ -122,8 +141,9 @@ ul {
 .nested {
   display: none;
 }
+
 .active {
-  display: block;
+   display: block; 
 }
 
 .fa-minus-square-o,
@@ -192,4 +212,67 @@ a:hover {
   background-color: var(--primary-color-constrast) !important;
   border-color: var(--primary-color-constrast);
 }
-/* ---------------------------- */
+
+.header {
+  color: var(--dark-color-font);
+  background-color: #f9fcff;
+  text-align: center;
+  padding: 0.25rem; 
+  font-weight: bold;
+  vertical-align: middle; 
+}
+
+
+.divTreeExplorer span{
+  color: var(--dark-color-font);
+}
+
+.btn-icon{
+  background-color: #2196f3;
+  border-radius: 50%; 
+  padding: 0.25rem;
+}
+
+/* scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.3);
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+::-webkit-scrollbar-thumb:window-inactive {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+
+footer{
+  background-color: var(--dark-color-font);
+  height: 100%;
+  color: white;
+  padding-top: 3rem;
+}
+
+footer .copyright{
+  text-align: center;
+}
+
+.form-control{
+  background-color: white !important;
+}
+
+.primary{
+  background-color: var(--primary-color) !important;
+}
+ 

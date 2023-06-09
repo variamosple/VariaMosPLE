@@ -13,6 +13,8 @@ import * as alertify from "alertifyjs";
 import SuggestionInput from "../SuggestionInput/SuggestionInput";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
+import "./MxProperties.css"
 
 interface Props {
   projectService: ProjectService;
@@ -25,6 +27,7 @@ interface State {
   propertyLastName: string;
   propertyDomain: string;
   propertyPossibleValues: string;
+  propertyPossibleValuesLinks: {};
   propertyComment: string;
   propertyMinCardinality: string;
   propertyMaxCardinality: string;
@@ -51,6 +54,7 @@ export default class MxProperties extends Component<Props, State> {
       propertyLastName: "",
       propertyDomain: "String",
       propertyPossibleValues: "",
+      propertyPossibleValuesLinks: {},
       propertyComment: "",
       propertyMinCardinality: "",
       propertyMaxCardinality: "",
@@ -122,6 +126,9 @@ export default class MxProperties extends Component<Props, State> {
       name = e.target.props["data-name"];
     }
     let value = e.target.value;
+    if(value=="Select..."){
+      value=null;
+    }
     this.property_onChange(name, value);
   }
 
@@ -265,6 +272,7 @@ export default class MxProperties extends Component<Props, State> {
         true,
         this.state.propertyComment,
         this.state.propertyPossibleValues,
+        this.state.propertyPossibleValuesLinks,
         this.state.propertyMinCardinality,
         this.state.propertyMaxCardinality
       )
@@ -396,7 +404,7 @@ export default class MxProperties extends Component<Props, State> {
       let concreteSyntaxElement: any = null;
       let languageDefinition: any =
         this.props.projectService.getLanguageDefinition(
-          "" + this.currentModel?.name
+          "" + this.currentModel?.type
         );
       if (languageDefinition) {
         if (
@@ -436,8 +444,7 @@ export default class MxProperties extends Component<Props, State> {
           type: "String",
         };
         this.state.values["Name"] = this.currentObject.name;
-
-        ret.push(<a onClick={this.showAddPropertyModal} title="Add property"><i className="bi bi-plus-square"></i></a>);
+        ret.push(<a title="Add property" onClick={this.showAddPropertyModal}><span><img src="/images/menuIcons/add.png"></img></span></a>); 
         ret.push(this.createControl(property, this.currentObject.name, true, concreteSyntaxElement));
         if (this.elementDefinition.properties) {
           for (let i = 0; i < this.elementDefinition.properties.length; i++) {
@@ -468,6 +475,7 @@ export default class MxProperties extends Component<Props, State> {
                   true,
                   property.comment,
                   property.possibleValues,
+                  property.possibleValuesByProductLineType,
                   property.minCardinality,
                   property.maxCardinality
                 )
@@ -510,7 +518,7 @@ export default class MxProperties extends Component<Props, State> {
     let control: any;
     let style = null;
     if (display) {
-      style = { display: "block" };
+      style = { display: "visible" };
     } else {
       style = { display: "none" };
     }
@@ -523,6 +531,27 @@ export default class MxProperties extends Component<Props, State> {
       property.possibleValues +
       "\n Comment: " +
       property.comment;
+
+    let possibleValues;
+    if (property.possibleValuesLinks) {
+      if (Object.keys(property.possibleValuesLinks).length>0) {
+        if (property.possibleValuesLinks.linkType=="ProductLineType") {
+          let productLine:ProductLine= this.props.projectService.getProductLineSelected();
+          let value=productLine.type; 
+          for (let i = 0; i < property.possibleValuesLinks.linkValues.length; i++) {
+            const linkValue = property.possibleValuesLinks.linkValues[i];
+            if (linkValue.value==value) {
+              possibleValues = linkValue.possibleValues;
+              break
+            }
+          } 
+        }
+      }else{
+        possibleValues=property.possibleValues;
+      }
+    }else{
+      possibleValues=property.possibleValues;
+    }
 
     switch (property.type) {
       case "Select":
@@ -574,8 +603,8 @@ export default class MxProperties extends Component<Props, State> {
         break;
       case "Integer":
         if (
-          property.possibleValues === undefined ||
-          property.possibleValues === ""
+          possibleValues === undefined ||
+          possibleValues === ""
         ) {
           control = (
             <input
@@ -589,8 +618,8 @@ export default class MxProperties extends Component<Props, State> {
           break;
         }
 
-        if (property.possibleValues.includes("..")) {
-          const values: any = property.possibleValues.split("..");
+        if (possibleValues.includes("..")) {
+          const values: any = possibleValues.split("..");
           const min = values[0];
           const max = values[1];
           control = (
@@ -607,8 +636,11 @@ export default class MxProperties extends Component<Props, State> {
           break;
         }
 
-        if (property.possibleValues.includes(",")) {
-          let options = property.possibleValues.split(",");
+        if (possibleValues.includes(",")) {
+          let options = possibleValues.split(",");
+          options.push(
+            <option data-name={property.name} value={null} selected>Select...</option>
+          );
           for (let i = 0; i < options.length; i++) {
             const option = options[i];
             if (option === value) {
@@ -641,8 +673,8 @@ export default class MxProperties extends Component<Props, State> {
         break;
       case "String":
         if (
-          property.possibleValues === undefined ||
-          property.possibleValues === ""
+          possibleValues === undefined ||
+          possibleValues === ""
         ) {
           control = (
             <input
@@ -657,11 +689,16 @@ export default class MxProperties extends Component<Props, State> {
           break;
         }
 
-        if (property.possibleValues.includes(",")) {
+        if (possibleValues.includes(",")) {
           let options = [];
-          let possibleValues = property.possibleValues.split(",");
-          for (let i = 0; i < possibleValues.length; i++) {
-            const option = possibleValues[i];
+          let possibleValuesList = possibleValues.split(",");
+          if(property.name!="Selected"){
+            options.push(
+              <option data-name={property.name} value={null} selected>Select...</option>
+            );
+          }
+          for (let i = 0; i < possibleValuesList.length; i++) {
+            const option = possibleValuesList[i];
             if (option === value) {
               options.push(
                 <option data-name={property.name} value={option} selected>
@@ -723,16 +760,17 @@ export default class MxProperties extends Component<Props, State> {
             onChange={this.input_onChange}
             value={this.state.values[property.name]}
             endPoint={this.getAutoCompleteEndPoint(property.name, concreteSyntax)}
+            projectService={this.props.projectService}
           />
         );
         break;
     }
     return (
-      <div className="row">
+      <div className="row" style={style}>
         <div className="col-md-3">
-          <label title={titleToolTip}>{property.name}</label> 
+          <label title={titleToolTip}>{property.name}</label>
         </div>
-        <div className="col-md-9"> 
+        <div className="col-md-9">
           {control}
         </div>
       </div>
@@ -751,8 +789,8 @@ export default class MxProperties extends Component<Props, State> {
 
   render() {
     return (
-      <div key="a" id="MxPalette" className="MxPalette">
-        <div className="card-body bg-white-Variamos" id="renderProperties" style={{maxWidth:"95%"}}>
+      <div key="a" id="MxProperties" className="MxProperties">
+        <div className="card-body bg-white-Variamos" id="renderProperties" style={{ maxWidth: "95%" }}>
           <div hidden={this.state.customPropertyFlag}>
             <div className="row">
               <div className="col-md">
