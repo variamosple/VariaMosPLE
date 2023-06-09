@@ -337,7 +337,7 @@ class ProjectManagement extends Component<Props, State> {
                             <div className="col-4">
                               <button
                                 type="button"
-                                className="btn form-control btn-Variamos"
+                                className="btn btn-Variamos"
                                 onClick={(e) => this.btnSaveProject_onClick(e)}
                               >
                                 Save
@@ -346,7 +346,7 @@ class ProjectManagement extends Component<Props, State> {
                             <div className="col-4">
                               <button
                                 type="button"
-                                className="btn form-control btn-Variamos"
+                                className="btn btn-Variamos"
                                 data-bs-dismiss="modal"
                                 onClick={() =>
                                   this.props.projectService.deleteProject()
@@ -451,7 +451,7 @@ class ProjectManagement extends Component<Props, State> {
                         <br />
                         <button
                           type="button"
-                          className="btn form-control btn-Variamos"
+                          className="btn btn-Variamos"
                           onClick={this.btnCreateProject_onClick}
                           id="createProject"
                         >
