@@ -14,6 +14,7 @@ import SuggestionInput from "../SuggestionInput/SuggestionInput";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
+import "./MxProperties.css"
 
 interface Props {
   projectService: ProjectService;
@@ -125,6 +126,9 @@ export default class MxProperties extends Component<Props, State> {
       name = e.target.props["data-name"];
     }
     let value = e.target.value;
+    if(value=="Select..."){
+      value=null;
+    }
     this.property_onChange(name, value);
   }
 
@@ -400,7 +404,7 @@ export default class MxProperties extends Component<Props, State> {
       let concreteSyntaxElement: any = null;
       let languageDefinition: any =
         this.props.projectService.getLanguageDefinition(
-          "" + this.currentModel?.name
+          "" + this.currentModel?.type
         );
       if (languageDefinition) {
         if (
@@ -440,8 +444,7 @@ export default class MxProperties extends Component<Props, State> {
           type: "String",
         };
         this.state.values["Name"] = this.currentObject.name;
-
-        ret.push(<a onClick={this.showAddPropertyModal} title="Add property"><i className="bi bi-plus-square"></i></a>);
+        ret.push(<a title="Add property" onClick={this.showAddPropertyModal}><span><img src="/images/menuIcons/add.png"></img></span></a>); 
         ret.push(this.createControl(property, this.currentObject.name, true, concreteSyntaxElement));
         if (this.elementDefinition.properties) {
           for (let i = 0; i < this.elementDefinition.properties.length; i++) {
@@ -515,7 +518,7 @@ export default class MxProperties extends Component<Props, State> {
     let control: any;
     let style = null;
     if (display) {
-      style = { display: "block" };
+      style = { display: "visible" };
     } else {
       style = { display: "none" };
     }
@@ -531,16 +534,20 @@ export default class MxProperties extends Component<Props, State> {
 
     let possibleValues;
     if (property.possibleValuesLinks) {
-      if (property.possibleValuesLinks.linkType=="ProductLineType") {
-        let productLine:ProductLine= this.props.projectService.getProductLineSelected();
-        let value=productLine.type; 
-        for (let i = 0; i < property.possibleValuesLinks.linkValues.length; i++) {
-          const linkValue = property.possibleValuesLinks.linkValues[i];
-          if (linkValue.value==value) {
-            possibleValues = linkValue.possibleValues;
-            break
-          }
-        } 
+      if (Object.keys(property.possibleValuesLinks).length>0) {
+        if (property.possibleValuesLinks.linkType=="ProductLineType") {
+          let productLine:ProductLine= this.props.projectService.getProductLineSelected();
+          let value=productLine.type; 
+          for (let i = 0; i < property.possibleValuesLinks.linkValues.length; i++) {
+            const linkValue = property.possibleValuesLinks.linkValues[i];
+            if (linkValue.value==value) {
+              possibleValues = linkValue.possibleValues;
+              break
+            }
+          } 
+        }
+      }else{
+        possibleValues=property.possibleValues;
       }
     }else{
       possibleValues=property.possibleValues;
@@ -631,6 +638,9 @@ export default class MxProperties extends Component<Props, State> {
 
         if (possibleValues.includes(",")) {
           let options = possibleValues.split(",");
+          options.push(
+            <option data-name={property.name} value={null} selected>Select...</option>
+          );
           for (let i = 0; i < options.length; i++) {
             const option = options[i];
             if (option === value) {
@@ -682,6 +692,11 @@ export default class MxProperties extends Component<Props, State> {
         if (possibleValues.includes(",")) {
           let options = [];
           let possibleValuesList = possibleValues.split(",");
+          if(property.name!="Selected"){
+            options.push(
+              <option data-name={property.name} value={null} selected>Select...</option>
+            );
+          }
           for (let i = 0; i < possibleValuesList.length; i++) {
             const option = possibleValuesList[i];
             if (option === value) {
@@ -751,7 +766,7 @@ export default class MxProperties extends Component<Props, State> {
         break;
     }
     return (
-      <div className="row">
+      <div className="row" style={style}>
         <div className="col-md-3">
           <label title={titleToolTip}>{property.name}</label>
         </div>
@@ -774,7 +789,7 @@ export default class MxProperties extends Component<Props, State> {
 
   render() {
     return (
-      <div key="a" id="MxPalette" className="MxPalette">
+      <div key="a" id="MxProperties" className="MxProperties">
         <div className="card-body bg-white-Variamos" id="renderProperties" style={{ maxWidth: "95%" }}>
           <div hidden={this.state.customPropertyFlag}>
             <div className="row">

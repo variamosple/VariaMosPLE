@@ -7,6 +7,7 @@ interface Props {
   dataKey?: string,
   tag?: any,
   onClick?:any,
+  onDoubleClick?:any,
   onAuxClick?:any
 }
 
@@ -36,6 +37,13 @@ export class TreeItem extends Component<Props, State> {
     }
   }
 
+  onDoubleClick(e){
+    e.preventDefault();
+    if (this.props.onDoubleClick) {
+      this.props.onDoubleClick(this);
+    }
+  }
+
   onAuxClick(e){
     e.preventDefault();
     if (this.props.onAuxClick) {
@@ -61,7 +69,7 @@ export class TreeItem extends Component<Props, State> {
         <div>
           <span>
             {spanExpand}
-            <span onClick={this.onClick.bind(this)}  onAuxClick={this.onAuxClick.bind(this)}><img src={this.props.icon} />{this.props.label}</span>
+            <span onClick={this.onClick.bind(this)} onDoubleClick={this.onDoubleClick.bind(this)}  onAuxClick={this.onAuxClick.bind(this)}><img src={this.props.icon} />{this.props.label}</span>
           </span>
         </div>
         {

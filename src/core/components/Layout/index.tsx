@@ -56,7 +56,7 @@ function Layout({ children }) {
         {children}
       </div>
       <footer>
-        <div className="row">
+        {/* <div className="row">
           <div className="col-md-3">
             <h3>Help</h3>
             <div><a href="#">Link 1</a></div>
@@ -89,7 +89,7 @@ function Layout({ children }) {
             <div><a href="#">Link 4</a></div>
             <div><a href="#">Link 5</a></div>
           </div>
-        </div>
+        </div> */}
         <div className="row copyright">
           <p>© Copyright 2023 VariaMos.</p>
         </div>

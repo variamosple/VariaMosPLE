@@ -26,6 +26,7 @@ import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/R
 import ProjectUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
 import { isJSDocThisTag } from "typescript";
 import * as alertify from "alertifyjs";
+import { Buffer } from 'buffer';
 
 export default class ProjectService {
   private graph: any;
@@ -119,18 +120,16 @@ export default class ProjectService {
     let callback = function (response: any) {
       //Decode content.
       //alert(JSON.stringify(response));
-      if (externalFunction.resulting_action === 'download')
-        response.data.content = Buffer.from(
-          response.data.content,
-          "base64"
-        ).toString();
-
-      if (response.data.name?.indexOf("json") > -1)
+      if (externalFunction.resulting_action === 'download'){
+        let buffer=Buffer.from(response.data.content, "base64")
+        response.data.content = buffer; 
+      }
+      else if (response.data.name?.indexOf("json") > -1)
         response.data.content = JSON.parse(response.data.content);
 
       const resulting_action: any = {
         download: function () {
-          me.utils.downloadFile(response.data.name, response.data.content);
+          me.utils.downloadBinaryFile(response.data.name, response.data.content);
         },
         showonscreen: function () {
           // alert(JSON.stringify(response.data.content));
@@ -200,7 +199,7 @@ export default class ProjectService {
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
 
-    this.loadExternalFunctions(modelSelected.name);
+    this.loadExternalFunctions(modelSelected.type);
 
     this.raiseEventSelectedModel(modelSelected);
     this.raiseEventUpdateSelected(this.treeItemSelected);
@@ -214,7 +213,7 @@ export default class ProjectService {
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
 
-    this.loadExternalFunctions(modelSelected.name);
+    this.loadExternalFunctions(modelSelected.type);
 
     this.raiseEventSelectedModel(modelSelected);
     this.raiseEventUpdateSelected(this.treeItemSelected);
@@ -232,7 +231,7 @@ export default class ProjectService {
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
 
-    this.loadExternalFunctions(modelSelected.name);
+    this.loadExternalFunctions(modelSelected.type);
 
     this.raiseEventSelectedModel(modelSelected);
     this.raiseEventUpdateSelected(this.treeItemSelected);
@@ -252,7 +251,7 @@ export default class ProjectService {
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
 
-    this.loadExternalFunctions(modelSelected.name);
+    this.loadExternalFunctions(modelSelected.type);
 
     this.raiseEventSelectedModel(modelSelected);
     this.raiseEventUpdateSelected(this.treeItemSelected);
