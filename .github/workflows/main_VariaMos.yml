@@ -27,7 +27,7 @@ jobs:
     - name: Login to ACR
       uses: docker/login-action@v1
       with:
-        registry: ${{env.ACR}}
+        registry: ${{vars.ACR}}
         username: ${{secrets.ACRUSERNAME}}
         password: ${{secrets.ACRUSERPASSWORD}}
 
@@ -35,7 +35,7 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         push: true
-        tags: ${{env.ACR}}/${{secrets.ACRUSERNAME}}/variamosple:latest
+        tags: ${{vars.ACR}}/${{secrets.ACRUSERNAME}}/variamosple:latest
         file: ./Dockerfile
 
   deploy:
@@ -53,4 +53,4 @@ jobs:
         app-name: 'VariaMos'
         slot-name: 'production'
         publish-profile: ${{secrets.PRODUCTIONSLOTPUBLISHPROFILE}}
-        images: '${{env.ACR}}/${{secrets.ACRUSERNAME}}/variamosple:latest'
+        images: '${{vars.ACR}}/${{secrets.ACRUSERNAME}}/variamosple:latest'
