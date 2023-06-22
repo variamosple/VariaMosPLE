@@ -50,7 +50,7 @@ jobs:
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'VariaMos'
+        app-name: 'variamos2023'
         slot-name: 'production'
         publish-profile: ${{secrets.PRODUCTIONSLOTPUBLISHPROFILE}}
         images: '${{vars.ACR}}/${{secrets.ACRUSERNAME}}/variamosple:latest'
