@@ -1,4 +1,4 @@
-name: VariaMosPLE_BUILD_AND_DEPLOY
+name: VariaMosPLE_BUILD_AND_DEPLOY_DEV
 
 on:
   push:
