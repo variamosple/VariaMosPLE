@@ -19,6 +19,7 @@ import { runQuery, syncSemantics } from "../../Domain/ProductLineEngineering/Use
 import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import ProjectService from "../../Application/Project/ProjectService";
 import QueryResult from "./queryResult";
+import { set } from "immer/dist/internal";
 
 type QueryModalProps = {
   show: boolean;
@@ -30,7 +31,7 @@ export default function QueryModal(
   { show, handleCloseCallback, projectService }: QueryModalProps
 ) {
   const [key, setKey] = useState("query");
-  const [translatorEndpoint, setTranslatorEndpoint] = useState("https://localhost:5000/query");
+  const [translatorEndpoint, setTranslatorEndpoint] = useState("http://localhost:5000/query");
   const [query, setQuery] = useState("");
   const [queryInProgress, setQueryInProgress] = useState(false);
   const [resultsReady, setResultsReady] = useState(false);
@@ -38,6 +39,20 @@ export default function QueryModal(
   const [semantics, setSemantics] = useState("");
   const [semanticsInProgress, setSemanticsInProgress] = useState(false);
   const [semanticsReady, setSemanticsReady] = useState(false);
+  const [savedQueries, setSavedQueries] = useState({});
+  const [queryName, setQueryName] = useState("");
+
+  //Load the saved queries from the local storage on load
+  useEffect(() => {
+    const savedQueries = localStorage.getItem("savedQueries");
+    if(savedQueries){
+      setSavedQueries(JSON.parse(savedQueries));
+    }
+  },[]);
+
+  useEffect(() => {
+    localStorage.setItem("savedQueries", JSON.stringify(savedQueries));
+  },[savedQueries]);
 
   useEffect(() => {
     localStorage.setItem("currentResults", JSON.stringify(results));
@@ -96,6 +111,12 @@ export default function QueryModal(
     projectService.resetModelConfig();
   }
 
+  const handleSaveQuery = () => {
+    setSavedQueries((prevQueries) => ({...prevQueries, [queryName]: JSON.parse(query)}));
+    //savedQueries[queryName] = (JSON.parse(query));
+    //setSavedQueries(savedQueries);
+  }
+
   return (
     <>
       <Modal show={show} onHide={handleCloseCallback} size="lg">
@@ -122,6 +143,9 @@ export default function QueryModal(
                 <Form.Group className="mb-3" controlId="query">
                   <Form.Label>Query</Form.Label>
                   <Form.Control as="textarea" rows={5} value={query} onChange={handleSetQuery} />
+                  {/* Save the query with a text field */}
+                  <Form.Control type="text" placeholder="Enter Query Name" value={queryName} onChange={(e) => setQueryName(e.target.value)} />
+                  <Button variant="primary" onClick={handleSaveQuery}>Save Query</Button>
                 </Form.Group>
               </Form>
             </Tab>
@@ -154,6 +178,22 @@ export default function QueryModal(
                     overflow: "auto"
                   }}
                 />
+              </Container>
+            </Tab>
+            <Tab eventKey="saved_queries" title="Saved Queries" >
+              <Container style={{ maxHeight: "800px", overflow: "auto" }}>
+                {(Object.getOwnPropertyNames(savedQueries).length > 0 && 
+                  Object.entries(savedQueries).map(([name, query], index) =>
+                    <div key={index}>
+                      <Button variant="primary" onClick={() => setQuery(JSON.stringify(query))}>
+                        {name}
+                      </Button>
+                    </div>
+                  )) ||
+                  <div>
+                    <p>No saved queries</p>
+                  </div>
+                }
               </Container>
             </Tab>
           </Tabs>

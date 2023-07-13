@@ -50,6 +50,7 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   btn_viewDomainModel(e: any, idPl: number, idDomainModel: number) {
+    console.log("treeExplorer btn_viewDomainModel")
     this.props.projectService.modelDomainSelected(idPl, idDomainModel);
     this.props.projectService.saveProject();
     if (e) {
