@@ -621,7 +621,7 @@ class TreeMenu extends Component<Props, State> {
       let children = [];
       for (let i = 0; i < this.props.projectService.languages.length; i++) {
         const language: Language = this.props.projectService.languages[i];
-        if (language.type === this.state.newSelected && language.stateAccept === "ACTIVE") {
+        if (language.type === this.state.newSelected) {
           children.push(<Dropdown.Item href="#" onClick={() => this.addNewEModel(language)} id="newModel" key={i}>{language.name + " model"}</Dropdown.Item>)
         }
       }
@@ -839,8 +839,7 @@ class TreeMenu extends Component<Props, State> {
               {this.props.projectService.languages.map(
                 (language: Language, i: number) => (
                   <div key={i}>
-                    {language.type === this.state.newSelected &&
-                      (language.stateAccept === "ACTIVE") ? (
+                    {language.type === this.state.newSelected  ? (
                       <li>
                         <span
                           className={"dropdown-item type_" + language}
