@@ -67,7 +67,7 @@ class TreeMenu extends Component<Props, State> {
     optionAllowEFunctions: false,
     newSelected: "default",
     showPropertiesModal: false,
-    plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution'],
+    plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution', "IoT", "IndustrialControlSystems", "HealthCare", "Communication", "Military", "WebServices", "Transportation", "SmartPhones", "PublicAdministration", "Multi-Domain", "Banking", "EmergencyServices", "Cloud-Provider"],
     plTypes: ['Software', 'System'],
     plDomain: 'Agriculture',
     plType: 'System',
@@ -80,7 +80,7 @@ class TreeMenu extends Component<Props, State> {
   };
 
   constructor(props: any) {
-    super(props);
+    super(props); 
 
 
     this.addNewProductLine = this.addNewProductLine.bind(this);
@@ -334,10 +334,23 @@ class TreeMenu extends Component<Props, State> {
     me.props.projectService.addUpdateProjectListener(
       this.projectService_addListener
     );
+
+    this.setState({
+      plDomains: this.props.projectService.getProductLineDomainsList(),
+      plTypes: this.props.projectService.getProductLineTypesList()
+    })
   }
 
   componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any): void {
     let me = this;
+    if(prevProps.showContextMenu!=this.props.showContextMenu){
+      if(!this.props.showContextMenu){
+        me.setState({
+          showContextMenu: this.props.showContextMenu
+        })
+        return;
+      }
+    }
     if (prevProps.contextMenuX != this.props.contextMenuX || prevProps.contextMenuY != this.props.contextMenuY) {
       me.viewMenuTree_addListener();
       me.setState({
@@ -608,8 +621,7 @@ class TreeMenu extends Component<Props, State> {
       let children = [];
       for (let i = 0; i < this.props.projectService.languages.length; i++) {
         const language: Language = this.props.projectService.languages[i];
-        if (language.type === this.state.newSelected &&
-          (language.stateAccept === "ACTIVE" || this.props.projectService.environment === "development")) {
+        if (language.type === this.state.newSelected) {
           children.push(<Dropdown.Item href="#" onClick={() => this.addNewEModel(language)} id="newModel" key={i}>{language.name + " model"}</Dropdown.Item>)
         }
       }
@@ -752,8 +764,7 @@ class TreeMenu extends Component<Props, State> {
                     ))}
                   </select>
                 </div>
-              </div>
-              <br />
+              </div> 
               <div className="row">
                 <div className="col-md-3">
                   <label >Domain</label>
@@ -828,10 +839,7 @@ class TreeMenu extends Component<Props, State> {
               {this.props.projectService.languages.map(
                 (language: Language, i: number) => (
                   <div key={i}>
-                    {language.type === this.state.newSelected &&
-                      (language.stateAccept === "ACTIVE" ||
-                        this.props.projectService.environment ===
-                        "development") ? (
+                    {language.type === this.state.newSelected  ? (
                       <li>
                         <span
                           className={"dropdown-item type_" + language}

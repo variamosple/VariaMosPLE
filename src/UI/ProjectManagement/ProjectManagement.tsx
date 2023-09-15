@@ -22,7 +22,7 @@ interface State {
   firstName: string;
   userType: string;
   plDomains: string[];
-  plTypes: string[]; 
+  plTypes: string[];
 }
 
 let classActive: string = "active";
@@ -68,14 +68,14 @@ class ProjectManagement extends Component<Props, State> {
 
   selectProductLineDomainChange(e) {
     let me = this;
-    this.setState({ 
+    this.setState({
       productLineDomain: e.target.value
     })
   }
 
   selectProductLineTypeChange(e) {
     let me = this;
-    this.setState({ 
+    this.setState({
       productLineType: e.target.value
     })
   }
@@ -116,6 +116,13 @@ class ProjectManagement extends Component<Props, State> {
     if (userProfile) {
       this.setState({ userType: userProfile.userType })
     }
+
+    this.setState({
+      plDomains: this.props.projectService.getProductLineDomainsList(),
+      plTypes: this.props.projectService.getProductLineTypesList()
+    })
+
+
   }
 
   projectService_addListener(e: any) {
@@ -337,7 +344,7 @@ class ProjectManagement extends Component<Props, State> {
                             <div className="col-4">
                               <button
                                 type="button"
-                                className="btn form-control btn-Variamos"
+                                className="btn btn-Variamos"
                                 onClick={(e) => this.btnSaveProject_onClick(e)}
                               >
                                 Save
@@ -346,7 +353,7 @@ class ProjectManagement extends Component<Props, State> {
                             <div className="col-4">
                               <button
                                 type="button"
-                                className="btn form-control btn-Variamos"
+                                className="btn btn-Variamos"
                                 data-bs-dismiss="modal"
                                 onClick={() =>
                                   this.props.projectService.deleteProject()
@@ -451,7 +458,7 @@ class ProjectManagement extends Component<Props, State> {
                         <br />
                         <button
                           type="button"
-                          className="btn form-control btn-Variamos"
+                          className="btn btn-Variamos"
                           onClick={this.btnCreateProject_onClick}
                           id="createProject"
                         >

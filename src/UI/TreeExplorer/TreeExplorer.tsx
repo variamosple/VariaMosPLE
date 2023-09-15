@@ -33,6 +33,7 @@ class TreeExplorer extends Component<Props, State> {
     this.updateLpSelected = this.updateLpSelected.bind(this);
     this.updateApplicationSelected = this.updateApplicationSelected.bind(this);
     this.updateAdaptationSelected = this.updateAdaptationSelected.bind(this);
+    this.doubleClickLpSelected= this.doubleClickLpSelected.bind(this);
 
     this.btn_viewDomainModel = this.btn_viewDomainModel.bind(this);
     this.btn_viewApplicationEngModel =
@@ -129,6 +130,15 @@ class TreeExplorer extends Component<Props, State> {
     })
   }
 
+  doubleClickLpSelected(e: any, idPl: number) {
+    this.props.projectService.updateLpSelected(idPl); 
+    // this.setState({
+    //   showContextMenu: true,
+    //   contextMenuX: e.event.clientX,
+    //   contextMenuY: e.event.clientY
+    // })
+  }
+
   updateApplicationSelected(e: any, idPl: number, idApplication: number) {
     this.props.projectService.updateApplicationSelected(idPl, idApplication);
     this.props.projectService.saveProject();
@@ -200,6 +210,14 @@ class TreeExplorer extends Component<Props, State> {
     me.props.projectService.addUpdateProjectListener(
       this.projectService_addListener
     );
+
+    document.addEventListener("click", function(e:any) {
+      if(!(''+e.target.className).includes("dropdown")){
+        me.setState({
+          showContextMenu: false
+        })
+      }
+    });
   }
 
   btnSave_onClick(e: any) {
@@ -357,7 +375,7 @@ class TreeExplorer extends Component<Props, State> {
 
   renderProductLine(productLine: ProductLine, idProductLine: number) {
     let treeItem = (
-      <TreeItem icon="/images/treeView/productLine.png" label={productLine.name} onAuxClick={(e) => { this.updateLpSelected(e, idProductLine) }}>
+      <TreeItem icon="/images/treeView/productLine.png" label={productLine.name} onAuxClick={(e) => { this.updateLpSelected(e, idProductLine) }}  onDoubleClick={(e) => { this.doubleClickLpSelected(e, idProductLine) }}>
         <TreeItem icon="/images/treeView/domainEngineering.png" label="Domain engineering" dataKey="domainEngineering" onAuxClick={(e) => { this.updateLpSelected(e, idProductLine) }}>
           {this.renderDomainEngineering(productLine, idProductLine)}
         </TreeItem>
