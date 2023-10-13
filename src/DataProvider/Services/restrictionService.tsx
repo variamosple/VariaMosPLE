@@ -1,10 +1,10 @@
 import axios, { Method } from "axios";
-import _config from "../../Infraestructure/config.json";
+import { Config } from "../../Config";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 
 export default class RestrictionService {
   apiVariamos = axios.create({
-    baseURL: _config.urlBackEndRestriction,
+    baseURL: Config.SERVICES.urlBackEndRestriction,
   });
 
   applyRestriction(callback: any, model: Model, name: string, definition: any) {
@@ -24,7 +24,7 @@ export default class RestrictionService {
     // Standard Request End
 
     const config = {
-      baseURL: _config.urlBackEndRestriction + "/restriction/" + name,
+      baseURL: Config.SERVICES.urlBackEndRestriction + "/restriction/" + name,
       method: "POST" as Method,
       data: requestBody,
     };

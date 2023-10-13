@@ -18,7 +18,7 @@ import { NewApplicationEventArg } from "./Events/NewApplicationEventArg";
 import { NewAdaptationEventArg } from "./Events/NewAdaptationEventArg";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
 import { Utils } from "../../Addons/Library/Utils/Utils";
-import _config from "../../Infraestructure/config.json";
+import { Config } from "../../Config";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
@@ -43,7 +43,7 @@ export default class ProjectService {
   // to manage the state of the application
   private _currentLanguage: Language = null;
 
-  private _environment: string = _config.environment;
+  private _environment: string = Config.NODE_ENV;
   private _languages: any = this.getLanguagesByUser();
   private _externalFunctions: ExternalFuntion[] = [];
   private _project: Project = this.createProject("");
@@ -405,11 +405,12 @@ export default class ProjectService {
     if (!userId) {
       userId="0"; 
     }
+    userId="21cd2d82-1bbc-43e9-898a-d5a45abdeced"; 
     return userId;
   }
 
   getLanguagesByUser(): Language[] {
-    let user=this.getUser();
+    let user=this.getUser(); 
     return this.languageUseCases.getLanguagesByUser(user);
   }
 
