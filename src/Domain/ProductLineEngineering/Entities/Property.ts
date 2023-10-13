@@ -10,6 +10,10 @@ export class Property {
   display: boolean;
   comment?: string; //comments
   possibleValues?: any; //list with "," - range with ".."" - example: one, two, ten - 1..10 - true, false
+  possibleValuesLinks?: {}; //list with "," - range with ".."" - example: one, two, ten - 1..10 - true, false
+  minCardinality?:number;
+  maxCardinality?:number;
+
   constructor(
     name: string,
     value: any,
@@ -20,7 +24,10 @@ export class Property {
     custom: boolean,
     display: boolean,
     comment: string,
-    possibleValues: any
+    possibleValues: any,
+    possibleValuesLinks: {},
+    minCardinality: any,
+    maxCardinality: any
   ) {
     this.id = generateId();
     this.name = name;
@@ -33,6 +40,9 @@ export class Property {
     this.display = display;
     this.comment = comment;
     this.possibleValues = possibleValues;
+    this.possibleValuesLinks = possibleValuesLinks;
+    this.minCardinality = minCardinality;
+    this.maxCardinality = maxCardinality;
   }
 }
 

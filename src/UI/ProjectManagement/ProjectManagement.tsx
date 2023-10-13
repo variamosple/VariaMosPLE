@@ -3,7 +3,9 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import * as alertify from "alertifyjs";
 import LanguageManagement from "./LanguageManagement";
-import _config from "../../Infraestructure/config.json";
+import { Config } from "../../Config";
+import { getUserProfile } from "../SignUp/SignUp.utils";
+import { SignUpUserTypes } from "../SignUp/SignUp.constants";
 
 interface Props {
   projectService: ProjectService;
@@ -11,8 +13,16 @@ interface Props {
 interface State {
   projectName: string;
   productLineName: string;
+  productLineType: string;
+  productLineDomain: string;
   importProject: string | undefined;
-  version: string
+  version: string;
+  urlVariamosDoc: string;
+  urlVariamosLangDoc: string;
+  firstName: string;
+  userType: string;
+  plDomains: string[];
+  plTypes: string[];
 }
 
 let classActive: string = "active";
@@ -27,7 +37,15 @@ class ProjectManagement extends Component<Props, State> {
       productLineName: "",
       projectName: this.props.projectService.project.name,
       importProject: "",
-      version: _config.version,
+      version: Config.VERSION,
+      urlVariamosDoc: Config.SERVICES.urlVariamosDocumentation,
+      urlVariamosLangDoc: Config.SERVICES.urlVariamosLangDocumentation,
+      firstName: "",
+      userType: "",
+      plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution'],
+      plTypes: ['Software', 'System'],
+      productLineDomain: 'Retail',
+      productLineType: 'System'
     };
     this.loadProject();
 
@@ -43,8 +61,26 @@ class ProjectManagement extends Component<Props, State> {
     this.onEnterSaveProject = this.onEnterSaveProject.bind(this);
     this.onEnterCreateProject = this.onEnterCreateProject.bind(this);
     this.onEnterFocusPL = this.onEnterFocusPL.bind(this);
+
+    this.selectProductLineDomainChange = this.selectProductLineDomainChange.bind(this);
+    this.selectProductLineTypeChange = this.selectProductLineTypeChange.bind(this);
   }
 
+  selectProductLineDomainChange(e) {
+    let me = this;
+    this.setState({
+      productLineDomain: e.target.value
+    })
+  }
+
+  selectProductLineTypeChange(e) {
+    let me = this;
+    this.setState({
+      productLineType: e.target.value
+    })
+  }
+
+  //This gets called when one selects the file on the dialog
   handleImportProject(files: FileList | null) {
     if (files) {
       let selectedFile = files[0];
@@ -60,6 +96,7 @@ class ProjectManagement extends Component<Props, State> {
     }
   }
 
+  //This gets called by the upload project modal.
   importProject() {
     this.props.projectService.importProject(this.state.importProject);
     document.getElementById("list-iProject-list")?.classList.remove("active");
@@ -73,6 +110,19 @@ class ProjectManagement extends Component<Props, State> {
     me.props.projectService.addUpdateProjectListener(
       this.projectService_addListener
     );
+
+    const userProfile = getUserProfile();
+
+    if (userProfile) {
+      this.setState({ userType: userProfile.userType })
+    }
+
+    this.setState({
+      plDomains: this.props.projectService.getProductLineDomainsList(),
+      plTypes: this.props.projectService.getProductLineTypesList()
+    })
+
+
   }
 
   projectService_addListener(e: any) {
@@ -128,7 +178,9 @@ class ProjectManagement extends Component<Props, State> {
 
     let productLine = this.props.projectService.createLPS(
       this.props.projectService.project,
-      this.state.productLineName
+      this.state.productLineName,
+      this.state.productLineType,
+      this.state.productLineDomain
     );
     this.props.projectService.raiseEventNewProductLine(productLine);
 
@@ -144,7 +196,7 @@ class ProjectManagement extends Component<Props, State> {
       return false;
     }
 
-    let languages = this.props.projectService.getLanguagesDetail();
+    let languages = this.props.projectService.getLanguagesByUser();
 
     this.props.projectService.updateProjectName(this.state.projectName);
 
@@ -172,9 +224,9 @@ class ProjectManagement extends Component<Props, State> {
                   Project management
                 </h5>
                 {this.props.projectService.project.enable === true && (
-
                   <div className="col d-flex justify-content-end">
-                    <ul className="list-group icon-dark-variamos list-group-horizontal">
+                    <ul className="list-group icon-dark-variamos list-group-horizontal"
+                      onClick={(e) => this.btnSaveProject_onClick(e)}>
                       <li
                         className="list-group-item nav-bar-variamos"
                         data-bs-toggle="tooltip"
@@ -184,7 +236,6 @@ class ProjectManagement extends Component<Props, State> {
                         <span
                           className="bi bi-x-lg shadow rounded"
                           id="userSetting"
-                          onClick={(e) => this.btnSaveProject_onClick(e)}
                         ></span>
                       </li>
                     </ul>
@@ -235,19 +286,22 @@ class ProjectManagement extends Component<Props, State> {
                       >
                         Upload
                       </a>
-                      <a
-                        className="list-group-item list-group-item-action"
-                        id="list-settings-list"
-                        data-bs-toggle="list"
-                        href="#list-settings"
-                        role="tab"
-                        aria-controls="settings"
-                        onClick={() =>
-                          LanguageManagement.bind(this.forceUpdate())
-                        }
-                      >
-                        Settings
-                      </a>
+                      {this.state.userType === SignUpUserTypes.Registered && (
+                        <a
+                          className="list-group-item list-group-item-action"
+                          id="list-settings-list"
+                          data-bs-toggle="list"
+                          href="#list-settings"
+                          role="tab"
+                          aria-controls="settings"
+                          onClick={() =>
+                            LanguageManagement.bind(this.forceUpdate())
+                          }
+                        >
+                          Settings
+                        </a>
+                      )}
+
                       <a
                         className="list-group-item list-group-item-action"
                         id="list-help-list"
@@ -290,7 +344,7 @@ class ProjectManagement extends Component<Props, State> {
                             <div className="col-4">
                               <button
                                 type="button"
-                                className="btn form-control btn-Variamos"
+                                className="btn btn-Variamos"
                                 onClick={(e) => this.btnSaveProject_onClick(e)}
                               >
                                 Save
@@ -299,7 +353,7 @@ class ProjectManagement extends Component<Props, State> {
                             <div className="col-4">
                               <button
                                 type="button"
-                                className="btn form-control btn-Variamos"
+                                className="btn btn-Variamos"
                                 data-bs-dismiss="modal"
                                 onClick={() =>
                                   this.props.projectService.deleteProject()
@@ -351,10 +405,60 @@ class ProjectManagement extends Component<Props, State> {
                             </div>
                           </div>
                         </div>
+
+
+                        <br />
+                        <div className="row g-2">
+                          <div className="col-md">
+                            <div className="form-floating">
+                              <select
+                                className="form-select"
+                                id="newPropertySelectDomain"
+                                aria-label="Select type"
+                                value={this.state.productLineType}
+                                onChange={this.selectProductLineTypeChange}
+                              >
+                                {this.state.plTypes.map((option, index) => (
+                                  <option key={index} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                              <label htmlFor="floatingInputGrid">
+                                Product line type
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                        <br />
+                        <div className="row g-2">
+                          <div className="col-md">
+                            <div className="form-floating">
+                              <select
+                                className="form-select"
+                                id="newPropertySelectDomain"
+                                aria-label="Select domain"
+                                value={this.state.productLineDomain}
+                                onChange={this.selectProductLineDomainChange}
+                              >
+                                {this.state.plDomains.map((option, index) => (
+                                  <option key={index} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                              <label htmlFor="floatingInputGrid">
+                                Product line domain
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+
+
                         <br />
                         <button
                           type="button"
-                          className="btn form-control btn-Variamos"
+                          className="btn btn-Variamos"
                           onClick={this.btnCreateProject_onClick}
                           id="createProject"
                         >
@@ -416,21 +520,19 @@ class ProjectManagement extends Component<Props, State> {
                         aria-labelledby="list-help-list"
                       >
                         <div className="list-group">
-                        <a
-                            className="list-group-item list-group-item-action"
-                          >
+                          <a className="list-group-item list-group-item-action">
                             Version: {this.state.version}
                           </a>
                           <a
-                            href="https://github.com/mauroagudeloz/VariaMosPLE/wiki"
-                            target="_blanck"
+                            href={this.state.urlVariamosDoc}
+                            target="_blank"
                             className="list-group-item list-group-item-action"
                           >
                             What is VariaMos?
                           </a>
                           <a
-                            href="https://github.com/mauroagudeloz/VariaMosPLE/wiki/Language-definition"
-                            target="_blanck"
+                            href={this.state.urlVariamosLangDoc}
+                            target="_blank"
                             className="list-group-item list-group-item-action"
                           >
                             how can i define a language?

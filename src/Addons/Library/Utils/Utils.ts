@@ -10,6 +10,16 @@ export class Utils {
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
   }
+  
+  downloadBinaryFile(filename: any, bytes: any) {
+    var blob = new Blob([bytes]);
+    var downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.setAttribute("href", window.URL.createObjectURL(blob));
+    downloadAnchorNode.setAttribute("download", filename);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove(); 
+  }
 
   generateId(): string {
     var dt = new Date().getTime();

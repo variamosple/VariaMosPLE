@@ -22,23 +22,28 @@ export default class LanguageUseCases {
     return languagesFilter;
   }
 
+  getLanguagesByUser(user:string): Language[] {
+    return this.languageService.getLanguagesByUser(user);
+  }
+
   getLanguagesDetail(): Language[] {
     return this.languageService.getLanguagesDetail();
   }
+
   getLanguagesDetailCll(callBack: any) {
     return this.languageService.getLanguages(callBack);
   }
 
-  createLanguage(callback: any, language: Language) {
-    return this.languageService.createLanguage(callback, language);
+  createLanguage(callback: any, language: Language, user: string) {
+    return this.languageService.createLanguage(callback, language, user);
   }
 
-  updateLanguage(callback: any, language: Language) {
-    return this.languageService.updateLanguage(callback, language);
+  updateLanguage(callback: any, language: Language, user: string) {
+    return this.languageService.updateLanguage(callback, language, user);
   }
 
-  deleteLanguage(callback: any, languageId: string) {
-    return this.languageService.deleteLanguage(callback, languageId);
+  deleteLanguage(callback: any, languageId: string, user: string) {
+    return this.languageService.deleteLanguage(callback, languageId, user);
   }
 
   callExternalFuntion(callback: any, externalFunction: ExternalFuntion): any[] {

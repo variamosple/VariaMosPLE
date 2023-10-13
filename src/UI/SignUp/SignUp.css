@@ -1,0 +1,39 @@
+.signup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  justify-content: center;
+}
+
+.signup__title {
+  margin-top: 24px;
+}
+
+.signup__container {
+  padding: 50px;
+}
+
+.signup__guest-link {
+  padding-top: 20px;
+  text-align: center;
+  text-decoration: none !important;
+  color: var(--primary-color);
+}
+
+.signup__guest-link:hover {
+  text-decoration: underline !important;
+  color: var(--primary-color) !important;
+}
+
+.signup__guest {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 5px;
+  width: 100%;
+}
+
+.signup__error {
+  color: red;
+}

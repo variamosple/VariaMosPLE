@@ -1,7 +1,9 @@
-## Learn More
+# VariaMosPle
 
-You can learn more in the [VariaMos App documentation]().
+## Install
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+npm install
 
-To learn Bootstrap, check out the [Bootstrap documentation](https://getbootstrap.com/).
+## Run
+
+npm run start

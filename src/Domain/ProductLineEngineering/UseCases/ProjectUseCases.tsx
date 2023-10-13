@@ -6,7 +6,24 @@ import { Project } from "../Entities/Project";
 import { Relationship } from "../Entities/Relationship";
 import { Point } from "../Entities/Point";
 import { Property } from "../Entities/Property";
+import { Element } from "../Entities/Element";
 
+
+enum ModelType {
+  Domain = "Domain",
+  ApplicationEng = "ApplicationEng",
+  Application = "Application",
+  Adaptation = "Adaptation"
+};
+
+type ModelLookupResult = {
+  model: Model;
+  modelType: ModelType;
+  plIdx: number;
+  modelIdx: number;
+  appIdx?: number;
+  adapIdx?: number;
+};
 export default class ProjectUseCases {
   // constructor() {
   // }
@@ -24,6 +41,12 @@ export default class ProjectUseCases {
     let currentLP = 0;
     let currentAp = 0;
     let currentAdapt = 0;
+
+    let model= ProjectUseCases.findModelById(project, idItem);
+    if(model){
+      model.name=newName;
+      return project;
+    }
 
     project.productLines.forEach((productLine) => {
       // search productLine
@@ -57,6 +80,45 @@ export default class ProjectUseCases {
       currentLP = currentLP + 1;
     });
     return project;
+  }
+
+  getItemProjectName(
+    project: Project,
+    idItem: string 
+  ): string {
+    let currentLP = 0;
+    let currentAp = 0;
+    let currentAdapt = 0;
+
+    let model= ProjectUseCases.findModelById(project, idItem);
+    if(model){
+      return model.name;
+    } 
+    for (let pl = 0; pl < project.productLines.length; pl++) {
+      const productLine = project.productLines[pl]; 
+      // search productLine
+      if (productLine.id === idItem) {
+        return project.productLines[currentLP].name ;
+      }
+      for (let ae = 0; ae < productLine.applicationEngineering.applications.length; ae++) {
+        const application = productLine.applicationEngineering.applications[ae]; 
+        // search application
+        if (application.id === idItem) {
+          return project.productLines[currentLP].applicationEngineering.applications[currentAp].name ;
+        }
+        for (let ad = 0; ad < application.adaptations.length; ad++) {
+          const adaptation = application.adaptations[ad]; 
+          // search adaptation
+          if (adaptation.id === idItem) {
+            return project.productLines[currentLP].applicationEngineering.applications[  currentAp ].adaptations[currentAdapt].name ;
+          } 
+          currentAdapt = currentAdapt + 1;
+        } 
+        currentAp = currentAp + 1;
+      } 
+      currentLP = currentLP + 1;
+    } 
+    return null;
   }
 
   deleteItemProject(project: Project, idItem: string): Project {
@@ -163,10 +225,12 @@ export default class ProjectUseCases {
     return project;
   }
 
-  createLps(project: Project, producLineName: string): ProductLine {
+  createLps(project: Project, producLineName: string, type: string, domain: string): ProductLine {
     let productLine: ProductLine = new ProductLine(
       ProjectUseCases.generateId(),
-      producLineName
+      producLineName, 
+      type, 
+      domain
     );
     project.productLines.push(productLine);
     return productLine;
@@ -209,9 +273,10 @@ export default class ProjectUseCases {
   createDomainEngineeringModel(
     project: Project,
     languageType: string,
-    productLine: number
+    productLine: number, 
+    name:string
   ): Model {
-    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType);
     project.productLines[productLine].domainEngineering?.models.push(model);
 
     //Ejecutar el consumo de mxGraph.
@@ -222,9 +287,10 @@ export default class ProjectUseCases {
   createApplicationEngineeringModel(
     project: Project,
     languageType: string,
-    productLine: number
+    productLine: number, 
+    name:string
   ): Model {
-    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType);
     project.productLines[productLine].applicationEngineering?.models.push(
       model
     );
@@ -238,11 +304,12 @@ export default class ProjectUseCases {
     project: Project,
     languageType: string,
     productLine: number,
-    application: number
+    application: number, 
+    name:string
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType); 
 
     project.productLines[productLine].applicationEngineering?.applications[
       application
@@ -258,11 +325,12 @@ export default class ProjectUseCases {
     languageType: string,
     productLine: number,
     application: number,
-    adaptation: number
+    adaptation: number, 
+    name:string
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(ProjectUseCases.generateId(), languageType);
+    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType); 
 
     project.productLines[productLine].applicationEngineering.applications[
       application
@@ -445,6 +513,45 @@ export default class ProjectUseCases {
     return uuid;
   }
 
+  static findModelById(project: Project, uid: any) {
+    if (project && uid) {
+      for (let pl = 0; pl < project.productLines.length; pl++) {
+        const productLine: ProductLine = project.productLines[pl];
+        for (let m = 0; m < productLine.domainEngineering.models.length; m++) {
+          const model: Model = productLine.domainEngineering.models[m];
+          if (model.id == uid) {
+            return model;
+          }
+        }
+        for (let m = 0; m < productLine.applicationEngineering.models.length; m++) {
+          const model: Model = productLine.applicationEngineering.models[m];
+          if (model.id == uid) {
+            return model;
+          }
+        }
+        for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+          const application: Application = productLine.applicationEngineering.applications[ap];
+          for (let m = 0; m < application.models.length; m++) { 
+            const model: Model = application.models[m];
+            if (model.id == uid) {
+              return model;
+            }
+          }
+          for (let ad = 0; ad < application.adaptations.length; ad++) {
+            const adaptation: Adaptation = application.adaptations[ad];
+            for (let m = 0; m < adaptation.models.length; m++) { 
+              const model: Model = adaptation.models[m];
+              if (model.id == uid) {
+                return model;
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   static findModelElementById(model: Model, uid: any) {
     if (model) {
       for (let i = 0; i < model.elements.length; i++) {
@@ -538,5 +645,54 @@ export default class ProjectUseCases {
         }
       }
     }
+  }
+
+  _findProperty(propName: string, element: Element) {
+    const property = element.properties.find(p => p.name === propName);
+    return property;
+  }
+
+  // Perform a reset of the selection state of all elements in the currently
+  // active model
+  resetSelection(modelLookupResult: ModelLookupResult) {
+    if (modelLookupResult.model) {
+      for (const element of modelLookupResult.model.elements) {
+        this._findProperty('Selected', element).value = "Undefined";
+      }
+    } else {
+      console.error("Model not found");
+    }
+  }
+
+
+  // find a specific model based on the currently active model
+  findModel(project: Project, modelId: string): ModelLookupResult | null {
+    for (const [plIdx, productLine] of project.productLines.entries()) {
+      for (const [modelIdx, model] of productLine.domainEngineering.models.entries()) {
+        if (model.id === modelId) {
+          return { model, modelType: ModelType.Domain, plIdx: plIdx, modelIdx: modelIdx };
+        }
+      }
+      for (const [appEngIdx, appEngModel] of productLine.applicationEngineering.models.entries()) {
+        if (appEngModel.id === modelId) {
+          return { model: appEngModel, modelType: ModelType.ApplicationEng, plIdx: plIdx, modelIdx: appEngIdx };
+        }
+      }
+      for (const [applicationIdx, application] of productLine.applicationEngineering.applications.entries()) {
+        for (const [modelIdx, model] of application.models.entries()) {
+          if (model.id === modelId) {
+            return { model, modelType: ModelType.Application, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx };
+          }
+        }
+        for (const [adaptationIdx, adaptation] of application.adaptations.entries()) {
+          for (const [modelIdx, model] of adaptation.models.entries()) {
+            if (model.id === modelId) {
+              return { model, modelType: ModelType.Adaptation, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx, adapIdx: adaptationIdx };
+            }
+          }
+        }
+      }
+    }
+    return null;
   }
 }

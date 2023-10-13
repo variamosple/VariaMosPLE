@@ -4,46 +4,54 @@ import ElementsPannel from "../DiagramEditor/ElementsPannel";
 import PropiertiesPannel from "../DiagramEditor/PropiertiesPannel";
 import ProjectManagement from "../ProjectManagement/ProjectManagement";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
-import NavBar from "./navBar";
 import ProjectService from "../../Application/Project/ProjectService";
 import TreeMenu from "../TreeExplorer/TreeMenu";
+import { getUserProfile } from "../SignUp/SignUp.utils";
+import Layout from "../../core/components/Layout";
+import "./DashBoard.css";
 
-interface Props {}
-interface State {}
+interface Props {
+  loginEnabled?: boolean;
+}
+interface State { }
 
 class DashBoard extends Component<Props, State> {
   state = {};
   projectService: ProjectService = new ProjectService();
 
-  // constructor(props: Props) {
-  //   super(props);
-  // }
+  constructor(props: Props) {
+    super(props);
+  }
 
-  componentDidMount() {}
+  componentDidMount() { }
 
   render() {
-    return (
-      <div className="container-fluid">
-        <ProjectManagement projectService={this.projectService} />
+    const userProfile = getUserProfile();
 
-        <div className="row" id="explorer">
-          <TreeMenu projectService={this.projectService} />
-          <TreeExplorer projectService={this.projectService} />
-          <div className="col-sm">
-            <NavBar projectService={this.projectService} />
-            <div className="row">
+    if (this.props.loginEnabled && !userProfile) {
+      window.location.href = "/";
+      return null;
+    }
+
+    return (
+      <Layout>
+        <ProjectManagement projectService={this.projectService} />
+        {/* <NavBar projectService={this.projectService} /> */}
+        <table>
+          <tr>
+            <td className="tdTreeExplorer"> 
+              <TreeExplorer projectService={this.projectService} />
+            </td>
+            <td className="tdDiagramEditor">
               <DiagramEditor projectService={this.projectService} />
-              <div
-                className="col-2 col-sm-2 distribution-variamos"
-                style={{ height: "96vh" }}
-              >
-                <ElementsPannel projectService={this.projectService} />
-                <PropiertiesPannel projectService={this.projectService} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+            </td>
+            <td className="tdElements">
+              <ElementsPannel projectService={this.projectService} />
+              {/* <PropiertiesPannel projectService={this.projectService} /> */}
+            </td>
+          </tr>
+        </table>
+      </Layout>
     );
   }
 }

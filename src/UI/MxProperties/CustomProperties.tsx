@@ -148,8 +148,11 @@ export default class CustomProperties extends Component<Props, State> {
         null,
         true,
         true,
-        "",
-        ""
+        null,
+        null,
+        null,
+        null,
+        null
       )
     );
 
