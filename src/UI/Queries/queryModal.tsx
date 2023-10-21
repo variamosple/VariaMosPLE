@@ -79,7 +79,7 @@ export default function QueryModal(
     const result = await runQuery(projectService, translatorEndpoint, query_object);
     console.log("Result", result);
     //Populate the results tab
-    if(result){
+    if(result !== undefined || result !== null){
       populateResultsTab(result);
       setResultsReady(true);
     }
