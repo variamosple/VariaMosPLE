@@ -1,0 +1,12 @@
+.TreeItem{
+  white-space: nowrap; 
+  cursor: pointer;
+} 
+
+.TreeItem .children{
+  margin-left: 1rem;
+} 
+
+.TreeItem a{ 
+  color: black;
+} 

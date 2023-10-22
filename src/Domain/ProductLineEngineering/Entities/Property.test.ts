@@ -14,7 +14,7 @@ afterEach(() => {
 
 test('The constructor should give the right values', () => {
 
-  let property= new Property('test_name','test_value','test_type','test_option','test_linked_property','test_linked_value',false,false,'test_comment','test_possible_value',null , null);
+  let property= new Property('test_name','test_value','test_type','test_option','test_linked_property','test_linked_value',false,false,'test_comment','test_possible_value', null, null , null);
 
   expect(property.id).toBe('c71143d6-2921-4111-9111-111111111111');
   expect(property.name).toBe('test_name');

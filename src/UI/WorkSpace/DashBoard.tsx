@@ -4,16 +4,16 @@ import ElementsPannel from "../DiagramEditor/ElementsPannel";
 import PropiertiesPannel from "../DiagramEditor/PropiertiesPannel";
 import ProjectManagement from "../ProjectManagement/ProjectManagement";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
-import NavBar from "./navBar";
 import ProjectService from "../../Application/Project/ProjectService";
 import TreeMenu from "../TreeExplorer/TreeMenu";
 import { getUserProfile } from "../SignUp/SignUp.utils";
 import Layout from "../../core/components/Layout";
+import "./DashBoard.css";
 
 interface Props {
   loginEnabled?: boolean;
 }
-interface State {}
+interface State { }
 
 class DashBoard extends Component<Props, State> {
   state = {};
@@ -23,7 +23,7 @@ class DashBoard extends Component<Props, State> {
     super(props);
   }
 
-  componentDidMount() {}
+  componentDidMount() { }
 
   render() {
     const userProfile = getUserProfile();
@@ -35,26 +35,24 @@ class DashBoard extends Component<Props, State> {
 
     return (
       <Layout>
-        <div className="container-fluid">
-          <ProjectManagement projectService={this.projectService} />
-
-        <div className="row" id="explorer">
-          <TreeMenu projectService={this.projectService} />
-          <TreeExplorer projectService={this.projectService} />
-          <div className="col-sm">
-            <NavBar projectService={this.projectService} />
-            <div className="row">
-              <DiagramEditor projectService={this.projectService} />
-              <div
-                className="col-2 col-sm-2 distribution-variamos" 
-              >
+        <ProjectManagement projectService={this.projectService} />
+        {/* <NavBar projectService={this.projectService} /> */}
+        <table>
+          <tbody>
+            <tr>
+              <td className="tdTreeExplorer"> 
+                <TreeExplorer projectService={this.projectService} />
+              </td>
+              <td className="tdDiagramEditor">
+                <DiagramEditor projectService={this.projectService} />
+              </td>
+              <td className="tdElements">
                 <ElementsPannel projectService={this.projectService} />
                 {/* <PropiertiesPannel projectService={this.projectService} /> */}
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </Layout>
     );
   }
