@@ -2,7 +2,7 @@ export const Config = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     HOST: process.env.HOST || '127.0.0.1',
     PORT: process.env.PORT || 4000,
-    VERSION: "1.23.09.29.07", 
+    VERSION: "1.23.11.04.06", 
     SERVICES:{
       urlBackEndLanguage: "https://variamos-ms-languages2024.azurewebsites.net",
       urlBackEndLanguage2: "https://variamos-ms-languages2024.azurewebsites.net",
