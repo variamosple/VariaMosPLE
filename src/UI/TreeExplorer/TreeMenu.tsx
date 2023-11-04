@@ -622,7 +622,6 @@ class TreeMenu extends Component<Props, State> {
       for (let i = 0; i < this.props.projectService.languages.length; i++) {
         const language: Language = this.props.projectService.languages[i];
         if (language.type === this.state.newSelected) {
-        if (language.type === this.state.newSelected) {
           children.push(<Dropdown.Item href="#" onClick={() => this.addNewEModel(language)} id="newModel" key={i}>{language.name + " model"}</Dropdown.Item>)
         }
       }
