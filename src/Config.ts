@@ -5,6 +5,7 @@ export const Config = {
     VERSION: "1.23.09.29.07", 
     SERVICES:{
       urlBackEndLanguage: "https://variamos-ms-languages2024.azurewebsites.net",
+      urlBackEndLanguage2: "https://variamos-ms-languages2024.azurewebsites.net",
       urlBackEndRestriction: "https://variamos-ms-restrictions2024.azurewebsites.net", 
       urlVariamosDocumentation: "https://github.com/variamosple/VariaMosPLE/wiki",
       urlVariamosLangDocumentation: "https://github.com/variamosple/VariaMosPLE/wiki/Language-definition"
