@@ -15,6 +15,7 @@ import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import "./MxProperties.css"
+import SuggestionInputReceivedEventArgs from "../SuggestionInput/SuggestionInputReceivedEventArgs";
 
 interface Props {
   projectService: ProjectService;
@@ -165,6 +166,10 @@ export default class MxProperties extends Component<Props, State> {
       me.currentModel,
       me.currentObject
     );
+  }
+
+  suggestionInput_onSuggestionReceived(e:SuggestionInputReceivedEventArgs){
+    let me=this;
   }
 
   showLinkedProperties(propertyName: any, value: any) {
@@ -522,6 +527,17 @@ export default class MxProperties extends Component<Props, State> {
     } else {
       style = { display: "none" };
     }
+    if (concreteSyntax.properties) {
+      if (concreteSyntax.properties[property.name]) {
+        switch (concreteSyntax.properties[property.name].display) {
+          case "None": 
+            style = { display: "none" };
+            break;  
+        }
+      }
+    }
+
+
     let titleToolTip =
       "Name: " +
       property.name +
@@ -761,6 +777,7 @@ export default class MxProperties extends Component<Props, State> {
             value={this.state.values[property.name]}
             endPoint={this.getAutoCompleteEndPoint(property.name, concreteSyntax)}
             projectService={this.props.projectService}
+            onSuggestionReceived={this.suggestionInput_onSuggestionReceived.bind(this)}
           />
         );
         break;
@@ -778,10 +795,10 @@ export default class MxProperties extends Component<Props, State> {
   }
 
   getAutoCompleteEndPoint(propertyName: any, concreteSyntax: any) {
-    for (let i = 0; i < concreteSyntax.autocomplete_services.length; i++) {
-      const item = concreteSyntax.autocomplete_services[i];
-      if (item.property == propertyName) {
-        return item.endpoint;
+    if (concreteSyntax.properties) {
+      if (concreteSyntax.properties[propertyName]) {
+        let endPoint = concreteSyntax.properties[propertyName].autocomplete_service; 
+        return endPoint;
       }
     }
     return null;
