@@ -170,6 +170,14 @@ export default class MxProperties extends Component<Props, State> {
 
   suggestionInput_onSuggestionReceived(e:SuggestionInputReceivedEventArgs){
     let me=this;
+    let name = e.target.props["data-name"];
+    for (let i = 0; i < this.currentObject.properties.length; i++) {
+      const element = this.currentObject.properties[i];
+      if (element.name === name) {
+        this.currentObject.properties[i].metadata = e.data;
+      }
+    }
+    
   }
 
   showLinkedProperties(propertyName: any, value: any) {

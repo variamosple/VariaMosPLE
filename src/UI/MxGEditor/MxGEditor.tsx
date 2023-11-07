@@ -1081,10 +1081,14 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   callExternalFuntion(index: number): void {
-    let efunction = this.props.projectService.externalFunctions[index];
-    let query = null;
     let selectedElementsIds = MxgraphUtils.GetSelectedElementsIds(this.graph, this.currentModel);
     let selectedRelationshipsIds = MxgraphUtils.GetSelectedRelationshipsIds(this.graph, this.currentModel);
+    this.callExternalFuntionFromIndex(index, selectedElementsIds, selectedRelationshipsIds);
+  }
+
+  callExternalFuntionFromIndex(index: number, selectedElementsIds: any, selectedRelationshipsIds: any): void {
+    let efunction = this.props.projectService.externalFunctions[index];
+    let query = null;
     this.props.projectService.callExternalFuntion(efunction, query, selectedElementsIds, selectedRelationshipsIds);
   }
 
@@ -1124,8 +1128,15 @@ export default class MxGEditor extends Component<Props, State> {
     this.setState({ showPropertiesModal: true });
   }
 
-  hidePropertiesModal() {
-    this.setState({ showPropertiesModal: false })
+  hidePropertiesModal() { 
+    this.setState({ showPropertiesModal: false });
+    for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
+      const efunction = this.props.projectService.externalFunctions[i];
+      if (efunction.id == 510 || efunction.id == 511) { //todo: validar por el campo call_on_properties_changed
+        let selectedElementsIds = [this.state.selectedObject.id];
+        this.callExternalFuntionFromIndex(i, selectedElementsIds, null);
+      }
+    }
   }
 
   savePropertiesModal() {
@@ -1169,8 +1180,8 @@ export default class MxGEditor extends Component<Props, State> {
       }
     }
 
-     let left=this.state.contextMenuX + "px";
-     let top=this.state.contextMenuY + "px";
+    let left = this.state.contextMenuX + "px";
+    let top = this.state.contextMenuY + "px";
 
     return (
       <Dropdown.Menu
