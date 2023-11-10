@@ -54,6 +54,7 @@ export default class MxGEditor extends Component<Props, State> {
     }
     this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
     this.projectService_addSelectedModelListener = this.projectService_addSelectedModelListener.bind(this);
+    this.projectService_addCreatedElementListener = this.projectService_addCreatedElementListener.bind(this);
     this.projectService_addUpdatedElementListener = this.projectService_addUpdatedElementListener.bind(this);
     this.projectService_addUpdateProjectListener = this.projectService_addUpdateProjectListener.bind(this);
     //handle constraints modal
@@ -73,6 +74,21 @@ export default class MxGEditor extends Component<Props, State> {
   projectService_addSelectedModelListener(e: any) {
     this.loadModel(e.model);
     this.forceUpdate();
+  }
+
+  projectService_addCreatedElementListener(e: any) {
+    let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
+    if (vertice) {
+      this.setState({
+        showPropertiesModal:true
+      })
+    } else {
+      let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
+      if (edge) {
+        // this.refreshEdgeLabel(edge);
+        // this.refreshEdgeStyle(edge);
+      }
+    } 
   }
 
   projectService_addUpdatedElementListener(e: any) {
@@ -107,6 +123,9 @@ export default class MxGEditor extends Component<Props, State> {
     );
     me.props.projectService.addSelectedModelListener(
       this.projectService_addSelectedModelListener
+    );
+    me.props.projectService.addCreatedElementListener(
+      this.projectService_addCreatedElementListener
     );
     me.props.projectService.addUpdatedElementListener(
       this.projectService_addUpdatedElementListener

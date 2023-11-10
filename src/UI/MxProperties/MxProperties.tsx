@@ -953,8 +953,21 @@ export default class MxProperties extends Component<Props, State> {
                   </div>
                 </div>
               </div>
-              <br />
-              {/* <div className="row">
+               {/*<br />
+              <div className="row">
+                <div className="col-md">
+                  <div>
+                    <label >Restrictions  </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Restrictions of configuration"
+                      id="customPropertyRestrictions"
+                    />
+                  </div>
+                </div>
+              </div> 
+              <div className="row">
                 <div className="col-md">
                   <div>
                     <label>Min cardinality</label>
