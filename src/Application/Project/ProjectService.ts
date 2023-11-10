@@ -5,7 +5,9 @@ import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/Produc
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { NewModelEventArg } from "./Events/NewModelEventArg";
-import ProjectManager, { ModelLookupResult } from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
+import ProjectManager, {
+  ModelLookupResult,
+} from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
@@ -26,7 +28,7 @@ import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/R
 import ProjectUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
 import { isJSDocThisTag } from "typescript";
 import * as alertify from "alertifyjs";
-import { Buffer } from 'buffer';
+import { Buffer } from "buffer";
 
 export default class ProjectService {
   private graph: any;
@@ -89,25 +91,32 @@ export default class ProjectService {
   }
 
   public getProductLineSelected(): ProductLine {
-    let i= this.productLineSelected;
+    let i = this.productLineSelected;
     return this.project.productLines[i];
   }
 
-  callExternalFuntion(externalFunction: ExternalFuntion, query: any, selectedElementsIds:string[], selectedRelationshipsIds:string[]) {
+  callExternalFuntion(
+    externalFunction: ExternalFuntion,
+    query: any,
+    selectedElementsIds: string[],
+    selectedRelationshipsIds: string[]
+  ) {
     let me = this;
 
     // Standard Request Start
     externalFunction.request = {};
 
     //pack the semantics
-    const semantics = me._languages.filter((lang) => lang.id === externalFunction.language_id)[0].semantics;
+    const semantics = me._languages.filter(
+      (lang) => lang.id === externalFunction.language_id
+    )[0].semantics;
 
     const data = {
       modelSelectedId: me.treeIdItemSelected,
       project: me._project,
       rules: semantics,
       selectedElementsIds: selectedElementsIds,
-      selectedRelationshipsIds: selectedRelationshipsIds
+      selectedRelationshipsIds: selectedRelationshipsIds,
     };
 
     externalFunction.request = {
@@ -116,45 +125,44 @@ export default class ProjectService {
     };
     // Standard Request End
 
-
     let callback = function (response: any) {
       //Decode content.
       //alert(JSON.stringify(response));
-      if (externalFunction.resulting_action === 'download'){
-        let buffer=Buffer.from(response.data.content, "base64")
-        response.data.content = buffer; 
-      }
-      else if (response.data.name?.indexOf("json") > -1)
+      if (externalFunction.resulting_action === "download") {
+        let buffer = Buffer.from(response.data.content, "base64");
+        response.data.content = buffer;
+      } else if (response.data.name?.indexOf("json") > -1)
         response.data.content = JSON.parse(response.data.content);
 
       const resulting_action: any = {
         download: function () {
-          me.utils.downloadBinaryFile(response.data.name, response.data.content);
+          me.utils.downloadBinaryFile(
+            response.data.name,
+            response.data.content
+          );
         },
         showonscreen: function () {
           // alert(JSON.stringify(response.data.content));
-          if ('error' in response.data) {
+          if ("error" in response.data) {
             alertify.error(response.data.error);
           } else {
             if (String(response.data.content).includes("(model")) {
               // alertify.alert("Model semantics", `${String(response.data.content)}`)
-              alert(`${String(response.data.content)}`)
+              alert(`${String(response.data.content)}`);
+            } else {
+              alertify.success(String(response.data.content));
             }
-            else {
-              alertify.success(String(response.data.content))
-            };
             // document.getElementById(me.treeIdItemSelected).click();
           }
         },
         updateproject: function () {
-
-          if ('error' in response.data) {
+          if ("error" in response.data) {
             alertify.error(response.data.error);
           } else {
             me.updateProject(response.data.content, me.treeIdItemSelected);
             // document.getElementById(me.treeIdItemSelected).click();
           }
-        }
+        },
       };
       //Set the resulting action to be conditional on the query itself
       //since we will have a single mechanism for making these queries
@@ -163,19 +171,21 @@ export default class ProjectService {
         resulting_action[externalFunction.resulting_action]();
       } else {
         if (response.data.content?.productLines) {
-          resulting_action['updateproject']()
+          resulting_action["updateproject"]();
         } else {
-          resulting_action['showonscreen']()
+          resulting_action["showonscreen"]();
         }
       }
     };
-    alertify.success('request sent ...');
+    alertify.success("request sent ...");
     me.languageUseCases.callExternalFuntion(callback, externalFunction);
   }
 
   loadExternalFunctions(languageName: string) {
     let me = this;
-    let language = this._languages.filter(language => language.name == languageName);
+    let language = this._languages.filter(
+      (language) => language.name == languageName
+    );
     let callback = function (data: any) {
       me._externalFunctions = data;
     };
@@ -208,7 +218,7 @@ export default class ProjectService {
   modelApplicationEngSelected(idPl: number, idApplicationEngModel: number) {
     let modelSelected =
       this._project.productLines[idPl].applicationEngineering?.models[
-      idApplicationEngModel
+        idApplicationEngModel
       ];
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
@@ -395,21 +405,21 @@ export default class ProjectService {
     return this._languages;
   }
 
-  getUser(){
-    let userId="0";
-    let databaseUserProfile=sessionStorage.getItem("databaseUserProfile");
-    if(databaseUserProfile){
-      let data=JSON.parse(databaseUserProfile);
-      userId=data.user.id;
-    } 
+  getUser() {
+    let userId = "0";
+    let databaseUserProfile = sessionStorage.getItem("databaseUserProfile");
+    if (databaseUserProfile) {
+      let data = JSON.parse(databaseUserProfile);
+      userId = data.user.id;
+    }
     if (!userId) {
-      userId="0"; 
+      userId = "0";
     }
     return userId;
   }
 
   getLanguagesByUser(): Language[] {
-    let user=this.getUser();
+    let user = this.getUser();
     return this.languageUseCases.getLanguagesByUser(user);
   }
 
@@ -434,7 +444,7 @@ export default class ProjectService {
   }
 
   createLanguage(callback: any, language: any) {
-    let user = this.getUser(); 
+    let user = this.getUser();
     if (user) {
       language.abstractSyntax = JSON.parse(language.abstractSyntax);
       language.concreteSyntax = JSON.parse(language.concreteSyntax);
@@ -444,18 +454,18 @@ export default class ProjectService {
   }
 
   updateLanguage(callback: any, language: any, languageId: string) {
-    let user=this.getUser(); 
+    let user = this.getUser();
     if (user) {
       language.id = languageId;
       language.abstractSyntax = JSON.parse(language.abstractSyntax);
       language.concreteSyntax = JSON.parse(language.concreteSyntax);
-      language.semantics = JSON.parse(language.semantics);  
+      language.semantics = JSON.parse(language.semantics);
       return this.languageUseCases.updateLanguage(callback, language, user);
     }
   }
 
   deleteLanguage(callback: any, languageId: string) {
-    let user=this.getUser();
+    let user = this.getUser();
     return this.languageUseCases.deleteLanguage(callback, languageId, user);
   }
 
@@ -569,7 +579,6 @@ export default class ProjectService {
     this.raiseEventUpdateProject(this._project, modelSelectedId);
     //find the model selected
     //By default, only a single product line is supported
-    
   }
 
   loadProject(project: Project): Project {
@@ -616,11 +625,11 @@ export default class ProjectService {
     this.raiseEventUpdateProject(this._project, this.treeIdItemSelected);
   }
 
-  getItemProjectName( ) {
+  getItemProjectName() {
     return this.projectManager.getItemProjectName(
       this._project,
-      this.treeIdItemSelected 
-    ); 
+      this.treeIdItemSelected
+    );
   }
 
   updateProjectState(state: boolean) {
@@ -652,8 +661,18 @@ export default class ProjectService {
   //Project functions_ END***********
 
   //Product Line functions_ START***********
-  createLPS(project: Project, productLineName: string, type: string, domain: string) {
-    return this.projectManager.createLps(project, productLineName, type , domain);
+  createLPS(
+    project: Project,
+    productLineName: string,
+    type: string,
+    domain: string
+  ) {
+    return this.projectManager.createLps(
+      project,
+      productLineName,
+      type,
+      domain
+    );
   }
 
   addNewProductLineListener(listener: any) {
@@ -730,7 +749,11 @@ export default class ProjectService {
   //Adaptation functions_ END***********
 
   //createDomainEngineeringModel functions_ START***********
-  createDomainEngineeringModel(project: Project, languageType: string, name:string) {
+  createDomainEngineeringModel(
+    project: Project,
+    languageType: string,
+    name: string
+  ) {
     return this.projectManager.createDomainEngineeringModel(
       project,
       languageType,
@@ -762,7 +785,11 @@ export default class ProjectService {
   //createDomainEngineeringModel functions_ END***********
 
   //createApplicationEngineeringModel functions_ START***********
-  createApplicationEngineeringModel(project: Project, languageType: string, name:string) {
+  createApplicationEngineeringModel(
+    project: Project,
+    languageType: string,
+    name: string
+  ) {
     return this.projectManager.createApplicationEngineeringModel(
       project,
       languageType,
@@ -794,7 +821,7 @@ export default class ProjectService {
   //createApplicationEngineeringModel functions_ END***********
 
   //createApplicationModel functions_ START***********
-  createApplicationModel(project: Project, languageType: string, name:string) {
+  createApplicationModel(project: Project, languageType: string, name: string) {
     return this.projectManager.createApplicationModel(
       project,
       languageType,
@@ -827,13 +854,13 @@ export default class ProjectService {
   //createApplicationModel functions_ END***********
 
   //createAdaptationModel functions_ START***********
-  createAdaptationModel(project: Project, languageType: string, name:string) {
+  createAdaptationModel(project: Project, languageType: string, name: string) {
     return this.projectManager.createAdaptationModel(
       project,
       languageType,
       this.productLineSelected,
       this.applicationSelected,
-      this.adaptationSelected, 
+      this.adaptationSelected,
       name
     );
   }
@@ -875,8 +902,6 @@ export default class ProjectService {
   open() {
     //open file
   }
-
-
 
   duplicateObject(obj: any) {
     let str = JSON.stringify(obj);
@@ -963,24 +988,53 @@ export default class ProjectService {
   }
 
   findModelByName(type: string, modelName: string, neightborModel: Model) {
-    return ProjectUseCases.findModelByName(this._project, type, modelName, neightborModel.id);
+    return ProjectUseCases.findModelByName(
+      this._project,
+      type,
+      modelName,
+      neightborModel.id
+    );
   }
 
   findModelElementByIdInProject(elementId: string) {
-    return ProjectUseCases.findModelElementByIdInProject(this._project, elementId);
+    return ProjectUseCases.findModelElementByIdInProject(
+      this._project,
+      elementId
+    );
+  }
+
+  findModelElementPropertyByIdInProject(propertyId: string) {
+    return ProjectUseCases.findModelElementPropertyByIdInProject(
+      this._project,
+      propertyId
+    );
   }
 
   generateId() {
     return ProjectUseCases.generateId();
   }
 
-  visualizeModel() {
-    
+  visualizeModel() {}
+
+  //This function updates the selection status of the model
+  //elements based on an incoming configuration under the form
+  //of a project.
+  //It is used when we call the translator from the UI
+  updateSelection(projectInResponse: Project, modelSelectedId: string) {
+    const modelLookupResult = this.projectManager.updateSelection(
+      this._project,
+      projectInResponse,
+      modelSelectedId
+    );
+    this.reSelectModel(modelLookupResult);
   }
 
   //Reset the selection on the currently selected model
   resetModelConfig() {
-    const modelLookupResult = this.projectManager.findModel(this._project, this.getTreeIdItemSelected());
+    const modelLookupResult = this.projectManager.findModel(
+      this._project,
+      this.getTreeIdItemSelected()
+    );
     if (modelLookupResult) {
       this.projectManager.resetSelection(modelLookupResult);
       // We should have the enum available here
@@ -989,7 +1043,10 @@ export default class ProjectService {
   }
 
   lookupAndReselectModel() {
-    const modelLookupResult = this.projectManager.findModel(this._project, this.getTreeIdItemSelected());
+    const modelLookupResult = this.projectManager.findModel(
+      this._project,
+      this.getTreeIdItemSelected()
+    );
     if (modelLookupResult) {
       this.reSelectModel(modelLookupResult);
     }
@@ -998,31 +1055,99 @@ export default class ProjectService {
   reSelectModel(modelLookupResult: ModelLookupResult) {
     switch (modelLookupResult.modelType) {
       case "Domain":
-        this.modelDomainSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
+        this.modelDomainSelected(
+          modelLookupResult.plIdx,
+          modelLookupResult.modelIdx
+        );
         break;
       case "Application":
-        this.modelApplicationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.modelIdx);
+        this.modelApplicationSelected(
+          modelLookupResult.plIdx,
+          modelLookupResult.appIdx,
+          modelLookupResult.modelIdx
+        );
         break;
       case "Adaptation":
-        this.modelAdaptationSelected(modelLookupResult.plIdx, modelLookupResult.appIdx, modelLookupResult.adapIdx, modelLookupResult.modelIdx);
+        this.modelAdaptationSelected(
+          modelLookupResult.plIdx,
+          modelLookupResult.appIdx,
+          modelLookupResult.adapIdx,
+          modelLookupResult.modelIdx
+        );
         break;
       case "ApplicationEng":
-        this.modelApplicationEngSelected(modelLookupResult.plIdx, modelLookupResult.modelIdx);
+        this.modelApplicationEngSelected(
+          modelLookupResult.plIdx,
+          modelLookupResult.modelIdx
+        );
         break;
       default:
-        console.error("Unknown model type: " + modelLookupResult.modelType)
-        console.error("could not reset model config")
+        console.error("Unknown model type: " + modelLookupResult.modelType);
+        console.error("could not reset model config");
         break;
     }
   }
 
-  getProductLineDomainsList(){
-    let  list= ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution', "IoT", "IndustrialControlSystems", "HealthCare", "Communication", "Military", "WebServices", "Transportation", "SmartPhones", "PublicAdministration", "Multi-Domain", "Banking", "EmergencyServices", "Cloud-Provider"];
+  getProductLineDomainsList() {
+    let list = [
+      "Advertising and Marketing",
+      "Agriculture",
+      "Architecture and Design",
+      "Art and Culture",
+      "Automotive",
+      "Beauty and Wellness",
+      "Childcare and Parenting",
+      "Construction",
+      "Consulting and Professional Services",
+      "E-commerce",
+      "Education",
+      "Energy and Utilities",
+      "Environmental Services",
+      "Event Planning and Management",
+      "Fashion and Apparel",
+      "Finance and Banking",
+      "Food and Beverage",
+      "Gaming and Gambling",
+      "Government and Public Sector",
+      "Healthcare",
+      "Hospitality and Tourism",
+      "Insurance",
+      "Legal Services",
+      "Manufacturing",
+      "Media and Entertainment",
+      "Non-profit and Social Services",
+      "Pharmaceuticals",
+      "Photography and Videography",
+      "Printing and Publishing",
+      "Real Estate",
+      "Research and Development",
+      "Retail",
+      "Security and Surveillance",
+      "Software and Web Development",
+      "Sports and Recreation",
+      "Telecommunications",
+      "Transportation and Logistics",
+      "Travel and Leisure",
+      "Wholesale and Distribution",
+      "IoT",
+      "IndustrialControlSystems",
+      "HealthCare",
+      "Communication",
+      "Military",
+      "WebServices",
+      "Transportation",
+      "SmartPhones",
+      "PublicAdministration",
+      "Multi-Domain",
+      "Banking",
+      "EmergencyServices",
+      "Cloud-Provider",
+    ];
     return list;
   }
 
-  getProductLineTypesList(){
-   let  list = ['Software', 'System'];
-   return list;
+  getProductLineTypesList() {
+    let list = ["Software", "System"];
+    return list;
   }
 }

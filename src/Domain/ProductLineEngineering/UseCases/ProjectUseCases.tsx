@@ -8,13 +8,12 @@ import { Point } from "../Entities/Point";
 import { Property } from "../Entities/Property";
 import { Element } from "../Entities/Element";
 
-
 enum ModelType {
   Domain = "Domain",
   ApplicationEng = "ApplicationEng",
   Application = "Application",
-  Adaptation = "Adaptation"
-};
+  Adaptation = "Adaptation",
+}
 
 export type ModelLookupResult = {
   model: Model;
@@ -42,9 +41,9 @@ export default class ProjectUseCases {
     let currentAp = 0;
     let currentAdapt = 0;
 
-    let model= ProjectUseCases.findModelById(project, idItem);
-    if(model){
-      model.name=newName;
+    let model = ProjectUseCases.findModelById(project, idItem);
+    if (model) {
+      model.name = newName;
       return project;
     }
 
@@ -82,42 +81,45 @@ export default class ProjectUseCases {
     return project;
   }
 
-  getItemProjectName(
-    project: Project,
-    idItem: string 
-  ): string {
+  getItemProjectName(project: Project, idItem: string): string {
     let currentLP = 0;
     let currentAp = 0;
     let currentAdapt = 0;
 
-    let model= ProjectUseCases.findModelById(project, idItem);
-    if(model){
+    let model = ProjectUseCases.findModelById(project, idItem);
+    if (model) {
       return model.name;
-    } 
+    }
     for (let pl = 0; pl < project.productLines.length; pl++) {
-      const productLine = project.productLines[pl]; 
+      const productLine = project.productLines[pl];
       // search productLine
       if (productLine.id === idItem) {
-        return project.productLines[currentLP].name ;
+        return project.productLines[currentLP].name;
       }
-      for (let ae = 0; ae < productLine.applicationEngineering.applications.length; ae++) {
-        const application = productLine.applicationEngineering.applications[ae]; 
+      for (
+        let ae = 0;
+        ae < productLine.applicationEngineering.applications.length;
+        ae++
+      ) {
+        const application = productLine.applicationEngineering.applications[ae];
         // search application
         if (application.id === idItem) {
-          return project.productLines[currentLP].applicationEngineering.applications[currentAp].name ;
+          return project.productLines[currentLP].applicationEngineering
+            .applications[currentAp].name;
         }
         for (let ad = 0; ad < application.adaptations.length; ad++) {
-          const adaptation = application.adaptations[ad]; 
+          const adaptation = application.adaptations[ad];
           // search adaptation
           if (adaptation.id === idItem) {
-            return project.productLines[currentLP].applicationEngineering.applications[  currentAp ].adaptations[currentAdapt].name ;
-          } 
+            return project.productLines[currentLP].applicationEngineering
+              .applications[currentAp].adaptations[currentAdapt].name;
+          }
           currentAdapt = currentAdapt + 1;
-        } 
+        }
         currentAp = currentAp + 1;
-      } 
+      }
       currentLP = currentLP + 1;
-    } 
+    }
     return null;
   }
 
@@ -225,11 +227,16 @@ export default class ProjectUseCases {
     return project;
   }
 
-  createLps(project: Project, producLineName: string, type: string, domain: string): ProductLine {
+  createLps(
+    project: Project,
+    producLineName: string,
+    type: string,
+    domain: string
+  ): ProductLine {
     let productLine: ProductLine = new ProductLine(
       ProjectUseCases.generateId(),
-      producLineName, 
-      type, 
+      producLineName,
+      type,
       domain
     );
     project.productLines.push(productLine);
@@ -273,10 +280,14 @@ export default class ProjectUseCases {
   createDomainEngineeringModel(
     project: Project,
     languageType: string,
-    productLine: number, 
-    name:string
+    productLine: number,
+    name: string
   ): Model {
-    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType);
+    let model: Model = new Model(
+      ProjectUseCases.generateId(),
+      name,
+      languageType
+    );
     project.productLines[productLine].domainEngineering?.models.push(model);
 
     //Ejecutar el consumo de mxGraph.
@@ -287,10 +298,14 @@ export default class ProjectUseCases {
   createApplicationEngineeringModel(
     project: Project,
     languageType: string,
-    productLine: number, 
-    name:string
+    productLine: number,
+    name: string
   ): Model {
-    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType);
+    let model: Model = new Model(
+      ProjectUseCases.generateId(),
+      name,
+      languageType
+    );
     project.productLines[productLine].applicationEngineering?.models.push(
       model
     );
@@ -304,12 +319,16 @@ export default class ProjectUseCases {
     project: Project,
     languageType: string,
     productLine: number,
-    application: number, 
-    name:string
+    application: number,
+    name: string
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType); 
+    let model: Model = new Model(
+      ProjectUseCases.generateId(),
+      name,
+      languageType
+    );
 
     project.productLines[productLine].applicationEngineering?.applications[
       application
@@ -325,12 +344,16 @@ export default class ProjectUseCases {
     languageType: string,
     productLine: number,
     application: number,
-    adaptation: number, 
-    name:string
+    adaptation: number,
+    name: string
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
-    let model: Model = new Model(ProjectUseCases.generateId(), name, languageType); 
+    let model: Model = new Model(
+      ProjectUseCases.generateId(),
+      name,
+      languageType
+    );
 
     project.productLines[productLine].applicationEngineering.applications[
       application
@@ -341,11 +364,22 @@ export default class ProjectUseCases {
     return model;
   }
 
-  static findModelByName(project: Project, type: string, modelName: string, modelNeighborId: string): Model {
+  static findModelByName(
+    project: Project,
+    type: string,
+    modelName: string,
+    modelNeighborId: string
+  ): Model {
     //encuentra un modelo por nombre y tipo cercano a otro a nivel de carpeta
     let modelNeighborDomain = this.findDomainFolder(project, modelNeighborId);
-    let modelNeighborApplication = this.findApplicationFolder(project, modelNeighborId);
-    let modelNeighborAdaptation = this.findAdaptationFolder(project, modelNeighborId);
+    let modelNeighborApplication = this.findApplicationFolder(
+      project,
+      modelNeighborId
+    );
+    let modelNeighborAdaptation = this.findAdaptationFolder(
+      project,
+      modelNeighborId
+    );
 
     for (let i = 0; i < project.productLines.length; i++) {
       const productLine = project.productLines[i];
@@ -358,10 +392,14 @@ export default class ProjectUseCases {
             }
           }
         }
-      }
-      else if (type == "Application") {
-        for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
-          const application = productLine.applicationEngineering.applications[ap];
+      } else if (type == "Application") {
+        for (
+          let ap = 0;
+          ap < productLine.applicationEngineering.applications.length;
+          ap++
+        ) {
+          const application =
+            productLine.applicationEngineering.applications[ap];
           for (let k = 0; k < application.models.length; k++) {
             const model = application.models[k];
             if (model.name == modelName) {
@@ -371,10 +409,14 @@ export default class ProjectUseCases {
             }
           }
         }
-      }
-      else {
-        for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
-          const application = productLine.applicationEngineering.applications[ap];
+      } else {
+        for (
+          let ap = 0;
+          ap < productLine.applicationEngineering.applications.length;
+          ap++
+        ) {
+          const application =
+            productLine.applicationEngineering.applications[ap];
           for (let ad = 0; ad < application.adaptations.length; ad++) {
             const adaptation = application.adaptations[ad];
             for (let k = 0; k < adaptation.models.length; k++) {
@@ -397,8 +439,13 @@ export default class ProjectUseCases {
     for (let i = 0; i < project.productLines.length; i++) {
       const productLine = project.productLines[i];
       if (applicationModel) {
-        for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
-          const application = productLine.applicationEngineering.applications[ap];
+        for (
+          let ap = 0;
+          ap < productLine.applicationEngineering.applications.length;
+          ap++
+        ) {
+          const application =
+            productLine.applicationEngineering.applications[ap];
           if (application == applicationModel) {
             return productLine.domainEngineering;
           }
@@ -418,7 +465,11 @@ export default class ProjectUseCases {
   static findApplicationFolder(project: Project, modelId: string) {
     for (let i = 0; i < project.productLines.length; i++) {
       const productLine = project.productLines[i];
-      for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+      for (
+        let ap = 0;
+        ap < productLine.applicationEngineering.applications.length;
+        ap++
+      ) {
         const application = productLine.applicationEngineering.applications[ap];
         for (let k = 0; k < application.models.length; k++) {
           const model = application.models[k];
@@ -442,7 +493,11 @@ export default class ProjectUseCases {
   static findAdaptationFolder(project: Project, modelId: string) {
     for (let i = 0; i < project.productLines.length; i++) {
       const productLine = project.productLines[i];
-      for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+      for (
+        let ap = 0;
+        ap < productLine.applicationEngineering.applications.length;
+        ap++
+      ) {
         const application = productLine.applicationEngineering.applications[ap];
         for (let ad = 0; ad < application.adaptations.length; ad++) {
           const adaptation = application.adaptations[ad];
@@ -470,7 +525,17 @@ export default class ProjectUseCases {
   ): Relationship {
     // let modelName = this.findLanguage(LanguageType);
 
-    let relationship: Relationship = new Relationship(ProjectUseCases.generateId(), name, type, sourceId, targetId, points, min, max, properties);
+    let relationship: Relationship = new Relationship(
+      ProjectUseCases.generateId(),
+      name,
+      type,
+      sourceId,
+      targetId,
+      points,
+      min,
+      max,
+      properties
+    );
     model.relationships.push(relationship);
 
     //Ejecutar el consumo de mxGraph.
@@ -485,7 +550,7 @@ export default class ProjectUseCases {
     application: number,
     adaptation: number,
     itemDelete: string | number
-  ) { }
+  ) {}
 
   saveProject(project: Project): void {
     // Save data to sessionStorage
@@ -523,15 +588,24 @@ export default class ProjectUseCases {
             return model;
           }
         }
-        for (let m = 0; m < productLine.applicationEngineering.models.length; m++) {
+        for (
+          let m = 0;
+          m < productLine.applicationEngineering.models.length;
+          m++
+        ) {
           const model: Model = productLine.applicationEngineering.models[m];
           if (model.id == uid) {
             return model;
           }
         }
-        for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
-          const application: Application = productLine.applicationEngineering.applications[ap];
-          for (let m = 0; m < application.models.length; m++) { 
+        for (
+          let ap = 0;
+          ap < productLine.applicationEngineering.applications.length;
+          ap++
+        ) {
+          const application: Application =
+            productLine.applicationEngineering.applications[ap];
+          for (let m = 0; m < application.models.length; m++) {
             const model: Model = application.models[m];
             if (model.id == uid) {
               return model;
@@ -539,7 +613,7 @@ export default class ProjectUseCases {
           }
           for (let ad = 0; ad < application.adaptations.length; ad++) {
             const adaptation: Adaptation = application.adaptations[ad];
-            for (let m = 0; m < adaptation.models.length; m++) { 
+            for (let m = 0; m < adaptation.models.length; m++) {
               const model: Model = adaptation.models[m];
               if (model.id == uid) {
                 return model;
@@ -555,9 +629,67 @@ export default class ProjectUseCases {
   static findModelElementById(model: Model, uid: any) {
     if (model) {
       for (let i = 0; i < model.elements.length; i++) {
-        const element: any = model.elements[i];
-        if (element.id == uid) {
+        const element: Element = model.elements[i];
+        if (element.id === uid) {
           return element;
+        }
+      }
+    }
+    return null;
+  }
+
+  static findModelElementPropertyById(model: Model, uid: any) {
+    if (model) {
+      for (const elem of model.elements) {
+        for (const prop of elem.properties) {
+          if (prop.id === uid) {
+            return [elem, prop];
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  static findModelElementPropertyByIdInProject(project: Project, id: any) {
+    for (let i = 0; i < project.productLines.length; i++) {
+      const productLine = project.productLines[i];
+      for (let k = 0; k < productLine.domainEngineering.models.length; k++) {
+        const model = productLine.domainEngineering.models[k];
+        const [element, elementProperty] = this.findModelElementPropertyById(
+          model,
+          id
+        );
+        if (element && elementProperty) {
+          return [element, elementProperty];
+        }
+      }
+      for (
+        let ap = 0;
+        ap < productLine.applicationEngineering.applications.length;
+        ap++
+      ) {
+        const application = productLine.applicationEngineering.applications[ap];
+        for (let k = 0; k < application.models.length; k++) {
+          const model = application.models[k];
+          const [element, elementProperty] = this.findModelElementPropertyById(
+            model,
+            id
+          );
+          if (element && elementProperty) {
+            return [element, elementProperty];
+          }
+        }
+        for (let ad = 0; ad < application.adaptations.length; ad++) {
+          const adaptation = application.adaptations[ad];
+          for (let k = 0; k < adaptation.models.length; k++) {
+            const model = adaptation.models[k];
+            const [element, elementProperty] =
+              this.findModelElementPropertyById(model, id);
+            if (element && elementProperty) {
+              return [element, elementProperty];
+            }
+          }
         }
       }
     }
@@ -587,7 +719,11 @@ export default class ProjectUseCases {
           return element;
         }
       }
-      for (let ap = 0; ap < productLine.applicationEngineering.applications.length; ap++) {
+      for (
+        let ap = 0;
+        ap < productLine.applicationEngineering.applications.length;
+        ap++
+      ) {
         const application = productLine.applicationEngineering.applications[ap];
         for (let k = 0; k < application.models.length; k++) {
           const model = application.models[k];
@@ -648,7 +784,7 @@ export default class ProjectUseCases {
   }
 
   _findProperty(propName: string, element: Element) {
-    const property = element.properties.find(p => p.name === propName);
+    const property = element.properties.find((p) => p.name === propName);
     return property;
   }
 
@@ -657,7 +793,7 @@ export default class ProjectUseCases {
   resetSelection(modelLookupResult: ModelLookupResult) {
     if (modelLookupResult.model) {
       for (const element of modelLookupResult.model.elements) {
-        const property = this._findProperty('Selected', element);
+        const property = this._findProperty("Selected", element);
         if (property) {
           property.value = "Undefined";
         }
@@ -667,30 +803,101 @@ export default class ProjectUseCases {
     }
   }
 
+  //Update the selection state of all elements in the currently active model
+  //based on an incoming project response from the translator backend
+  updateSelection(project: Project, response: Project, modelId: string) {
+    const currentModelLookupResult = this.findModel(project, modelId);
+    const incomingModelLookupResult = this.findModel(response, modelId);
+    if (currentModelLookupResult && incomingModelLookupResult) {
+      const currentModel = currentModelLookupResult.model;
+      const incomingModel = incomingModelLookupResult.model;
+      for (const currentElement of currentModel.elements) {
+        const incomingElement = incomingModel.elements.find(
+          (e) => e.id === currentElement.id
+        );
+        for (const prop of currentElement.properties) {
+          const currentSelectedProperty = this._findProperty(
+            prop.name,
+            currentElement
+          );
+          const incomingSelectedProperty = this._findProperty(
+            prop.name,
+            incomingElement
+          );
+          if (currentSelectedProperty && incomingSelectedProperty) {
+            currentSelectedProperty.value = incomingSelectedProperty.value;
+          }
+        }
+        // if (incomingElement) {
+        //   const currentSelectedProperty = this._findProperty('Selected', currentElement);
+        //   const incomingSelectedProperty = this._findProperty('Selected', incomingElement);
+        //   if (currentSelectedProperty && incomingSelectedProperty) {
+        //     currentSelectedProperty.value = incomingSelectedProperty.value;
+        //   }
+        // }
+      }
+    }
+    return currentModelLookupResult;
+  }
 
   // find a specific model based on the currently active model
   findModel(project: Project, modelId: string): ModelLookupResult | null {
     for (const [plIdx, productLine] of project.productLines.entries()) {
-      for (const [modelIdx, model] of productLine.domainEngineering.models.entries()) {
+      for (const [
+        modelIdx,
+        model,
+      ] of productLine.domainEngineering.models.entries()) {
         if (model.id === modelId) {
-          return { model, modelType: ModelType.Domain, plIdx: plIdx, modelIdx: modelIdx };
+          return {
+            model,
+            modelType: ModelType.Domain,
+            plIdx: plIdx,
+            modelIdx: modelIdx,
+          };
         }
       }
-      for (const [appEngIdx, appEngModel] of productLine.applicationEngineering.models.entries()) {
+      for (const [
+        appEngIdx,
+        appEngModel,
+      ] of productLine.applicationEngineering.models.entries()) {
         if (appEngModel.id === modelId) {
-          return { model: appEngModel, modelType: ModelType.ApplicationEng, plIdx: plIdx, modelIdx: appEngIdx };
+          return {
+            model: appEngModel,
+            modelType: ModelType.ApplicationEng,
+            plIdx: plIdx,
+            modelIdx: appEngIdx,
+          };
         }
       }
-      for (const [applicationIdx, application] of productLine.applicationEngineering.applications.entries()) {
+      for (const [
+        applicationIdx,
+        application,
+      ] of productLine.applicationEngineering.applications.entries()) {
         for (const [modelIdx, model] of application.models.entries()) {
           if (model.id === modelId) {
-            return { model, modelType: ModelType.Application, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx };
+            return {
+              model,
+              modelType: ModelType.Application,
+              plIdx: plIdx,
+              modelIdx: modelIdx,
+              appIdx: applicationIdx,
+            };
           }
         }
-        for (const [adaptationIdx, adaptation] of application.adaptations.entries()) {
+        for (const [
+          adaptationIdx,
+          adaptation,
+        ] of application.adaptations.entries()) {
           for (const [modelIdx, model] of adaptation.models.entries()) {
             if (model.id === modelId) {
-              return { model, modelType: ModelType.Adaptation, plIdx: plIdx, modelIdx: modelIdx, appIdx: applicationIdx, adapIdx: adaptationIdx };
+              return {
+                model,
+                modelType: ModelType.Adaptation,
+                plIdx: plIdx,
+                modelIdx: modelIdx,
+                appIdx: applicationIdx,
+                adapIdx: adaptationIdx,
+              };
             }
           }
         }
