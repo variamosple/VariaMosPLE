@@ -77,11 +77,19 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   projectService_addCreatedElementListener(e: any) {
+    let me=this;
     let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
     if (vertice) {
-      this.setState({
-        showPropertiesModal:true
+      me.setState({
+        selectedObject:e.element 
       })
+      let fun=function(){
+        me.setState({
+          selectedObject:e.element,
+          showPropertiesModal:true
+        })
+      }
+      setTimeout(fun, 500);
     } else {
       let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
       if (edge) {
