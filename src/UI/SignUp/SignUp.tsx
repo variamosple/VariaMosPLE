@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { GoogleLogin, GoogleLogout } from "react-google-login";
 import VariaMosLogo from "../../Addons/images/VariaMosLogo.png";
-import _config from "../../Infraestructure/config.json";
 import './SignUp.css';
 import { SignUpKeys, SignUpMessages, SignUpURLs, SignUpUserTypes } from "./SignUp.constants"; 
 import env from 'react-dotenv';
 import { gapi } from 'gapi-script';
+import { Config } from "../../Config";
 
 function SignInUp() {
   const [loginProgress, setLoginProgress] = useState(SignUpMessages.Welcome);
@@ -35,7 +35,7 @@ function SignInUp() {
 
     setLoginProgress(SignUpMessages.Loading);
 
-    axios.post(`${_config.urlBackEndLanguage}${SignUpURLs.SignIn}`, {
+    axios.post(`${Config.SERVICES.urlBackEndLanguage}${SignUpURLs.SignIn}`, {
       email: userProfile.email,
       name: userProfile.givenName
     }).then(({ data: responseData }) => {
@@ -63,7 +63,7 @@ function SignInUp() {
 
     setLoginProgress(SignUpMessages.Loading);
 
-    axios.post(`${_config.urlBackEndLanguage}${SignUpURLs.SignIn}`, {
+    axios.post(`${Config.SERVICES.urlBackEndLanguage}${SignUpURLs.SignIn}`, {
       email: userProfile.email,
       name: userProfile.givenName
     }).then(({ data: responseData }) => {

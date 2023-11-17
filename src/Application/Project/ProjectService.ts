@@ -13,6 +13,7 @@ import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/Langu
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
+import { CreatedElementEventArg } from "./Events/CreatedElementEventArg";
 import { LanguagesDetailEventArg } from "./Events/LanguagesDetailEventArg";
 import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { NewProductLineEventArg } from "./Events/NewProductLineEventArg";
@@ -20,7 +21,7 @@ import { NewApplicationEventArg } from "./Events/NewApplicationEventArg";
 import { NewAdaptationEventArg } from "./Events/NewAdaptationEventArg";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
 import { Utils } from "../../Addons/Library/Utils/Utils";
-import _config from "../../Infraestructure/config.json";
+import { Config } from "../../Config";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
@@ -45,7 +46,7 @@ export default class ProjectService {
   // to manage the state of the application
   private _currentLanguage: Language = null;
 
-  private _environment: string = _config.environment;
+  private _environment: string = Config.NODE_ENV;
   private _languages: any = this.getLanguagesByUser();
   private _externalFunctions: ExternalFuntion[] = [];
   private _project: Project = this.createProject("");
@@ -68,6 +69,7 @@ export default class ProjectService {
   private updateSelectedListeners: any = [];
   private selectedElementListeners: any = [];
   private updatedElementListeners: any = [];
+  private createdElementListeners: any = [];
 
   // constructor() {
   //   let me = this;
@@ -326,6 +328,26 @@ export default class ProjectService {
     }
   }
 
+  addCreatedElementListener(listener: any) {
+    this.createdElementListeners.push(listener);
+  }
+
+  removeCreatedElementListener(listener: any) {
+    this.createdElementListeners[listener] = null;
+  }
+
+  raiseEventCreatedElement(
+    model: Model | undefined,
+    element: Element | undefined
+  ) {
+    let me = this;
+    let e = new CreatedElementEventArg(me, model, element);
+    for (let index = 0; index < me.createdElementListeners.length; index++) {
+      let callback = this.createdElementListeners[index];
+      callback(e);
+    }
+  }
+
   updateAdaptationSelected(
     idPl: number,
     idApplication: number,
@@ -415,6 +437,7 @@ export default class ProjectService {
     if (!userId) {
       userId = "0";
     }
+    //userId="21cd2d82-1bbc-43e9-898a-d5a45abdeceda"; 
     return userId;
   }
 
@@ -971,6 +994,10 @@ export default class ProjectService {
     return ProjectUseCases.findModelElementById(model, uid);
   }
 
+  findModelElementByName(model: Model, name: any) {
+    return ProjectUseCases.findModelElementByName(model, name);
+  }
+
   findModelRelationshipById(model: Model, uid: any) {
     return ProjectUseCases.findModelRelationshipById(model, uid);
   }
@@ -1149,5 +1176,16 @@ export default class ProjectService {
   getProductLineTypesList() {
     let list = ["Software", "System"];
     return list;
+  }
+
+  generateName(model:Model, type:string) {
+    for (let i = 1; i < 100000000; i++) {
+      let name = type + " " + i;
+      let element=this.findModelElementByName(model, name);
+      if (!element) {
+        return name;
+      } 
+    }
+    return this.generateId();
   }
 }

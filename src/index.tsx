@@ -3,8 +3,8 @@ import ReactDOM from "react-dom";
 import SignInUp from "./UI/SignUp/SignUp";
 import DashBoard from "./UI/WorkSpace/DashBoard";
 import LanguagePage from "./core/pages/LanguagesPage";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import { BrowserRouter, Routes, Route } from "react-router-dom"; 
+ 
 function App() {
   return (
     <BrowserRouter>

@@ -839,7 +839,7 @@ class TreeMenu extends Component<Props, State> {
               {this.props.projectService.languages.map(
                 (language: Language, i: number) => (
                   <div key={i}>
-                    {language.type === this.state.newSelected  ? (
+                    {language.type === this.state.newSelected ? (
                       <li>
                         <span
                           className={"dropdown-item type_" + language}

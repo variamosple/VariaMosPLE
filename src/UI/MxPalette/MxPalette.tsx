@@ -95,7 +95,7 @@ export default class MxPalette extends Component<Props, State> {
 
     let type = vertex.getAttribute("type");
     let instanceOfId = vertex.getAttribute("instanceOfId");
-    let name = type + " 1";
+    let name = me.props.projectService.generateName(me.currentModel, type);
 
     let parentsAllowed = [null];
     if (languageDefinition.abstractSyntax.restrictions) {
@@ -109,7 +109,7 @@ export default class MxPalette extends Component<Props, State> {
         }
       }
     }
- 
+
     let parentId = null;
     let parentType = null;
     if (parentCell) {
@@ -121,7 +121,7 @@ export default class MxPalette extends Component<Props, State> {
 
     if (!parentsAllowed.includes(parentType)) {
       throw ("Child not allowed by the parent element.");
-    }else{
+    } else {
       //todo: min max
     }
 
@@ -166,10 +166,7 @@ export default class MxPalette extends Component<Props, State> {
         element.properties.push(property);
       }
     }
-
-
-
-
+ 
     this.currentModel?.elements?.push(element);
 
     let callback = function (data: any) {
@@ -195,6 +192,12 @@ export default class MxPalette extends Component<Props, State> {
         graph.getModel().endUpdate();
 
 
+        me.props.projectService.raiseEventCreatedElement(
+          me.currentModel,
+          element
+        );
+
+
         me.props.projectService.raiseEventUpdatedElement(
           me.currentModel,
           element
@@ -205,9 +208,11 @@ export default class MxPalette extends Component<Props, State> {
           element
         );
 
-        if (data.data.message !== "")
+        if (data.data.message !== ""){
           alertify.error("Validate: " + data.data.message);
-      } else {
+        }
+      }
+      else {
         alertify.error("Validate: " + data.data.message);
         me.currentModel = Object.assign(
           me.currentModel,
@@ -215,7 +220,7 @@ export default class MxPalette extends Component<Props, State> {
         );
         // me.currentModel = validateModelRestriction;
         // validateModelRestriction = me.currentModel;
-        graph.getModel().endUpdate();
+        // graph.getModel().endUpdate();
       }
       me.props.projectService.saveProject();
     };

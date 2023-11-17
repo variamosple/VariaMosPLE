@@ -695,6 +695,17 @@ export default class ProjectUseCases {
     }
     return null;
   }
+  static findModelElementByName(model: Model, name: any) {
+    if (model) {
+      for (let i = 0; i < model.elements.length; i++) {
+        const element: any = model.elements[i];
+        if (element.name == name) {
+          return element;
+        }
+      }
+    }
+    return null;
+  }
 
   static findModelRelationshipById(model: Model, uid: any) {
     let me = this;

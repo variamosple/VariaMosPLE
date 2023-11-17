@@ -3,7 +3,7 @@ import ProjectService from "../../Application/Project/ProjectService";
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import * as alertify from "alertifyjs";
 import LanguageManagement from "./LanguageManagement";
-import _config from "../../Infraestructure/config.json";
+import { Config } from "../../Config";
 import { getUserProfile } from "../SignUp/SignUp.utils";
 import { SignUpUserTypes } from "../SignUp/SignUp.constants";
 
@@ -37,9 +37,9 @@ class ProjectManagement extends Component<Props, State> {
       productLineName: "",
       projectName: this.props.projectService.project.name,
       importProject: "",
-      version: _config.version,
-      urlVariamosDoc: _config.urlVariamosDocumentation,
-      urlVariamosLangDoc: _config.urlVariamosLangDocumentation,
+      version: Config.VERSION,
+      urlVariamosDoc: Config.SERVICES.urlVariamosDocumentation,
+      urlVariamosLangDoc: Config.SERVICES.urlVariamosLangDocumentation,
       firstName: "",
       userType: "",
       plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution'],

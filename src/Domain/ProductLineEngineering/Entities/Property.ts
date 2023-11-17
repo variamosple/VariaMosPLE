@@ -13,6 +13,7 @@ export class Property {
   possibleValuesLinks?: {}; //list with "," - range with ".."" - example: one, two, ten - 1..10 - true, false
   minCardinality?:number;
   maxCardinality?:number;
+  metadata?: any;
 
   constructor(
     name: string,
