@@ -622,7 +622,7 @@ class TreeMenu extends Component<Props, State> {
       for (let i = 0; i < this.props.projectService.languages.length; i++) {
         const language: Language = this.props.projectService.languages[i];
         if (language.type === this.state.newSelected) {
-          children.push(<Dropdown.Item href="#" onClick={() => this.addNewEModel(language)} id="newModel" key={i}>{language.name + " model"}</Dropdown.Item>)
+          children.push(<Dropdown.Item href="#" onClick={() => this.addNewEModel(language)} id="newModel" key={i}>{language.name}</Dropdown.Item>)
         }
       }
       items.push(<DropdownButton id="nested-dropdown" title="New model" key="end" drop="end" variant="Info">{children}</DropdownButton>);
@@ -846,7 +846,7 @@ class TreeMenu extends Component<Props, State> {
                           key={i}
                           onClick={() => this.addNewEModel(language)}
                         >
-                          {language.name + " Model"}
+                          {language.name}
                         </span>
                       </li>
                     ) : (
