@@ -7,7 +7,7 @@ name: Build and push the image  of variamos-ms-languages to docker.io app - AWS
 on:
   push:
     branches:
-      - develop
+      - main
   workflow_dispatch:
 
 jobs:
@@ -32,5 +32,5 @@ jobs:
       with:
         context: .
         push: true
-        tags: ${{vars.ACR_DOKCERHUB}}/${{secrets.ACRUSERNAME_DOKCERHUB}}/variamosple:develop
+        tags: ${{vars.ACR_DOKCERHUB}}/${{secrets.ACRUSERNAME_DOKCERHUB}}/variamosple:main
         file: ./Dockerfile
