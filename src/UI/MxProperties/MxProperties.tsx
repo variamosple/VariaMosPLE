@@ -15,6 +15,7 @@ import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import "./MxProperties.css"
+import SuggestionInputReceivedEventArgs from "../SuggestionInput/SuggestionInputReceivedEventArgs";
 
 interface Props {
   projectService: ProjectService;
@@ -165,6 +166,18 @@ export default class MxProperties extends Component<Props, State> {
       me.currentModel,
       me.currentObject
     );
+  }
+
+  suggestionInput_onSuggestionReceived(e:SuggestionInputReceivedEventArgs){
+    let me=this;
+    let name = e.target.props["data-name"];
+    for (let i = 0; i < this.currentObject.properties.length; i++) {
+      const element = this.currentObject.properties[i];
+      if (element.name === name) {
+        this.currentObject.properties[i].metadata = e.data;
+      }
+    }
+    
   }
 
   showLinkedProperties(propertyName: any, value: any) {
@@ -522,6 +535,17 @@ export default class MxProperties extends Component<Props, State> {
     } else {
       style = { display: "none" };
     }
+    if (concreteSyntax.properties) {
+      if (concreteSyntax.properties[property.name]) {
+        switch (concreteSyntax.properties[property.name].display) {
+          case "None": 
+            style = { display: "none" };
+            break;  
+        }
+      }
+    }
+
+
     let titleToolTip =
       "Name: " +
       property.name +
@@ -761,6 +785,7 @@ export default class MxProperties extends Component<Props, State> {
             value={this.state.values[property.name]}
             endPoint={this.getAutoCompleteEndPoint(property.name, concreteSyntax)}
             projectService={this.props.projectService}
+            onSuggestionReceived={this.suggestionInput_onSuggestionReceived.bind(this)}
           />
         );
         break;
@@ -778,10 +803,10 @@ export default class MxProperties extends Component<Props, State> {
   }
 
   getAutoCompleteEndPoint(propertyName: any, concreteSyntax: any) {
-    for (let i = 0; i < concreteSyntax.autocomplete_services.length; i++) {
-      const item = concreteSyntax.autocomplete_services[i];
-      if (item.property == propertyName) {
-        return item.endpoint;
+    if (concreteSyntax.properties) {
+      if (concreteSyntax.properties[propertyName]) {
+        let endPoint = concreteSyntax.properties[propertyName].autocomplete_service; 
+        return endPoint;
       }
     }
     return null;
@@ -928,8 +953,21 @@ export default class MxProperties extends Component<Props, State> {
                   </div>
                 </div>
               </div>
-              <br />
-              {/* <div className="row">
+               {/*<br />
+              <div className="row">
+                <div className="col-md">
+                  <div>
+                    <label >Restrictions  </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Restrictions of configuration"
+                      id="customPropertyRestrictions"
+                    />
+                  </div>
+                </div>
+              </div> 
+              <div className="row">
                 <div className="col-md">
                   <div>
                     <label>Min cardinality</label>

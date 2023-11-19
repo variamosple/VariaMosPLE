@@ -95,7 +95,7 @@ export default class MxPalette extends Component<Props, State> {
 
     let type = vertex.getAttribute("type");
     let instanceOfId = vertex.getAttribute("instanceOfId");
-    let name = type + " 1";
+    let name = me.props.projectService.generateName(me.currentModel, type);
 
     let parentsAllowed = [null];
     if (languageDefinition.abstractSyntax.restrictions) {
@@ -190,6 +190,12 @@ export default class MxPalette extends Component<Props, State> {
         // var v2 = graph.insertVertex(newCells[0], null, "World!", 0, 0, 20, 20);
         // newCells[0].collapsed = false;
         graph.getModel().endUpdate();
+
+
+        me.props.projectService.raiseEventCreatedElement(
+          me.currentModel,
+          element
+        );
 
 
         me.props.projectService.raiseEventUpdatedElement(

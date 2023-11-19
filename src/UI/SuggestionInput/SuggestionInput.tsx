@@ -3,9 +3,11 @@ import axios, { Method } from "axios";
 import "./SuggestionInput.css"
 import ProjectService from "../../Application/Project/ProjectService";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
+import SuggestionInputReceivedEventArgs from "./SuggestionInputReceivedEventArgs";
 
 interface Props {
   projectService: ProjectService;
+  onSuggestionReceived?: SuggestionInputReceivedEventArgs;
 }
 interface State { }
 
@@ -15,7 +17,8 @@ export default class SuggestionInput extends Component<Props, State> {
     onChange: null,
     value: null,
     endPoint: null,
-    projectService: null
+    projectService: null,
+    onSuggestionReceived: null
   };
 
   state = {
@@ -50,6 +53,7 @@ export default class SuggestionInput extends Component<Props, State> {
   }
 
   loadSuggestions() {
+    let me=this;
     if (!this.props.endPoint) {
       return;
     }
@@ -85,6 +89,12 @@ export default class SuggestionInput extends Component<Props, State> {
         this.state.showModal = true;
         this.modalDialogRef.current.classList.add("show");
         this.forceUpdate();
+        if(me.props.onSuggestionReceived){
+          me.props.onSuggestionReceived({
+            target: this,
+            data: data
+          })
+        }
       }).catch(function (error) {
         let x = 0;
         if (error.response) {
