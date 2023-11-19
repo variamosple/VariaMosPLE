@@ -34,3 +34,16 @@ export class Utils {
     return uuid;
   }
 }
+
+//src: https://gist.github.com/codeguy/6684588
+export const slugify = (...args: (string | number)[]): string => {
+  const value = args.join(' ')
+
+  return value
+      .normalize('NFD') // split an accented letter in the base letter and the acent
+      .replace(/[\u0300-\u036f]/g, '') // remove all previously split accents
+      .toUpperCase() // make it all upper case
+      .trim()
+      .replace(/[^A-Z0-9 ]/g, '') // remove all chars not letters, numbers and spaces (to be replaced)
+      .replace(/\s+/g, '-') // separator
+}
