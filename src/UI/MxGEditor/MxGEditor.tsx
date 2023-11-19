@@ -54,6 +54,7 @@ export default class MxGEditor extends Component<Props, State> {
     }
     this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
     this.projectService_addSelectedModelListener = this.projectService_addSelectedModelListener.bind(this);
+    this.projectService_addCreatedElementListener = this.projectService_addCreatedElementListener.bind(this);
     this.projectService_addUpdatedElementListener = this.projectService_addUpdatedElementListener.bind(this);
     this.projectService_addUpdateProjectListener = this.projectService_addUpdateProjectListener.bind(this);
     //handle constraints modal
@@ -73,6 +74,29 @@ export default class MxGEditor extends Component<Props, State> {
   projectService_addSelectedModelListener(e: any) {
     this.loadModel(e.model);
     this.forceUpdate();
+  }
+
+  projectService_addCreatedElementListener(e: any) {
+    let me=this;
+    let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
+    if (vertice) {
+      me.setState({
+        selectedObject:e.element 
+      })
+      let fun=function(){
+        me.setState({
+          selectedObject:e.element,
+          showPropertiesModal:true
+        })
+      }
+      setTimeout(fun, 500);
+    } else {
+      let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
+      if (edge) {
+        // this.refreshEdgeLabel(edge);
+        // this.refreshEdgeStyle(edge);
+      }
+    } 
   }
 
   projectService_addUpdatedElementListener(e: any) {
@@ -107,6 +131,9 @@ export default class MxGEditor extends Component<Props, State> {
     );
     me.props.projectService.addSelectedModelListener(
       this.projectService_addSelectedModelListener
+    );
+    me.props.projectService.addCreatedElementListener(
+      this.projectService_addCreatedElementListener
     );
     me.props.projectService.addUpdatedElementListener(
       this.projectService_addUpdatedElementListener
@@ -1081,10 +1108,14 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   callExternalFuntion(index: number): void {
-    let efunction = this.props.projectService.externalFunctions[index];
-    let query = null;
     let selectedElementsIds = MxgraphUtils.GetSelectedElementsIds(this.graph, this.currentModel);
     let selectedRelationshipsIds = MxgraphUtils.GetSelectedRelationshipsIds(this.graph, this.currentModel);
+    this.callExternalFuntionFromIndex(index, selectedElementsIds, selectedRelationshipsIds);
+  }
+
+  callExternalFuntionFromIndex(index: number, selectedElementsIds: any, selectedRelationshipsIds: any): void {
+    let efunction = this.props.projectService.externalFunctions[index];
+    let query = null;
     this.props.projectService.callExternalFuntion(efunction, query, selectedElementsIds, selectedRelationshipsIds);
   }
 
@@ -1124,8 +1155,15 @@ export default class MxGEditor extends Component<Props, State> {
     this.setState({ showPropertiesModal: true });
   }
 
-  hidePropertiesModal() {
-    this.setState({ showPropertiesModal: false })
+  hidePropertiesModal() { 
+    this.setState({ showPropertiesModal: false });
+    for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
+      const efunction = this.props.projectService.externalFunctions[i];
+      if (efunction.id == 510 || efunction.id == 511) { //todo: validar por el campo call_on_properties_changed
+        let selectedElementsIds = [this.state.selectedObject.id];
+        this.callExternalFuntionFromIndex(i, selectedElementsIds, null);
+      }
+    }
   }
 
   savePropertiesModal() {
@@ -1169,8 +1207,8 @@ export default class MxGEditor extends Component<Props, State> {
       }
     }
 
-     let left=this.state.contextMenuX + "px";
-     let top=this.state.contextMenuY + "px";
+    let left = this.state.contextMenuX + "px";
+    let top = this.state.contextMenuY + "px";
 
     return (
       <Dropdown.Menu

@@ -1,3 +1,8 @@
+export enum UserTypes {
+  Guest = "guest",
+  Registered = "registered"
+}
+
 export enum SignUpMessages {
   Welcome = 'Welcome',
   ContinueAsGuest = 'Continue as a Guest',
