@@ -38,18 +38,20 @@ class DashBoard extends Component<Props, State> {
         <ProjectManagement projectService={this.projectService} />
         {/* <NavBar projectService={this.projectService} /> */}
         <table>
-          <tr>
-            <td className="tdTreeExplorer"> 
-              <TreeExplorer projectService={this.projectService} />
-            </td>
-            <td className="tdDiagramEditor">
-              <DiagramEditor projectService={this.projectService} />
-            </td>
-            <td className="tdElements">
-              <ElementsPannel projectService={this.projectService} />
-              {/* <PropiertiesPannel projectService={this.projectService} /> */}
-            </td>
-          </tr>
+          <tbody>
+            <tr>
+              <td className="tdTreeExplorer"> 
+                <TreeExplorer projectService={this.projectService} />
+              </td>
+              <td className="tdDiagramEditor">
+                <DiagramEditor projectService={this.projectService} />
+              </td>
+              <td className="tdElements">
+                <ElementsPannel projectService={this.projectService} />
+                {/* <PropiertiesPannel projectService={this.projectService} /> */}
+              </td>
+            </tr>
+          </tbody>
         </table>
       </Layout>
     );
