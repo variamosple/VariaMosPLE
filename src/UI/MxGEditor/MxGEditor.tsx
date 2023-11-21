@@ -77,41 +77,45 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   projectService_addCreatedElementListener(e: any) {
-    let me=this;
-    let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
-    if (vertice) {
-      me.setState({
-        selectedObject:e.element 
-      })
-      let fun=function(){
-        me.setState({
-          selectedObject:e.element,
-          showPropertiesModal:true
-        })
-      }
-      setTimeout(fun, 500);
-    } else {
-      let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
-      if (edge) {
-        // this.refreshEdgeLabel(edge);
-        // this.refreshEdgeStyle(edge);
-      }
-    } 
+    // let me=this;
+    // let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
+    // if (vertice) {
+    //   me.setState({
+    //     selectedObject:e.element 
+    //   })
+    //   let fun=function(){
+    //     me.setState({
+    //       selectedObject:e.element,
+    //       showPropertiesModal:true
+    //     })
+    //   }
+    //   setTimeout(fun, 500);
+    // } else {
+    //   let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
+    //   if (edge) {
+    //     // this.refreshEdgeLabel(edge);
+    //     // this.refreshEdgeStyle(edge);
+    //   }
+    // } 
   }
 
   projectService_addUpdatedElementListener(e: any) {
-    let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
-    if (vertice) {
-      this.refreshVertexLabel(vertice);
-      this.createOverlays(e.element, vertice);
-    } else {
-      let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
-      if (edge) {
-        this.refreshEdgeLabel(edge);
-        this.refreshEdgeStyle(edge);
+    try {
+      let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
+      if (vertice) {
+        this.refreshVertexLabel(vertice);
+        this.createOverlays(e.element, vertice);
+      } else {
+        let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
+        if (edge) {
+          this.refreshEdgeLabel(edge);
+          this.refreshEdgeStyle(edge);
+        }
       }
+      this.graph.refresh();
+    } catch (error) {
+      let m=error;
     }
-    this.graph.refresh();
   }
 
   projectService_addUpdateProjectListener(e: any) {
@@ -677,7 +681,11 @@ export default class MxGEditor extends Component<Props, State> {
         "" + me.currentModel.type
       );
     let label_property = null;
-    let element = me.props.projectService.findModelElementById(me.currentModel, vertice.value.getAttribute("uid"));
+    let uid=vertice.value.getAttribute("uid");
+    let element = me.props.projectService.findModelElementById(me.currentModel, uid);
+    if(!element){
+      return;
+    }
     if (languageDefinition.concreteSyntax.elements) {
       if (languageDefinition.concreteSyntax.elements[element.type]) {
         if (languageDefinition.concreteSyntax.elements[element.type].label_fixed) {
