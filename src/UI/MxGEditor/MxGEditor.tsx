@@ -77,26 +77,26 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   projectService_addCreatedElementListener(e: any) {
-    // let me=this;
-    // let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
-    // if (vertice) {
-    //   me.setState({
-    //     selectedObject:e.element 
-    //   })
-    //   let fun=function(){
-    //     me.setState({
-    //       selectedObject:e.element,
-    //       showPropertiesModal:true
-    //     })
-    //   }
-    //   setTimeout(fun, 500);
-    // } else {
-    //   let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
-    //   if (edge) {
-    //     // this.refreshEdgeLabel(edge);
-    //     // this.refreshEdgeStyle(edge);
-    //   }
-    // } 
+    let me=this;
+    let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
+    if (vertice) {
+      me.setState({
+        selectedObject:e.element 
+      })
+      let fun=function(){
+        me.setState({
+          selectedObject:e.element,
+          showPropertiesModal:true
+        })
+      }
+      setTimeout(fun, 500);
+    } else {
+      let edge = MxgraphUtils.findEdgeById(this.graph, e.element.id, null);
+      if (edge) {
+        // this.refreshEdgeLabel(edge);
+        // this.refreshEdgeStyle(edge);
+      }
+    } 
   }
 
   projectService_addUpdatedElementListener(e: any) {
@@ -692,7 +692,7 @@ export default class MxGEditor extends Component<Props, State> {
       const p = element.properties[i];
       vertice.value.setAttribute(p.name, p.value);
     }
-    
+
     if (languageDefinition.concreteSyntax.elements) {
       if (languageDefinition.concreteSyntax.elements[element.type]) {
         if (languageDefinition.concreteSyntax.elements[element.type].label_fixed) {
