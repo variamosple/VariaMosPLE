@@ -686,6 +686,13 @@ export default class MxGEditor extends Component<Props, State> {
     if(!element){
       return;
     }
+
+    vertice.value.setAttribute("Name", element.name);
+    for (let i = 0; i < element.properties.length; i++) {
+      const p = element.properties[i];
+      vertice.value.setAttribute(p.name, p.value);
+    }
+    
     if (languageDefinition.concreteSyntax.elements) {
       if (languageDefinition.concreteSyntax.elements[element.type]) {
         if (languageDefinition.concreteSyntax.elements[element.type].label_fixed) {
@@ -708,12 +715,6 @@ export default class MxGEditor extends Component<Props, State> {
       vertice.value.setAttribute("label", element.name);
     } else {
       vertice.value.setAttribute("label", "");
-    }
-
-    vertice.value.setAttribute("Name", element.name);
-    for (let i = 0; i < element.properties.length; i++) {
-      const p = element.properties[i];
-      vertice.value.setAttribute(p.name, p.value);
     }
 
 

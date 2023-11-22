@@ -154,9 +154,9 @@ export default class MxProperties extends Component<Props, State> {
       for (let i = 0; i < this.elementDefinition.properties.length; i++) {
         const property: any = this.elementDefinition.properties[i];
         if (name === property.name) {
-          if (property.enable_properties) {
+         if (property.enable_properties) {
             this.showLinkedProperties(property.name, value);
-          }
+         }
           break;
         }
       }
