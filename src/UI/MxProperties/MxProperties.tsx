@@ -531,7 +531,7 @@ export default class MxProperties extends Component<Props, State> {
     let control: any;
     let style = null;
     if (display) {
-      style = { display: "visible" };
+      style = {  };
     } else {
       style = { display: "none" };
     }
