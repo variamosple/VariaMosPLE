@@ -1,14 +1,14 @@
 export const Config = {
-    NODE_ENV: process.env.NODE_ENV || 'development',
-    HOST: process.env.HOST || '127.0.0.1',
-    PORT: process.env.PORT || 4000,
-    VERSION: "1.23.11.22.08", 
+    VERSION: "1.23.12.03.09", 
+    NODE_ENV: process.env.REACT_APP_NODE_ENV || 'development',
+    HOST: process.env.REACT_APP_HOST || '127.0.0.1',
+    PORT: process.env.REACT_APP_PORT || 3000,
     SERVICES:{
-      urlBackEndLanguage: "https://variamos-ms-languages2024.azurewebsites.net",
-      urlBackEndLanguage2: "https://variamos-ms-languages2024.azurewebsites.net",
-      urlBackEndRestriction: "https://variamos-ms-restrictions2024.azurewebsites.net", 
-      urlVariamosDocumentation: "https://github.com/variamosple/VariaMosPLE/wiki",
-      urlVariamosLangDocumentation: "https://github.com/variamosple/VariaMosPLE/wiki/Language-definition"
+      urlBackEndLanguage: process.env.REACT_APP_URLBACKENDLANGUAGE, 
+      urlBackEndRestriction: process.env.REACT_APP_URLBACKENDRESTRICTION, 
+      urlVariamosDocumentation: process.env.REACT_APP_URLVARIAMOSDOCUMENTATION,
+      urlVariamosLanguages: process.env.REACT_APP_URLVARIAMOSLANGUAGES,
+      urlVariamosLangDocumentation: process.env.REACT_APP_URLVARIAMOSLANGDOCUMENTATION
     }
 } 
 
