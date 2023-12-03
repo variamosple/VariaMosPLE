@@ -137,19 +137,66 @@ export default class MxgraphUtils {
                         }
                     ]]>`; 
                 } else if (child.attributes['propertyname']) {
-                    let propertyName = child.attributes['propertyname'].value;
-                    child.innerHTML = `<![CDATA[ 
-                        function(shape)
-                        {
-                            return shape.state.cell.value.attributes['` + propertyName + `'].value;
+                    let propertyNames:any = this.splitToArray(child.attributes['propertyname'].value);
+                    let format:any="{0}";
+                    if (child.attributes['format']) {
+                        format=child.attributes['format'].value;
+                    }
+                    let linkedproperty:any=null;
+                    if (child.attributes['linkedproperty']) {
+                        linkedproperty=child.attributes['linkedproperty'].value;
+                    }
+                    let linkedvalue:any=null;
+                    if (child.attributes['linkedvalue']) {
+                        linkedvalue=child.attributes['linkedvalue'].value;
+                    }
+                    if (propertyNames.length==1) {
+                        child.innerHTML = `<![CDATA[ 
+                            function(shape)
+                            {
+                                return shape.state.cell.value.attributes['` + propertyNames[0] + `'].value;
+                            }
+                            ]]>`; 
+                    }else if (propertyNames.length>1) {
+                        let label=`'` + format + `'`;
+                        for (let i = 0; i < propertyNames.length; i++) {
+                            label = this.replaceAll(label, '{' + i + '}',`' + shape.state.cell.value.attributes['` + propertyNames[i] + `'].value + '`);                         
                         }
-                        ]]>`; 
+                        let script=[];
+                        script.push('');
+                        if(linkedproperty){
+                            script.push(`if (shape.state.cell.value.attributes['` + linkedproperty + `'].value == '`+ linkedvalue +`'){`);
+                            script.push(`  return ` + label);
+                            script.push('}');
+                        }else{
+                            script.push(`  return ` + label);
+                        }
+                        let str=script.join("\n");
+                        child.innerHTML = `<![CDATA[ 
+                            function(shape)
+                            {
+                               ` + str + `;
+                            }
+                            ]]>`; 
+                    }
                 }else{
                    // child.innerHTML = ``;
                 }
             }
         }
         return;
+    }
+
+    static splitToArray(value:String){
+        let array= value.split(",");
+        for (let i = 0; i < array.length; i++) {
+           array[i]=array[i].trim(); 
+        }
+        return array;
+    }
+
+    static replaceAll(string, search, replace) {
+        return string.split(search).join(replace);
     }
 
     
