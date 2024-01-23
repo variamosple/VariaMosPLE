@@ -3,7 +3,7 @@ import { Config } from "../../Config";
 import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 import { json } from "react-router-dom";
 
-export default class LanguageService {
+export default class LanguageService { 
   apiVariamos = axios.create({
     baseURL: Config.SERVICES.urlBackEndLanguage,
   });
@@ -27,7 +27,7 @@ export default class LanguageService {
     return languages;
   }
 
-  getLanguagesByUser(user: string): Language[] {
+  getLanguagesByUser(user: string): Language[] { 
     let languages: Language[] = [];
     try {
       let url = "/languagesbyuser/" + user;

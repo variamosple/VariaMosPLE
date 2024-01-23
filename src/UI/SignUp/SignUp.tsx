@@ -29,7 +29,7 @@ function SignInUp() {
     gapi.load('client:auth2', start);
   }, [])
 
-  const handleResponse = (response) => {
+  const handleResponse = (response) => { 
     const userProfile = { ...response.profileObj, userType: SignUpUserTypes.Registered };
     sessionStorage.setItem(SignUpKeys.CurrentUserProfile, JSON.stringify(userProfile));
 
@@ -57,7 +57,7 @@ function SignInUp() {
     window.location.href = SignUpURLs.Dashboard;
   }
 
-  const onSuccess = response => {
+  const onSuccess = response => {     
     const userProfile = { ...response.profileObj, userType: SignUpUserTypes.Registered };
     sessionStorage.setItem(SignUpKeys.CurrentUserProfile, JSON.stringify(userProfile));
 
