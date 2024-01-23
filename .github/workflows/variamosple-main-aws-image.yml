@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # Last updated: 20230623:22:32
 
-name: Builds and push the image  of vms_domain_application to docker.io app - AWS
+name: variamosple-main-aws-image
 
 on:
   push:
