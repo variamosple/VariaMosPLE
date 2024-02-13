@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
+import InputGroup from "react-bootstrap/InputGroup";
 import Button from "react-bootstrap/Button";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
@@ -27,6 +28,7 @@ import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import ProjectService from "../../Application/Project/ProjectService";
 import QueryResult from "./queryResult";
 import { set } from "immer/dist/internal";
+import QueryBuilder from "./queryBuilder";
 
 type QueryModalProps = {
   show: boolean;
@@ -202,6 +204,10 @@ export default function QueryModal({
                   </Button>
                 </Form.Group>
               </Form>
+            </Tab>
+            {/* New tab for constructing the query */}
+            <Tab eventKey="construct" title="Construct Query">
+              <QueryBuilder projectService={projectService} />
             </Tab>
             {/* Tab for showing the results of the query */}
             <Tab eventKey="results" title="Results" disabled={!resultsReady}>
