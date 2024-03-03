@@ -45,17 +45,12 @@ jobs:
         tags: ${{vars.ACR_DOKCERHUB}}/${{secrets.ACRUSERNAME_DOKCERHUB}}/variamosple:main
         file: ./Dockerfile
 
-    - name: Set up SSH Key
-      run: |
-        echo "${{ secrets.VARIAMOS_AWS_PEM }}" > id_rsa.pem && chmod 600 id_rsa.pem
-
     - name: Deploy changes into the server
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.AWS_HOST }}
         username: ${{ secrets.AWS_USERNAME }}
-        key: |
-          ${{ secrets.VARIAMOS_AWS_PEM }}
+        key: ${{ secrets.VARIAMOS_AWS_PEM }}
         script: |
           echo "Executing command on remote server..."
           sudo docker compose --env-file .env.aws.develop -f docker-compose-aws-develop-nginx.yml pull
