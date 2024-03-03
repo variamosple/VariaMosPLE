@@ -36,7 +36,7 @@ jobs:
         echo "REACT_APP_URLVARIAMOSLANGUAGES=${{vars.REACT_APP_URLVARIAMOSLANGUAGES}}" >> .env
         echo "REACT_APP_URLVARIAMOSDOCUMENTATION=${{vars.REACT_APP_URLVARIAMOSDOCUMENTATION}}" >> .env
         echo "REACT_APP_URLVARIAMOSLANGDOCUMENTATION=${{vars.REACT_APP_URLVARIAMOSLANGDOCUMENTATION}}" >> .env
-        
+
     - name: Build and push container image to registry
       uses: docker/build-push-action@v3
       with:
@@ -44,3 +44,17 @@ jobs:
         push: true
         tags: ${{vars.ACR_DOKCERHUB}}/${{secrets.ACRUSERNAME_DOKCERHUB}}/variamosple:main
         file: ./Dockerfile
+
+    - name: Set up SSH Key
+      run: echo "${{ secrets.VARIAMOS_AWS_PEM }}" > ~/.ssh/id_rsa.pem && chmod 600 ~/.ssh/id_rsa.pem
+
+    - name: Deploy changes into the server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        key: |
+          ${{ secrets.VARIAMOS_AWS_PEM }}
+        script: |
+          echo "Executing command on remote server..."
+          sudo docker compose --env-file .env.aws.develop -f docker-compose-aws-develop-nginx.yml pull
+          sudo docker compose --env-file .env.aws.develop -f docker-compose-aws-develop-nginx.yml up -d
