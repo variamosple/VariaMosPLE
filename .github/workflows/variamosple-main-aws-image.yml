@@ -47,7 +47,7 @@ jobs:
 
     - name: Set up SSH Key
       run: |
-        echo "${{ secrets.VARIAMOS_AWS_PEM }}" > ~/.ssh/id_rsa.pem && chmod 600 ~/.ssh/id_rsa.pem
+        echo "${{ secrets.VARIAMOS_AWS_PEM }}" > id_rsa.pem && chmod 600 id_rsa.pem
 
     - name: Deploy changes into the server
       uses: appleboy/ssh-action@master
