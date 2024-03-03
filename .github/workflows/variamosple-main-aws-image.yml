@@ -29,6 +29,15 @@ jobs:
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v2
+      env:
+        REACT_APP_NODE_ENV: ${{vars.REACT_APP_NODE_ENV}}
+        REACT_APP_HOST: ${{vars.REACT_APP_HOST}}
+        REACT_APP_PORT: ${{vars.REACT_APP_PORT}}
+        REACT_APP_URLBACKENDLANGUAGE: ${{vars.REACT_APP_URLBACKENDLANGUAGE}}
+        REACT_APP_URLBACKENDRESTRICTION: ${{vars.REACT_APP_URLBACKENDRESTRICTION}}
+        REACT_APP_URLVARIAMOSLANGUAGES: ${{vars.REACT_APP_URLVARIAMOSLANGUAGES}}
+        REACT_APP_URLVARIAMOSDOCUMENTATION: ${{vars.REACT_APP_URLVARIAMOSDOCUMENTATION}}
+        REACT_APP_URLVARIAMOSLANGDOCUMENTATION: ${{vars.REACT_APP_URLVARIAMOSLANGDOCUMENTATION}}
       with:
         context: .
         push: true
