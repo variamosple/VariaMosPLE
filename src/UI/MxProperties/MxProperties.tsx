@@ -16,6 +16,9 @@ import Button from "react-bootstrap/Button";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import "./MxProperties.css"
 import SuggestionInputReceivedEventArgs from "../SuggestionInput/SuggestionInputReceivedEventArgs";
+import CheckboxList from "../CheckboxList/CheckboxList";
+import CheckboxItem from "../CheckboxList/CheckboxItem";
+
 
 interface Props {
   projectService: ProjectService;
@@ -32,6 +35,7 @@ interface State {
   propertyComment: string;
   propertyMinCardinality: string;
   propertyMaxCardinality: string;
+  constraint: string;
   customPropertyFlag: boolean;
   customPropertyCreateFlag: boolean;
   customPropertyUpdateFlag: boolean;
@@ -59,6 +63,7 @@ export default class MxProperties extends Component<Props, State> {
       propertyComment: "",
       propertyMinCardinality: "",
       propertyMaxCardinality: "",
+      constraint: "",
       customPropertyFlag: true,
       customPropertyCreateFlag: true,
       customPropertyUpdateFlag: true,
@@ -89,6 +94,7 @@ export default class MxProperties extends Component<Props, State> {
     this.selectPossibleValuesChange = this.selectPossibleValuesChange.bind(this);
     this.selectMinCardinalityChange = this.selectMinCardinalityChange.bind(this);
     this.selectMaxCardinalityChange = this.selectMaxCardinalityChange.bind(this);
+    this.constraintChange = this.constraintChange.bind(this);
     this.customPropertySelected = this.customPropertySelected.bind(this);
 
 
@@ -127,8 +133,8 @@ export default class MxProperties extends Component<Props, State> {
       name = e.target.props["data-name"];
     }
     let value = e.target.value;
-    if(value=="Select..."){
-      value=null;
+    if (value == "Select...") {
+      value = null;
     }
     this.property_onChange(name, value);
   }
@@ -154,9 +160,9 @@ export default class MxProperties extends Component<Props, State> {
       for (let i = 0; i < this.elementDefinition.properties.length; i++) {
         const property: any = this.elementDefinition.properties[i];
         if (name === property.name) {
-         if (property.enable_properties) {
+          if (property.enable_properties) {
             this.showLinkedProperties(property.name, value);
-         }
+          }
           break;
         }
       }
@@ -168,8 +174,8 @@ export default class MxProperties extends Component<Props, State> {
     );
   }
 
-  suggestionInput_onSuggestionReceived(e:SuggestionInputReceivedEventArgs){
-    let me=this;
+  suggestionInput_onSuggestionReceived(e: SuggestionInputReceivedEventArgs) {
+    let me = this;
     let name = e.target.props["data-name"];
     for (let i = 0; i < this.currentObject.properties.length; i++) {
       const element = this.currentObject.properties[i];
@@ -177,7 +183,7 @@ export default class MxProperties extends Component<Props, State> {
         this.currentObject.properties[i].metadata = e.data;
       }
     }
-    
+
   }
 
   showLinkedProperties(propertyName: any, value: any) {
@@ -287,7 +293,8 @@ export default class MxProperties extends Component<Props, State> {
         this.state.propertyPossibleValues,
         this.state.propertyPossibleValuesLinks,
         this.state.propertyMinCardinality,
-        this.state.propertyMaxCardinality
+        this.state.propertyMaxCardinality,
+        this.state.constraint
       )
     );
 
@@ -408,6 +415,12 @@ export default class MxProperties extends Component<Props, State> {
     });
   }
 
+  constraintChange(event: any) {
+    this.setState({
+      constraint: event.target.value,
+    });
+  }
+
 
   renderProperties() {
     let ret = [];
@@ -457,7 +470,7 @@ export default class MxProperties extends Component<Props, State> {
           type: "String",
         };
         this.state.values["Name"] = this.currentObject.name;
-        ret.push(<a title="Add property" onClick={this.showAddPropertyModal}><span><img src="/images/menuIcons/add.png"></img></span></a>); 
+        ret.push(<a title="Add property" onClick={this.showAddPropertyModal}><span><img src="/images/menuIcons/add.png"></img></span></a>);
         ret.push(this.createControl(property, this.currentObject.name, true, concreteSyntaxElement));
         if (this.elementDefinition.properties) {
           for (let i = 0; i < this.elementDefinition.properties.length; i++) {
@@ -490,7 +503,8 @@ export default class MxProperties extends Component<Props, State> {
                   property.possibleValues,
                   property.possibleValuesByProductLineType,
                   property.minCardinality,
-                  property.maxCardinality
+                  property.maxCardinality,
+                  property.constraint
                 )
               );
               index = this.currentObject.properties.length - 1;
@@ -531,16 +545,16 @@ export default class MxProperties extends Component<Props, State> {
     let control: any;
     let style = null;
     if (display) {
-      style = {  };
+      style = {};
     } else {
       style = { display: "none" };
     }
     if (concreteSyntax.properties) {
       if (concreteSyntax.properties[property.name]) {
         switch (concreteSyntax.properties[property.name].display) {
-          case "None": 
+          case "None":
             style = { display: "none" };
-            break;  
+            break;
         }
       }
     }
@@ -558,23 +572,23 @@ export default class MxProperties extends Component<Props, State> {
 
     let possibleValues;
     if (property.possibleValuesLinks) {
-      if (Object.keys(property.possibleValuesLinks).length>0) {
-        if (property.possibleValuesLinks.linkType=="ProductLineType") {
-          let productLine:ProductLine= this.props.projectService.getProductLineSelected();
-          let value=productLine.type; 
+      if (Object.keys(property.possibleValuesLinks).length > 0) {
+        if (property.possibleValuesLinks.linkType == "ProductLineType") {
+          let productLine: ProductLine = this.props.projectService.getProductLineSelected();
+          let value = productLine.type;
           for (let i = 0; i < property.possibleValuesLinks.linkValues.length; i++) {
             const linkValue = property.possibleValuesLinks.linkValues[i];
-            if (linkValue.value==value) {
+            if (linkValue.value == value) {
               possibleValues = linkValue.possibleValues;
               break
             }
-          } 
+          }
         }
-      }else{
-        possibleValues=property.possibleValues;
+      } else {
+        possibleValues = property.possibleValues;
       }
-    }else{
-      possibleValues=property.possibleValues;
+    } else {
+      possibleValues = property.possibleValues;
     }
 
     switch (property.type) {
@@ -714,40 +728,63 @@ export default class MxProperties extends Component<Props, State> {
         }
 
         if (possibleValues.includes(",")) {
-          let options = [];
-          let possibleValuesList = possibleValues.split(",");
-          if(property.name!="Selected"){
-            options.push(
-              <option data-name={property.name} value={null} selected>Select...</option>
-            );
-          }
-          for (let i = 0; i < possibleValuesList.length; i++) {
-            const option = possibleValuesList[i];
-            if (option === value) {
+          if (!property.constraint) {
+            let options = [];
+            let possibleValuesList = possibleValues.split(",");
+            if (property.name != "Selected") {
               options.push(
-                <option data-name={property.name} value={option} selected>
-                  {option}
-                </option>
-              );
-            } else {
-              options.push(
-                <option data-name={property.name} value={option}>
-                  {option}
-                </option>
+                <option data-name={property.name} value={null} selected>Select...</option>
               );
             }
-          }
+            for (let i = 0; i < possibleValuesList.length; i++) {
+              const option = possibleValuesList[i];
+              if (option === value) {
+                options.push(
+                  <option data-name={property.name} value={option} selected>
+                    {option}
+                  </option>
+                );
+              } else {
+                options.push(
+                  <option data-name={property.name} value={option}>
+                    {option}
+                  </option>
+                );
+              }
+            }
 
-          control = (
-            <select
-              className="form-control form-control-sm"
-              data-name={property.name}
-              onChange={this.input_onChange}
-              title={titleToolTip}
-            >
-              {options}
-            </select>
-          );
+            control = (
+              <select
+                className="form-control form-control-sm"
+                data-name={property.name}
+                onChange={this.input_onChange}
+                title={titleToolTip}
+              >
+                {options}
+              </select>
+            );
+            break;
+          }
+          else{
+            let checkboxItems: CheckboxItem[] = [];
+            let possibleValuesList = possibleValues.split(","); 
+            for (let i = 0; i < possibleValuesList.length; i++) {
+              const option:any = possibleValuesList[i];
+              let checked=false;
+              if (Array.isArray(value)) {
+                if (value.includes(option)) {
+                  checked=true;
+                }
+              } 
+              checkboxItems.push(
+                { id:  option , label: option, checked: checked  }
+              );
+            }
+
+            control = (
+              <CheckboxList title="Multiple Checkbox List" data-name={property.name} items={checkboxItems} onChange={this.input_onChange} />
+            );
+          }
           break;
         }
         break;
@@ -805,7 +842,7 @@ export default class MxProperties extends Component<Props, State> {
   getAutoCompleteEndPoint(propertyName: any, concreteSyntax: any) {
     if (concreteSyntax.properties) {
       if (concreteSyntax.properties[propertyName]) {
-        let endPoint = concreteSyntax.properties[propertyName].autocomplete_service; 
+        let endPoint = concreteSyntax.properties[propertyName].autocomplete_service;
         return endPoint;
       }
     }
@@ -953,21 +990,23 @@ export default class MxProperties extends Component<Props, State> {
                   </div>
                 </div>
               </div>
-               {/*<br />
+              <br />
               <div className="row">
                 <div className="col-md">
                   <div>
-                    <label >Restrictions  </label>
+                    <label >Constraint  </label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Restrictions of configuration"
-                      id="customPropertyRestrictions"
+                      placeholder="Constraint of configuration"
+                      id="customPropertyConstraint"
+                      value={this.state.constraint}
+                      onChange={this.constraintChange}
                     />
                   </div>
                 </div>
-              </div> 
-              <div className="row">
+              </div>
+              {/*<div className="row">
                 <div className="col-md">
                   <div>
                     <label>Min cardinality</label>

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { getUserProfile, logoutUser } from "../../../UI/SignUp/SignUp.utils";
 import { REPOSITORY_URL } from "../../constants/constants";
 import { UserTypes } from "../../../UI/SignUp/SignUp.constants";
+import { Config } from "../../../Config";
 
 function Layout({ children }) {
   const [profile, setProfile] = useState(null);
@@ -31,7 +32,7 @@ function Layout({ children }) {
     <>
       <Navbar bg="dark" variant="dark">
         <Container fluid>
-          <Navbar.Brand href="/dashboard">
+          <Navbar.Brand href="/">
             <img
               src={VariaMosLogo}
               height="30"
@@ -41,16 +42,21 @@ function Layout({ children }) {
           </Navbar.Brand>
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
-              <Nav.Link href="https://variamos.com/home/" target="_blank">
+              <Nav.Link href="/">
                 Home
               </Nav.Link>
               <Nav.Link
-                href="https://github.com/variamosple/VariaMosPLE/wiki"
+                href={Config.SERVICES.urlVariamosDocumentation}
                 target="_blank"
               >
-                Wiki
+                Documentation
               </Nav.Link>
-              <Nav.Link href="/languages">Languages</Nav.Link>
+              <Nav.Link
+                href={Config.SERVICES.urlVariamosLanguages}
+                target="_blank"
+              >
+                Languages
+              </Nav.Link>
             </Nav>
             <Nav>
               <NavDropdown title={profile?.givenName} className="me-5 pe-5" id="nav-dropdown">
@@ -69,7 +75,7 @@ function Layout({ children }) {
                 </NavDropdown.Item>
               </NavDropdown>
             </Nav>
-            <Nav/>
+            <Nav />
           </Navbar.Collapse>
         </Container>
       </Navbar>
