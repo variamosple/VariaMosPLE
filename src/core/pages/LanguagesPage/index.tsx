@@ -1,29 +1,22 @@
-import { useState } from "react";
-import LanguageDetail from "../../components/LanguageDetail";
-import LanguageManager from "../../components/LanguageManager";
-import LanguagePageLayout from "../../components/LanguagePageLayout";
-import LanguageReview from "../../components/LanguageReview";
-import { Language } from "../../../Domain/ProductLineEngineering/Entities/Language";
+import { useEffect, useState } from "react";
+import { SignUpKeys } from "../../../UI/SignUp/SignUp.constants";
 
 export default function LanguagePage() {
-  const [language, setLanguage] = useState<Language | null>(null);
-  const [isCreatingLanguage, setCreatingLanguage] = useState(false);
-  const [requestLanguages, setRequestLanguages] = useState(false);
+  const [languageUrl, setLanguageUrl] = useState("");
+
+  useEffect(() => {
+    const currentUserProfileParam = btoa(localStorage.getItem(SignUpKeys.CurrentUserProfile));
+    const databaseUserProfileParam = btoa(localStorage.getItem(SignUpKeys.DataBaseUserProfile));
+    setLanguageUrl(`${process.env.REACT_APP_URLVARIAMOSLANGUAGES}?${SignUpKeys.CurrentUserProfile}=${currentUserProfileParam}&${SignUpKeys.DataBaseUserProfile}=${databaseUserProfileParam}`)
+  }, []);
 
   return (
-    <LanguagePageLayout>
-      <LanguageManager
-        setLanguage={setLanguage}
-        setCreatingLanguage={setCreatingLanguage}
-        requestLanguages={requestLanguages}
-        setRequestLanguages={setRequestLanguages}
-      />
-      <LanguageDetail
-        language={language}
-        isCreatingLanguage={isCreatingLanguage}
-        setRequestLanguages={setRequestLanguages}
-      />
-      <LanguageReview />
-    </LanguagePageLayout>
+    <iframe
+      src={languageUrl}
+      title="Languages Page"
+      width="100%"
+      height="100%"
+      style={{ position: "absolute" }}
+    />
   );
 }
