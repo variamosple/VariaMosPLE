@@ -52,7 +52,7 @@ function Layout({ children }) {
                 Documentation
               </Nav.Link>
               <Nav.Link
-                href={Config.SERVICES.urlVariamosLanguages}
+                href="/variamos_languages/"
                 target="_blank"
               >
                 Languages
