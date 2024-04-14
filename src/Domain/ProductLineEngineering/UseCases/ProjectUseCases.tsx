@@ -554,15 +554,15 @@ export default class ProjectUseCases {
 
   saveProject(project: Project): void {
     // Save data to sessionStorage
-    sessionStorage.setItem("Project", JSON.stringify(project));
+    //sessionStorage.setItem("Project", JSON.stringify(project));
   }
 
   deleteProject() {
     // Remove saved data from sessionStorage
-    sessionStorage.removeItem("Project");
+    //sessionStorage.removeItem("Project");
 
     // Remove all saved data from sessionStorage
-    sessionStorage.clear();
+    //sessionStorage.clear();
   }
 
   static generateId(): string {

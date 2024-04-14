@@ -23,7 +23,11 @@ class DashBoard extends Component<Props, State> {
     super(props);
   }
 
-  componentDidMount() { }
+  componentDidMount() { 
+    let project=this.projectService.createProject("My project");
+    this.projectService.createLPS(project, "My product line",  "System", "Retail");
+    this.projectService.updateProject(project, null);
+  }
 
   render() {
     const userProfile = getUserProfile();

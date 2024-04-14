@@ -36,6 +36,7 @@ jobs:
         echo "REACT_APP_URLVARIAMOSLANGUAGES=${{vars.REACT_APP_URLVARIAMOSLANGUAGES}}" >> .env
         echo "REACT_APP_URLVARIAMOSDOCUMENTATION=${{vars.REACT_APP_URLVARIAMOSDOCUMENTATION}}" >> .env
         echo "REACT_APP_URLVARIAMOSLANGDOCUMENTATION=${{vars.REACT_APP_URLVARIAMOSLANGDOCUMENTATION}}" >> .env
+        echo "REACT_APP_URLVMSPROJECTS=${{vars.REACT_APP_URLVMSPROJECTS}}" >> .env
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v3
