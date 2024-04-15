@@ -280,6 +280,7 @@ export default function NewDialog({
       return;
     }
     let project = projectService.createNewProject(projectName, productLineName, productLineType, productLineDomain);
+    projectService.setProjectInformation(null);
     projectService.updateProject(project, null);
     handleCloseCallback();
   };

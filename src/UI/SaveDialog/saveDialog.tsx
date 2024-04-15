@@ -52,7 +52,7 @@ export default function SaveDialog({
   const [savedQueries, setSavedQueries] = useState({});
   const [queryName, setQueryName] = useState("");
   const [projects, setProjects] = useState([]);
-  const [projectInformation, setProjectInformation] = useState(new ProjectInformation(null, "My project", null, false));
+  const [projectInformation, setProjectInformation] = useState(new ProjectInformation(null, null, null, false));
   const [users, setUsers] = useState(["Hugo", "Paco", "Luis"]);
 
   //Load the saved queries from the local storage on load
@@ -179,6 +179,10 @@ export default function SaveDialog({
     let projectInformation = projectService.getProjectInformation();
     if (projectInformation) {
       let p2 = JSON.parse(JSON.stringify(projectInformation));
+      setProjectInformation(p2);
+    }else{
+      let project=projectService.getProject();
+      let p2 = new ProjectInformation(null, project.name, null,  false);
       setProjectInformation(p2);
     }
     projectService.getProjectsByUser(getProjectsByUserSuccessCallback, getProjectsByUserErrorCallback);

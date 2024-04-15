@@ -97,8 +97,16 @@ export default class ProjectService {
     return this._environment;
   }
 
+  public getProject():Project{
+    return this._project;
+  } 
+
   public getProjectInformation():ProjectInformation{
     return this._projectInformation;
+  } 
+
+  public setProjectInformation(projectInformation:ProjectInformation){
+    this._projectInformation=projectInformation;
   } 
 
   public getProductLineSelected(): ProductLine {

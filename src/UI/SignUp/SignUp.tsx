@@ -48,7 +48,9 @@ function SignInUp() {
 
     setLoginProgress(SignUpMessages.Loading);
 
-    axios.post(`${Config.SERVICES.urlBackEndLanguage}${SignUpURLs.SignIn}`, {
+    let url=`${Config.SERVICES.urlBackEndLanguage}${SignUpURLs.SignIn}`;
+
+    axios.post(url, {
       email: userProfile.email,
       name: userProfile.givenName
     }).then(({ data: responseData }) => {
