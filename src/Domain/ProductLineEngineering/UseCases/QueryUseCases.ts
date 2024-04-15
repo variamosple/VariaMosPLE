@@ -47,6 +47,7 @@ export function runQuery(
     modelSelectedId: projectService.getTreeIdItemSelected(),
     transactionId: projectService.generateId(),
     project: projectService.project,
+    input: "vmos"
   };
   alertify.success("request sent ...");
   return axios
@@ -89,4 +90,11 @@ export function sanitizeConcreteSemantics(
       return slugify(element.name);
     }
   });
+}
+
+//This function extracts all the element types from the concrete semantics
+//and returns them as a list of strings
+export function hasSemantics(projectService: ProjectService) {
+  if(!projectService.currentLanguage) return false;
+  return Object.keys(projectService.currentLanguage.semantics).length !== 0 ;
 }
