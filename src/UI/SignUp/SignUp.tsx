@@ -29,46 +29,35 @@ function SignInUp() {
     gapi.load('client:auth2', start);
   }, [])
 
-  const handleResponse = (response) => { 
-    const userProfile = { ...response.profileObj, userType: SignUpUserTypes.Registered };
-    sessionStorage.setItem(SignUpKeys.CurrentUserProfile, JSON.stringify(userProfile));
-
-    setLoginProgress(SignUpMessages.Loading);
-
-    axios.post(`${Config.SERVICES.urlBackEndLanguage}${SignUpURLs.SignIn}`, {
-      email: userProfile.email,
-      name: userProfile.givenName
-    }).then(({ data: responseData }) => {
-      const { data } = responseData;
-      sessionStorage.setItem(SignUpKeys.DataBaseUserProfile, JSON.stringify(data))
-
-      if (response && response.accessToken) {
-        window.location.href = SignUpURLs.Dashboard;
-      }
-    }).catch((e) => {
-      setErrors(true);
-      setLoginProgress(SignUpMessages.LoginError);
-    })
-  };
-
   const signUpAsAGuestHandler = () => {
     const guestProfile = { email: null, givenName: 'Guest', userType: SignUpUserTypes.Guest }
-    sessionStorage.setItem(SignUpKeys.CurrentUserProfile, JSON.stringify(guestProfile))
+    const stringifiedGuestProfile = JSON.stringify(guestProfile)
+    sessionStorage.setItem(SignUpKeys.CurrentUserProfile, stringifiedGuestProfile);
+    localStorage.setItem(SignUpKeys.CurrentUserProfile, stringifiedGuestProfile); // Copying the value to LocalStorage to share it between microfrontends
+
+    sessionStorage.removeItem(SignUpKeys.DataBaseUserProfile);
+    localStorage.removeItem(SignUpKeys.DataBaseUserProfile); // Copying the value to LocalStorage to share it between microfrontends
     window.location.href = SignUpURLs.Dashboard;
   }
 
   const onSuccess = response => {     
     const userProfile = { ...response.profileObj, userType: SignUpUserTypes.Registered };
-    sessionStorage.setItem(SignUpKeys.CurrentUserProfile, JSON.stringify(userProfile));
+    const stringifiedUserProfile = JSON.stringify(userProfile);
+    sessionStorage.setItem(SignUpKeys.CurrentUserProfile, stringifiedUserProfile);
+    localStorage.setItem(SignUpKeys.CurrentUserProfile, stringifiedUserProfile); // Copying the value to LocalStorage to share it between microfrontends
 
     setLoginProgress(SignUpMessages.Loading);
 
-    axios.post(`${Config.SERVICES.urlBackEndLanguage}${SignUpURLs.SignIn}`, {
+    let url=`${Config.SERVICES.urlBackEndLanguage}${SignUpURLs.SignIn}`;
+
+    axios.post(url, {
       email: userProfile.email,
       name: userProfile.givenName
     }).then(({ data: responseData }) => {
       const { data } = responseData;
-      sessionStorage.setItem(SignUpKeys.DataBaseUserProfile, JSON.stringify(data))
+      const stringifiedData = JSON.stringify(data);
+      sessionStorage.setItem(SignUpKeys.DataBaseUserProfile, stringifiedData)
+      localStorage.setItem(SignUpKeys.DataBaseUserProfile, stringifiedData) // Copying the value to LocalStorage to share it between microfrontends
 
       if (response && response.accessToken) {
         window.location.href = SignUpURLs.Dashboard;
@@ -81,10 +70,6 @@ function SignInUp() {
 
   const onFailure = response => {
     console.log('FAILED', response);
-  };
-
-  const onLogoutSuccess = () => {
-    console.log('SUCESS LOG OUT');
   };
 
   return (

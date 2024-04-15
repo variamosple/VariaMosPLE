@@ -22,3 +22,19 @@ td {
   width: 8vw; 
   max-width: 8vw;   
 }
+
+
+.link-project {
+  color:black;   
+}
+
+.link-project:hover {
+  color:black; 
+  text-decoration: underline !important;  
+}
+
+.div-container-projects {
+  height: 35vh;
+  max-height: 35vh;
+  overflow: auto;
+}

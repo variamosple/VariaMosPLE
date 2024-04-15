@@ -27,10 +27,32 @@ jobs:
         username: ${{secrets.ACRUSERNAME_DOKCERHUB}}
         password: ${{secrets.ACRUSERPASSWORD_DOKCERHUB}}
 
+    - name: Set Environment Variables
+      run: |
+        echo "REACT_APP_NODE_ENV=${{vars.REACT_APP_NODE_ENV}}" >> .env
+        echo "REACT_APP_HOST=${{vars.REACT_APP_HOST}}" >> .env
+        echo "REACT_APP_URLBACKENDLANGUAGE=${{vars.REACT_APP_URLBACKENDLANGUAGE}}" >> .env
+        echo "REACT_APP_URLBACKENDRESTRICTION=${{vars.REACT_APP_URLBACKENDRESTRICTION}}" >> .env
+        echo "REACT_APP_URLVARIAMOSLANGUAGES=${{vars.REACT_APP_URLVARIAMOSLANGUAGES}}" >> .env
+        echo "REACT_APP_URLVARIAMOSDOCUMENTATION=${{vars.REACT_APP_URLVARIAMOSDOCUMENTATION}}" >> .env
+        echo "REACT_APP_URLVARIAMOSLANGDOCUMENTATION=${{vars.REACT_APP_URLVARIAMOSLANGDOCUMENTATION}}" >> .env
+        echo "REACT_APP_URLVMSPROJECTS=${{vars.REACT_APP_URLVMSPROJECTS}}" >> .env
+
     - name: Build and push container image to registry
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
         push: true
         tags: ${{vars.ACR_DOKCERHUB}}/${{secrets.ACRUSERNAME_DOKCERHUB}}/variamosple:main
         file: ./Dockerfile
+
+    - name: Deploy changes into the server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.AWS_HOST }}
+        username: ${{ secrets.AWS_USERNAME }}
+        key: ${{ secrets.VARIAMOS_AWS_PEM }}
+        script: |
+          echo "Executing command on remote server..."
+          sudo docker compose --env-file .env.aws.develop -f docker-compose-aws-develop-nginx.yml pull
+          sudo docker compose --env-file .env.aws.develop -f docker-compose-aws-develop-nginx.yml up -d

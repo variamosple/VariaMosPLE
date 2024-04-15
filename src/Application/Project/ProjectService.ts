@@ -1,3 +1,5 @@
+
+import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
 import { Adaptation } from "../../Domain/ProductLineEngineering/Entities/Adaptation";
 import { Application } from "../../Domain/ProductLineEngineering/Entities/Application";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
@@ -27,6 +29,7 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/RestrictionsUseCases";
 import ProjectUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
+import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectPersistenceUseCases";
 import { isJSDocThisTag } from "typescript";
 import * as alertify from "alertifyjs";
 import { Buffer } from "buffer";
@@ -35,6 +38,7 @@ export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
   private languageUseCases: LanguageUseCases = new LanguageUseCases();
+  private projectPersistenceUseCases: ProjectPersistenceUseCases = new ProjectPersistenceUseCases();
   private restrictionsUseCases: RestrictionsUseCases =
     new RestrictionsUseCases();
 
@@ -50,6 +54,7 @@ export default class ProjectService {
   private _languages: any = this.getLanguagesByUser();
   private _externalFunctions: ExternalFuntion[] = [];
   private _project: Project = this.createProject("");
+  private _projectInformation: ProjectInformation;
   private treeItemSelected: string = "";
   private treeIdItemSelected: string = "";
   private productLineSelected: number = 0;
@@ -91,6 +96,18 @@ export default class ProjectService {
   public get environment(): string {
     return this._environment;
   }
+
+  public getProject():Project{
+    return this._project;
+  } 
+
+  public getProjectInformation():ProjectInformation{
+    return this._projectInformation;
+  } 
+
+  public setProjectInformation(projectInformation:ProjectInformation){
+    this._projectInformation=projectInformation;
+  } 
 
   public getProductLineSelected(): ProductLine {
     let i = this.productLineSelected;
@@ -428,17 +445,26 @@ export default class ProjectService {
   }
 
   getUser() {
-    let userId = "0";
+    let userId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     let databaseUserProfile = sessionStorage.getItem("databaseUserProfile");
     if (databaseUserProfile) {
       let data = JSON.parse(databaseUserProfile);
       userId = data.user.id;
     }
-    if (!userId) {
-      userId = "0";
+    if (userId=="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") { 
+       //userId="21cd2d82-1bbc-43e9-898a-d5a45abdeced"; 
     }
-    //userId="21cd2d82-1bbc-43e9-898a-d5a45abdeceda"; 
     return userId;
+  }
+
+  isGuessUser() {
+    let userId=this.getUser();
+    let guessUserId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    if (userId==guessUserId) {
+      return true;
+    }else{
+      return false;
+    } 
   }
 
   getLanguagesByUser(): Language[] {
@@ -579,6 +605,12 @@ export default class ProjectService {
     this._project = value;
   }
 
+  createNewProject(projectName:string, productLineName: string, type: string, domain: string) { 
+    let project = this.projectManager.createProject(projectName);
+    this.createLPS(project, productLineName,  type, domain);
+    return project;
+  }
+
   createProject(projectName: string): Project {
     let project = this.projectManager.createProject(projectName);
     project = this.loadProject(project);
@@ -593,6 +625,7 @@ export default class ProjectService {
     console.log(file);
     if (file) {
       this._project = Object.assign(this._project, JSON.parse(file));
+      this._projectInformation=new ProjectInformation(null, this._project.name, null, false);
     }
     this.raiseEventUpdateProject(this._project, null);
   }
@@ -605,13 +638,61 @@ export default class ProjectService {
   }
 
   loadProject(project: Project): Project {
-    let projectSessionStorage = sessionStorage.getItem("Project");
-    if (projectSessionStorage) {
-      project = Object.assign(project, JSON.parse(projectSessionStorage));
-    }
+    // let projectSessionStorage = sessionStorage.getItem("Project");
+    // if (projectSessionStorage) {
+    //   project = Object.assign(project, JSON.parse(projectSessionStorage));
+    // }
 
     return project;
   }
+
+  openProjectInServer(projectId:string, template:boolean): void {
+    let me=this;
+    let user = this.getUser();
+ 
+    let openProjectInServerSuccessCallback =  (projectInformation: ProjectInformation )=> { 
+      me._project = projectInformation.project ;
+      me._projectInformation = projectInformation; 
+      if (template) {
+        me._projectInformation.id=null;
+        me._projectInformation.template=false;
+      }
+      me.raiseEventUpdateProject(me._project, null);
+    }
+  
+    let openProjectInServerErrorCallback =  (e) => {
+      alert(JSON.stringify(e));
+    }
+
+    this.projectPersistenceUseCases.openProject(user, projectId, openProjectInServerSuccessCallback, openProjectInServerErrorCallback);
+  } 
+
+  saveProjectInServer(projectInformation:ProjectInformation, successCallback:any, errorCallback: any): void {
+    let me=this;
+    let user = this.getUser();
+    projectInformation.project=this._project;
+
+    let sc =(e)=>{
+       me._projectInformation=e;
+       if (successCallback) {
+        successCallback(e);
+       }
+    }  
+    this.projectPersistenceUseCases.saveProject(user, projectInformation, sc, errorCallback);
+  }
+
+  deleteProjectInServer(projectInformation:ProjectInformation, successCallback:any, errorCallback: any): void {
+    let me=this;
+    let user = this.getUser(); 
+
+    let sc =(e)=>{
+       me._projectInformation=e;
+       if (successCallback) {
+        successCallback(e);
+       }
+    }  
+    this.projectPersistenceUseCases.deleteProject(user, projectInformation, sc, errorCallback);
+  } 
 
   saveProject(): void {
     this.projectManager.saveProject(this._project);
@@ -623,7 +704,7 @@ export default class ProjectService {
   }
 
   exportProject() {
-    this.utils.downloadFile(this._project.id + ".json", this._project);
+    this.utils.downloadFile(this._project.name + ".json", this._project);
   }
 
   deleteItemProject() {
@@ -1187,5 +1268,15 @@ export default class ProjectService {
       } 
     }
     return this.generateId();
+  }
+
+  getProjectsByUser(successCallback:any, errorCallback: any) {
+    let user = this.getUser();
+    this.projectPersistenceUseCases.getProjectsByUser(user, successCallback, errorCallback);
+  }
+
+  getTemplateProjects(successCallback:any, errorCallback: any) {
+    let user = this.getUser();
+    this.projectPersistenceUseCases.getTemplateProjects(user, successCallback, errorCallback);
   }
 }
