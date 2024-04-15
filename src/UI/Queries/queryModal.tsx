@@ -24,6 +24,8 @@ import {
   syncConcreteSemantics,
   syncSemantics,
   hasSemantics,
+  setModelConstraints,
+  getCurrentConstraints,
 } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
 import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import ProjectService from "../../Application/Project/ProjectService";
@@ -61,7 +63,17 @@ export default function QueryModal({
   //Handle changes on the model's arbitrary constraints
   useEffect(() => {
     console.log("Arbitrary constraints changed", arbitraryConstraints);
-  }, [arbitraryConstraints]);
+    setModelConstraints(projectService ,arbitraryConstraints);
+  }, [projectService, arbitraryConstraints]);
+
+  //Load constraints on model change
+  useEffect(() => {
+    if(show){
+      const constraints = getCurrentConstraints(projectService);
+      setArbitraryConstraints(constraints);
+      console.log("Loading model constraints");
+    }
+  }, [projectService, show]);
 
   //Load the saved queries from the local storage on load
   useEffect(() => {

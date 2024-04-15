@@ -98,3 +98,32 @@ export function hasSemantics(projectService: ProjectService) {
   if(!projectService.currentLanguage) return false;
   return Object.keys(projectService.currentLanguage.semantics).length !== 0 ;
 }
+
+export function getCurrentConstraints(projectService: ProjectService){
+  if(projectService.currentLanguage){
+    const modelSelectedId = projectService.getTreeIdItemSelected();
+    const activeModel = projectService.findModelById(projectService.getProject(), modelSelectedId);
+    if(activeModel){
+      return activeModel.constraints;
+    } else {
+      console.warn("No model selected");
+    }
+  } else {
+    console.warn("No currently active language");
+  }
+  return "";
+}
+
+export function setModelConstraints(projectService: ProjectService, constraints: string){
+  if(projectService.currentLanguage){
+    const modelSelectedId = projectService.getTreeIdItemSelected();
+    const activeModel = projectService.findModelById(projectService.getProject(),modelSelectedId);
+    if(activeModel){
+      activeModel.constraints = constraints;
+    } else {
+      console.warn("No model selected")
+    }
+  } else {
+    console.warn("No currently active language")
+  }
+}
