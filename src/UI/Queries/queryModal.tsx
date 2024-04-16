@@ -45,7 +45,7 @@ export default function QueryModal({
 }: QueryModalProps) {
   const [key, setKey] = useState("query");
   const [translatorEndpoint, setTranslatorEndpoint] = useState(
-    "http://localhost:5000/query"
+    "https://app.variamos.com/semantic_translator"
   );
   const [query, setQuery] = useState("");
   const [queryInProgress, setQueryInProgress] = useState(false);
@@ -62,7 +62,7 @@ export default function QueryModal({
 
   //Handle changes on the model's arbitrary constraints
   useEffect(() => {
-    console.log("Arbitrary constraints changed", arbitraryConstraints);
+    console.log("Arbitrary constraints changed");
     setModelConstraints(projectService ,arbitraryConstraints);
   }, [projectService, arbitraryConstraints]);
 

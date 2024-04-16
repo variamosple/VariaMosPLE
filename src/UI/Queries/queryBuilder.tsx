@@ -214,6 +214,7 @@ export default function QueryBuilder({
       query["operation_n"] = numberOfSolutions;
     }
     if (queryType === QueryType.ITERATIVE_CHECK) {
+      query["operation"] = QueryType.SAT;
       query["iterate_over"] = iterationSpec;
     }
     console.log(query);
