@@ -405,9 +405,7 @@ export default function QueryBuilder({
           {/* This part will exist if we are adding a new iteration specification */}
           {addingNewIteration && (
             <>
-              <Form.Label>
-                What type of element will you iterate over?
-              </Form.Label>
+              <div><Form.Label>What type of element will you iterate over?</Form.Label></div>
               <div>
                 <Form.Check
                   type="radio"
