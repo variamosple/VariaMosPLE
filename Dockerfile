@@ -17,7 +17,7 @@ RUN npm ci
 
 # copy source code to /variamos/src folder
 COPY ./ . 
-
+COPY .env ./ 
 # compile
 RUN npm run build
 

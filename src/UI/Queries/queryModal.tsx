@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
+import InputGroup from "react-bootstrap/InputGroup";
 import Button from "react-bootstrap/Button";
 import Tab from "react-bootstrap/Tab";
 import Tabs from "react-bootstrap/Tabs";
@@ -22,11 +23,14 @@ import {
   sanitizeConcreteSemantics,
   syncConcreteSemantics,
   syncSemantics,
+  hasSemantics,
+  setModelConstraints,
+  getCurrentConstraints,
 } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
 import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import ProjectService from "../../Application/Project/ProjectService";
 import QueryResult from "./queryResult";
-import { set } from "immer/dist/internal";
+import QueryBuilder from "./queryBuilder";
 
 type QueryModalProps = {
   show: boolean;
@@ -41,7 +45,7 @@ export default function QueryModal({
 }: QueryModalProps) {
   const [key, setKey] = useState("query");
   const [translatorEndpoint, setTranslatorEndpoint] = useState(
-    "http://localhost:5000/query"
+    "https://app.variamos.com/semantic_translator"
   );
   const [query, setQuery] = useState("");
   const [queryInProgress, setQueryInProgress] = useState(false);
@@ -54,6 +58,22 @@ export default function QueryModal({
   const [semanticsReady, setSemanticsReady] = useState(false);
   const [savedQueries, setSavedQueries] = useState({});
   const [queryName, setQueryName] = useState("");
+  const [arbitraryConstraints, setArbitraryConstraints] = useState("");
+
+  //Handle changes on the model's arbitrary constraints
+  useEffect(() => {
+    console.log("Arbitrary constraints changed");
+    setModelConstraints(projectService ,arbitraryConstraints);
+  }, [projectService, arbitraryConstraints]);
+
+  //Load constraints on model change
+  useEffect(() => {
+    if(show){
+      const constraints = getCurrentConstraints(projectService);
+      setArbitraryConstraints(constraints);
+      console.log("Loading model constraints");
+    }
+  }, [projectService, show]);
 
   //Load the saved queries from the local storage on load
   useEffect(() => {
@@ -126,9 +146,13 @@ export default function QueryModal({
     );
     console.log("Result", result);
     //Populate the results tab
-    if (result || (["sat", "solve", "nsolve"].includes(query_object.operation) && result === false)) {
-      console.log("Populating results tab with ", result)
-      console.log("Query object", query_object)
+    if (
+      result ||
+      (["sat", "solve", "nsolve"].includes(query_object.operation) &&
+        result === false)
+    ) {
+      console.log("Populating results tab with ", result);
+      console.log("Query object", query_object);
       populateResultsTab(result);
       setResultsReady(true);
     }
@@ -167,6 +191,25 @@ export default function QueryModal({
             id="controlled-tab-example"
             onSelect={(k) => setKey(k)}
           >
+            {/* Tab for setting the arbitrary constraints */}
+            <Tab eventKey="constraints" title="Constraints">
+              <Editor
+                value={arbitraryConstraints}
+                onValueChange={setArbitraryConstraints}
+                highlight={(arbitraryConstraints) => highlight(arbitraryConstraints, languages.lisp, "lisp")}
+                padding={10}
+                className="editor"
+                style={{
+                  fontFamily: '"Fira code", "Fira Mono", monospace',
+                  fontSize: 18,
+                  backgroundColor: "#1e1e1e",
+                  caretColor: "gray",
+                  color: "gray",
+                  borderRadius: "10px",
+                  overflow: "auto",
+                }}
+              />
+            </Tab>
             {/* Main tab for sending the query */}
             <Tab eventKey="query" title="Query">
               <Form>
@@ -202,6 +245,20 @@ export default function QueryModal({
                   </Button>
                 </Form.Group>
               </Form>
+            </Tab>
+            {/* New tab for constructing the query */}
+            <Tab eventKey="construct" title="Construct Query">
+              {hasSemantics(projectService) ? (
+                <QueryBuilder
+                  projectService={projectService}
+                  setQuery={setQuery}
+                  setKey={setKey}
+                />
+              ) : (
+                <p className="my-2">
+                  There are no semantics for the current language
+                </p>
+              )}
             </Tab>
             {/* Tab for showing the results of the query */}
             <Tab eventKey="results" title="Results" disabled={!resultsReady}>
