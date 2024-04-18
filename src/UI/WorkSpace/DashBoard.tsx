@@ -25,7 +25,9 @@ class DashBoard extends Component<Props, State> {
 
   componentDidMount() { 
     let project=this.projectService.createProject("My project");
-    this.projectService.createLPS(project, "My product line",  "System", "Retail");
+    if (project.productLines.length==0) {
+      this.projectService.createLPS(project, "My product line",  "System", "Retail");
+    }
     this.projectService.updateProject(project, null);
   }
 

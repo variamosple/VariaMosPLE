@@ -559,10 +559,10 @@ export default class ProjectUseCases {
 
   deleteProject() {
     // Remove saved data from sessionStorage
-    //sessionStorage.removeItem("Project");
+    sessionStorage.removeItem("Project");
 
     // Remove all saved data from sessionStorage
-    //sessionStorage.clear();
+    sessionStorage.clear();
   }
 
   static generateId(): string {
