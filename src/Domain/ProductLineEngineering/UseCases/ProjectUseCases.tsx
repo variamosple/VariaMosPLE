@@ -554,7 +554,7 @@ export default class ProjectUseCases {
 
   saveProject(project: Project): void {
     // Save data to sessionStorage
-    //sessionStorage.setItem("Project", JSON.stringify(project));
+    sessionStorage.setItem("Project", JSON.stringify(project));
   }
 
   deleteProject() {

@@ -638,10 +638,10 @@ export default class ProjectService {
   }
 
   loadProject(project: Project): Project {
-    // let projectSessionStorage = sessionStorage.getItem("Project");
-    // if (projectSessionStorage) {
-    //   project = Object.assign(project, JSON.parse(projectSessionStorage));
-    // }
+    let projectSessionStorage = sessionStorage.getItem("Project");
+    if (projectSessionStorage) {
+      project = Object.assign(project, JSON.parse(projectSessionStorage));
+    }
 
     return project;
   }
