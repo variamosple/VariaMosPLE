@@ -45,5 +45,5 @@ export const slugify = (...args: (string | number)[]): string => {
       .toUpperCase() // make it all upper case
       .trim()
       .replace(/[^A-Z0-9 ]/g, '') // remove all chars not letters, numbers and spaces (to be replaced)
-      .replace(/\s+/g, '-') // separator
+      .replace(/\s+/g, '_') // separator
 }

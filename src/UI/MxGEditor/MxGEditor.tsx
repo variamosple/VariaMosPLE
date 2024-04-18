@@ -1233,7 +1233,6 @@ export default class MxGEditor extends Component<Props, State> {
       <div ref={this.containerRef} className="MxGEditor">
         <div className="header">
           <a title="Edit properties" onClick={this.showPropertiesModal}><span><img src="/images/editor/properties.png"></img></span></a>{" "}
-          <a title="Edit constraints" onClick={this.showConstraintModal}><span><img src="/images/editor/constraints.png"></img></span></a>{" "}
           <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><span><img src="/images/editor/zoomIn.png"></img></span></a>{" "}
           <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><span><img src="/images/editor/zoomOut.png"></img></span></a>
           {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
@@ -1241,46 +1240,6 @@ export default class MxGEditor extends Component<Props, State> {
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
         <div>
-          <Modal
-            show={this.state.showConstraintModal}
-            onHide={this.hideConstraintModal}
-            size="lg"
-            centered
-          >
-            <Modal.Header closeButton>
-              <Modal.Title>
-                Add arbitrary constraints for your model
-              </Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-              <textarea
-                style={{ width: "100%", height: "400px" }}
-                value={this.state.currentModelConstraints}
-                onChange={e => this.setState({ currentModelConstraints: e.target.value })}
-              />
-            </Modal.Body>
-            <Modal.Footer>
-              <Button
-                variant="secondary"
-                onClick={this.hideConstraintModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={this.saveConstraints}
-              >
-                Save Constraints
-              </Button>
-              <Button
-                variant="primary"
-                onClick={this.hideConstraintModal}
-              >
-                Validate Constraints
-              </Button>
-            </Modal.Footer>
-          </Modal>
-
           <Modal
             show={this.state.showPropertiesModal}
             onHide={this.hidePropertiesModal}
