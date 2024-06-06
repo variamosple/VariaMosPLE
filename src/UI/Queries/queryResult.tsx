@@ -136,9 +136,9 @@ export default function QueryResult({
           Solution {index}
         </ListGroup.Item>
         {Array.isArray(visibleResults) && (
-          <ListGroup.Item className="flex-fill d-flex align-items-center justify-content-center">
+          <ListGroup.Item className="flex-fill d-flex align-items-center justify-content-center" style={{ overflow: "hidden" }}>
             {visibleResults.length > 0 && !isIterationResult(visibleResults) ? (
-              <Pagination>
+              <Pagination style={{ overflow: "auto" }}>
                 {visibleResults.map((_, idx) => (
                   <Pagination.Item
                     key={idx}
