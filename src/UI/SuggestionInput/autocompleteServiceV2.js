@@ -351,7 +351,7 @@ function ObjectInSentence(obj, sentence) {
 //Application security requirements
 async function securityRequirementsSuggest(req) {
     console.log(req.input)
-    await getAllDomains();
+    await this.getAllDomains();
     var words = req.input.trim().split(" ");
     var sentence = req.input.trim();
     var domain = req.domain.trim();
