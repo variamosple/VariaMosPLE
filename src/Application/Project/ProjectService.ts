@@ -33,6 +33,7 @@ import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseC
 import { isJSDocThisTag } from "typescript";
 import * as alertify from "alertifyjs";
 import { Buffer } from "buffer";
+import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
 
 export default class ProjectService {
   private graph: any;
@@ -452,7 +453,7 @@ export default class ProjectService {
       userId = data.user.id;
     }
     if (userId=="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") { 
-       //userId="21cd2d82-1bbc-43e9-898a-d5a45abdeced"; 
+       userId="21cd2d82-1bbc-43e9-898a-d5a45abdeced"; 
     }
     return userId;
   }
@@ -693,6 +694,26 @@ export default class ProjectService {
     }  
     this.projectPersistenceUseCases.deleteProject(user, projectInformation, sc, errorCallback);
   } 
+
+  saveConfigurationInServer(configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any): void {
+    let me=this;
+    let user = this.getUser();
+
+    let projectInformation = this.getProjectInformation();
+    if (!projectInformation) {
+      return;
+    } 
+    
+    configurationInformation.id_feature_model=this.treeIdItemSelected;
+    configurationInformation.project_json=this._project;
+
+    let sc =(e)=>{ 
+       if (successCallback) {
+        successCallback(e);
+       }
+    }  
+    this.projectPersistenceUseCases.addConfiguration(user, projectInformation, configurationInformation, sc, errorCallback);
+  }
 
   saveProject(): void {
     this.projectManager.saveProject(this._project);

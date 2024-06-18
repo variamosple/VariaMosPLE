@@ -53,8 +53,7 @@ class DashBoard extends Component<Props, State> {
                 <DiagramEditor projectService={this.projectService} />
               </td>
               <td className="tdElements">
-                <ElementsPannel projectService={this.projectService} />
-                {/* <PropiertiesPannel projectService={this.projectService} /> */}
+                <ElementsPannel projectService={this.projectService} /> 
               </td>
             </tr>
           </tbody>

@@ -3,6 +3,7 @@ import { Config } from "../../Config";
 import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import { json } from "react-router-dom";
+import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
 
 export default class ProjectPersistenceService { 
   apiVariamos = axios.create({
@@ -227,6 +228,47 @@ export default class ProjectPersistenceService {
         let record=responseAPISuccess.data["project"];
         successCallback(record);
       });
+    } catch (error) {
+      console.log("Something wrong in getLanguageDetail Service: " + error);
+    }
+  }
+
+  addConfiguration(user:string,projectInformation:ProjectInformation, configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any): void {
+    let me=this; 
+    let success=(token)=>{
+      me.addConfigurationByToken(token,projectInformation, configurationInformation,  successCallback, errorCallback);
+    }
+    this.getTokenByUser(user,success, errorCallback );
+  }
+
+  addConfigurationByToken(token:string, projectInformation:ProjectInformation,  configurationInformation:ConfigurationInformation,  successCallback:any, errorCallback: any): void {
+    try { 
+      let me=this;
+      let data=configurationInformation;
+      const config = {
+        baseURL: Config.SERVICES.urlBackEndProjectPersistence + "/addConfiguration?project_id=" + projectInformation.id,
+        method: "POST" as Method, 
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        data: data
+      }; 
+      axios(config).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data); 
+        if (responseAPISuccess.message?.includes("Error")){
+          throw new Error(JSON.stringify(res.data));
+        }
+        if(successCallback){ 
+          successCallback(configurationInformation);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error); 
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });;
     } catch (error) {
       console.log("Something wrong in getLanguageDetail Service: " + error);
     }

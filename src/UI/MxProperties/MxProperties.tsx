@@ -19,6 +19,9 @@ import SuggestionInputReceivedEventArgs from "../SuggestionInput/SuggestionInput
 import CheckboxList from "../CheckboxList/CheckboxList";
 import CheckboxItem from "../CheckboxList/CheckboxItem";
 
+import { MdEdit } from "react-icons/md";
+import { FaTrashAlt } from "react-icons/fa";
+import { MdAddCircle } from "react-icons/md";
 
 interface Props {
   projectService: ProjectService;
@@ -41,6 +44,7 @@ interface State {
   customPropertyUpdateFlag: boolean;
   currentCustomProperty: any;
   showAddPropertyModal: boolean;
+  titleProperyModal: string;
 }
 
 export default class MxProperties extends Component<Props, State> {
@@ -68,7 +72,8 @@ export default class MxProperties extends Component<Props, State> {
       customPropertyCreateFlag: true,
       customPropertyUpdateFlag: true,
       currentCustomProperty: {},
-      showAddPropertyModal: false
+      showAddPropertyModal: false,
+      titleProperyModal:"Add property"
     };
 
     this.projectService_addNewProductLineListener =
@@ -470,7 +475,7 @@ export default class MxProperties extends Component<Props, State> {
           type: "String",
         };
         this.state.values["Name"] = this.currentObject.name;
-        ret.push(<a title="Add property" onClick={this.showAddPropertyModal}><span><img src="/images/menuIcons/add.png"></img></span></a>);
+        ret.push(<a title="Add property" onClick={this.showAddPropertyModal}><span><MdAddCircle /></span></a>);
         ret.push(this.createControl(property, this.currentObject.name, true, concreteSyntaxElement));
         if (this.elementDefinition.properties) {
           for (let i = 0; i < this.elementDefinition.properties.length; i++) {
@@ -727,13 +732,13 @@ export default class MxProperties extends Component<Props, State> {
           break;
         }
 
-        if (possibleValues.includes(",")) {
+        if (possibleValues.includes(",") || possibleValues.includes(";")) {
           if (!property.constraint) {
-            let options = [];
-            let possibleValuesList = possibleValues.split(",");
+            let options = []; 
+            let possibleValuesList = this.getListFromString( possibleValues ); 
             if (property.name != "Selected") {
               options.push(
-                <option data-name={property.name} value={null} selected>Select...</option>
+                <option data-name={property.name} value={"Undefined"} selected>Undefined</option>
               );
             }
             for (let i = 0; i < possibleValuesList.length; i++) {
@@ -767,7 +772,10 @@ export default class MxProperties extends Component<Props, State> {
           }
           else{
             let checkboxItems: CheckboxItem[] = [];
-            let possibleValuesList = possibleValues.split(","); 
+            checkboxItems.push(
+              { id:  "Undefined" , label: "Undefined", checked: false  }
+            ); 
+            let possibleValuesList = this.getListFromString(possibleValues); 
             for (let i = 0; i < possibleValuesList.length; i++) {
               const option:any = possibleValuesList[i];
               let checked=false;
@@ -827,16 +835,41 @@ export default class MxProperties extends Component<Props, State> {
         );
         break;
     }
+    let editionControl=null;
+    if (property.custom){
+      editionControl=(
+        <> 
+          <a title="Edit property" onClick={this.showAddPropertyModal}><span><MdEdit /></span></a>
+          <a title="Delete property" onClick={this.showAddPropertyModal}><span><FaTrashAlt /></span></a> 
+        </>
+      )
+    }
+
     return (
       <div className="row" style={style}>
         <div className="col-md-3">
-          <label title={titleToolTip}>{property.name}</label>
+          <label title={titleToolTip}>{property.name}</label>   {" "}
+          {editionControl}
         </div>
         <div className="col-md-9">
           {control}
         </div>
       </div>
     );
+  }
+
+
+  createCheckBoxList(options){
+
+  }
+
+  getListFromString(text:string){
+    text=text.replace(/;/g, ',');
+    let list = text.split(","); 
+    for (let i = 0; i < list.length; i++) {
+     list[i]=list[i].trim(); 
+    }
+    return list;
   }
 
   getAutoCompleteEndPoint(propertyName: any, concreteSyntax: any) {
@@ -933,7 +966,7 @@ export default class MxProperties extends Component<Props, State> {
         <Modal show={this.state.showAddPropertyModal} onHide={this.hideAddPropertyModal} size="lg" centered>
           <Modal.Header closeButton>
             <Modal.Title>
-              New property
+            {this.state.titleProperyModal}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>

@@ -8,6 +8,8 @@ import Button from "react-bootstrap/Button";
 import { Dropdown, DropdownButton } from 'react-bootstrap';
 import "./TreeMenu.css";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
+import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
+import ConfigurationManagement from "../ConfigurationManagement/configurationManagement";
 
 interface Props {
   projectService: ProjectService;
@@ -44,7 +46,10 @@ interface State {
   showEditorTextModal: boolean,
   showQueryModal: boolean,
   showDeleteModal: boolean,
-  newModelLanguage?:Language
+  newModelLanguage?: Language,
+  showSaveConfigurationModal: boolean,
+  configurationName: string,
+  showConfigurationManagementModal: boolean
 }
 
 class TreeMenu extends Component<Props, State> {
@@ -76,11 +81,14 @@ class TreeMenu extends Component<Props, State> {
     showEditorTextModal: false,
     showQueryModal: false,
     showDeleteModal: false,
-    newModelLanguage:null
+    newModelLanguage: null,
+    showSaveConfigurationModal: false,
+    configurationName: "Configuration 1",
+    showConfigurationManagementModal: false
   };
 
   constructor(props: any) {
-    super(props); 
+    super(props);
 
 
     this.addNewProductLine = this.addNewProductLine.bind(this);
@@ -107,6 +115,8 @@ class TreeMenu extends Component<Props, State> {
     this.viewMenuTree_addListener = this.viewMenuTree_addListener.bind(this);
     this.deleteItemProject = this.deleteItemProject.bind(this);
     this.renameItemProject = this.renameItemProject.bind(this);
+    this.saveConfiguration = this.saveConfiguration.bind(this);
+    this.showSaveConfigurationModal = this.showSaveConfigurationModal.bind(this);
     this.onEnterModal = this.onEnterModal.bind(this);
     this.callExternalFuntion = this.callExternalFuntion.bind(this);
 
@@ -195,6 +205,24 @@ class TreeMenu extends Component<Props, State> {
     this.setState({ showDeleteModal: false })
   }
 
+  showSaveConfigurationModal() {
+    this.hideContextMenu();
+    this.setState({ showSaveConfigurationModal: true })
+  }
+
+  hideSaveConfigurationModal() {
+    this.setState({ showSaveConfigurationModal: false })
+  }
+
+  showConfigurationManagementModal() {
+    this.hideContextMenu();
+    this.setState({ showConfigurationManagementModal: true })
+  }
+
+  hideConfigurationManagementModal() {
+    this.setState({ showConfigurationManagementModal: false })
+  }
+
   saveProperties() {
     let me = this;
     let pl: ProductLine = me.props.projectService.getProductLineSelected();
@@ -215,6 +243,21 @@ class TreeMenu extends Component<Props, State> {
   deleteItemProject() {
     this.hideDeleteModal();
     this.props.projectService.deleteItemProject();
+  }
+
+  saveConfiguration() {
+    this.hideContextMenu();
+    this.hideSaveConfigurationModal();
+
+    let successCallback = (e: any) => {
+      alert("Configuration saved.");
+    }
+
+    let errorCallback = (e: any) => {
+      alert("Configuration not saved.");
+    }
+    let configurationInformation = new ConfigurationInformation("1", this.state.configurationName, null);
+    this.props.projectService.saveConfigurationInServer(configurationInformation, successCallback, errorCallback);
   }
 
   renameItemProject(newName: string) {
@@ -277,7 +320,7 @@ class TreeMenu extends Component<Props, State> {
         me.setState({
           optionAllowModelEnable: true,
           optionAllowModelApplication: true,
-          optionAllowApplication: true,
+          optionAllowApplication: false,
           optionAllowAdaptation: true,
           optionAllowRename: true,
           optionAllowDelete: true,
@@ -343,8 +386,8 @@ class TreeMenu extends Component<Props, State> {
 
   componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any): void {
     let me = this;
-    if(prevProps.showContextMenu!=this.props.showContextMenu){
-      if(!this.props.showContextMenu){
+    if (prevProps.showContextMenu != this.props.showContextMenu) {
+      if (!this.props.showContextMenu) {
         me.setState({
           showContextMenu: this.props.showContextMenu
         })
@@ -367,10 +410,16 @@ class TreeMenu extends Component<Props, State> {
 
   handleUpdateNewSelected(event: any) {
     this.hideContextMenu();
-    this.updateModal(event.target.id,event.target.value);
+    this.updateModal(event.target.id, event.target.value);
   }
 
-  updateModal(eventId: string, value:string) {
+  inputConfigurationName_onChange(event: any) {
+    this.setState({
+      configurationName: event.target.value,
+    });
+  }
+
+  updateModal(eventId: string, value: string) {
 
     let me = this;
     me.state.modalInputValue = value;
@@ -503,8 +552,8 @@ class TreeMenu extends Component<Props, State> {
   addNewEModel(language: Language) {
     let me = this;
     me.hideContextMenu();
-    me.state.newModelLanguage=language;
-    let e = { target: { id: "MODEL", value:language.name } }
+    me.state.newModelLanguage = language;
+    let e = { target: { id: "MODEL", value: language.name } }
     this.handleUpdateNewSelected(e);
 
     // const add: any = {
@@ -527,23 +576,23 @@ class TreeMenu extends Component<Props, State> {
     // add[language.type]();
   }
 
-  addNewModel(name:string) {
-    let me = this; 
-    let language:Language=me.state.newModelLanguage;
+  addNewModel(name: string) {
+    let me = this;
+    let language: Language = me.state.newModelLanguage;
     const add: any = {
       DOMAIN: function () {
-        me.addNewDomainEModel(language.name, name );
+        me.addNewDomainEModel(language.name, name);
       },
       APPLICATION: function () {
         if (me.props.projectService.getTreeItemSelected() === "applicationEngineering") {
-          me.addNewApplicationEModel(language.name, name );
+          me.addNewApplicationEModel(language.name, name);
         }
         else {
-          me.addNewApplicationModel(language.name, name );
-        } 
+          me.addNewApplicationModel(language.name, name);
+        }
       },
       ADAPTATION: function () {
-        me.addNewAdaptationModel(language.name, name );
+        me.addNewAdaptationModel(language.name, name);
       },
     };
 
@@ -598,6 +647,10 @@ class TreeMenu extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
+  configurationManagement_onConfigurationSelected(e){
+    this.hideConfigurationManagementModal();
+  }
+
   renderContexMenu() {
     let items = [];
 
@@ -641,6 +694,10 @@ class TreeMenu extends Component<Props, State> {
           }
           items.push(<DropdownButton id="nested-dropdown" title="Tools" key="end" drop="end" variant="Info">{children}</DropdownButton>);
         }
+      }
+      if (true) {
+        items.push(<Dropdown.Item href="#" onClick={this.showSaveConfigurationModal.bind(this)} id="saveConfiguration">Save configuration</Dropdown.Item>);
+        items.push(<Dropdown.Item href="#" onClick={this.showConfigurationManagementModal.bind(this)} id="manageConfigurations">Configuration management</Dropdown.Item>);
       }
     }
 
@@ -764,7 +821,7 @@ class TreeMenu extends Component<Props, State> {
                     ))}
                   </select>
                 </div>
-              </div> 
+              </div>
               <div className="row">
                 <div className="col-md-3">
                   <label >Domain</label>
@@ -820,6 +877,49 @@ class TreeMenu extends Component<Props, State> {
               Accept
             </Button>
           </Modal.Footer>
+        </Modal>
+
+        <Modal id="saveConfigurationModal" show={this.state.showSaveConfigurationModal} onHide={this.hideSaveConfigurationModal.bind(this)} size="lg" centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Configuration name
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="form-floating">
+              <input
+                type="text"
+                className="form-control"
+                id="modalInputValue"
+                placeholder="Configuration name"
+                value={this.state.configurationName}
+                onChange={this.inputConfigurationName_onChange.bind(this)}
+              // onKeyDown={this.onEnterModal}
+              />
+              <label htmlFor="floatingInput">
+                {this.state.modalInputText}
+              </label>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.hideSaveConfigurationModal.bind(this)} >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={this.saveConfiguration.bind(this)} >
+              Accept
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        <Modal id="saveConfigurationModal" show={this.state.showConfigurationManagementModal} onHide={this.hideConfigurationManagementModal.bind(this)} size="lg" centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Configuration management
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+              <ConfigurationManagement className="ConfigurationManagement" onConfigurationSelected={this.configurationManagement_onConfigurationSelected.bind(this)} />
+          </Modal.Body> 
         </Modal>
 
         <ul className="dropdown-menu" id="context-menu">

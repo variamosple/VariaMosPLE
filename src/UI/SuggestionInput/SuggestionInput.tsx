@@ -4,6 +4,8 @@ import "./SuggestionInput.css"
 import ProjectService from "../../Application/Project/ProjectService";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import SuggestionInputReceivedEventArgs from "./SuggestionInputReceivedEventArgs";
+import { domainRequirementsSuggest } from "./autocompleteServiceV2";
+import SuggestionInputHelper from "./SuggestionInputHelper";
 
 interface Props {
   projectService: ProjectService;
@@ -30,6 +32,7 @@ export default class SuggestionInput extends Component<Props, State> {
   inputTextRef = null;
   modalDialogRef = null;
   value = null;
+  suggestionInputHelper = null;
 
   constructor(props: Props) {
     super(props);
@@ -41,6 +44,8 @@ export default class SuggestionInput extends Component<Props, State> {
 
     this.modalDialogRef = React.createRef();
     this.inputTextRef = React.createRef();
+
+    this.suggestionInputHelper = new SuggestionInputHelper();
   }
 
   raiseOnChange(value) {
@@ -53,7 +58,7 @@ export default class SuggestionInput extends Component<Props, State> {
   }
 
   loadSuggestions() {
-    let me=this;
+    let me = this;
     if (!this.props.endPoint) {
       return;
     }
@@ -64,7 +69,7 @@ export default class SuggestionInput extends Component<Props, State> {
     }
 
     let productLine: ProductLine = this.props.projectService.getProductLineSelected();
- 
+
     let request = {
       input: input,
       domain: productLine.domain,
@@ -76,45 +81,72 @@ export default class SuggestionInput extends Component<Props, State> {
       data: request,
     };
 
-    try {
-      axios(config).then((res) => {
-        let data = res.data;
-        this.state.data = data;
-        this.state.text = data.input;
-        if (data.input.length > 0) {
-          if (!this.state.text.endsWith(" ")) {
-            this.state.text += " ";
-          }
-        }
-        this.state.showModal = true;
-        this.modalDialogRef.current.classList.add("show");
-        this.forceUpdate();
-        if(me.props.onSuggestionReceived){
-          me.props.onSuggestionReceived({
-            target: this,
-            data: data
-          })
-        }
-      }).catch(function (error) {
-        let x = 0;
-        if (error.response) {
-          // Request made and server responded
-          console.log(error.response.data);
-          console.log(error.response.status);
-          console.log(error.response.headers);
-        } else if (error.request) {
-          // The request was made but no response was received
-          console.log(error.request);
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          console.log('Error', error.message);
-        }
-
-      });
-    } catch (error) {
-      console.log("Something wrong in getExternalFunctions Service: " + error);
+    let data = me.suggestionInputHelper.getOptions(request);
+    me.state.data = data;
+    me.state.text = data.input;
+    if (data.input.length > 0) {
+      if (!me.state.text.endsWith(" ")) {
+        me.state.text += " ";
+      }
     }
+
+    me.state.showModal = true;
+    me.modalDialogRef.current.classList.add("show");
+    me.forceUpdate();
+    if (me.props.onSuggestionReceived) {
+      me.props.onSuggestionReceived({
+        target: me,
+        data: data
+      })
+    }
+
+
+
+
+
+
+
+
+    // try {
+    //   axios(config).then((res) => {
+    //     let data = res.data;
+    //     this.state.data = data;
+    //     this.state.text = data.input;
+    //     if (data.input.length > 0) {
+    //       if (!this.state.text.endsWith(" ")) {
+    //         this.state.text += " ";
+    //       }
+    //     }
+    //     this.state.showModal = true;
+    //     this.modalDialogRef.current.classList.add("show");
+    //     this.forceUpdate();
+    //     if (me.props.onSuggestionReceived) {
+    //       me.props.onSuggestionReceived({
+    //         target: this,
+    //         data: data
+    //       })
+    //     }
+    //   }).catch(function (error) {
+    //     let x = 0;
+    //     if (error.response) {
+    //       // Request made and server responded
+    //       console.log(error.response.data);
+    //       console.log(error.response.status);
+    //       console.log(error.response.headers);
+    //     } else if (error.request) {
+    //       // The request was made but no response was received
+    //       console.log(error.request);
+    //     } else {
+    //       // Something happened in setting up the request that triggered an Error
+    //       console.log('Error', error.message);
+    //     }
+
+    //   });
+    // } catch (error) {
+    //   console.log("Something wrong in getExternalFunctions Service: " + error);
+    // }
   }
+
 
   inputText_onKeyDown(e) {
     if (e.keyCode == 32) {

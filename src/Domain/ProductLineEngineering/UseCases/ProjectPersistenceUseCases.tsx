@@ -4,6 +4,7 @@ import { ExternalFuntion } from "../Entities/ExternalFuntion";
 import { Language } from "../Entities/Language";
 import { ProjectInformation } from "../Entities/ProjectInformation";
 import { Project  } from "../Entities/Project";
+import { ConfigurationInformation } from "../Entities/ConfigurationInformation";
 
 export default class ProjectPersistenceUseCases {
   private projectPersistenceService: ProjectPersistenceService = new ProjectPersistenceService(); 
@@ -29,5 +30,10 @@ export default class ProjectPersistenceUseCases {
   openProject(user:string, projectId:string, successCallback:any, errorCallback: any): void {
     let me=this;
     this.projectPersistenceService.openProject(user, projectId, successCallback, errorCallback);
+  }
+
+  addConfiguration(user:string, projectInformation:ProjectInformation, configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.addConfiguration(user, projectInformation, configurationInformation, successCallback, errorCallback);
   }
 }
