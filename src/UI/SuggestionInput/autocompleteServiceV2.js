@@ -251,25 +251,16 @@ const getAllCriteria = async () => {
 
 }
 
-async function getAllDomainsList() {
-
+async function getAllDomainsList() { 
     try {
-        var res = await axios.get(ip + 'domain')
-        //console.log(res);
-        domains = res.data;
-        return domains;
-        //.then((response)=>{
-
-        //securityCriteria=response.data;
-        //})
-        //.catch(function (error) {
-        //console.log(error.toJSON());
-        //});
+        let ip = "http://193.52.45.42:8585/";
+        let res = await axios.get(ip + 'domain');
+        let domains = res.data;
+        return domains; 
     }
     catch (e) {
         console.log(e)
-    }
-
+    } 
 }
 
 const getDomainCriteria = async (domain) => {
