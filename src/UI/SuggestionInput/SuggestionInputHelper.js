@@ -1,5 +1,5 @@
 
-import { domainRequirementsSuggest, getAllDomains } from "./autocompleteServiceV2";
+import { domainRequirementsSuggest, getAllDomainsList } from "./autocompleteServiceV2";
 
 class SuggestionInputHelper  { 
   
@@ -10,7 +10,7 @@ class SuggestionInputHelper  {
 
     initialize(){
         let me=this;
-        getAllDomains().then((data) => { 
+        getAllDomainsList().then((data) => { 
             me.domains=data;
         });
     }

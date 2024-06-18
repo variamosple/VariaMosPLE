@@ -251,7 +251,7 @@ const getAllCriteria = async () => {
 
 }
 
-async function getAllDomains(){
+async function getAllDomainsList(){
 
     try {
         var res = await axios.get(ip + 'domain')
@@ -352,7 +352,7 @@ function ObjectInSentence(obj, sentence) {
 //Application security requirements
 async function securityRequirementsSuggest(req) {
     console.log(req.input)
-    await getAllDomains();
+    await getAllDomainsList();
     var words = req.input.trim().split(" ");
     var sentence = req.input.trim();
     var domain = req.domain.trim();
@@ -1105,7 +1105,7 @@ async function functionalRequirementsSuggest(req) {
 
 function domainRequirementsSuggest(req, domains) {
     console.log(req.input)
-    //await getAllDomains();
+    //await getAllDomainsList();
     var words = req.input.trim().split(" ");
     var sentence = req.input.trim();
     var domain = req.domain.trim();
@@ -1899,7 +1899,7 @@ async function domainFunctionalRequirementsSuggest(req) {
 }
 async function endRequirement(req) {
     console.log(req.input)
-    //await getAllDomains();
+    //await getAllDomainsList();
     //var words = req.input.trim().split(" ");
     var sentence = req.input.trim();
     if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
@@ -1911,4 +1911,4 @@ async function endRequirement(req) {
     return data;
 }
 
-module.exports = {getAllDomains, securityRequirementsSuggest, domainRequirementsSuggest, functionalRequirementsSuggest,domainFunctionalRequirementsSuggest,endRequirement };
+module.exports = { getAllDomainsList, securityRequirementsSuggest, domainRequirementsSuggest, functionalRequirementsSuggest,domainFunctionalRequirementsSuggest,endRequirement };
