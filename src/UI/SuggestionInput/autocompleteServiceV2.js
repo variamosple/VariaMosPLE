@@ -146,7 +146,7 @@ const validation = {
     "complying with": {
         "placeholder1": "<Validation Criteria>"
     },
-    "validationCriteria":{
+    "validationCriteria": {
         "placeholder1": "<Validation Criteria>"
     }
 };
@@ -225,9 +225,9 @@ const autoAdaptive = {
 
 
 };
-var domains=[];
+var domains = [];
 
-var secret={};
+var secret = {};
 
 
 const getAllCriteria = async () => {
@@ -251,7 +251,7 @@ const getAllCriteria = async () => {
 
 }
 
-async function getAllDomainsList(){
+async function getAllDomainsList() {
 
     try {
         var res = await axios.get(ip + 'domain')
@@ -271,10 +271,11 @@ async function getAllDomainsList(){
     }
 
 }
+
 const getDomainCriteria = async (domain) => {
 
     try {
-        var res = await axios.get(ip +'domain/'+domain+'/criteria')
+        var res = await axios.get(ip + 'domain/' + domain + '/criteria')
         //console.log(res);
         securityCriteria = res.data;
 
@@ -312,10 +313,10 @@ async function getCriteriaMechanisms(criterion) {
     }
 
 }
-async function getDomainCriteriaMechanisms(criterion,domain) {
+async function getDomainCriteriaMechanisms(criterion, domain) {
 
     try {
-        var res = await axios.get(ip + 'domain/'+domain+'/' + criterion )
+        var res = await axios.get(ip + 'domain/' + domain + '/' + criterion)
         //console.log(res);
         securityMechanism = res.data;
 
@@ -389,7 +390,7 @@ async function securityRequirementsSuggest(req) {
         return sentence.includes("of " + element);
     })
     var sm = securityMechanism.some(element => {
-        return (sentence.includes(element) || (sentence.includes("by") && words[words.length-1]!="by" && !sentence.includes("<Security Mechanism>")));
+        return (sentence.includes(element) || (sentence.includes("by") && words[words.length - 1] != "by" && !sentence.includes("<Security Mechanism>")));
     })
 
     //var sm=false//words.some(item => securityMechanism.includes(item));
@@ -429,7 +430,7 @@ async function securityRequirementsSuggest(req) {
     //else if(priority.includes(req.q)) res.end(JSON.stringify(priority.filter(value=> value.includes(req.q))));
     //
     //else if(priority.includes(req.q)) res.end(JSON.stringify(priority.includes(req.q)))
-    if (sentence == "") { options.push.apply(options, Object.keys(conditions1)); options.push.apply(options, Object.keys(system)); console.log(options); secret={};}
+    if (sentence == "") { options.push.apply(options, Object.keys(conditions1)); options.push.apply(options, Object.keys(system)); console.log(options); secret = {}; }
 
     else if (!c1 && req.input != "" && !s && !p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
         if (Object.keys(conditions1).filter(value => value.includes(req.input)).length > 0) options = (Object.keys(conditions1).filter(value => value.includes(req.input)));
@@ -451,10 +452,10 @@ async function securityRequirementsSuggest(req) {
         else options = (Object.keys(system));
     }
     else if (s && !p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
-        if (Object.keys(system).includes(words[words.length - 1])){
+        if (Object.keys(system).includes(words[words.length - 1])) {
             //Add the previous part to condition in secret variable
-            var condition = sentence.replace(words[words.length - 1],"");
-            if(condition!="") secret.condition=condition.trim();
+            var condition = sentence.replace(words[words.length - 1], "");
+            if (condition != "") secret.condition = condition.trim();
             //Add the system options to be suggested
             options.push((system[words[words.length - 1]]).placeholder);
             console.log(secret);
@@ -462,12 +463,12 @@ async function securityRequirementsSuggest(req) {
         else options = (priority);
     }
     else if (p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
-        if (priority.includes(words[words.length - 1])){
+        if (priority.includes(words[words.length - 1])) {
             //Add the previous part to system in secret variable
-            var sys=sentence.replace(words[words.length - 1],"");
-            if(secret.condition)sys=sys.replace(secret.condition,"").trim();
-            secret.system=sys;
-            secret.priority=words[words.length - 1];
+            var sys = sentence.replace(words[words.length - 1], "");
+            if (secret.condition) sys = sys.replace(secret.condition, "").trim();
+            secret.system = sys;
+            secret.priority = words[words.length - 1];
             //Add the activity options to be suggested
             options = (Object.keys(activity));
             console.log(secret);
@@ -483,7 +484,7 @@ async function securityRequirementsSuggest(req) {
         } */
     }
     else if (a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
-        
+
         if (Object.keys(activity).includes(words[words.length - 1])) {
             if (words[words.length - 1] == "verb") sentence = sentence.replace("verb", "verb: ");
             options.push((activity[words[words.length - 1]]).placeholder1);
@@ -508,10 +509,10 @@ async function securityRequirementsSuggest(req) {
                 activity[elementInSentence(activity, sentence)]["next"].includes((words[words.length - 1]))))
             options.push((activity[elementInSentence(activity, sentence)]).placeholder2)
         else {
-            
+
             console.log(securityCriteria)
             //Needs to be synchronized
-            if(domains.includes(domain)) await getDomainCriteria(domain)
+            if (domains.includes(domain)) await getDomainCriteria(domain)
             else await getAllCriteria();
             options = (securityCriteria);
 
@@ -521,10 +522,10 @@ async function securityRequirementsSuggest(req) {
 
         if (securityCriteria.includes(words[words.length - 1])) {
             //Add to activity in secret variable
-            secret.activity=(sentence.split(secret.priority)[1]).replace(words[words.length - 1],"").trim();
+            secret.activity = (sentence.split(secret.priority)[1]).replace(words[words.length - 1], "").trim();
             criterion = words[words.length - 1];
             //Add to criterion in secret variable
-            secret.securityCriteria=criterion;
+            secret.securityCriteria = criterion;
             console.log(criterion)
 
 
@@ -569,22 +570,22 @@ async function securityRequirementsSuggest(req) {
             ((asset["of"])[ObjectInSentence((asset["of"]), sentence)]["next"] == (words[words.length - 2])))
             options.push(((asset["of"])[ObjectInSentence((asset["of"]), sentence)]).placeholder3)
 
-        else if(sentence.includes("by <Security Mechanism>")) {
+        else if (sentence.includes("by <Security Mechanism>")) {
             sentence = sentence.replace("by <Security Mechanism>", "");
             sentence += "by ";
             criterion = securityCriteria.find(element => words.includes(element));
             console.log(criterion);
             if (criterion != "") {
-                if(domains.includes(domain)) await getDomainCriteriaMechanisms(criterion,domain)
+                if (domains.includes(domain)) await getDomainCriteriaMechanisms(criterion, domain)
                 else await getCriteriaMechanisms(criterion);
             }
-            options.push.apply(options,securityMechanism);
+            options.push.apply(options, securityMechanism);
         }
         else {
             console.log("else")
             //Add to asset in secret variable
-            secret.asset=sentence.split(secret.securityCriteria)[1].replace("of","").trim();
-         
+            secret.asset = sentence.split(secret.securityCriteria)[1].replace("of", "").trim();
+
             //sentence += " by ";
             options.push.apply(options, Object.keys(condition2));
             options.push.apply(options, Object.keys(additionalObjectDetails));
@@ -597,59 +598,59 @@ async function securityRequirementsSuggest(req) {
         //if(elementInSentence((asset["of"]),sentence)=="Number") sentence=sentence.replace("","");
     }
     else if (!ad && c2 && !aa && !sm && !vc) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
             options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
 
         }
-        else if(sentence.includes("by <Security Mechanism>")) {
+        else if (sentence.includes("by <Security Mechanism>")) {
             sentence = sentence.replace("by <Security Mechanism>", "");
             sentence += "by ";
             criterion = securityCriteria.find(element => words.includes(element));
             console.log(criterion);
             if (criterion != "") {
-                if(domains.includes(domain)) await getDomainCriteriaMechanisms(criterion,domain)
+                if (domains.includes(domain)) await getDomainCriteriaMechanisms(criterion, domain)
                 else await getCriteriaMechanisms(criterion);
             }
-            options.push.apply(options,securityMechanism);
+            options.push.apply(options, securityMechanism);
         }
         else {
-             //Add to securityMechanism in secret variable
-             
+            //Add to securityMechanism in secret variable
+
             options.push.apply(options, Object.keys(additionalObjectDetails));
             options.push("by <Security Mechanism>");
             options.push.apply(options, Object.keys(validation));
             options.push.apply(options, Object.keys(autoAdaptive));
-            
+
             //console.log(sentence.split(secret.asset.trim()));
-            secret.conditionalityObject=sentence.split(secret.asset)[1].trim();
+            secret.conditionalityObject = sentence.split(secret.asset)[1].trim();
             console.log(secret);
         }
 
     }
     else if (ad && !aa && !sm && !vc) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         if (Object.keys(additionalObjectDetails).includes(words[words.length - 1])) {
-            if(!sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails", "additionalDetails:");
+            if (!sentence.includes("additionalDetails:")) sentence = sentence.replace("additionalDetails", "additionalDetails:");
             options.push(additionalObjectDetails[words[words.length - 1]].placeholder1);
 
         }
-        else if(sentence.includes("by <Security Mechanism>")) {
+        else if (sentence.includes("by <Security Mechanism>")) {
             sentence = sentence.replace("by <Security Mechanism>", "");
             sentence += "by ";
             criterion = securityCriteria.find(element => words.includes(element));
             console.log(criterion);
             if (criterion != "") {
-                if(domains.includes(domain)) await getDomainCriteriaMechanisms(criterion,domain)
+                if (domains.includes(domain)) await getDomainCriteriaMechanisms(criterion, domain)
                 else await getCriteriaMechanisms(criterion);
             }
-            options.push.apply(options,securityMechanism);
+            options.push.apply(options, securityMechanism);
             //sentence = sentence.replace("additionalDetails:", "");
         }
         else {
             //ad=true;
             //sentence = sentence.replace("additionalDetails:", "");
-            secret.additionalObjectDetails=sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace("additionalDetails:","").trim();
+            secret.additionalObjectDetails = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace("additionalDetails:", "").trim();
             options.push("by <Security Mechanism>");
             options.push.apply(options, Object.keys(validation));
             options.push.apply(options, Object.keys(autoAdaptive));
@@ -660,27 +661,27 @@ async function securityRequirementsSuggest(req) {
     }
 
     else if (sm && !vc && !aa) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         //Add to securityMechanism in secret variable
         sentence = sentence.replace("additionalDetails:", "");
-        secret.securityMechanism=sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").trim();
+        secret.securityMechanism = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").trim();
         console.log(secret);
         //console.log(asset["of"])
         //if (securityMechanism.includes(words[words.length - 1])) {
-            options.push.apply(options, Object.keys(validation));
-            //options.push.apply(options, Object.keys(condition2));
-            //options.push.apply(options, Object.keys(additionalObjectDetails));
-            options.push.apply(options, Object.keys(autoAdaptive));
-            console.log(options)
+        options.push.apply(options, Object.keys(validation));
+        //options.push.apply(options, Object.keys(condition2));
+        //options.push.apply(options, Object.keys(additionalObjectDetails));
+        options.push.apply(options, Object.keys(autoAdaptive));
+        console.log(options)
 
         //}
 
     }
     else if (vc && !aa) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         sentence = sentence.replace("additionalDetails:", "");
         if (Object.keys(validation).includes(words[words.length - 1])) {
-            if(!sentence.includes("validationCriteria:"))sentence = sentence.replace("validationCriteria", "validationCriteria:");
+            if (!sentence.includes("validationCriteria:")) sentence = sentence.replace("validationCriteria", "validationCriteria:");
             options.push(validation[words[words.length - 1]].placeholder1);
 
         }
@@ -689,63 +690,63 @@ async function securityRequirementsSuggest(req) {
 
         }
         else {
-           // options.push.apply(options, Object.keys(condition2));
-           // options.push.apply(options, Object.keys(additionalObjectDetails));
-           console.log("else")
-           //Add to asset in secret variable
-            secret.validationCriterion= sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace("validationCriteria: ","").trim();
+            // options.push.apply(options, Object.keys(condition2));
+            // options.push.apply(options, Object.keys(additionalObjectDetails));
+            console.log("else")
+            //Add to asset in secret variable
+            secret.validationCriterion = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace("validationCriteria: ", "").trim();
             options.push.apply(options, Object.keys(autoAdaptive));
             //sentence = sentence.replace("validationCriteria:", "");
             console.log(secret);
         }
 
     }
-/*     else if (!ad && c2 && !aa) {
-
-        if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
-            options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
-
-        }
-        else {
-            options.push.apply(options, Object.keys(additionalObjectDetails));
-            options.push.apply(options, Object.keys(autoAdaptive));
-        }
-
-    } */
+    /*     else if (!ad && c2 && !aa) {
+    
+            if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
+                options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
+    
+            }
+            else {
+                options.push.apply(options, Object.keys(additionalObjectDetails));
+                options.push.apply(options, Object.keys(autoAdaptive));
+            }
+    
+        } */
 
     else if (aa) {
         console.log("aa")
         //console.log(elementInSentence(autoAdaptive, sentence));
-        if(sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails:", "");
+        if (sentence.includes("additionalDetails:")) sentence = sentence.replace("additionalDetails:", "");
         sentence = sentence.replace("validationCriteria", "validationCriteria:");
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
-        if ((Object.keys(autoAdaptive).includes(words[words.length - 1])) && (autoAdaptive[words[words.length - 1]].placeholder1!="")) {
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
+        if ((Object.keys(autoAdaptive).includes(words[words.length - 1])) && (autoAdaptive[words[words.length - 1]].placeholder1 != "")) {
             options.push(autoAdaptive[words[words.length - 1]].placeholder1);
 
         }
-        else if (Object.keys(autoAdaptive).includes(words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1!="")) {
+        else if (Object.keys(autoAdaptive).includes(words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1 != "")) {
             options.push(autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
 
         }
-        else if (Object.keys(autoAdaptive).includes(words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])&&(autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1!="")) {
+        else if (Object.keys(autoAdaptive).includes(words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1 != "")) {
             options.push(autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
 
         }
-        else if (words[words.length - 1]!= "eventually" && (autoAdaptive[elementInSentence((autoAdaptive), sentence)]).placeholder2 != "" &&
+        else if (words[words.length - 1] != "eventually" && (autoAdaptive[elementInSentence((autoAdaptive), sentence)]).placeholder2 != "" &&
             elementInSentence((autoAdaptive), sentence) != words[words.length - 1] &&
             elementInSentence((autoAdaptive), sentence) != words[words.length - 2] + " " + words[words.length - 1] &&
             (elementInSentence((autoAdaptive), sentence) == words[words.length - 2] || elementInSentence((autoAdaptive), sentence) == words[words.length - 3] + " " + words[words.length - 2]))
             options.push(((autoAdaptive)[elementInSentence((autoAdaptive), sentence)]).placeholder2)
         else {
             console.log("aa else")
-            console.log(sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace(secret.validationCriterion,"").trim());
-            secret.autoAdaptive= sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace(secret.validationCriterion,"").trim();
+            console.log(sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace(secret.validationCriterion, "").trim());
+            secret.autoAdaptive = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace(secret.validationCriterion, "").trim();
             console.log(secret);
         }
 
     }
     //if(sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails:", "");
-    let data = { "input": sentence, "options": options ,"secret":secret};
+    let data = { "input": sentence, "options": options, "secret": secret };
 
     return data;
 }
@@ -787,13 +788,13 @@ async function functionalRequirementsSuggest(req) {
     })
     //var a2=words.some(item => Object.keys(asset["of"]).includes(item));
     var a2 = Object.keys(asset["of"]).some(element => {
-        var pr="";
-        priority.some(e => {if (sentence.includes(e)) pr=e;})
+        var pr = "";
+        priority.some(e => { if (sentence.includes(e)) pr = e; })
         console.log()
-        if (p) return (sentence.includes(element,sentence.indexOf(pr)));
+        if (p) return (sentence.includes(element, sentence.indexOf(pr)));
         else return false;
     })
-    console.log(a2+" A2")
+    console.log(a2 + " A2")
     var sm = securityMechanism.some(element => {
         return sentence.includes(element);
     })
@@ -835,7 +836,7 @@ async function functionalRequirementsSuggest(req) {
     //else if(priority.includes(req.q)) res.end(JSON.stringify(priority.filter(value=> value.includes(req.q))));
     //
     //else if(priority.includes(req.q)) res.end(JSON.stringify(priority.includes(req.q)))
-    if (sentence == "") { options.push.apply(options, Object.keys(conditions1)); options.push.apply(options, Object.keys(system)); console.log(options);  secret={};}
+    if (sentence == "") { options.push.apply(options, Object.keys(conditions1)); options.push.apply(options, Object.keys(system)); console.log(options); secret = {}; }
 
     else if (!c1 && req.input != "" && !s && !p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
         if (Object.keys(conditions1).filter(value => value.includes(req.input)).length > 0) options = (Object.keys(conditions1).filter(value => value.includes(req.input)));
@@ -857,18 +858,19 @@ async function functionalRequirementsSuggest(req) {
         else options = (Object.keys(system));
     }
     else if (s && !p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
-        if (Object.keys(system).includes(words[words.length - 1])){
-            var condition = sentence.replace(words[words.length - 1],"");
-            if(condition!="") secret.condition=condition.trim();
-            options.push((system[words[words.length - 1]]).placeholder);}
+        if (Object.keys(system).includes(words[words.length - 1])) {
+            var condition = sentence.replace(words[words.length - 1], "");
+            if (condition != "") secret.condition = condition.trim();
+            options.push((system[words[words.length - 1]]).placeholder);
+        }
         else options = (priority);
     }
     else if (p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
-        if (priority.includes(words[words.length - 1])){
-            var sys=sentence.replace(words[words.length - 1],"");
-            if(secret.condition)sys=sys.replace(secret.condition,"").trim();
-            secret.system=sys;
-            secret.priority=words[words.length - 1];
+        if (priority.includes(words[words.length - 1])) {
+            var sys = sentence.replace(words[words.length - 1], "");
+            if (secret.condition) sys = sys.replace(secret.condition, "").trim();
+            secret.system = sys;
+            secret.priority = words[words.length - 1];
             options = (Object.keys(activity));
         }
         //verb replaced
@@ -882,7 +884,7 @@ async function functionalRequirementsSuggest(req) {
 
         if (Object.keys(activity).includes(words[words.length - 1])) {
             if (words[words.length - 1] == "verb") sentence = sentence.replace("verb", "verb: ");
-            if ((words[words.length - 1]) == "provide") options=(Object.keys(asset["of"]))
+            if ((words[words.length - 1]) == "provide") options = (Object.keys(asset["of"]))
             options.push((activity[words[words.length - 1]]).placeholder1);
         }
         else if (words.length >= 3 && Object.keys(activity).includes(words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
@@ -909,7 +911,7 @@ async function functionalRequirementsSuggest(req) {
             //Needs to be synchronized
             //await getAllCriteria();
             //options = (securityCriteria);
-            
+
             options = (Object.keys(asset["of"]));
 
         }
@@ -929,18 +931,18 @@ async function functionalRequirementsSuggest(req) {
         console.log((sentence.split(secret.priority))[1]);
         sentence = sentence.replace("verb: ", "");
         if (Object.keys(asset["of"]).includes(words[words.length - 1])) {
-            secret.activity=(sentence.split(secret.priority)[1]).replace(words[words.length - 1],"").trim();
+            secret.activity = (sentence.split(secret.priority)[1]).replace(words[words.length - 1], "").trim();
             options.push(((asset["of"])[words[words.length - 1]]).placeholder1);
             console.log(options);
         }
         else if (Object.keys(asset["of"]).includes(words[words.length - 2] + " " + words[words.length - 1])) {
-            secret.activity=(sentence.split(secret.priority)[1]).replace(words[words.length - 2]+" "+words[words.length-1],"").trim();
+            secret.activity = (sentence.split(secret.priority)[1]).replace(words[words.length - 2] + " " + words[words.length - 1], "").trim();
             options.push(((asset["of"])[words[words.length - 2] + " " + words[words.length - 1]]).placeholder1);
         }
         else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] != "" &&
-            !sentence.includes((asset["of"])[elementInSentence((asset["of"]),(sentence.split(secret.priority))[1])]["next"]) &&
+            !sentence.includes((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"]) &&
             (words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] &&
-            (words[words.length - 2] + " " + words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]),(sentence.split(secret.priority))[1])]["next"] &&
+            (words[words.length - 2] + " " + words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] &&
             !(asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"].includes((words[words.length - 1])))
             options.push((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"])
         else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] != "" &&
@@ -948,7 +950,7 @@ async function functionalRequirementsSuggest(req) {
             ((words[words.length - 1]) == (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] ||
                 (words[words.length - 2] + " " + words[words.length - 1]) == (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] ||
                 (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"].includes((words[words.length - 1]))))
-            options.push(((asset["of"])[elementInSentence((asset["of"]),(sentence.split(secret.priority))[1])]).placeholder2)
+            options.push(((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder2)
         else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] == "" &&
             ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder2 != "" &&
             (elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])) == (words[words.length - 2]))
@@ -962,7 +964,7 @@ async function functionalRequirementsSuggest(req) {
             options.push(((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder3)
         else {
             console.log("else");
-            secret.asset=sentence.split(secret.activity)[1].trim();
+            secret.asset = sentence.split(secret.activity)[1].trim();
             //Needs to be synchronized
             //criterion = securityCriteria.find(element => words.includes(element));
             //console.log(criterion);
@@ -991,34 +993,34 @@ async function functionalRequirementsSuggest(req) {
 
     // }
     else if (!ad && c2 && !aa && !sm && !vc) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
             options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
         }
         else {
-             //Add to securityMechanism in secret variable
-             
+            //Add to securityMechanism in secret variable
+
             options.push.apply(options, Object.keys(additionalObjectDetails));
             options.push.apply(options, Object.keys(validation));
             options.push.apply(options, Object.keys(autoAdaptive));
-            
+
             //console.log(sentence.split(secret.asset.trim()));
-            secret.conditionalityObject=sentence.split(secret.asset)[1].trim();
+            secret.conditionalityObject = sentence.split(secret.asset)[1].trim();
             console.log(secret);
         }
 
     }
     else if (ad && !aa && !sm && !vc) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         if (Object.keys(additionalObjectDetails).includes(words[words.length - 1])) {
-            if(!sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails", "additionalDetails:");
+            if (!sentence.includes("additionalDetails:")) sentence = sentence.replace("additionalDetails", "additionalDetails:");
             options.push(additionalObjectDetails[words[words.length - 1]].placeholder1);
 
         }
         else {
             //ad=true;
             //sentence = sentence.replace("additionalDetails:", "");
-            secret.additionalObjectDetails=sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace("additionalDetails:","").trim();
+            secret.additionalObjectDetails = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace("additionalDetails:", "").trim();
             options.push.apply(options, Object.keys(validation));
             options.push.apply(options, Object.keys(autoAdaptive));
             options.push.apply(Object.keys(autoAdaptive));
@@ -1028,10 +1030,10 @@ async function functionalRequirementsSuggest(req) {
     }
 
     else if (vc && !aa) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         sentence = sentence.replace("additionalDetails:", "");
         if (Object.keys(validation).includes(words[words.length - 1])) {
-            if(!sentence.includes("validationCriteria:"))sentence = sentence.replace("validationCriteria", "validationCriteria:");
+            if (!sentence.includes("validationCriteria:")) sentence = sentence.replace("validationCriteria", "validationCriteria:");
             options.push(validation[words[words.length - 1]].placeholder1);
 
         }
@@ -1040,63 +1042,63 @@ async function functionalRequirementsSuggest(req) {
 
         }
         else {
-           // options.push.apply(options, Object.keys(condition2));
-           // options.push.apply(options, Object.keys(additionalObjectDetails));
-           console.log("else")
-           //Add to asset in secret variable
-            secret.validationCriterion= sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace("validationCriteria: ","").trim();
+            // options.push.apply(options, Object.keys(condition2));
+            // options.push.apply(options, Object.keys(additionalObjectDetails));
+            console.log("else")
+            //Add to asset in secret variable
+            secret.validationCriterion = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace("validationCriteria: ", "").trim();
             options.push.apply(options, Object.keys(autoAdaptive));
             console.log(secret);
         }
 
     }
-/*     else if (!ad && c2 && !aa) {
-
-        if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
-            options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
-
-        }
-        else {
-            options.push.apply(options, Object.keys(additionalObjectDetails));
-            options.push.apply(options, Object.keys(autoAdaptive));
-        }
-
-    } */
+    /*     else if (!ad && c2 && !aa) {
+    
+            if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
+                options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
+    
+            }
+            else {
+                options.push.apply(options, Object.keys(additionalObjectDetails));
+                options.push.apply(options, Object.keys(autoAdaptive));
+            }
+    
+        } */
 
     else if (aa) {
         console.log("aa")
         //console.log(elementInSentence(autoAdaptive, sentence));
-        if(sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails:", "");
+        if (sentence.includes("additionalDetails:")) sentence = sentence.replace("additionalDetails:", "");
         sentence = sentence.replace("validationCriteria", "validationCriteria:");
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
-        if ((Object.keys(autoAdaptive).includes(words[words.length - 1])) && (autoAdaptive[words[words.length - 1]].placeholder1!="")) {
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
+        if ((Object.keys(autoAdaptive).includes(words[words.length - 1])) && (autoAdaptive[words[words.length - 1]].placeholder1 != "")) {
             options.push(autoAdaptive[words[words.length - 1]].placeholder1);
 
         }
-        else if (Object.keys(autoAdaptive).includes(words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1!="")) {
+        else if (Object.keys(autoAdaptive).includes(words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1 != "")) {
             options.push(autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
 
         }
-        else if (Object.keys(autoAdaptive).includes(words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])&&(autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1!="")) {
+        else if (Object.keys(autoAdaptive).includes(words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1 != "")) {
             options.push(autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
 
         }
-        else if (words[words.length - 1]!= "eventually" && (autoAdaptive[elementInSentence((autoAdaptive), sentence)]).placeholder2 != "" &&
+        else if (words[words.length - 1] != "eventually" && (autoAdaptive[elementInSentence((autoAdaptive), sentence)]).placeholder2 != "" &&
             elementInSentence((autoAdaptive), sentence) != words[words.length - 1] &&
             elementInSentence((autoAdaptive), sentence) != words[words.length - 2] + " " + words[words.length - 1] &&
             (elementInSentence((autoAdaptive), sentence) == words[words.length - 2] || elementInSentence((autoAdaptive), sentence) == words[words.length - 3] + " " + words[words.length - 2]))
             options.push(((autoAdaptive)[elementInSentence((autoAdaptive), sentence)]).placeholder2)
         else {
             console.log("aa else")
-            console.log(sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace(secret.validationCriterion,"").trim());
-            secret.autoAdaptive= sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace(secret.validationCriterion,"").trim();
+            console.log(sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace(secret.validationCriterion, "").trim());
+            secret.autoAdaptive = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace(secret.validationCriterion, "").trim();
             console.log(secret);
         }
 
     }
     //if(sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails:", "");
 
-    let data = { "input": sentence, "options": options ,"secret":secret};
+    let data = { "input": sentence, "options": options, "secret": secret };
 
     return data;
 
@@ -1141,7 +1143,7 @@ function domainRequirementsSuggest(req, domains) {
         return sentence.includes("of " + element);
     })
     var sm = securityMechanism.some(element => {
-        return (sentence.includes(element) || (sentence.includes("by") && words[words.length-1]!="by" && !sentence.includes("<Security Mechanism>")));
+        return (sentence.includes(element) || (sentence.includes("by") && words[words.length - 1] != "by" && !sentence.includes("<Security Mechanism>")));
     })
 
     //var sm=false//words.some(item => securityMechanism.includes(item));
@@ -1181,7 +1183,7 @@ function domainRequirementsSuggest(req, domains) {
     //else if(priority.includes(req.q)) res.end(JSON.stringify(priority.filter(value=> value.includes(req.q))));
     //
     //else if(priority.includes(req.q)) res.end(JSON.stringify(priority.includes(req.q)))
-    if (sentence == "") { options.push.apply(options, Object.keys(conditions1)); options.push.apply(options, Object.keys(systemDomain)); console.log(options);  secret={};}
+    if (sentence == "") { options.push.apply(options, Object.keys(conditions1)); options.push.apply(options, Object.keys(systemDomain)); console.log(options); secret = {}; }
 
     else if (!c1 && req.input != "" && !s && !p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
         if (Object.keys(conditions1).filter(value => value.includes(req.input)).length > 0) options = (Object.keys(conditions1).filter(value => value.includes(req.input)));
@@ -1204,40 +1206,40 @@ function domainRequirementsSuggest(req, domains) {
     }
     else if (s && !p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
         if (Object.keys(systemDomain).includes(words[words.length - 1])) {
-            var condition = sentence.replace(words[words.length - 1],"");
-            if(condition!="") secret.condition=condition.trim();
+            var condition = sentence.replace(words[words.length - 1], "");
+            if (condition != "") secret.condition = condition.trim();
             if ((systemDomain[words[words.length - 1]]).placeholder1 != "") {
                 options.push((systemDomain[words[words.length - 1]]).placeholder1);
             } else {
                 options.push((systemDomain[words[words.length - 1]]).next);
             }
-        } 
+        }
         else if (systemDomain[elementInSentence(systemDomain, sentence)]["next"] == (words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
-            if (systemDomain[elementInSentence(systemDomain, sentence)].placeholder2 != "") 
+            if (systemDomain[elementInSentence(systemDomain, sentence)].placeholder2 != "")
                 options.push(systemDomain[elementInSentence(systemDomain, sentence)].placeholder2);
         }
         else if (systemDomain[elementInSentence(systemDomain, sentence)].placeholder3 != "") {
-                if (sentence.includes("Restriction: ") && words[words.length - 1]!="Restriction:") {
-                    options = priority;
-                }
-                else options.push(systemDomain[elementInSentence(systemDomain, sentence)].placeholder3);
+            if (sentence.includes("Restriction: ") && words[words.length - 1] != "Restriction:") {
+                options = priority;
+            }
+            else options.push(systemDomain[elementInSentence(systemDomain, sentence)].placeholder3);
         }
-         
+
         else {
             options = priority;
         }
     }
-    
+
     else if (p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
-        if (priority.includes(words[words.length - 1])){
+        if (priority.includes(words[words.length - 1])) {
             if (sentence.includes("Restriction: ")) {
                 let str = sentence.replace("Restriction: ", "");
                 sentence = str.trim();
             }
-            var sys=sentence.replace(words[words.length - 1],"");
-            if(secret.condition)sys=sys.replace(secret.condition,"").trim();
-            secret.system=sys;
-            secret.priority=words[words.length - 1];
+            var sys = sentence.replace(words[words.length - 1], "");
+            if (secret.condition) sys = sys.replace(secret.condition, "").trim();
+            secret.system = sys;
+            secret.priority = words[words.length - 1];
             options = (Object.keys(activity));
         }
         //verb replaced
@@ -1275,21 +1277,21 @@ function domainRequirementsSuggest(req, domains) {
             console.log(securityCriteria)
             //Needs to be synchronized
             //if(domains.includes(domain)) 
-                //await getDomainCriteria(domain)
+            //await getDomainCriteria(domain)
             //else 
-                //await getAllCriteria();
+            //await getAllCriteria();
             options = (securityCriteria);
 
         }
     }
     else if (sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
-        
+
         if (securityCriteria.includes(words[words.length - 1])) {
             //Add to activity in secret variable
-            secret.activity=(sentence.split(secret.priority)[1]).replace(words[words.length - 1],"").trim();
+            secret.activity = (sentence.split(secret.priority)[1]).replace(words[words.length - 1], "").trim();
             criterion = words[words.length - 1];
             //Add to criterion in secret variable
-            secret.securityCriteria=criterion;
+            secret.securityCriteria = criterion;
             console.log(criterion)
             sentence += " of ";
             options = (Object.keys(asset["of"]));
@@ -1330,143 +1332,143 @@ function domainRequirementsSuggest(req, domains) {
                 (sentence.includes((asset["of"])[ObjectInSentence((asset["of"]), sentence)]["next"]))) &&
             ((asset["of"])[ObjectInSentence((asset["of"]), sentence)]["next"] == (words[words.length - 2])))
             options.push(((asset["of"])[ObjectInSentence((asset["of"]), sentence)]).placeholder3)
-        else if(sentence.includes("by <Security Mechanism>")) {
-                sentence = sentence.replace("by <Security Mechanism>", "");
-                sentence += "by ";
-                criterion = securityCriteria.find(element => words.includes(element));
-                console.log(criterion);
-                if (criterion != "") {
-                    //if(domains.includes(domain)) 
-                    //    await getDomainCriteriaMechanisms(criterion,domain)
-                    //else 
-                    //    await getCriteriaMechanisms(criterion);
-                }
-                options.push.apply(options,securityMechanism);
+        else if (sentence.includes("by <Security Mechanism>")) {
+            sentence = sentence.replace("by <Security Mechanism>", "");
+            sentence += "by ";
+            criterion = securityCriteria.find(element => words.includes(element));
+            console.log(criterion);
+            if (criterion != "") {
+                //if(domains.includes(domain)) 
+                //    await getDomainCriteriaMechanisms(criterion,domain)
+                //else 
+                //    await getCriteriaMechanisms(criterion);
             }
+            options.push.apply(options, securityMechanism);
+        }
         else {
-                console.log("else")
-                //Add to asset in secret variable
-                secret.asset=sentence.split(secret.securityCriteria)[1].replace("of","").trim();
-                //Needs to be synchronized
-             
-                //sentence += " by ";
-                options.push.apply(options, Object.keys(condition2));
-                options.push.apply(options, Object.keys(additionalObjectDetails));
-                options.push("by <Security Mechanism>");
-                options.push.apply(options, Object.keys(validation));
-                options.push.apply(options, Object.keys(autoAdaptive));
-                console.log(options)
-            }
-            //if(elementInSentence((asset["of"]),sentence)=="Number") sentence=sentence.replace("","");
+            console.log("else")
+            //Add to asset in secret variable
+            secret.asset = sentence.split(secret.securityCriteria)[1].replace("of", "").trim();
+            //Needs to be synchronized
+
+            //sentence += " by ";
+            options.push.apply(options, Object.keys(condition2));
+            options.push.apply(options, Object.keys(additionalObjectDetails));
+            options.push("by <Security Mechanism>");
+            options.push.apply(options, Object.keys(validation));
+            options.push.apply(options, Object.keys(autoAdaptive));
+            console.log(options)
         }
-    
-        else if (!ad && c2 && !aa && !sm && !vc) {
-            if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
-            if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
-                options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
-    
-            }
-            else if(sentence.includes("by <Security Mechanism>")) {
-                sentence = sentence.replace("by <Security Mechanism>", "");
-                sentence += "by ";
-                criterion = securityCriteria.find(element => words.includes(element));
-                console.log(criterion);
-                if (criterion != "") {
-                    //if(domains.includes(domain))  
-                    //    await getDomainCriteriaMechanisms(criterion,domain)
-                    //else 
-                    //    await getCriteriaMechanisms(criterion);
-                }
-                options.push.apply(options,securityMechanism);
-            }
-            else {
-                 //Add to securityMechanism in secret variable
-                 
-                options.push.apply(options, Object.keys(additionalObjectDetails));
-                options.push("by <Security Mechanism>");
-                options.push.apply(options, Object.keys(validation));
-                options.push.apply(options, Object.keys(autoAdaptive));
-                
-                //console.log(sentence.split(secret.asset.trim()));
-                secret.conditionalityObject=sentence.split(secret.asset)[1].trim();
-                console.log(secret);
-            }
-    
+        //if(elementInSentence((asset["of"]),sentence)=="Number") sentence=sentence.replace("","");
+    }
+
+    else if (!ad && c2 && !aa && !sm && !vc) {
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
+        if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
+            options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
+
         }
-        else if (ad && !aa && !sm && !vc) {
-            if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
-            if (Object.keys(additionalObjectDetails).includes(words[words.length - 1])) {
-                if(!sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails", "additionalDetails:");
-                options.push(additionalObjectDetails[words[words.length - 1]].placeholder1);
-    
+        else if (sentence.includes("by <Security Mechanism>")) {
+            sentence = sentence.replace("by <Security Mechanism>", "");
+            sentence += "by ";
+            criterion = securityCriteria.find(element => words.includes(element));
+            console.log(criterion);
+            if (criterion != "") {
+                //if(domains.includes(domain))  
+                //    await getDomainCriteriaMechanisms(criterion,domain)
+                //else 
+                //    await getCriteriaMechanisms(criterion);
             }
-            else if(sentence.includes("by <Security Mechanism>")) {
-                sentence = sentence.replace("by <Security Mechanism>", "");
-                sentence += "by ";
-                criterion = securityCriteria.find(element => words.includes(element));
-                console.log(criterion);
-                if (criterion != "") {
-                    //if(domains.includes(domain)) 
-                    //    await getDomainCriteriaMechanisms(criterion,domain)
-                    //else 
-                    //    await getCriteriaMechanisms(criterion);
-                }
-                options.push.apply(options,securityMechanism);
-                //sentence = sentence.replace("additionalDetails:", "");
-            }
-            else {
-                //ad=true;
-                //sentence = sentence.replace("additionalDetails:", "");
-                secret.additionalObjectDetails=sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace("additionalDetails:","").trim();
-                options.push("by <Security Mechanism>");
-                options.push.apply(options, Object.keys(validation));
-                options.push.apply(options, Object.keys(autoAdaptive));
-                options.push.apply(Object.keys(autoAdaptive));
-                console.log(secret);
-            }
-    
+            options.push.apply(options, securityMechanism);
         }
-    
-        else if (sm && !vc && !aa) {
-            if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        else {
             //Add to securityMechanism in secret variable
-            sentence = sentence.replace("additionalDetails:", "");
-            secret.securityMechanism=sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").trim();
+
+            options.push.apply(options, Object.keys(additionalObjectDetails));
+            options.push("by <Security Mechanism>");
+            options.push.apply(options, Object.keys(validation));
+            options.push.apply(options, Object.keys(autoAdaptive));
+
+            //console.log(sentence.split(secret.asset.trim()));
+            secret.conditionalityObject = sentence.split(secret.asset)[1].trim();
             console.log(secret);
-            //console.log(asset["of"])
-            //if (securityMechanism.includes(words[words.length - 1])) {
-                options.push.apply(options, Object.keys(validation));
-                //options.push.apply(options, Object.keys(condition2));
-                //options.push.apply(options, Object.keys(additionalObjectDetails));
-                options.push.apply(options, Object.keys(autoAdaptive));
-                console.log(options)
-    
-            //}
-    
         }
-        else if (vc && !aa) {
-            if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
-            sentence = sentence.replace("additionalDetails:", "");
-            if (Object.keys(validation).includes(words[words.length - 1])) {
-                if(!sentence.includes("validationCriteria:"))sentence = sentence.replace("validationCriteria", "validationCriteria:");
-                options.push(validation[words[words.length - 1]].placeholder1);
-    
-            }
-            else if (Object.keys(validation).includes(words[words.length - 2] + " " + words[words.length - 1])) {
-                options.push(validation["complying with"].placeholder1);
-    
-            }
-            else {
-               // options.push.apply(options, Object.keys(condition2));
-               // options.push.apply(options, Object.keys(additionalObjectDetails));
-               console.log("else")
-               //Add to asset in secret variable
-                secret.validationCriterion= sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace("validationCriteria: ","").trim();
-                options.push.apply(options, Object.keys(autoAdaptive));
-                console.log(secret);
-            }
-    
+
+    }
+    else if (ad && !aa && !sm && !vc) {
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
+        if (Object.keys(additionalObjectDetails).includes(words[words.length - 1])) {
+            if (!sentence.includes("additionalDetails:")) sentence = sentence.replace("additionalDetails", "additionalDetails:");
+            options.push(additionalObjectDetails[words[words.length - 1]].placeholder1);
+
         }
+        else if (sentence.includes("by <Security Mechanism>")) {
+            sentence = sentence.replace("by <Security Mechanism>", "");
+            sentence += "by ";
+            criterion = securityCriteria.find(element => words.includes(element));
+            console.log(criterion);
+            if (criterion != "") {
+                //if(domains.includes(domain)) 
+                //    await getDomainCriteriaMechanisms(criterion,domain)
+                //else 
+                //    await getCriteriaMechanisms(criterion);
+            }
+            options.push.apply(options, securityMechanism);
+            //sentence = sentence.replace("additionalDetails:", "");
+        }
+        else {
+            //ad=true;
+            //sentence = sentence.replace("additionalDetails:", "");
+            secret.additionalObjectDetails = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace("additionalDetails:", "").trim();
+            options.push("by <Security Mechanism>");
+            options.push.apply(options, Object.keys(validation));
+            options.push.apply(options, Object.keys(autoAdaptive));
+            options.push.apply(Object.keys(autoAdaptive));
+            console.log(secret);
+        }
+
+    }
+
+    else if (sm && !vc && !aa) {
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
+        //Add to securityMechanism in secret variable
+        sentence = sentence.replace("additionalDetails:", "");
+        secret.securityMechanism = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").trim();
+        console.log(secret);
+        //console.log(asset["of"])
+        //if (securityMechanism.includes(words[words.length - 1])) {
+        options.push.apply(options, Object.keys(validation));
+        //options.push.apply(options, Object.keys(condition2));
+        //options.push.apply(options, Object.keys(additionalObjectDetails));
+        options.push.apply(options, Object.keys(autoAdaptive));
+        console.log(options)
+
+        //}
+
+    }
+    else if (vc && !aa) {
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
+        sentence = sentence.replace("additionalDetails:", "");
+        if (Object.keys(validation).includes(words[words.length - 1])) {
+            if (!sentence.includes("validationCriteria:")) sentence = sentence.replace("validationCriteria", "validationCriteria:");
+            options.push(validation[words[words.length - 1]].placeholder1);
+
+        }
+        else if (Object.keys(validation).includes(words[words.length - 2] + " " + words[words.length - 1])) {
+            options.push(validation["complying with"].placeholder1);
+
+        }
+        else {
+            // options.push.apply(options, Object.keys(condition2));
+            // options.push.apply(options, Object.keys(additionalObjectDetails));
+            console.log("else")
+            //Add to asset in secret variable
+            secret.validationCriterion = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace("validationCriteria: ", "").trim();
+            options.push.apply(options, Object.keys(autoAdaptive));
+            console.log(secret);
+        }
+
+    }
     /*     else if (!ad && c2 && !aa) {
     
             if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
@@ -1479,41 +1481,41 @@ function domainRequirementsSuggest(req, domains) {
             }
     
         } */
-    
-        else if (aa) {
-            console.log("aa")
-            //console.log(elementInSentence(autoAdaptive, sentence));
-            if(sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails:", "");
-            if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
-            sentence = sentence.replace("validationCriteria", "validationCriteria:");
-            if ((Object.keys(autoAdaptive).includes(words[words.length - 1])) && (autoAdaptive[words[words.length - 1]].placeholder1!="")) {
-                options.push(autoAdaptive[words[words.length - 1]].placeholder1);
-    
-            }
-            else if (Object.keys(autoAdaptive).includes(words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1!="")) {
-                options.push(autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
-    
-            }
-            else if (Object.keys(autoAdaptive).includes(words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])&&(autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1!="")) {
-                options.push(autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
-    
-            }
-            else if (words[words.length - 1]!= "eventually" && (autoAdaptive[elementInSentence((autoAdaptive), sentence)]).placeholder2 != "" &&
-                elementInSentence((autoAdaptive), sentence) != words[words.length - 1] &&
-                elementInSentence((autoAdaptive), sentence) != words[words.length - 2] + " " + words[words.length - 1] &&
-                (elementInSentence((autoAdaptive), sentence) == words[words.length - 2] || elementInSentence((autoAdaptive), sentence) == words[words.length - 3] + " " + words[words.length - 2]))
-                options.push(((autoAdaptive)[elementInSentence((autoAdaptive), sentence)]).placeholder2)
-            else {
-                console.log("aa else")
-                console.log(sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace(secret.validationCriterion,"").trim());
-                secret.autoAdaptive= sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace(secret.validationCriterion,"").trim();
-                console.log(secret);
-            }
-    
+
+    else if (aa) {
+        console.log("aa")
+        //console.log(elementInSentence(autoAdaptive, sentence));
+        if (sentence.includes("additionalDetails:")) sentence = sentence.replace("additionalDetails:", "");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
+        sentence = sentence.replace("validationCriteria", "validationCriteria:");
+        if ((Object.keys(autoAdaptive).includes(words[words.length - 1])) && (autoAdaptive[words[words.length - 1]].placeholder1 != "")) {
+            options.push(autoAdaptive[words[words.length - 1]].placeholder1);
+
         }
-        
+        else if (Object.keys(autoAdaptive).includes(words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1 != "")) {
+            options.push(autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
+
+        }
+        else if (Object.keys(autoAdaptive).includes(words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1 != "")) {
+            options.push(autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
+
+        }
+        else if (words[words.length - 1] != "eventually" && (autoAdaptive[elementInSentence((autoAdaptive), sentence)]).placeholder2 != "" &&
+            elementInSentence((autoAdaptive), sentence) != words[words.length - 1] &&
+            elementInSentence((autoAdaptive), sentence) != words[words.length - 2] + " " + words[words.length - 1] &&
+            (elementInSentence((autoAdaptive), sentence) == words[words.length - 2] || elementInSentence((autoAdaptive), sentence) == words[words.length - 3] + " " + words[words.length - 2]))
+            options.push(((autoAdaptive)[elementInSentence((autoAdaptive), sentence)]).placeholder2)
+        else {
+            console.log("aa else")
+            console.log(sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace(secret.validationCriterion, "").trim());
+            secret.autoAdaptive = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace(secret.validationCriterion, "").trim();
+            console.log(secret);
+        }
+
+    }
+
     //if(sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails:", "");
-    let data = { "input": sentence, "options": options ,"secret":secret};
+    let data = { "input": sentence, "options": options, "secret": secret };
 
 
     return data;
@@ -1555,13 +1557,13 @@ async function domainFunctionalRequirementsSuggest(req) {
     })
     //var a2=words.some(item => Object.keys(asset["of"]).includes(item));
     var a2 = Object.keys(asset["of"]).some(element => {
-       var pr="";
-       priority.some(e => {if (sentence.includes(e)) pr=e;})
-       console.log()
-       if (p) return (sentence.includes(element,sentence.indexOf(pr)));
-       else return false;
+        var pr = "";
+        priority.some(e => { if (sentence.includes(e)) pr = e; })
+        console.log()
+        if (p) return (sentence.includes(element, sentence.indexOf(pr)));
+        else return false;
     })
-    console.log(a2+" A2")
+    console.log(a2 + " A2")
     var sm = securityMechanism.some(element => {
         return sentence.includes(element);
     })
@@ -1603,7 +1605,7 @@ async function domainFunctionalRequirementsSuggest(req) {
     //else if(priority.includes(req.q)) res.end(JSON.stringify(priority.filter(value=> value.includes(req.q))));
     //
     //else if(priority.includes(req.q)) res.end(JSON.stringify(priority.includes(req.q)))
-    if (sentence == "") { options.push.apply(options, Object.keys(conditions1)); options.push.apply(options, Object.keys(systemDomain)); console.log(options);  secret={};}
+    if (sentence == "") { options.push.apply(options, Object.keys(conditions1)); options.push.apply(options, Object.keys(systemDomain)); console.log(options); secret = {}; }
 
     else if (!c1 && req.input != "" && !s && !p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
         if (Object.keys(conditions1).filter(value => value.includes(req.input)).length > 0) options = (Object.keys(conditions1).filter(value => value.includes(req.input)));
@@ -1626,39 +1628,39 @@ async function domainFunctionalRequirementsSuggest(req) {
     }
     else if (s && !p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
         if (Object.keys(systemDomain).includes(words[words.length - 1])) {
-            var condition = sentence.replace(words[words.length - 1],"");
-            if(condition!="") secret.condition=condition.trim();
+            var condition = sentence.replace(words[words.length - 1], "");
+            if (condition != "") secret.condition = condition.trim();
             if ((systemDomain[words[words.length - 1]]).placeholder1 != "") {
                 options.push((systemDomain[words[words.length - 1]]).placeholder1);
             } else {
                 options.push((systemDomain[words[words.length - 1]]).next);
             }
-        } 
+        }
         else if (systemDomain[elementInSentence(systemDomain, sentence)]["next"] == (words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
-            if (systemDomain[elementInSentence(systemDomain, sentence)].placeholder2 != "") 
+            if (systemDomain[elementInSentence(systemDomain, sentence)].placeholder2 != "")
                 options.push(systemDomain[elementInSentence(systemDomain, sentence)].placeholder2);
-            }
+        }
         else if (systemDomain[elementInSentence(systemDomain, sentence)].placeholder3 != "") {
-                    if (sentence.includes("Restriction: ") && words[words.length - 1]!="Restriction:") {
-                        options = priority;
-                    }
-                    else options.push(systemDomain[elementInSentence(systemDomain, sentence)].placeholder3);
-            }
-             
-        else {
+            if (sentence.includes("Restriction: ") && words[words.length - 1] != "Restriction:") {
                 options = priority;
             }
+            else options.push(systemDomain[elementInSentence(systemDomain, sentence)].placeholder3);
+        }
+
+        else {
+            options = priority;
+        }
     }
     else if (p && !a1 && !sc && !a2 && !sm && !vc && !ad && !c2 && !aa) {
-        if (priority.includes(words[words.length - 1])){
+        if (priority.includes(words[words.length - 1])) {
             if (sentence.includes("Restriction: ")) {
                 let str = sentence.replace("Restriction: ", "");
                 sentence = str.trim();
             }
-            var sys=sentence.replace(words[words.length - 1],"");
-            if(secret.condition)sys=sys.replace(secret.condition,"").trim();
-            secret.system=sys;
-            secret.priority=words[words.length - 1];
+            var sys = sentence.replace(words[words.length - 1], "");
+            if (secret.condition) sys = sys.replace(secret.condition, "").trim();
+            secret.system = sys;
+            secret.priority = words[words.length - 1];
             options = (Object.keys(activity));
         }
         //verb replaced
@@ -1672,17 +1674,17 @@ async function domainFunctionalRequirementsSuggest(req) {
 
         if (Object.keys(activity).includes(words[words.length - 1])) {
             if (words[words.length - 1] == "verb") sentence = sentence.replace("verb", "verb: ");
-            if ((words[words.length - 1]) == "provide") options=(Object.keys(asset["of"]))
+            if ((words[words.length - 1]) == "provide") options = (Object.keys(asset["of"]))
             console.log(options)
             options.push((activity[words[words.length - 1]]).placeholder1);
-            
-            
+
+
         }
-        
+
         else if (words.length >= 3 && Object.keys(activity).includes(words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
             options.push((activity[words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]]).placeholder1);
         }
-        else if (!sentence.includes("verb:")&& activity[elementInSentence(activity, sentence)]["next"] != "" &&
+        else if (!sentence.includes("verb:") && activity[elementInSentence(activity, sentence)]["next"] != "" &&
             (!Array.isArray(activity[elementInSentence(activity, sentence)]["next"]) &&
                 !sentence.includes(activity[elementInSentence(activity, sentence)]["next"]) &&
                 (words[words.length - 1]) != activity[elementInSentence(activity, sentence)]["next"] &&
@@ -1698,9 +1700,9 @@ async function domainFunctionalRequirementsSuggest(req) {
                 (words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]) == activity[elementInSentence(activity, sentence)]["next"] ||
                 activity[elementInSentence(activity, sentence)]["next"].includes((words[words.length - 1]))))
             options.push((activity[elementInSentence(activity, sentence)]).placeholder2)
-        
+
         else {
-            
+
             //console.log(securityCriteria)
             //Needs to be synchronized
             //await getAllCriteria();
@@ -1715,50 +1717,50 @@ async function domainFunctionalRequirementsSuggest(req) {
     //         criterion = words[words.length - 1];
     //         console.log(criterion)
     //         sentence += " of ";
-            
+
 
     //     }
     // }
     else if (a2 && !sm && !vc && !ad && !c2 && !aa) {
         //console.log(sentence.split("of")[1])
         sentence = sentence.replace("verb: ", "");
-        console.log(((asset["of"])[elementInSentence((asset["of"]),sentence)]));
+        console.log(((asset["of"])[elementInSentence((asset["of"]), sentence)]));
         if (Object.keys(asset["of"]).includes(words[words.length - 1])) {
-            secret.activity=(sentence.split(secret.priority)[1]).replace(words[words.length - 1],"").trim();
+            secret.activity = (sentence.split(secret.priority)[1]).replace(words[words.length - 1], "").trim();
             options.push(((asset["of"])[words[words.length - 1]]).placeholder1);
             console.log(options);
         }
         else if (Object.keys(asset["of"]).includes(words[words.length - 2] + " " + words[words.length - 1])) {
-            secret.activity=(sentence.split(secret.priority)[1]).replace(words[words.length - 2]+" "+words[words.length-1],"").trim();
+            secret.activity = (sentence.split(secret.priority)[1]).replace(words[words.length - 2] + " " + words[words.length - 1], "").trim();
             options.push(((asset["of"])[words[words.length - 2] + " " + words[words.length - 1]]).placeholder1);
         }
         else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] != "" &&
-        !sentence.includes((asset["of"])[elementInSentence((asset["of"]),(sentence.split(secret.priority))[1])]["next"]) &&
-        (words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] &&
-        (words[words.length - 2] + " " + words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]),(sentence.split(secret.priority))[1])]["next"] &&
-        !(asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"].includes((words[words.length - 1])))
-        options.push((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"])
-    else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] != "" &&
-        ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder2 != "" &&
-        ((words[words.length - 1]) == (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] ||
-            (words[words.length - 2] + " " + words[words.length - 1]) == (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] ||
-            (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"].includes((words[words.length - 1]))))
-        options.push(((asset["of"])[elementInSentence((asset["of"]),(sentence.split(secret.priority))[1])]).placeholder2)
-    else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] == "" &&
-        ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder2 != "" &&
-        (elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])) == (words[words.length - 2]))
-        options.push(((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder2)
-    else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] != "" &&
-        ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder3 != "" &&
-        ((words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]), sentence)]["next"] &&
-            (words[words.length - 2] + " " + words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]), sentence)]["next"] &&
-            (sentence.includes((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"]))) &&
-        ((asset["of"])[elementInSentence((asset["of"]), sentence)]["next"] == (words[words.length - 2])))
-        options.push(((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder3)
+            !sentence.includes((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"]) &&
+            (words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] &&
+            (words[words.length - 2] + " " + words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] &&
+            !(asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"].includes((words[words.length - 1])))
+            options.push((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"])
+        else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] != "" &&
+            ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder2 != "" &&
+            ((words[words.length - 1]) == (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] ||
+                (words[words.length - 2] + " " + words[words.length - 1]) == (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] ||
+                (asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"].includes((words[words.length - 1]))))
+            options.push(((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder2)
+        else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] == "" &&
+            ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder2 != "" &&
+            (elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])) == (words[words.length - 2]))
+            options.push(((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder2)
+        else if ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"] != "" &&
+            ((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder3 != "" &&
+            ((words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]), sentence)]["next"] &&
+                (words[words.length - 2] + " " + words[words.length - 1]) != (asset["of"])[elementInSentence((asset["of"]), sentence)]["next"] &&
+                (sentence.includes((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]["next"]))) &&
+            ((asset["of"])[elementInSentence((asset["of"]), sentence)]["next"] == (words[words.length - 2])))
+            options.push(((asset["of"])[elementInSentence((asset["of"]), (sentence.split(secret.priority))[1])]).placeholder3)
         else {
             console.log("else")
             //Add to asset in secret variable
-            secret.asset=sentence.split(secret.activity)[1].trim();
+            secret.asset = sentence.split(secret.activity)[1].trim();
             //Needs to be synchronized
             //criterion = securityCriteria.find(element => words.includes(element));
             //console.log(criterion);
@@ -1787,34 +1789,34 @@ async function domainFunctionalRequirementsSuggest(req) {
 
     // }
     else if (!ad && c2 && !aa && !sm && !vc) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
             options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
         }
         else {
-             //Add to securityMechanism in secret variable
-             
+            //Add to securityMechanism in secret variable
+
             options.push.apply(options, Object.keys(additionalObjectDetails));
             options.push.apply(options, Object.keys(validation));
             options.push.apply(options, Object.keys(autoAdaptive));
-            
+
             //console.log(sentence.split(secret.asset.trim()));
-            secret.conditionalityObject=sentence.split(secret.asset)[1].trim();
+            secret.conditionalityObject = sentence.split(secret.asset)[1].trim();
             console.log(secret);
         }
 
     }
     else if (ad && !aa && !sm && !vc) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         if (Object.keys(additionalObjectDetails).includes(words[words.length - 1])) {
-            if(!sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails", "additionalDetails:");
+            if (!sentence.includes("additionalDetails:")) sentence = sentence.replace("additionalDetails", "additionalDetails:");
             options.push(additionalObjectDetails[words[words.length - 1]].placeholder1);
 
         }
         else {
             //ad=true;
             //sentence = sentence.replace("additionalDetails:", "");
-            secret.additionalObjectDetails=sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace("additionalDetails:","").trim();
+            secret.additionalObjectDetails = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace("additionalDetails:", "").trim();
             options.push.apply(options, Object.keys(validation));
             options.push.apply(options, Object.keys(autoAdaptive));
             options.push.apply(Object.keys(autoAdaptive));
@@ -1824,10 +1826,10 @@ async function domainFunctionalRequirementsSuggest(req) {
     }
 
     else if (vc && !aa) {
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
         sentence = sentence.replace("additionalDetails:", "");
         if (Object.keys(validation).includes(words[words.length - 1])) {
-            if(!sentence.includes("validationCriteria:"))sentence = sentence.replace("validationCriteria", "validationCriteria:");
+            if (!sentence.includes("validationCriteria:")) sentence = sentence.replace("validationCriteria", "validationCriteria:");
             options.push(validation[words[words.length - 1]].placeholder1);
 
         }
@@ -1836,63 +1838,63 @@ async function domainFunctionalRequirementsSuggest(req) {
 
         }
         else {
-           // options.push.apply(options, Object.keys(condition2));
-           // options.push.apply(options, Object.keys(additionalObjectDetails));
-           console.log("else")
-           //Add to asset in secret variable
-            secret.validationCriterion= sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace("validationCriteria: ","").trim();
+            // options.push.apply(options, Object.keys(condition2));
+            // options.push.apply(options, Object.keys(additionalObjectDetails));
+            console.log("else")
+            //Add to asset in secret variable
+            secret.validationCriterion = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace("validationCriteria: ", "").trim();
             options.push.apply(options, Object.keys(autoAdaptive));
             console.log(secret);
         }
 
     }
-/*     else if (!ad && c2 && !aa) {
-
-        if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
-            options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
-
-        }
-        else {
-            options.push.apply(options, Object.keys(additionalObjectDetails));
-            options.push.apply(options, Object.keys(autoAdaptive));
-        }
-
-    } */
+    /*     else if (!ad && c2 && !aa) {
+    
+            if (Object.keys(condition2).includes(words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])) {
+                options.push(condition2[words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
+    
+            }
+            else {
+                options.push.apply(options, Object.keys(additionalObjectDetails));
+                options.push.apply(options, Object.keys(autoAdaptive));
+            }
+    
+        } */
 
     else if (aa) {
         console.log("aa")
         //console.log(elementInSentence(autoAdaptive, sentence));
-        if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
-        if(sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails:", "");
+        if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
+        if (sentence.includes("additionalDetails:")) sentence = sentence.replace("additionalDetails:", "");
         sentence = sentence.replace("validationCriteria", "validationCriteria:");
-        if ((Object.keys(autoAdaptive).includes(words[words.length - 1])) && (autoAdaptive[words[words.length - 1]].placeholder1!="")) {
+        if ((Object.keys(autoAdaptive).includes(words[words.length - 1])) && (autoAdaptive[words[words.length - 1]].placeholder1 != "")) {
             options.push(autoAdaptive[words[words.length - 1]].placeholder1);
 
         }
-        else if (Object.keys(autoAdaptive).includes(words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1!="")) {
+        else if (Object.keys(autoAdaptive).includes(words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1 != "")) {
             options.push(autoAdaptive[words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
 
         }
-        else if (Object.keys(autoAdaptive).includes(words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1])&&(autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1!="")) {
+        else if (Object.keys(autoAdaptive).includes(words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]) && (autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1 != "")) {
             options.push(autoAdaptive[words[words.length - 5] + " " + words[words.length - 4] + " " + words[words.length - 3] + " " + words[words.length - 2] + " " + words[words.length - 1]].placeholder1);
 
         }
-        else if (words[words.length - 1]!= "eventually" && (autoAdaptive[elementInSentence((autoAdaptive), sentence)]).placeholder2 != "" &&
+        else if (words[words.length - 1] != "eventually" && (autoAdaptive[elementInSentence((autoAdaptive), sentence)]).placeholder2 != "" &&
             elementInSentence((autoAdaptive), sentence) != words[words.length - 1] &&
             elementInSentence((autoAdaptive), sentence) != words[words.length - 2] + " " + words[words.length - 1] &&
             (elementInSentence((autoAdaptive), sentence) == words[words.length - 2] || elementInSentence((autoAdaptive), sentence) == words[words.length - 3] + " " + words[words.length - 2]))
             options.push(((autoAdaptive)[elementInSentence((autoAdaptive), sentence)]).placeholder2)
         else {
             console.log("aa else")
-            console.log(sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace(secret.validationCriterion,"").trim());
-            secret.autoAdaptive= sentence.split(secret.asset)[1].replace(secret.conditionalityObject,"").replace(secret.additionalObjectDetails,"").replace("by","").replace(secret.securityMechanism,"").replace(secret.validationCriterion,"").trim();
+            console.log(sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace(secret.validationCriterion, "").trim());
+            secret.autoAdaptive = sentence.split(secret.asset)[1].replace(secret.conditionalityObject, "").replace(secret.additionalObjectDetails, "").replace("by", "").replace(secret.securityMechanism, "").replace(secret.validationCriterion, "").trim();
             console.log(secret);
         }
 
     }
     //if(sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails:", "");
 
-    let data = { "input": sentence, "options": options ,"secret":secret};
+    let data = { "input": sentence, "options": options, "secret": secret };
 
 
     return data;
@@ -1902,13 +1904,13 @@ async function endRequirement(req) {
     //await getAllDomainsList();
     //var words = req.input.trim().split(" ");
     var sentence = req.input.trim();
-    if(sentence.includes("Number:"))sentence=sentence.replace(" Number:","");
-    if(sentence.includes("additionalDetails:"))sentence = sentence.replace("additionalDetails: ", "");
-    if(sentence.includes("validationCriteria:"))sentence = sentence.replace("validationCriteria: ", "");
-    let data = { "input": sentence[0].toUpperCase() + sentence.slice(1).toLowerCase()};
+    if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
+    if (sentence.includes("additionalDetails:")) sentence = sentence.replace("additionalDetails: ", "");
+    if (sentence.includes("validationCriteria:")) sentence = sentence.replace("validationCriteria: ", "");
+    let data = { "input": sentence[0].toUpperCase() + sentence.slice(1).toLowerCase() };
 
 
     return data;
 }
 
-module.exports = { getAllDomainsList, securityRequirementsSuggest, domainRequirementsSuggest, functionalRequirementsSuggest,domainFunctionalRequirementsSuggest,endRequirement };
+module.exports = {  securityRequirementsSuggest, domainRequirementsSuggest, functionalRequirementsSuggest, domainFunctionalRequirementsSuggest, endRequirement, getAllDomainsList };
