@@ -1,4 +1,5 @@
-var axios = require('axios');
+import axios, { Method } from "axios";
+
 const ip = "http://193.52.45.42:8585/";
 //const data = ["apple","apple watch","iphone","iphone x","apple macbook","apple macbook air","apple macbook air pro 13"];
 const conditions1 = {
@@ -227,7 +228,7 @@ const autoAdaptive = {
 };
 var domains = [];
 
-var secret = {};
+var secret:any={};
 
 
 const getAllCriteria = async () => {
@@ -249,18 +250,6 @@ const getAllCriteria = async () => {
         console.log(e)
     }
 
-}
-
-async function getAllDomainsList() { 
-    try {
-        let ip = "http://193.52.45.42:8585/";
-        let res = await axios.get(ip + 'domain');
-        let domains = res.data;
-        return domains; 
-    }
-    catch (e) {
-        console.log(e)
-    } 
 }
 
 const getDomainCriteria = async (domain) => {
@@ -344,7 +333,7 @@ function ObjectInSentence(obj, sentence) {
 //Application security requirements
 async function securityRequirementsSuggest(req) {
     console.log(req.input)
-    await getAllDomainsList();
+    //await domainsList();
     var words = req.input.trim().split(" ");
     var sentence = req.input.trim();
     var domain = req.domain.trim();
@@ -1098,7 +1087,7 @@ async function functionalRequirementsSuggest(req) {
 
 function domainRequirementsSuggest(req, domains) {
     console.log(req.input)
-    //await getAllDomainsList();
+    //await domainsList();
     var words = req.input.trim().split(" ");
     var sentence = req.input.trim();
     var domain = req.domain.trim();
@@ -1890,9 +1879,10 @@ async function domainFunctionalRequirementsSuggest(req) {
 
     return data;
 }
+
 async function endRequirement(req) {
     console.log(req.input)
-    //await getAllDomainsList();
+    //await domainsList();
     //var words = req.input.trim().split(" ");
     var sentence = req.input.trim();
     if (sentence.includes("Number:")) sentence = sentence.replace(" Number:", "");
@@ -1904,4 +1894,15 @@ async function endRequirement(req) {
     return data;
 }
 
-module.exports = {  securityRequirementsSuggest, domainRequirementsSuggest, functionalRequirementsSuggest, domainFunctionalRequirementsSuggest, endRequirement, getAllDomainsList };
+async function getAllDomainsList() {  
+   try { 
+       let res = await axios.get(ip + 'domain');
+       let domains = res.data;
+       return domains; 
+   }
+   catch (e) {
+       console.log(e)
+   } 
+}
+
+export {  securityRequirementsSuggest, domainRequirementsSuggest, functionalRequirementsSuggest, domainFunctionalRequirementsSuggest, endRequirement, getAllDomainsList };
