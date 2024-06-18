@@ -250,7 +250,8 @@ const getAllCriteria = async () => {
     }
 
 }
-const getAllDomains = async () => {
+
+async function getAllDomains(){
 
     try {
         var res = await axios.get(ip + 'domain')
@@ -351,7 +352,7 @@ function ObjectInSentence(obj, sentence) {
 //Application security requirements
 async function securityRequirementsSuggest(req) {
     console.log(req.input)
-    await this.getAllDomains();
+    await getAllDomains();
     var words = req.input.trim().split(" ");
     var sentence = req.input.trim();
     var domain = req.domain.trim();
