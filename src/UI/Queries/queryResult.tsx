@@ -14,6 +14,7 @@ type QueryResultProps = {
   index: number;
   result: object | Array<any> | boolean;
   projectService: ProjectService;
+  onVisualize:any
 };
 
 function isIterationResult(result: Array<any> | object | boolean): boolean {
@@ -36,6 +37,7 @@ export default function QueryResult({
   index,
   result,
   projectService,
+  onVisualize
 }: QueryResultProps) {
   const [paginationSelection, setPaginationSelection] = useState(0);
 
@@ -126,6 +128,9 @@ export default function QueryResult({
         // projectService.lookupAndReselectModel();
         projectService.getGraph().refresh();
       }
+    }
+    if (onVisualize) {
+      onVisualize();
     }
   };
 

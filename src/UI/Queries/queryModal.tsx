@@ -178,6 +178,11 @@ export default function QueryModal({
     //setSavedQueries(savedQueries);
   };
 
+  const queryResult_onVisualize=()=>{
+    let i=0;
+    handleCloseCallback();
+  }
+
   return (
     <>
       <Modal show={show} onHide={handleCloseCallback} size="xl">
@@ -268,6 +273,7 @@ export default function QueryModal({
                   index={index}
                   result={result}
                   projectService={projectService}
+                  onVisualize={queryResult_onVisualize}
                 />
               ))}
             </Tab>
