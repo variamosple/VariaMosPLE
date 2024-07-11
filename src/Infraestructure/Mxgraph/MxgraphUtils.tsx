@@ -386,7 +386,25 @@ export default class MxgraphUtils {
                         child.innerHTML = `<![CDATA[ 
                             function(shape)
                             {
-                                return shape.state.cell.value.attributes['` + propertyNames[0] + `'].value;
+                                if(!shape){
+                                    return;
+                                }
+                                if(!shape.state){
+                                    return;
+                                }
+                                if(!shape.state.cell){
+                                    return;
+                                }
+                                if(!shape.state.cell.value){
+                                    return;
+                                }
+                                if(!shape.state.cell.value.attributes){
+                                    return;
+                                }
+                                console.log(JSON.stringify(shape.state.cell.value.attributes));
+                                if(shape.state.cell.value.attributes['` + propertyNames[0] + `']){
+                                    return shape.state.cell.value.attributes['` + propertyNames[0] + `'].value;
+                                } 
                             }
                             ]]>`;
                     } else if (propertyNames.length > 1) {

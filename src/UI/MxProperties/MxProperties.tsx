@@ -30,6 +30,7 @@ interface Props {
 }
 interface State {
   values: any[];
+  propertyId: string;
   propertyName: string;
   propertyLastName: string;
   propertyDomain: string;
@@ -38,7 +39,7 @@ interface State {
   propertyComment: string;
   propertyMinCardinality: string;
   propertyMaxCardinality: string;
-  constraint: string;
+  propertyConstraint: string;
   customPropertyFlag: boolean;
   customPropertyCreateFlag: boolean;
   customPropertyUpdateFlag: boolean;
@@ -59,6 +60,7 @@ export default class MxProperties extends Component<Props, State> {
 
     this.state = {
       values: [],
+      propertyId: null,
       propertyName: "",
       propertyLastName: "",
       propertyDomain: "String",
@@ -67,13 +69,13 @@ export default class MxProperties extends Component<Props, State> {
       propertyComment: "",
       propertyMinCardinality: "",
       propertyMaxCardinality: "",
-      constraint: "",
+      propertyConstraint: "",
       customPropertyFlag: true,
       customPropertyCreateFlag: true,
       customPropertyUpdateFlag: true,
       currentCustomProperty: {},
       showAddPropertyModal: false,
-      titleProperyModal:"Add property"
+      titleProperyModal: "Add property"
     };
 
     this.projectService_addNewProductLineListener =
@@ -139,7 +141,10 @@ export default class MxProperties extends Component<Props, State> {
     }
     let value = e.target.value;
     if (value == "Select...") {
-      value = null;
+      value = "Undefined";
+    }
+    else if (value[0] == "Undefined") {
+      value = "Undefined";
     }
     this.property_onChange(name, value);
   }
@@ -254,6 +259,13 @@ export default class MxProperties extends Component<Props, State> {
   }
 
   validatePropertyExist(func?: string): boolean {
+    let reservedWords = ["id", "name", "label", "type", "selected"];
+    if (reservedWords.includes(this.state.propertyName.toLowerCase())) {
+      alertify.error("Please don't use reserved properties: " + reservedWords.join(", "));
+      document.getElementById("newPropertyName")?.focus();
+      return false;
+    }
+
     if (
       func === "update" &&
       this.state.propertyLastName === this.state.propertyName
@@ -263,11 +275,14 @@ export default class MxProperties extends Component<Props, State> {
     for (let i = 0; i < this.currentObject.properties.length; i++) {
       const element = this.currentObject.properties[i];
       if (element.name === this.state.propertyName) {
-        alertify.error("Property name already exist");
-        document.getElementById("newPropertyName")?.focus();
-        return false;
+        if (element.id!=this.state.propertyId) {
+          alertify.error("Property name already exist");
+          document.getElementById("newPropertyName")?.focus();
+          return false;
+        }
       }
     }
+
 
     return true;
   }
@@ -280,38 +295,126 @@ export default class MxProperties extends Component<Props, State> {
     this.setState({ showAddPropertyModal: false })
   }
 
+  editProperty(e) {
+    let p = e.target;
+    while (!p.attributes["data-id"]) {
+      p = p.parentElement;
+    }
+    let propertyId = p.attributes["data-id"].value;
+    for (let i = 0; i < this.currentObject?.properties.length; i++) {
+      if (this.currentObject.properties[i].id == propertyId) {
+        let property: Property = this.currentObject.properties[i];
+
+        this.setState({
+          propertyId: property.id,
+          propertyName: property.name,
+          propertyLastName: "",
+          propertyDomain: property.type,
+          propertyPossibleValues: property.possibleValues,
+          propertyConstraint: property.constraint,
+          propertyComment: property.comment,
+          customPropertyFlag: true,
+          customPropertyCreateFlag: true,
+          customPropertyUpdateFlag: true,
+          currentCustomProperty: {},
+        });
+
+        this.showAddPropertyModal();
+      }
+    }
+  }
+
+  deleteProperty(e) {
+    if (!window.confirm("Delete the property?")) {
+      return;
+    }
+    let p = e.target;
+    while (!p.attributes["data-id"]) {
+      p = p.parentElement;
+    }
+    let propertyId = p.attributes["data-id"].value;
+    for (let i = 0; i < this.currentObject?.properties.length; i++) {
+      if (this.currentObject.properties[i].id == propertyId) {
+        this.currentObject.properties.splice(i, 1);
+
+        this.props.projectService.saveProject();
+        this.props.projectService.raiseEventUpdatedElement(
+          this.currentModel,
+          this.currentObject
+        );
+
+        alertify.success("Property deleted successfully");
+        this.clearForm();
+        this.setState({ showAddPropertyModal: false })
+      }
+    }
+  }
+
   createCustomProperty() {
-    if (!this.nullValidate()) return false;
-    if (!this.validatePropertyExist()) return false;
+    if (!this.state.propertyId) {
+      if (!this.nullValidate()) return false;
+      if (!this.validatePropertyExist()) return false;
 
-    this.currentObject.properties.push(
-      new Property(
-        this.state.propertyName,
-        null,
-        this.state.propertyDomain,
-        null,
-        null,
-        null,
-        true,
-        true,
-        this.state.propertyComment,
-        this.state.propertyPossibleValues,
-        this.state.propertyPossibleValuesLinks,
-        this.state.propertyMinCardinality,
-        this.state.propertyMaxCardinality,
-        this.state.constraint
-      )
-    );
+      this.currentObject.properties.push(
+        new Property(
+          this.state.propertyName,
+          "Undefined",
+          this.state.propertyDomain,
+          null,
+          null,
+          null,
+          true,
+          true,
+          this.state.propertyComment,
+          this.state.propertyPossibleValues,
+          this.state.propertyPossibleValuesLinks,
+          this.state.propertyMinCardinality,
+          this.state.propertyMaxCardinality,
+          this.state.propertyConstraint
+        )
+      );
 
-    this.props.projectService.saveProject();
-    this.props.projectService.raiseEventUpdatedElement(
-      this.currentModel,
-      this.currentObject
-    );
+      this.props.projectService.saveProject();
+      this.props.projectService.raiseEventUpdatedElement(
+        this.currentModel,
+        this.currentObject
+      );
 
-    alertify.success("Property created successfully");
-    this.clearForm();
-    this.setState({ showAddPropertyModal: false })
+      alertify.success("Property created successfully");
+      this.clearForm();
+      this.setState({ showAddPropertyModal: false })
+    }
+    else {
+      if (!this.nullValidate()) return false;
+      if (!this.validatePropertyExist()) return false;
+
+      let propertyId = this.state.propertyId;
+      for (let i = 0; i < this.currentObject?.properties.length; i++) {
+        if (this.currentObject.properties[i].id == propertyId) {
+          let property:Property=this.currentObject.properties[i];
+          property.name=this.state.propertyName;
+          property.type=this.state.propertyDomain;
+          property.comment=this.state.propertyComment;
+          property.possibleValues=this.state.propertyPossibleValues;
+          property.possibleValuesLinks=this.state.propertyPossibleValuesLinks;
+          property.minCardinality= parseInt(  this.state.propertyMinCardinality);
+          property.maxCardinality=parseInt(this.state.propertyMaxCardinality); 
+          property.constraint=this.state.propertyConstraint;
+          property.value="Undefined"
+        }
+      } 
+
+      this.props.projectService.saveProject();
+      this.props.projectService.raiseEventUpdatedElement(
+        this.currentModel,
+        this.currentObject
+      );
+
+      alertify.success("Property changed successfully");
+      this.clearForm();
+      this.setState({ showAddPropertyModal: false })
+    }
+
   }
 
   updateCustomProperty() {
@@ -364,10 +467,12 @@ export default class MxProperties extends Component<Props, State> {
 
   clearForm() {
     this.setState({
+      propertyId: null,
       propertyName: "",
       propertyLastName: "",
       propertyDomain: "String",
       propertyPossibleValues: "",
+      propertyConstraint: "",
       propertyComment: "",
       customPropertyFlag: true,
       customPropertyCreateFlag: true,
@@ -422,7 +527,7 @@ export default class MxProperties extends Component<Props, State> {
 
   constraintChange(event: any) {
     this.setState({
-      constraint: event.target.value,
+      propertyConstraint: event.target.value,
     });
   }
 
@@ -652,76 +757,6 @@ export default class MxProperties extends Component<Props, State> {
           control = (
             <input
               className="form-control form-control-sm"
-              type="number"
-              data-name={property.name}
-              onChange={this.input_onChange}
-              value={this.state.values[property.name]}
-            />
-          );
-          break;
-        }
-
-        if (possibleValues.includes("..")) {
-          const values: any = possibleValues.split("..");
-          const min = values[0];
-          const max = values[1];
-          control = (
-            <input
-              className="form-control form-control-sm"
-              type="number"
-              min={min}
-              max={max}
-              data-name={property.name}
-              onChange={this.input_onChange}
-              value={this.state.values[property.name]}
-            />
-          );
-          break;
-        }
-
-        if (possibleValues.includes(",")) {
-          let options = possibleValues.split(",");
-          options.push(
-            <option data-name={property.name} value={null} selected>Select...</option>
-          );
-          for (let i = 0; i < options.length; i++) {
-            const option = options[i];
-            if (option === value) {
-              options.push(
-                <option data-name={property.name} value={option} selected>
-                  {option}
-                </option>
-              );
-            } else {
-              options.push(
-                <option data-name={property.name} value={option}>
-                  {option}
-                </option>
-              );
-            }
-          }
-
-          control = (
-            <select
-              className="form-control form-control-sm"
-              data-name={property.name}
-              onChange={this.input_onChange}
-            >
-              {options}
-            </select>
-          );
-          break;
-        }
-
-        break;
-      case "String":
-        if (
-          possibleValues === undefined ||
-          possibleValues === ""
-        ) {
-          control = (
-            <input
-              className="form-control form-control-sm"
               type="text"
               title={titleToolTip}
               data-name={property.name}
@@ -734,8 +769,8 @@ export default class MxProperties extends Component<Props, State> {
 
         if (possibleValues.includes(",") || possibleValues.includes(";")) {
           if (!property.constraint) {
-            let options = []; 
-            let possibleValuesList = this.getListFromString( possibleValues ); 
+            let options = [];
+            let possibleValuesList = this.getListFromString(possibleValues);
             if (property.name != "Selected") {
               options.push(
                 <option data-name={property.name} value={"Undefined"} selected>Undefined</option>
@@ -770,22 +805,104 @@ export default class MxProperties extends Component<Props, State> {
             );
             break;
           }
-          else{
+          else {
             let checkboxItems: CheckboxItem[] = [];
             checkboxItems.push(
-              { id:  "Undefined" , label: "Undefined", checked: false  }
-            ); 
-            let possibleValuesList = this.getListFromString(possibleValues); 
+              { id: "Undefined", label: "Undefined", checked: false }
+            );
+            let possibleValuesList = this.getListFromString(possibleValues);
             for (let i = 0; i < possibleValuesList.length; i++) {
-              const option:any = possibleValuesList[i];
-              let checked=false;
+              const option: any = possibleValuesList[i];
+              let checked = false;
               if (Array.isArray(value)) {
                 if (value.includes(option)) {
-                  checked=true;
+                  checked = true;
                 }
-              } 
+              }
               checkboxItems.push(
-                { id:  option , label: option, checked: checked  }
+                { id: option, label: option, checked: checked }
+              );
+            }
+
+            control = (
+              <CheckboxList title="Multiple Checkbox List" data-name={property.name} items={checkboxItems} onChange={this.input_onChange} />
+            );
+          }
+          break;
+        }
+        break;
+      case "String":
+        if (
+          possibleValues === undefined ||
+          possibleValues === ""
+        ) {
+          control = (
+            <input
+              className="form-control form-control-sm"
+              type="text"
+              title={titleToolTip}
+              data-name={property.name}
+              onChange={this.input_onChange}
+              value={this.state.values[property.name]}
+            />
+          );
+          break;
+        }
+
+        if (possibleValues.includes(",") || possibleValues.includes(";")) {
+          if (!property.constraint) {
+            let options = [];
+            let possibleValuesList = this.getListFromString(possibleValues);
+            if (property.name != "Selected") {
+              options.push(
+                <option data-name={property.name} value={"Undefined"} selected>Undefined</option>
+              );
+            }
+            for (let i = 0; i < possibleValuesList.length; i++) {
+              const option = possibleValuesList[i];
+              if (option === value) {
+                options.push(
+                  <option data-name={property.name} value={option} selected>
+                    {option}
+                  </option>
+                );
+              } else {
+                options.push(
+                  <option data-name={property.name} value={option}>
+                    {option}
+                  </option>
+                );
+              }
+            }
+
+            control = (
+              <select
+                className="form-control form-control-sm"
+                data-name={property.name}
+                onChange={this.input_onChange}
+                title={titleToolTip}
+              >
+                {options}
+              </select>
+            );
+            break;
+          }
+          else {
+            let checkboxItems: CheckboxItem[] = [];
+            checkboxItems.push(
+              { id: "Undefined", label: "Undefined", checked: false }
+            );
+            let possibleValuesList = this.getListFromString(possibleValues);
+            for (let i = 0; i < possibleValuesList.length; i++) {
+              const option: any = possibleValuesList[i];
+              let checked = false;
+              if (Array.isArray(value)) {
+                if (value.includes(option)) {
+                  checked = true;
+                }
+              }
+              checkboxItems.push(
+                { id: option, label: option, checked: checked }
               );
             }
 
@@ -835,12 +952,12 @@ export default class MxProperties extends Component<Props, State> {
         );
         break;
     }
-    let editionControl=null;
-    if (property.custom){
-      editionControl=(
-        <> 
-          <a title="Edit property" onClick={this.showAddPropertyModal}><span><MdEdit /></span></a>
-          <a title="Delete property" onClick={this.showAddPropertyModal}><span><FaTrashAlt /></span></a> 
+    let editionControl = null;
+    if (property.custom) {
+      editionControl = (
+        <>
+          <a title="Edit property" data-id={property.id} onClick={this.editProperty.bind(this)}><span><MdEdit /></span></a>
+          <a title="Delete property" data-id={property.id} onClick={this.deleteProperty.bind(this)}><span><FaTrashAlt /></span></a>
         </>
       )
     }
@@ -859,15 +976,15 @@ export default class MxProperties extends Component<Props, State> {
   }
 
 
-  createCheckBoxList(options){
+  createCheckBoxList(options) {
 
   }
 
-  getListFromString(text:string){
-    text=text.replace(/;/g, ',');
-    let list = text.split(","); 
+  getListFromString(text: string) {
+    text = text.replace(/;/g, ',');
+    let list = text.split(",");
     for (let i = 0; i < list.length; i++) {
-     list[i]=list[i].trim(); 
+      list[i] = list[i].trim();
     }
     return list;
   }
@@ -966,7 +1083,7 @@ export default class MxProperties extends Component<Props, State> {
         <Modal show={this.state.showAddPropertyModal} onHide={this.hideAddPropertyModal} size="lg" centered>
           <Modal.Header closeButton>
             <Modal.Title>
-            {this.state.titleProperyModal}
+              {this.state.titleProperyModal}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
@@ -1033,7 +1150,7 @@ export default class MxProperties extends Component<Props, State> {
                       className="form-control"
                       placeholder="Constraint of configuration"
                       id="customPropertyConstraint"
-                      value={this.state.constraint}
+                      value={this.state.propertyConstraint}
                       onChange={this.constraintChange}
                     />
                   </div>

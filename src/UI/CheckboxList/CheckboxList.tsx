@@ -27,8 +27,8 @@ export default class CheckboxList extends Component<CheckboxListProps, CheckboxL
 
     if (this.props.items) {
       for (let i = 0; i < this.props.items.length; i++) {
-        const item:any = this.props.items[i];
-        this.state.checkboxes[item.id]=item.checked;
+        const item: any = this.props.items[i];
+        this.state.checkboxes[item.id] = item.checked;
         if (item.checked) {
           this.value.push(item.id);
         }
@@ -39,24 +39,37 @@ export default class CheckboxList extends Component<CheckboxListProps, CheckboxL
   // Handle checkbox change
   handleCheckboxChange = (checkboxId: string) => {
     let me = this;
-    this.setState((prevState) => {
-      const checkboxes = { ...prevState.checkboxes };
+    let checkboxes = { ...this.state.checkboxes };
+
+    if (checkboxId == "Undefined") {
+      me.value = ["Undefined"];
+      checkboxes = { };
+      checkboxes["Undefined"] = true;
+    } else {
+      let indice = me.value.indexOf("Undefined");
+      if (indice !== -1) {
+        me.value.splice(indice, 1);
+        checkboxes["Undefined"] = false;
+      }
+
+      indice = me.value.indexOf(checkboxId);
+      if (indice !== -1) {
+        me.value.splice(indice, 1);
+      } else {
+        me.value.push(checkboxId);
+      }
       checkboxes[checkboxId] = !checkboxes[checkboxId];
-      return { checkboxes };
+    }
+
+    this.setState({
+      checkboxes: checkboxes
     });
-
-    const indice = me.value.indexOf(checkboxId);
-
-    if (indice !== -1) { 
-      me.value.splice(indice, 1); 
-    } else { 
-      me.value.push(checkboxId); 
-    } 
 
     if (this.props.onChange) {
       this.props.onChange({
         target: me,
-        value: me.value
+        value: me.value,
+        changedValue: checkboxId
       })
     }
   };
