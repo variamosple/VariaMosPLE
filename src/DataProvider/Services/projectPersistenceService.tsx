@@ -273,6 +273,120 @@ export default class ProjectPersistenceService {
       console.log("Something wrong in getLanguageDetail Service: " + error);
     }
   }
+
+  deleteConfiguration(user:string,projectInformation:ProjectInformation, configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any): void {
+    let me=this; 
+    let success=(token)=>{
+      me.deleteConfigurationByToken(token,projectInformation, configurationInformation,  successCallback, errorCallback);
+    }
+    this.getTokenByUser(user,success, errorCallback );
+  }
+
+  deleteConfigurationByToken(token:string, projectInformation:ProjectInformation,  configurationInformation:ConfigurationInformation,  successCallback:any, errorCallback: any): void {
+    try { 
+      let me=this; 
+      const config = {
+        baseURL: Config.SERVICES.urlBackEndProjectPersistence + "/deleteConfiguration?project_id=" + projectInformation.id + "&model_id=" + configurationInformation.id_feature_model+ "&configuration_id=" + configurationInformation.id,
+        method: "DELETE" as Method, 
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }; 
+      axios(config).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data); 
+        if (responseAPISuccess.message?.includes("Error")){
+          throw new Error(JSON.stringify(res.data));
+        }
+        if(successCallback){ 
+          successCallback(responseAPISuccess.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error); 
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });;
+    } catch (error) {
+      console.log("Something wrong in getLanguageDetail Service: " + error);
+    }
+  }
+
+  applyConfiguration(user:string,projectInformation:ProjectInformation, configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any): void {
+    let me=this; 
+    let success=(token)=>{
+      me.applyConfigurationByToken(token,projectInformation, configurationInformation,  successCallback, errorCallback);
+    }
+    this.getTokenByUser(user,success, errorCallback );
+  }
+
+  applyConfigurationByToken(token:string, projectInformation:ProjectInformation,  configurationInformation:ConfigurationInformation,  successCallback:any, errorCallback: any): void {
+    try { 
+      let me=this; 
+      const config = {
+        baseURL: Config.SERVICES.urlBackEndProjectPersistence + "/applyConfiguration?project_id=" + projectInformation.id,
+        method: "POST" as Method, 
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        data: configurationInformation
+      }; 
+      axios(config).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data); 
+        if (responseAPISuccess.message?.includes("Error")){
+          throw new Error(JSON.stringify(res.data));
+        }
+        if(successCallback){ 
+          successCallback(responseAPISuccess.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error); 
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });;
+    } catch (error) {
+      console.log("Something wrong in getLanguageDetail Service: " + error);
+    }
+  }
+
+  getAllConfigurations(user:string,projectInformation:ProjectInformation, configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any): void {
+    let me=this; 
+    let success=(token)=>{
+      me.getAllConfigurationsByToken(token,projectInformation, configurationInformation,  successCallback, errorCallback);
+    }
+    this.getTokenByUser(user,success, errorCallback );
+  } 
+
+  getAllConfigurationsByToken(token:string,projectInformation:ProjectInformation, configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any) {
+    try { 
+      let me=this;
+      let project_id=projectInformation.id;
+      let model_id=configurationInformation.id_feature_model;
+      const config = {
+        baseURL: Config.SERVICES.urlBackEndProjectPersistence + "/getAllConfigurations?project_id=" + project_id + "&model_id=" + model_id,
+        method: "GET" as Method, 
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }; 
+      axios(config).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data); 
+        if (responseAPISuccess.message?.includes("Error")){
+          throw new Error(JSON.stringify(res.data));
+        }
+        let records: ConfigurationInformation[] = []; 
+        records = Object.assign(records, responseAPISuccess.data);
+        successCallback(records);
+      });
+    } catch (error) {
+      console.log("Something wrong in getLanguageDetail Service: " + error);
+    }
+  }  
 }
 
 export class ResponseAPISuccess {

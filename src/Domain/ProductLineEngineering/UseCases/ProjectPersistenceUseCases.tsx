@@ -36,4 +36,20 @@ export default class ProjectPersistenceUseCases {
     let me=this;
     this.projectPersistenceService.addConfiguration(user, projectInformation, configurationInformation, successCallback, errorCallback);
   }
+
+  deleteConfiguration(user:string, projectInformation:ProjectInformation, configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.deleteConfiguration(user, projectInformation, configurationInformation, successCallback, errorCallback);
+  }
+
+  applyConfiguration(user:string, projectInformation:ProjectInformation, configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.applyConfiguration(user, projectInformation, configurationInformation, successCallback, errorCallback);
+  }
+
+
+  getAllConfigurations(user:string, projectInformation:ProjectInformation, configurationInformation:ConfigurationInformation, successCallback:any, errorCallback: any): void { 
+    let me=this; 
+    this.projectPersistenceService.getAllConfigurations(user, projectInformation, configurationInformation, successCallback, errorCallback);
+  } 
 }

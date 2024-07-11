@@ -256,7 +256,7 @@ class TreeMenu extends Component<Props, State> {
     let errorCallback = (e: any) => {
       alert("Configuration not saved.");
     }
-    let configurationInformation = new ConfigurationInformation("1", this.state.configurationName, null);
+    let configurationInformation = new ConfigurationInformation("1", this.state.configurationName, null, null);
     this.props.projectService.saveConfigurationInServer(configurationInformation, successCallback, errorCallback);
   }
 
@@ -918,7 +918,7 @@ class TreeMenu extends Component<Props, State> {
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
-              <ConfigurationManagement className="ConfigurationManagement" onConfigurationSelected={this.configurationManagement_onConfigurationSelected.bind(this)} />
+              <ConfigurationManagement reload={this.state.showConfigurationManagementModal} projectService={this.props.projectService} className="ConfigurationManagement" onConfigurationSelected={this.configurationManagement_onConfigurationSelected.bind(this)} />
           </Modal.Body> 
         </Modal>
 

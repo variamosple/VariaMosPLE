@@ -1235,7 +1235,7 @@ export default class MxGEditor extends Component<Props, State> {
           <a title="Edit properties" onClick={this.showPropertiesModal}><span><img src="/images/editor/properties.png"></img></span></a>{" "}
           <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><span><img src="/images/editor/zoomIn.png"></img></span></a>{" "}
           <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><span><img src="/images/editor/zoomOut.png"></img></span></a>
-          {/* <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)}><i className="bi bi-card-image"></i></a> */}
+          <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)} style={{display: 'none'}}><i className="bi bi-card-image"></i></a>
         </div>
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>

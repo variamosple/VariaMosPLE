@@ -27,6 +27,7 @@ import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import ProjectService from "../../Application/Project/ProjectService";
 import { set } from "immer/dist/internal";
 import { json } from "react-router-dom";
+import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 
 type OpenDialogProps = {
   show: boolean;
@@ -191,52 +192,113 @@ export default function OpenDialog({
   }
 
   const btnDeleteProject_onClic = (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     if (window.confirm("Delete this project?") == true) {
-      let p= e.target;
-      p=p.parentElement;
-      p=p.parentElement;
-      let projectId = p.attributes["data-id"].value; 
-      let pi=new ProjectInformation(projectId, null, null, false); 
-      let successCallback=(e)=>{
+      let p = e.target;
+      p = p.parentElement;
+      p = p.parentElement;
+      let projectId = p.attributes["data-id"].value;
+      let pi = new ProjectInformation(projectId, null, null, false, null, null, null, null);
+      let successCallback = (e) => {
         getProjectsByUser();
-      } 
-      projectService.deleteProjectInServer(pi, successCallback, null); 
-    } 
+      }
+      projectService.deleteProjectInServer(pi, successCallback, null);
+    }
   }
 
   const renderProjects = () => {
     let elements = [];
     if (projects) {
       for (let i = 0; i < projects.length; i++) {
-        let project = projects[i];
+        let project: ProjectInformation = projects[i];
         const element = (
-          <li>
-            <a title="Change name" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}><MdEdit/></a>
-            <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
-            <a href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
-          </li>
+          <tr>
+            {/* <a title="Change name" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}><MdEdit/></a> */}
+            <td>
+              <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
+            </td>
+            <td>
+              <a href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
+            </td>
+            <td>
+              {new Date(project.date).toLocaleString()}
+            </td>
+            <td>
+              {project.description}
+            </td>
+            <td>
+              {project.author}
+            </td>
+            <td>
+              {project.source}
+            </td>
+          </tr>
         );
         elements.push(element);
       }
     }
     return (
-      <ul>{elements}</ul>
+      <table>
+        <thead style={{ position: 'sticky', top: '0', backgroundColor: 'white' }}>
+          <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Author</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {elements}
+        </tbody>
+      </table>
     )
   }
 
   const renderTemplateProjects = () => {
-    let elements = [];
     if (templateProjects) {
+      let elements = [];
       for (let i = 0; i < templateProjects.length; i++) {
-        let project = templateProjects[i];
-        const element = (<li><a href="#" className="link-project" data-id={project.id} data-template={true} onClick={btnProject_onClic}>{project.name}</a></li>);
+        let project: ProjectInformation = templateProjects[i];
+        const element = (
+          <tr> 
+            <td>
+              <a href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
+            </td>
+            <td>
+              {new Date(project.date).toLocaleString()}
+            </td>
+            <td>
+              {project.description}
+            </td>
+            <td>
+              {project.author}
+            </td>
+            <td>
+              {project.source}
+            </td>
+          </tr>
+        );
         elements.push(element);
       }
+      return (
+        <table>
+          <thead style={{ position: 'sticky', top: '0', backgroundColor: 'white' }}>
+            <tr> 
+              <th>Name</th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Author</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {elements}
+          </tbody>
+        </table>
+      )
     }
-    return (
-      <ul>{elements}</ul>
-    )
   }
 
   const renderUsers = () => {
@@ -302,7 +364,7 @@ export default function OpenDialog({
                 </div>
               </Tab>
             )}
-            <Tab eventKey="templateProjects" title="Templates">
+            <Tab eventKey="templateProjects" title="Public">
               <div className="div-container-projects">
                 {renderTemplateProjects()}
               </div>

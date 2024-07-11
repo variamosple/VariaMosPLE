@@ -36,7 +36,7 @@ export default function SaveDialog({
   handleCloseCallback,
   projectService,
 }: SaveDialogProps) {
-  const [key, setKey] = useState("query");
+  const [key, setKey] = useState("solversemantics");
   const [translatorEndpoint, setTranslatorEndpoint] = useState(
     ""
   );
@@ -52,7 +52,7 @@ export default function SaveDialog({
   const [savedQueries, setSavedQueries] = useState({});
   const [queryName, setQueryName] = useState("");
   const [projects, setProjects] = useState([]);
-  const [projectInformation, setProjectInformation] = useState(new ProjectInformation(null, null, null, false));
+  const [projectInformation, setProjectInformation] = useState(new ProjectInformation(null, null, null, false, null, null, null, new Date()));
   const [users, setUsers] = useState(["Hugo", "Paco", "Luis"]);
 
   //Load the saved queries from the local storage on load
@@ -79,6 +79,33 @@ export default function SaveDialog({
     let p2 = JSON.parse(JSON.stringify(projectInformation));
     p2.id = null;
     p2.name = event.target.value;
+    setProjectInformation(p2);
+  };
+
+  const inputDescription_onChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    let p2 = JSON.parse(JSON.stringify(projectInformation));
+    p2.id = null;
+    p2.description = event.target.value;
+    setProjectInformation(p2);
+  };
+
+  const inputAuthor_onChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    let p2 = JSON.parse(JSON.stringify(projectInformation));
+    p2.id = null;
+    p2.author = event.target.value;
+    setProjectInformation(p2);
+  };
+
+  const inputSource_onChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    let p2 = JSON.parse(JSON.stringify(projectInformation));
+    p2.id = null;
+    p2.source = event.target.value;
     setProjectInformation(p2);
   };
 
@@ -180,9 +207,9 @@ export default function SaveDialog({
     if (projectInformation) {
       let p2 = JSON.parse(JSON.stringify(projectInformation));
       setProjectInformation(p2);
-    }else{
-      let project=projectService.getProject();
-      let p2 = new ProjectInformation(null, project.name, null,  false);
+    } else {
+      let project = projectService.getProject();
+      let p2 = new ProjectInformation(null, project.name, null, false, null, null, null, new Date());
       setProjectInformation(p2);
     }
     projectService.getProjectsByUser(getProjectsByUserSuccessCallback, getProjectsByUserErrorCallback);
@@ -201,19 +228,56 @@ export default function SaveDialog({
     let index = e.target.attributes["data-index"].value;
     let projectInformation = projects[index];
     setProjectInformation(projectInformation);
+    setKey("solversemantics");
   }
 
   const renderProjects = () => {
     let elements = [];
     if (projects) {
       for (let i = 0; i < projects.length; i++) {
-        let project = projects[i];
-        const element = (<li><a href="#" className="link-project" data-index={i} onClick={btnProject_onClic}>{project.name}</a></li>);
+        let project: ProjectInformation = projects[i];
+        const element = (
+          <tr>
+            {/* <a title="Change name" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}><MdEdit/></a> */}
+            {/* <td>
+              <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
+            </td> */}
+            <td>
+              <a href="#" className="link-project" data-id={project.id} data-index={i} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
+            </td>
+            <td>
+              {new Date(project.date).toLocaleString()}
+            </td>
+            <td>
+              {project.description}
+            </td>
+            <td>
+              {project.author}
+            </td>
+            <td>
+              {project.source}
+            </td>
+          </tr>
+        );
         elements.push(element);
       }
     }
     return (
-      <ul>{elements}</ul>
+      <table>
+        <thead style={{ position: 'sticky', top: '0', backgroundColor: 'white' }}>
+          <tr>
+            {/* <th></th> */}
+            <th>Name</th>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Author</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {elements}
+        </tbody>
+      </table>
     )
   }
 
@@ -239,41 +303,52 @@ export default function SaveDialog({
         </Modal.Header>
         <Modal.Body>
           <Tabs
-            defaultActiveKey="query"
+            defaultActiveKey="solversemantics"
             activeKey={key}
             id="controlled-tab-example"
             onSelect={(k) => setKey(k)}
           >
-            {/* Main tab for sending the query */}
-            <Tab eventKey="query" title="Projects">
-              <div className="div-container-projects">
-                {renderProjects()}
-              </div>
+            <Tab eventKey="solversemantics" title="Information">
               <Form>
                 <Form.Group className="mb-3" controlId="translatorEndpoint">
                   <Form.Label>Name</Form.Label>
                   <Form.Control
                     type="text"
-                    placeholder="Enter name ..."
                     value={projectInformation ? projectInformation.name : ""}
                     onChange={inputName_onChange}
                   />
-                  <Form.Label>Template</Form.Label>
+                  <Form.Label>Description</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={projectInformation ? projectInformation.description : ""}
+                    onChange={inputDescription_onChange}
+                  />
+                  <Form.Label>Author</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={projectInformation ? projectInformation.author : ""}
+                    onChange={inputAuthor_onChange}
+                  />
+                  <Form.Label>Source</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={projectInformation ? projectInformation.source : ""}
+                    onChange={inputSource_onChange}
+                  />
+                  <Form.Label>Public</Form.Label>
                   <Form.Check
                     type="checkbox"
                     checked={projectInformation ? projectInformation.template : false}
                     onChange={inputTemplate_onChange}
                   />
-                  {/* <Form.Text className="text-muted">
-                    Enter the adress of the endpoint to use for the queries.
-                  </Form.Text> */}
                 </Form.Group>
               </Form>
             </Tab>
-            {/* Tab for syncing the concrete solver semantics */}
-            {/* <Tab eventKey="solversemantics" title="Share">
-              {renderUsers()}
-            </Tab> */}
+            <Tab eventKey="query" title="Projects">
+              <div className="div-container-projects">
+                {renderProjects()}
+              </div>
+            </Tab>
           </Tabs>
         </Modal.Body>
         <Modal.Footer>
