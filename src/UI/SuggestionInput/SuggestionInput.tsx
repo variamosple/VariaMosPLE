@@ -199,13 +199,13 @@ export default class SuggestionInput extends Component<Props, State> {
     for (let i = 0; i < this.state.data.options.length; i++) {
       const option = this.state.data.options[i];
       items.push(
-        <div data-value={option} onClick={this.inputOption_onClick.bind(this)}>
+        <div className="div-item" data-value={option} onClick={this.inputOption_onClick.bind(this)}>
           {option}
         </div>
       )
     }
     return (
-      <div>
+      <div className="div-container">
         {items}
       </div>
     )

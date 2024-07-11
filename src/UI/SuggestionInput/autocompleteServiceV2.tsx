@@ -1501,7 +1501,7 @@ function domainRequirementsSuggest(req, domains) {
     return data;
 }
 
-async function domainFunctionalRequirementsSuggest(req) {
+function domainFunctionalRequirementsSuggest(req) {
 
     console.log(req.input)
     //res.setHeader('Content-Type', 'application/json');

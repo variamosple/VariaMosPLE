@@ -1,5 +1,5 @@
 
-import  {domainRequirementsSuggest, getAllDomainsList}    from "./autocompleteServiceV2";
+import  {domainRequirementsSuggest, getAllDomainsList, domainFunctionalRequirementsSuggest}    from "./autocompleteServiceV2";
 
 export default class SuggestionInputHelper  {
     domains: string[]; 
@@ -16,7 +16,7 @@ export default class SuggestionInputHelper  {
 
     getOptions(request) {
       let me=this;
-      let data = domainRequirementsSuggest(request, me.domains); 
+      let data = domainFunctionalRequirementsSuggest(request); 
       return data;
     }
 
