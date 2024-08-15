@@ -100,8 +100,7 @@ class TreeMenu extends Component<Props, State> {
     this.addNewAdaptationModel = this.addNewAdaptationModel.bind(this);
     this.addNewEModel = this.addNewEModel.bind(this);
 
-    this.projectService_addListener =
-      this.projectService_addListener.bind(this);
+    this.projectService_addListener = this.projectService_addListener.bind(this);
     this.handleUpdateEditorText = this.handleUpdateEditorText.bind(this);
     this.handleUpdateNewSelected = this.handleUpdateNewSelected.bind(this);
     //Query bindings
@@ -377,6 +376,12 @@ class TreeMenu extends Component<Props, State> {
     me.props.projectService.addUpdateProjectListener(
       this.projectService_addListener
     );
+    me.props.projectService.addRequestSaveConfigurationListener(
+      this.projectService_requestSaveConfigurationListener.bind(this)
+    );
+    me.props.projectService.addRequestOpenConfigurationListener(
+      this.projectService_requestOpenConfigurationListener.bind(this)
+    );
 
     this.setState({
       plDomains: this.props.projectService.getProductLineDomainsList(),
@@ -465,6 +470,16 @@ class TreeMenu extends Component<Props, State> {
   projectService_addListener(e: any) {
     this.forceUpdate();
     this.props.projectService.saveProject();
+  }
+
+  projectService_requestSaveConfigurationListener(e: any) {
+    let me=this;
+    this.showSaveConfigurationModal();
+  }
+
+  projectService_requestOpenConfigurationListener(e: any) {
+    let me=this;
+    this.showConfigurationManagementModal();
   }
 
   updateQuery(event: React.ChangeEvent<HTMLTextAreaElement>) {

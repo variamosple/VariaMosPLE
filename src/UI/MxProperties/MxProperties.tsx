@@ -251,7 +251,7 @@ export default class MxProperties extends Component<Props, State> {
 
   nullValidate(): boolean {
     if (this.state.propertyName === "") {
-      alertify.error("Name property is required");
+      alertify.error("Name is required");
       document.getElementById("newPropertyOptionList")?.focus();
       return false;
     }
@@ -1091,7 +1091,7 @@ export default class MxProperties extends Component<Props, State> {
               <div className="row">
                 <div className="col-md">
                   <div>
-                    <label>Name</label>
+                    <label>Name <span style={{ color: 'red' }}>*</span></label>
                     <input
                       type="text"
                       className="form-control"
@@ -1107,7 +1107,7 @@ export default class MxProperties extends Component<Props, State> {
               <div className="row">
                 <div className="col-md">
                   <div>
-                    <label >Domain</label>
+                    <label >Value domain</label>
                     <select
                       className="form-select"
                       id="newPropertySelectDomain"
@@ -1128,7 +1128,7 @@ export default class MxProperties extends Component<Props, State> {
               <div className="row">
                 <div className="col-md">
                   <div>
-                    <label >Values  </label>
+                    <label >Possible values</label>
                     <input
                       type="text"
                       className="form-control"
@@ -1148,7 +1148,7 @@ export default class MxProperties extends Component<Props, State> {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Constraint of configuration"
+                      placeholder="Configuration constraint, e.g. [0..1]"
                       id="customPropertyConstraint"
                       value={this.state.propertyConstraint}
                       onChange={this.constraintChange}

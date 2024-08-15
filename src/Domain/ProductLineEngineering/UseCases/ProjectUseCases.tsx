@@ -794,6 +794,11 @@ export default class ProjectUseCases {
     }
   }
 
+  static findProperty(propName: string, element: Element) {
+    const property = element.properties.find((p) => p.name === propName);
+    return property;
+  }
+
   _findProperty(propName: string, element: Element) {
     const property = element.properties.find((p) => p.name === propName);
     return property;
@@ -915,5 +920,16 @@ export default class ProjectUseCases {
       }
     }
     return null;
+  }
+
+  static resetConfiguration(model:Model) {
+    for (const element of model.elements) {
+      for (let i = 0; i < element.properties.length; i++) {
+        const property = element.properties[i];
+        if(!["Type", "RangeMin", "RangeMax"].includes(property.name)){
+          property.value = "Undefined";
+        }
+      } 
+    }
   }
 }

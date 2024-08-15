@@ -76,6 +76,8 @@ export default class ProjectService {
   private selectedElementListeners: any = [];
   private updatedElementListeners: any = [];
   private createdElementListeners: any = [];
+  private requestSaveConfigurationListener: any = [];
+  private requestOpenConfigurationListener: any = [];
 
   // constructor() {
   //   let me = this;
@@ -453,7 +455,7 @@ export default class ProjectService {
       userId = data.user.id;
     }
     if (userId == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") {
-      //  userId = "21cd2d82-1bbc-43e9-898a-d5a45abdeced";
+      // userId = "21cd2d82-1bbc-43e9-898a-d5a45abdeced";
     }
     return userId;
   }
@@ -853,6 +855,40 @@ export default class ProjectService {
     let e = new ProjectEventArg(me, project, modelSelectedId);
     for (let index = 0; index < me.updateProjectListeners.length; index++) {
       let callback = this.updateProjectListeners[index];
+      callback(e);
+    }
+  }
+
+  addRequestSaveConfigurationListener(listener: any) {
+    this.requestSaveConfigurationListener.push(listener);
+  }
+
+  removeRequestSaveConfigurationListener(listener: any) {
+    this.requestSaveConfigurationListener[listener] = null;
+  }
+
+  raiseEventRequestSaveConfigurationListener(project: Project, modelSelectedId: string) {
+    let me = this;
+    let e = new ProjectEventArg(me, project, modelSelectedId);
+    for (let index = 0; index < me.requestSaveConfigurationListener.length; index++) {
+      let callback = this.requestSaveConfigurationListener[index];
+      callback(e);
+    }
+  }
+
+  addRequestOpenConfigurationListener(listener: any) {
+    this.requestOpenConfigurationListener.push(listener);
+  }
+
+  removeRequestOpenConfigurationListener(listener: any) {
+    this.requestOpenConfigurationListener[listener] = null;
+  }
+
+  raiseEventRequestOpenConfigurationListener(project: Project, modelSelectedId: string) {
+    let me = this;
+    let e = new ProjectEventArg(me, project, modelSelectedId);
+    for (let index = 0; index < me.requestOpenConfigurationListener.length; index++) {
+      let callback = this.requestOpenConfigurationListener[index];
       callback(e);
     }
   }
@@ -1362,5 +1398,10 @@ export default class ProjectService {
       }
     }
     return this.generateId();
+  }
+
+  resetConfiguration(model:Model){
+    ProjectUseCases.resetConfiguration(model);
+    this.raiseEventUpdateProject(this._project , model.id);
   }
 }

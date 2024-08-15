@@ -18,6 +18,12 @@ import Dropdown from 'react-bootstrap/Dropdown';
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 import MxProperties from "../MxProperties/MxProperties";
 import * as alertify from "alertifyjs";
+import { RiSave3Fill } from "react-icons/ri";
+import { FaRegFolderOpen } from "react-icons/fa6";
+import { ImZoomIn } from "react-icons/im";
+import { ImZoomOut } from "react-icons/im";
+import { BsFillPencilFill } from "react-icons/bs";
+import { FaBolt } from "react-icons/fa";
 
 interface Props {
   projectService: ProjectService;
@@ -1063,6 +1069,18 @@ export default class MxGEditor extends Component<Props, State> {
     this.graph.zoomOut();
   }
 
+  saveConfiguration() {
+    this.props.projectService.raiseEventRequestSaveConfigurationListener(this.props.projectService.project,  this.currentModel.id);
+  }
+
+  openConfiguration() {
+    this.props.projectService.raiseEventRequestOpenConfigurationListener(this.props.projectService.project,  this.currentModel.id);
+  }
+
+  resetConfiguration() {
+    this.props.projectService.resetConfiguration(this.currentModel);
+  }
+
   downloadImage() {
     MxgraphUtils.exportFile(this.graph, "png");
   }
@@ -1090,6 +1108,32 @@ export default class MxGEditor extends Component<Props, State> {
   btnDownloadImage_onClick(e) {
     try {
       this.downloadImage();
+    } catch (ex) {
+      this.processException(ex);
+    }
+  }
+
+  btnSaveConfiguration_onClick(e) {
+    try {
+      this.saveConfiguration();
+    } catch (ex) {
+      this.processException(ex);
+    }
+  }
+
+  btnOpenConfiguration_onClick(e) {
+    try {
+      this.openConfiguration();
+    } catch (ex) {
+      this.processException(ex);
+    }
+  }
+
+  btnResetConfiguration_onClick(e) {
+    try { 
+      if (window.confirm("Do you really want to reset the configuration?")) {
+        this.resetConfiguration();
+      }
     } catch (ex) {
       this.processException(ex);
     }
@@ -1232,11 +1276,14 @@ export default class MxGEditor extends Component<Props, State> {
     return (
       <div ref={this.containerRef} className="MxGEditor">
         <div className="header">
-          <a title="Edit properties" onClick={this.showPropertiesModal}><span><img src="/images/editor/properties.png"></img></span></a>{" "}
-          <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><span><img src="/images/editor/zoomIn.png"></img></span></a>{" "}
-          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><span><img src="/images/editor/zoomOut.png"></img></span></a>
+          <a title="Edit properties" onClick={this.showPropertiesModal}><span><BsFillPencilFill /></span></a>{" "}
+          <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><span><ImZoomIn  /></span></a>{" "}
+          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><span><ImZoomOut  /></span></a>
           <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)} style={{display: 'none'}}><i className="bi bi-card-image"></i></a>
-        </div>
+          <a title="Save configuration" onClick={this.btnSaveConfiguration_onClick.bind(this)}><span><RiSave3Fill /></span></a>
+          <a title="Save configuration" onClick={this.btnOpenConfiguration_onClick.bind(this)}><span><FaRegFolderOpen /></span></a>
+          <a title="Reset configuration" onClick={this.btnResetConfiguration_onClick.bind(this)}><span><FaBolt /></span></a>
+       </div>
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
         <div>
