@@ -767,7 +767,7 @@ export default class MxProperties extends Component<Props, State> {
           break;
         }
 
-        if (possibleValues.includes(",") || possibleValues.includes(";")) {
+        if (possibleValues && possibleValues!="") {
           if (!property.constraint) {
             let options = [];
             let possibleValuesList = this.getListFromString(possibleValues);
@@ -849,7 +849,7 @@ export default class MxProperties extends Component<Props, State> {
           break;
         }
 
-        if (possibleValues.includes(",") || possibleValues.includes(";")) {
+        if (possibleValues && possibleValues!="") {
           if (!property.constraint) {
             let options = [];
             let possibleValuesList = this.getListFromString(possibleValues);

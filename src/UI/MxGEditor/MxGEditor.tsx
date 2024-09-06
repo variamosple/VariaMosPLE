@@ -178,6 +178,7 @@ export default class MxGEditor extends Component<Props, State> {
     graph.setDropEnabled(true);
     graph.setSplitEnabled(false);
 
+    graph.setHtmlLabels(true);
 
 
     //graph.getStylesheet().getDefaultEdgeStyle()["edgeStyle"] = "orthogonalEdgeStyle"; 
@@ -841,7 +842,7 @@ export default class MxGEditor extends Component<Props, State> {
               element.height,
               "shape=" +
               element.type +
-              ";" +
+              ";whiteSpace=wrap;" +
               languageDefinition.concreteSyntax.elements[element.type].design
             );
             this.refreshVertexLabel(vertex);
