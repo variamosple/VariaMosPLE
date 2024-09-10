@@ -370,7 +370,8 @@ export default class MxProperties extends Component<Props, State> {
           this.state.propertyPossibleValuesLinks,
           this.state.propertyMinCardinality,
           this.state.propertyMaxCardinality,
-          this.state.propertyConstraint
+          this.state.propertyConstraint,
+          null
         )
       );
 
@@ -614,7 +615,8 @@ export default class MxProperties extends Component<Props, State> {
                   property.possibleValuesByProductLineType,
                   property.minCardinality,
                   property.maxCardinality,
-                  property.constraint
+                  property.constraint,
+                  null
                 )
               );
               index = this.currentObject.properties.length - 1;

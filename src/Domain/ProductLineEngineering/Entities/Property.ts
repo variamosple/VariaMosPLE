@@ -15,6 +15,7 @@ export class Property {
   maxCardinality?:number;
   metadata?: any;
   constraint?: string; //[1..1];[2..4]
+  defaultValue?:string;
 
   constructor(
     name: string,
@@ -30,7 +31,8 @@ export class Property {
     possibleValuesLinks: {},
     minCardinality: any,
     maxCardinality: any,
-    constraint: any
+    constraint: any,
+    defaultValue: any
   ) {
     this.id = generateId();
     this.name = name;
@@ -47,6 +49,7 @@ export class Property {
     this.minCardinality = minCardinality;
     this.maxCardinality = maxCardinality;
     this.constraint = constraint;
+    this.defaultValue=defaultValue;
   }
 }
 
