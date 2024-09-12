@@ -1097,7 +1097,7 @@ export default class MxProperties extends Component<Props, State> {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="property name"
+                      placeholder="Property name"
                       id="newPropertyName"
                       value={this.state.propertyName}
                       onChange={this.selectNameChange}
@@ -1134,7 +1134,7 @@ export default class MxProperties extends Component<Props, State> {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Possible values separated by semicolons"
+                      placeholder="Example list: Red,Green,Blue; Example range: -100..100"
                       id="customPropertyPossibleValues"
                       value={this.state.propertyPossibleValues}
                       onChange={this.selectPossibleValuesChange}
@@ -1146,11 +1146,11 @@ export default class MxProperties extends Component<Props, State> {
               <div className="row">
                 <div className="col-md">
                   <div>
-                    <label >Constraint  </label>
+                    <label >Configuration constraint</label>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Configuration constraint, e.g. [0..1]"
+                      placeholder="Example: [0..3][4]"
                       id="customPropertyConstraint"
                       value={this.state.propertyConstraint}
                       onChange={this.constraintChange}

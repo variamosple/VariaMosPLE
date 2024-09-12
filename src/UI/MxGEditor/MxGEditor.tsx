@@ -837,6 +837,17 @@ export default class MxGEditor extends Component<Props, State> {
               const p = element.properties[i];
               node.setAttribute(p.name, p.value);
             }
+            let fontcolor="";
+            if (languageDefinition.concreteSyntax.elements[element.type].draw) {
+              let shape = atob(
+                languageDefinition.concreteSyntax.elements[element.type].draw
+              );
+              let color=this.getFontColorFromShape(shape);
+              if(color){
+                fontcolor="fontColor=" + color  + ";"
+              }
+            }
+            let design=languageDefinition.concreteSyntax.elements[element.type].design;
             var vertex = graph.insertVertex(
               parent,
               null,
@@ -847,8 +858,7 @@ export default class MxGEditor extends Component<Props, State> {
               element.height,
               "shape=" +
               element.type +
-              ";whiteSpace=wrap;" +
-              languageDefinition.concreteSyntax.elements[element.type].design
+              ";whiteSpace=wrap;" + fontcolor + design              
             );
             this.refreshVertexLabel(vertex);
             this.createOverlays(element, vertex);
@@ -881,6 +891,14 @@ export default class MxGEditor extends Component<Props, State> {
         this.graph?.getModel().endUpdate();
       }
     }
+  }
+
+  getFontColorFromShape(xmlString) { 
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlString, "application/xml"); 
+    const shapeElement = xmlDoc.querySelector("shape");
+    const aspectValue = shapeElement ? shapeElement.getAttribute("fontcolor") : null; 
+    return aspectValue;
   }
 
   //sacar esto en una libreria
@@ -1287,7 +1305,7 @@ export default class MxGEditor extends Component<Props, State> {
           <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><span><ImZoomOut  /></span></a>
           <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)} style={{display: 'none'}}><i className="bi bi-card-image"></i></a>
           <a title="Save configuration" onClick={this.btnSaveConfiguration_onClick.bind(this)}><span><RiSave3Fill /></span></a>
-          <a title="Save configuration" onClick={this.btnOpenConfiguration_onClick.bind(this)}><span><FaRegFolderOpen /></span></a>
+          <a title="Load configuration" onClick={this.btnOpenConfiguration_onClick.bind(this)}><span><FaRegFolderOpen /></span></a>
           <a title="Reset configuration" onClick={this.btnResetConfiguration_onClick.bind(this)}><span><FaBolt /></span></a>
        </div>
         {this.renderContexMenu()}
