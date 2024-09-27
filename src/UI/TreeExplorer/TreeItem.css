@@ -1,6 +1,7 @@
 .TreeItem{
   white-space: nowrap; 
   cursor: pointer;
+  font-size: 0.85rem;
 } 
 
 .TreeItem .children{

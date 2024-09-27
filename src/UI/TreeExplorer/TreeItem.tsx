@@ -69,7 +69,7 @@ export class TreeItem extends Component<Props, State> {
         <div>
           <span>
             {spanExpand}
-            <span onClick={this.onClick.bind(this)} onDoubleClick={this.onDoubleClick.bind(this)}  onAuxClick={this.onAuxClick.bind(this)}><img src={this.props.icon} />{this.props.label}</span>
+            <span onClick={this.onClick.bind(this)} onDoubleClick={this.onDoubleClick.bind(this)}  onAuxClick={this.onAuxClick.bind(this)} title={this.props.label}><img src={this.props.icon} />{this.props.label}</span>
           </span>
         </div>
         {

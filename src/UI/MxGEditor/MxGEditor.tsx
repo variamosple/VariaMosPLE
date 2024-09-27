@@ -24,6 +24,7 @@ import { ImZoomIn } from "react-icons/im";
 import { ImZoomOut } from "react-icons/im";
 import { BsFillPencilFill } from "react-icons/bs";
 import { FaBolt } from "react-icons/fa";
+import { IoMdAlert } from "react-icons/io";
 
 interface Props {
   projectService: ProjectService;
@@ -35,7 +36,10 @@ interface State {
   contextMenuX: number;
   contextMenuY: number;
   showPropertiesModal: boolean;
+  showMessageModal: boolean;
   selectedObject: any;
+  messageModalContent: string;
+  messageModalTitle: string;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -51,12 +55,15 @@ export default class MxGEditor extends Component<Props, State> {
     this.graphContainerRef = React.createRef();
     this.state = {
       showPropertiesModal: false,
+      showMessageModal: false,
       showConstraintModal: false,
       currentModelConstraints: "",
       showContextMenuElement: false,
       contextMenuX: 0,
       contextMenuY: 0,
-      selectedObject: null
+      selectedObject: null,
+      messageModalContent: null,
+      messageModalTitle: null
     }
     this.projectService_addNewProductLineListener = this.projectService_addNewProductLineListener.bind(this);
     this.projectService_addSelectedModelListener = this.projectService_addSelectedModelListener.bind(this);
@@ -71,6 +78,7 @@ export default class MxGEditor extends Component<Props, State> {
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.savePropertiesModal = this.savePropertiesModal.bind(this);
+    this.hideMessageModal = this.hideMessageModal.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -83,16 +91,16 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   projectService_addCreatedElementListener(e: any) {
-    let me=this;
+    let me = this;
     let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
     if (vertice) {
       me.setState({
-        selectedObject:e.element 
+        selectedObject: e.element
       })
-      let fun=function(){
+      let fun = function () {
         me.setState({
-          selectedObject:e.element,
-          showPropertiesModal:true
+          selectedObject: e.element,
+          showPropertiesModal: true
         })
       }
       setTimeout(fun, 500);
@@ -102,7 +110,7 @@ export default class MxGEditor extends Component<Props, State> {
         // this.refreshEdgeLabel(edge);
         // this.refreshEdgeStyle(edge);
       }
-    } 
+    }
   }
 
   projectService_addUpdatedElementListener(e: any) {
@@ -120,7 +128,7 @@ export default class MxGEditor extends Component<Props, State> {
       }
       this.graph.refresh();
     } catch (error) {
-      let m=error;
+      let m = error;
     }
   }
 
@@ -394,10 +402,10 @@ export default class MxGEditor extends Component<Props, State> {
             for (let i = 0; i < rel.properties.length; i++) {
               const p = rel.properties[i];
               const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.possibleValuesLinks, p.minCardinality, p.maxCardinality, p.constraint, p.defaultValue);
-              if (p.defaultValue=="") {
-                property.value=p.defaultValue;
-              }else if(p.defaultValue){
-                property.value=p.defaultValue;
+              if (p.defaultValue == "") {
+                property.value = p.defaultValue;
+              } else if (p.defaultValue) {
+                property.value = p.defaultValue;
               }
               if (p.linked_property) {
                 property.display = false;
@@ -693,9 +701,9 @@ export default class MxGEditor extends Component<Props, State> {
         "" + me.currentModel.type
       );
     let label_property = null;
-    let uid=vertice.value.getAttribute("uid");
+    let uid = vertice.value.getAttribute("uid");
     let element = me.props.projectService.findModelElementById(me.currentModel, uid);
-    if(!element){
+    if (!element) {
       return;
     }
 
@@ -781,11 +789,14 @@ export default class MxGEditor extends Component<Props, State> {
     if (!model) {
       this.setState({
         currentModelConstraints: null
-      });
+      })
     } else {
       this.setState({
         currentModelConstraints: model.constraints
       });
+      if (model.inconsistent) {
+        this.showMessageModal("Inconsistent model", model.consistencyError);
+      }
     }
     this.setState({
       showContextMenuElement: false
@@ -837,17 +848,17 @@ export default class MxGEditor extends Component<Props, State> {
               const p = element.properties[i];
               node.setAttribute(p.name, p.value);
             }
-            let fontcolor="";
+            let fontcolor = "";
             if (languageDefinition.concreteSyntax.elements[element.type].draw) {
               let shape = atob(
                 languageDefinition.concreteSyntax.elements[element.type].draw
               );
-              let color=this.getFontColorFromShape(shape);
-              if(color){
-                fontcolor="fontColor=" + color  + ";"
+              let color = this.getFontColorFromShape(shape);
+              if (color) {
+                fontcolor = "fontColor=" + color + ";"
               }
             }
-            let design=languageDefinition.concreteSyntax.elements[element.type].design;
+            let design = languageDefinition.concreteSyntax.elements[element.type].design;
             var vertex = graph.insertVertex(
               parent,
               null,
@@ -858,7 +869,7 @@ export default class MxGEditor extends Component<Props, State> {
               element.height,
               "shape=" +
               element.type +
-              ";whiteSpace=wrap;" + fontcolor + design              
+              ";whiteSpace=wrap;" + fontcolor + design
             );
             this.refreshVertexLabel(vertex);
             this.createOverlays(element, vertex);
@@ -893,11 +904,11 @@ export default class MxGEditor extends Component<Props, State> {
     }
   }
 
-  getFontColorFromShape(xmlString) { 
+  getFontColorFromShape(xmlString) {
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlString, "application/xml"); 
+    const xmlDoc = parser.parseFromString(xmlString, "application/xml");
     const shapeElement = xmlDoc.querySelector("shape");
-    const aspectValue = shapeElement ? shapeElement.getAttribute("fontcolor") : null; 
+    const aspectValue = shapeElement ? shapeElement.getAttribute("fontcolor") : null;
     return aspectValue;
   }
 
@@ -1094,15 +1105,19 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   saveConfiguration() {
-    this.props.projectService.raiseEventRequestSaveConfigurationListener(this.props.projectService.project,  this.currentModel.id);
+    this.props.projectService.raiseEventRequestSaveConfigurationListener(this.props.projectService.project, this.currentModel.id);
   }
 
   openConfiguration() {
-    this.props.projectService.raiseEventRequestOpenConfigurationListener(this.props.projectService.project,  this.currentModel.id);
+    this.props.projectService.raiseEventRequestOpenConfigurationListener(this.props.projectService.project, this.currentModel.id);
   }
 
   resetConfiguration() {
     this.props.projectService.resetConfiguration(this.currentModel);
+  }
+
+  checkConsistency() {
+    this.props.projectService.checkConsistency(this.currentModel);
   }
 
   downloadImage() {
@@ -1154,10 +1169,18 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   btnResetConfiguration_onClick(e) {
-    try { 
+    try {
       if (window.confirm("Do you really want to reset the configuration?")) {
         this.resetConfiguration();
       }
+    } catch (ex) {
+      this.processException(ex);
+    }
+  }
+
+  btnCheckConsistency_onClick(e) {
+    try {
+      this.checkConsistency();
     } catch (ex) {
       this.processException(ex);
     }
@@ -1232,7 +1255,7 @@ export default class MxGEditor extends Component<Props, State> {
     this.setState({ showPropertiesModal: true });
   }
 
-  hidePropertiesModal() { 
+  hidePropertiesModal() {
     this.setState({ showPropertiesModal: false });
     for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
       const efunction = this.props.projectService.externalFunctions[i];
@@ -1250,6 +1273,18 @@ export default class MxGEditor extends Component<Props, State> {
     //   this.currentModel.constraints = this.state.currentModelConstraints;
     // }
     // //this.hideConstraintModal();
+  }
+
+  showMessageModal(title, message) {
+    this.setState({
+      showMessageModal: true,
+      messageModalTitle: title,
+      messageModalContent: message
+    });
+  }
+
+  hideMessageModal() {
+    this.setState({ showMessageModal: false });
   }
 
   showContexMenu(e) {
@@ -1301,13 +1336,14 @@ export default class MxGEditor extends Component<Props, State> {
       <div ref={this.containerRef} className="MxGEditor">
         <div className="header">
           <a title="Edit properties" onClick={this.showPropertiesModal}><span><BsFillPencilFill /></span></a>{" "}
-          <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><span><ImZoomIn  /></span></a>{" "}
-          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><span><ImZoomOut  /></span></a>
-          <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)} style={{display: 'none'}}><i className="bi bi-card-image"></i></a>
+          <a title="Zoom in" onClick={this.btnZoomIn_onClick.bind(this)}><span><ImZoomIn /></span></a>{" "}
+          <a title="Zoom out" onClick={this.btnZoomOut_onClick.bind(this)}><span><ImZoomOut /></span></a>
+          <a title="Download image" onClick={this.btnDownloadImage_onClick.bind(this)} style={{ display: 'none' }}><i className="bi bi-card-image"></i></a>
           <a title="Save configuration" onClick={this.btnSaveConfiguration_onClick.bind(this)}><span><RiSave3Fill /></span></a>
           <a title="Load configuration" onClick={this.btnOpenConfiguration_onClick.bind(this)}><span><FaRegFolderOpen /></span></a>
           <a title="Reset configuration" onClick={this.btnResetConfiguration_onClick.bind(this)}><span><FaBolt /></span></a>
-       </div>
+          <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
+        </div>
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
         <div>
@@ -1332,6 +1368,30 @@ export default class MxGEditor extends Component<Props, State> {
                 variant="primary"
                 onClick={this.hidePropertiesModal}
               >
+                Close
+              </Button>
+            </Modal.Footer>
+          </Modal>
+        </div>
+        <div>
+          <Modal
+            show={this.state.showMessageModal}
+            onHide={this.hideMessageModal}
+            size="lg"
+            centered
+          >
+            <Modal.Header closeButton>
+              <Modal.Title>
+                {this.state.messageModalTitle}
+              </Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <div style={{ maxHeight: "65vh", overflow: "auto" }}>
+                <p>{this.state.messageModalContent}</p>
+              </div>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="primary" onClick={this.hideMessageModal}>
                 Close
               </Button>
             </Modal.Footer>
