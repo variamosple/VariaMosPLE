@@ -1,5 +1,6 @@
 import { Relationship } from "./Relationship";
 import { Element } from "./Element";
+import { SourceModelElement } from "./SourceModelElement";
 
 export class Model {
   id: string;
@@ -11,7 +12,7 @@ export class Model {
   relationships: Relationship[] = [];
   typeEngineering?: string;
   constraints?: string;
-  sourceModelIds: String[] = [];
+  sourceModelIds: string[] = [];
   constructor(
     id: string,
     name: string,
