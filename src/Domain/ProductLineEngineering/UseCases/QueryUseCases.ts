@@ -63,6 +63,40 @@ export function runQuery(
     });
 }
 
+export function runQueryFromModel(
+  projectService: ProjectService,
+  translatorEndpoint: string,
+  query: Query,
+  modelSelectedId: string,
+) {
+  // We must build the request body both from the query and the project
+  // information.
+
+  // First, get the project information.
+  // get currently selected language
+  const semantics = projectService.currentLanguage.semantics;
+  const data = {
+    rules: semantics,
+    query: query,
+    modelSelectedId: modelSelectedId,
+    transactionId: projectService.generateId(),
+    project: projectService.project,
+    input: "vmos"
+  };
+  alertify.success("request sent ...");
+  return axios
+    .post(translatorEndpoint, { data })
+    .then((response) => {
+      alertify.success("request successful ...");
+      return response.data.data.content;
+    })
+    .catch((error) => {
+      alertify.error("something went wrong ...");
+      console.error(error);
+      return null;
+    });
+}
+
 //This function sanitizes the concrete semantics by replacing the id
 //of the elements with a sluggified version of their name for readability
 export function sanitizeConcreteSemantics(

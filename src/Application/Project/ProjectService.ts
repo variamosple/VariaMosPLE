@@ -34,6 +34,10 @@ import { isJSDocThisTag } from "typescript";
 import * as alertify from "alertifyjs";
 import { Buffer } from "buffer";
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
+import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
+import { runQuery, runQueryFromModel } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
+import QueryResult from "../../UI/Queries/queryResult";
+import mx from "../../UI/MxGEditor/mxgraph";
 
 export default class ProjectService {
   private graph: any;
@@ -456,6 +460,7 @@ export default class ProjectService {
     }
     if (userId == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") {
       // userId = "21cd2d82-1bbc-43e9-898a-d5a45abdeced";
+      userId = "5ee3c6d0-641b-407d-bbda-d7041c7d2dc3"; //Gabriel
     }
     return userId;
   }
@@ -775,7 +780,7 @@ export default class ProjectService {
     let configurationInformation = new ConfigurationInformation(configurationId, null, modelId, null);
 
     let successCallback = (project: Project) => {
-      let x=0;
+      let x = 0;
       // let configuredModel: Model = this.findModelById(project, modelId);
       // let targetModel: Model = this.findModelById(me._project, modelId);
       // targetModel.elements = configuredModel.elements;
@@ -1400,12 +1405,129 @@ export default class ProjectService {
     return this.generateId();
   }
 
-  resetConfiguration(model:Model){
+  resetConfiguration(model: Model) {
     ProjectUseCases.resetConfiguration(model);
-    this.raiseEventUpdateProject(this._project , model.id);
+    this.raiseEventUpdateProject(this._project, model.id);
   }
 
-  checkConsistency(model:Model){
-    alert("To do check consistency");
+  async solveConsistency(appModel: Model) {
+    const domainModel = this.project.productLines[0].domainEngineering.models[0];
+    const domainElementsBackup = JSON.stringify(domainModel.elements);
+    const getAppFeaturesId = appModel.elements.map(element => element.name)
+    domainModel.elements.forEach((domElement) => {
+      console.log(domElement)
+      if (getAppFeaturesId.includes(domElement.name)) {
+        domElement.properties[0].value = "Selected";
+      } else {
+        domElement.properties[0].value = "Unselected";
+      }
+    })
+    const query_object = new Query({
+      solver: "swi",
+      operation: "sat"
+    });
+    const result = await runQueryFromModel(
+      this,
+      "https://app.variamos.com/semantic_translator",
+      query_object,
+      appModel.sourceModelIds[0]
+    );
+    domainModel.elements = JSON.parse(domainElementsBackup);
+    console.log(result);
+    appModel.inconsistent = !result;
+    if (result) {
+      alertify.success(`${appModel.name} is consistent with the domain model.`, 0);
+      appModel.consistencyError = null;
+    } else {
+      const errorMessage = `${appModel.name} is not consistent with the domain model.`;
+      appModel.consistencyError = errorMessage;
+      alertify.error(errorMessage, 0);
+
+    }
+    this.raiseEventUpdateProject(this._project, appModel.id);
+  }
+
+  async solveConsistencyForAll(domainModel: Model) {
+    const appModels = this.project.productLines[0].applicationEngineering.applications.flatMap(app => {
+      return app.models.filter(model => model.sourceModelIds && model.sourceModelIds[0] === domainModel.id);
+    });
+    const domainElementsBackup = JSON.stringify(domainModel.elements);
+    appModels.forEach(async appModel => {
+      const getAppFeaturesId = appModel.elements.map(element => element.name)
+      domainModel.elements.forEach((domElement) => {
+        console.log(domElement)
+        if (getAppFeaturesId.includes(domElement.name)) {
+          domElement.properties[0].value = "Selected";
+        } else {
+          domElement.properties[0].value = "Unselected";
+        }
+      })
+      const query_object = new Query({
+        solver: "swi",
+        operation: "sat"
+      });
+      const result = await runQueryFromModel(
+        this,
+        "https://app.variamos.com/semantic_translator",
+        query_object,
+        appModel.sourceModelIds[0]
+      );
+      appModel.inconsistent = !result;
+      this.raiseEventUpdateProject(this._project, domainModel.id);
+      if (result) {
+        alertify.success(`${appModel.name} is consistent with the domain model.`, 0);
+        appModel.consistencyError = null;
+      } else {
+        const errorMessage = `${appModel.name} is not consistent with the domain model.`;
+        appModel.consistencyError = errorMessage;
+        alertify.error(errorMessage, 0);
+      }
+    })
+    domainModel.elements = JSON.parse(domainElementsBackup);
+  }
+
+  checkConsistency(model: Model) {
+    if (model.type === 'Application feature tree')
+      this.solveConsistency(model);
+    else {
+      this.resetConfiguration(model);
+      this.solveConsistencyForAll(model);
+    }
+  }
+  async drawCoreFeatureTree() {
+    //pintar el core del modelo. basicamente los elementos indispensables en todas las configuraciones. pintarlo de azul
+    // hablar con coco
+    //basicamente el query pregunta si el elemento puede tener el valor cero, como no lo puede tener ya que es indispensable, lo marca. 
+    const query_object = new Query({
+      "solver": "minizinc",
+      "operation": "sat",
+      "iterate_over": [
+        {
+          "model_object": "element",
+          "object_type": [
+            "ConcreteFeature",
+            "RootFeature",
+            "AbstractFeature"
+          ],
+          "with_value": 0
+        }
+      ]
+    });
+    const result = await runQuery(
+      this,
+      "https://app.variamos.com/semantic_translator",
+      query_object,
+    );
+    const formattedResults = result.map((elem) => [
+      elem[0].replace("UUID_", "").replaceAll("_", "-"),
+      elem[1]])
+    formattedResults.forEach(elem => {
+      let esdelcore = !elem[1];
+      const element = this.findModelElementByIdInProject(elem[0]);
+      const property = new Property('Core', esdelcore, "Boolean", null, null, null, false, false, null, null, null, null, null, null, null);
+      element.properties.push(property);
+      console.log(element.properties);
+    });
+    this.raiseEventUpdateProject(this._project, this.getTreeIdItemSelected());
   }
 }

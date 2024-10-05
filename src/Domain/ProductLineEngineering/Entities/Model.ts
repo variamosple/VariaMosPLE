@@ -11,7 +11,7 @@ export class Model {
   relationships: Relationship[] = [];
   typeEngineering?: string;
   constraints?: string;
-  sourceModelIds: String[] = [];
+  sourceModelIds: string[] = [];
   constructor(
     id: string,
     name: string,
