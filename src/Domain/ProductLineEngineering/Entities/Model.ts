@@ -1,5 +1,6 @@
 import { Relationship } from "./Relationship";
 import { Element } from "./Element";
+import { SourceModelElement } from "./SourceModelElement";
 
 export class Model {
   id: string;

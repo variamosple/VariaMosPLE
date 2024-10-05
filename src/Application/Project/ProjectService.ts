@@ -459,8 +459,7 @@ export default class ProjectService {
       userId = data.user.id;
     }
     if (userId == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") {
-      // userId = "21cd2d82-1bbc-43e9-898a-d5a45abdeced";
-      userId = "5ee3c6d0-641b-407d-bbda-d7041c7d2dc3"; //Gabriel
+      // userId = "21cd2d82-1bbc-43e9-898a-d5a45abdeced0";
     }
     return userId;
   }

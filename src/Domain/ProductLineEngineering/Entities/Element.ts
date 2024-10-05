@@ -1,4 +1,5 @@
 import { Property } from "./Property";
+import { SourceModelElement } from "./SourceModelElement";
 
 export class Element {
   id: string;
@@ -11,6 +12,7 @@ export class Element {
   parentId: string; 
   instanceOfId: string; 
   properties: Property[] = [];
+  sourceModelElements: SourceModelElement[] = [];
 
   constructor(name: string, type: string, properties: Property[] = [], parentId:string) {
     this.id = generateId();

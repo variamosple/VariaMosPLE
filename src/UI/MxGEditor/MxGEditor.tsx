@@ -823,10 +823,32 @@ export default class MxGEditor extends Component<Props, State> {
           for (let i = 0; i < orden.length; i++) {
             let element: any = this.props.projectService.findModelElementById(model, orden[i]);
 
-            if (languageDefinition.concreteSyntax.elements[element.type].draw) {
-              let shape = atob(
+            let shape=null;
+            if (languageDefinition.concreteSyntax.elements[element.type].styles) {
+              let styles=languageDefinition.concreteSyntax.elements[element.type].styles;
+              for (let s = 0; s < styles.length; s++) {
+                const styleDef = styles[s];
+                if (!styleDef.linked_property) {
+                  shape = atob(styleDef.style);
+                } else {
+                  for (let p = 0; p < element.properties.length; p++) {
+                    const property = element.properties[p];
+                    if (property.name == styleDef.linked_property && ''+property.value == styleDef.linked_value) {
+                      shape = atob(styleDef.style);
+                      s = styles.length;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            else if (languageDefinition.concreteSyntax.elements[element.type].draw) {
+              shape = atob(
                 languageDefinition.concreteSyntax.elements[element.type].draw
               );
+            }
+
+            if(shape){
               let ne: any = mx.mxUtils.parseXml(shape).documentElement;
               ne.setAttribute("name", element.type);
               MxgraphUtils.modifyShape(ne);
@@ -849,10 +871,7 @@ export default class MxGEditor extends Component<Props, State> {
               node.setAttribute(p.name, p.value);
             }
             let fontcolor = "";
-            if (languageDefinition.concreteSyntax.elements[element.type].draw) {
-              let shape = atob(
-                languageDefinition.concreteSyntax.elements[element.type].draw
-              );
+            if (shape) {
               let color = this.getFontColorFromShape(shape);
               if (color) {
                 fontcolor = "fontColor=" + color + ";"
