@@ -1139,6 +1139,10 @@ export default class MxGEditor extends Component<Props, State> {
     this.props.projectService.checkConsistency(this.currentModel);
   }
 
+  drawCoreFeatureTree() {
+    this.props.projectService.drawCoreFeatureTree();
+  }
+
   downloadImage() {
     MxgraphUtils.exportFile(this.graph, "png");
   }
@@ -1200,6 +1204,14 @@ export default class MxGEditor extends Component<Props, State> {
   btnCheckConsistency_onClick(e) {
     try {
       this.checkConsistency();
+    } catch (ex) {
+      this.processException(ex);
+    }
+  }
+
+  btnDrawCoreFeatureTree_onClick(e) {
+    try {
+      this.drawCoreFeatureTree();
     } catch (ex) {
       this.processException(ex);
     }
@@ -1362,6 +1374,7 @@ export default class MxGEditor extends Component<Props, State> {
           <a title="Load configuration" onClick={this.btnOpenConfiguration_onClick.bind(this)}><span><FaRegFolderOpen /></span></a>
           <a title="Reset configuration" onClick={this.btnResetConfiguration_onClick.bind(this)}><span><FaBolt /></span></a>
           <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
+          <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
         </div>
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
