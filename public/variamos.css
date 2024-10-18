@@ -259,13 +259,8 @@ a:hover {
 
 footer{
   background-color: var(--dark-color-font);
-  height: 100%;
   color: white;
   padding-top: 3rem;
-}
-
-footer .copyright{
-  text-align: center;
 }
 
 .form-control{

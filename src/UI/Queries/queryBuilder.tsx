@@ -396,8 +396,8 @@ export default function QueryBuilder({
             </Accordion>
           )}
           {!addingNewIteration && (
-            <div>
-              <Button onClick={handleAddNewIteration}>
+            <div className="w-100">
+              <Button className="w-100" onClick={handleAddNewIteration}>
                 Add new iteration rule
               </Button>
             </div>
@@ -480,7 +480,7 @@ export default function QueryBuilder({
               {/* Based on https://stackoverflow.com/a/76428105 */}
               <div className={`dropdown ${isOpen ? "show" : ""} my-2`}>
                 <button
-                  style={{ width: "20%" }}
+                  style={{ width: "min-content" }}
                   className="btn btn-secondary dropdown-toggle"
                   type="button"
                   id="multiSelectDropdown"
@@ -527,8 +527,8 @@ export default function QueryBuilder({
                   onChange={onWithValueChange}
                 />
               </div>
-              <div className="my-2">
-                <Button onClick={handleAddNewIterationOk}>
+              <div className="my-2 w-100">
+                <Button className="w-100" onClick={handleAddNewIterationOk}>
                   Add Iteration Rule
                 </Button>
               </div>
@@ -536,7 +536,7 @@ export default function QueryBuilder({
           )}
         </Form.Group>
       )}
-      <Button onClick={handleSetQuery}>Generate Query</Button>
+      <Button className="w-100" onClick={handleSetQuery}>Generate Query</Button>
     </Form>
   );
 }

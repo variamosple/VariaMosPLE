@@ -1,45 +1,38 @@
 import { useEffect, useState } from "react";
 
-import Modal from "react-bootstrap/Modal";
-import Form from "react-bootstrap/Form";
-import InputGroup from "react-bootstrap/InputGroup";
 import Button from "react-bootstrap/Button";
-import Tab from "react-bootstrap/Tab";
-import Tabs from "react-bootstrap/Tabs";
-import Spinner from "react-bootstrap/Spinner";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
+import Container from "react-bootstrap/Container";
 import Dropdown from "react-bootstrap/Dropdown";
+import Form from "react-bootstrap/Form";
+import Row from "react-bootstrap/Row";
+import Spinner from "react-bootstrap/Spinner";
 //Prism Stuff
+import "prism-themes/themes/prism-vsc-dark-plus.css";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-lisp";
-import "prism-themes/themes/prism-vsc-dark-plus.css";
 import Editor from "react-simple-code-editor";
 
 //Import the code to run the query
+import { TabContainer, TabContent, TabPane } from "react-bootstrap";
+import ProjectService from "../../Application/Project/ProjectService";
+import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import {
+  hasSemantics,
   runQuery,
   sanitizeConcreteSemantics,
   syncConcreteSemantics,
   syncSemantics,
-  hasSemantics,
-  setModelConstraints,
-  getCurrentConstraints,
 } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
-import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
-import ProjectService from "../../Application/Project/ProjectService";
-import QueryResult from "./queryResult";
 import QueryBuilder from "./queryBuilder";
+import QueryResult from "./queryResult";
 
 type QueryModalProps = {
-  show: boolean;
   handleCloseCallback: () => void;
   projectService: ProjectService;
 };
 
 export default function QueryModal({
-  show,
   handleCloseCallback,
   projectService,
 }: QueryModalProps) {
@@ -58,22 +51,6 @@ export default function QueryModal({
   const [semanticsReady, setSemanticsReady] = useState(false);
   const [savedQueries, setSavedQueries] = useState({});
   const [queryName, setQueryName] = useState("");
-  const [arbitraryConstraints, setArbitraryConstraints] = useState("");
-
-  //Handle changes on the model's arbitrary constraints
-  useEffect(() => {
-    console.log("Arbitrary constraints changed");
-    setModelConstraints(projectService ,arbitraryConstraints);
-  }, [projectService, arbitraryConstraints]);
-
-  //Load constraints on model change
-  useEffect(() => {
-    if(show){
-      const constraints = getCurrentConstraints(projectService);
-      setArbitraryConstraints(constraints);
-      console.log("Loading model constraints");
-    }
-  }, [projectService, show]);
 
   //Load the saved queries from the local storage on load
   useEffect(() => {
@@ -184,24 +161,139 @@ export default function QueryModal({
   }
 
   return (
-    <>
-      <Modal show={show} onHide={handleCloseCallback} size="xl">
-        <Modal.Header closeButton>
-          <Modal.Title>Queries</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Tabs
-            defaultActiveKey="query"
-            activeKey={key}
-            id="controlled-tab-example"
-            onSelect={(k) => setKey(k)}
+    <div className="px-2">
+  
+      <TabContainer
+        defaultActiveKey="query"
+        activeKey={key}
+        id="controlled-tab-example"
+        onSelect={(k) => setKey(k)}
+      >
+        <Dropdown className="w-100">
+          <Dropdown.Toggle className="w-100" variant="primary">
+            Options
+          </Dropdown.Toggle>
+
+          <Dropdown.Menu>
+            <Dropdown.Item eventKey="query">Query</Dropdown.Item>
+            <Dropdown.Item eventKey="construct">Construct Query</Dropdown.Item>
+            <Dropdown.Item eventKey="results" disabled={!resultsReady}>Results</Dropdown.Item>
+            <Dropdown.Item eventKey="semantics" disabled={!semanticsReady}>CLIF Semantics</Dropdown.Item>
+            <Dropdown.Item eventKey="solversemantics" >Solver Specific Semantics</Dropdown.Item>
+            <Dropdown.Item eventKey="saved_queries">Saved Queries</Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+
+        {/* <Accordion defaultActiveKey="query" flush>
+          <Accordion.Item eventKey="query">
+            <Accordion.Header>Queries</Accordion.Header>
+            <Accordion.Body></Accordion.Body>
+          </Accordion.Item>
+
+          <Accordion.Item eventKey="construct">
+            <Accordion.Header>Construct Query</Accordion.Header>
+            <Accordion.Body></Accordion.Body>
+          </Accordion.Item>
+
+          <Accordion.Item eventKey="results">
+            <Accordion.Header>Results</Accordion.Header>
+            <Accordion.Body></Accordion.Body>
+          </Accordion.Item>
+
+          <Accordion.Item eventKey="semantics">
+            <Accordion.Header>CLIF Semantics</Accordion.Header>
+            <Accordion.Body></Accordion.Body>
+          </Accordion.Item>
+
+          <Accordion.Item eventKey="solversemantics">
+            <Accordion.Header>Solver Specific Semantics</Accordion.Header>
+            <Accordion.Body></Accordion.Body>
+          </Accordion.Item>
+
+          <Accordion.Item eventKey="saved_queries">
+            <Accordion.Header>Saved Queries</Accordion.Header>
+            <Accordion.Body></Accordion.Body>
+          </Accordion.Item>
+        </Accordion> */}
+
+        <TabContent className="mt-2">
+          {/* Main tab for sending the query */}
+          <TabPane eventKey="query" title="Query">
+            <Form>
+              <Form.Group className="mb-3" controlId="translatorEndpoint">
+                <Form.Label>Translator Endpoint</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Enter endpoint"
+                  value={translatorEndpoint}
+                  onChange={handleSetTranslatorEndpoint}
+                />
+                <Form.Text className="text-muted">
+                  Enter the adress of the endpoint to use for the queries.
+                </Form.Text>
+              </Form.Group>
+              <Form.Group className="d-flex flex-column gap-2" controlId="query">
+                <Form.Label className="m-0">Query</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={5}
+                  value={query}
+                  onChange={handleSetQuery}
+                />
+                {/* Save the query with a text field */}
+                <Form.Control
+                  type="text"
+                  placeholder="Enter Query Name"
+                  value={queryName}
+                  onChange={(e) => setQueryName(e.target.value)}
+                />
+                <Button variant="primary" onClick={handleSaveQuery}>
+                  Save Query
+                </Button>
+              </Form.Group>
+            </Form>
+          </TabPane>
+          {/* New tab for constructing the query */}
+          <TabPane eventKey="construct" title="Construct Query">
+            {hasSemantics(projectService) ? (
+              <QueryBuilder
+                projectService={projectService}
+                setQuery={setQuery}
+                setKey={setKey}
+              />
+            ) : (
+              <p className="my-2">
+                There are no semantics for the current language
+              </p>
+            )}
+          </TabPane>
+          {/* Tab for showing the results of the query */}
+          <TabPane
+            eventKey="results"
+            title="Results"
+            // disabled={!resultsReady}
           >
-            {/* Tab for setting the arbitrary constraints */}
-            <Tab eventKey="constraints" title="Constraints">
+            {results.map((result, index) => (
+              <QueryResult
+                key={index}
+                index={index}
+                result={result}
+                projectService={projectService}
+                onVisualize={queryResult_onVisualize}
+              />
+            ))}
+          </TabPane>
+          <TabPane
+            eventKey="semantics"
+            title="CLIF Semantics"
+          >
+            <Container style={{ maxHeight: "800px", overflow: "auto" }}>
               <Editor
-                value={arbitraryConstraints}
-                onValueChange={setArbitraryConstraints}
-                highlight={(arbitraryConstraints) => highlight(arbitraryConstraints, languages.lisp, "lisp")}
+                value={semantics}
+                onValueChange={setSemantics}
+                highlight={(semantics) =>
+                  highlight(semantics, languages.lisp, "lisp")
+                }
                 padding={10}
                 className="editor"
                 style={{
@@ -214,81 +306,49 @@ export default function QueryModal({
                   overflow: "auto",
                 }}
               />
-            </Tab>
-            {/* Main tab for sending the query */}
-            <Tab eventKey="query" title="Query">
-              <Form>
-                <Form.Group className="mb-3" controlId="translatorEndpoint">
-                  <Form.Label>Translator Endpoint</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Enter endpoint"
-                    value={translatorEndpoint}
-                    onChange={handleSetTranslatorEndpoint}
-                  />
-                  <Form.Text className="text-muted">
-                    Enter the adress of the endpoint to use for the queries.
-                  </Form.Text>
-                </Form.Group>
-                <Form.Group className="mb-3" controlId="query">
-                  <Form.Label>Query</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={5}
-                    value={query}
-                    onChange={handleSetQuery}
-                  />
-                  {/* Save the query with a text field */}
-                  <Form.Control
-                    type="text"
-                    placeholder="Enter Query Name"
-                    value={queryName}
-                    onChange={(e) => setQueryName(e.target.value)}
-                  />
-                  <Button variant="primary" onClick={handleSaveQuery}>
-                    Save Query
-                  </Button>
-                </Form.Group>
-              </Form>
-            </Tab>
-            {/* New tab for constructing the query */}
-            <Tab eventKey="construct" title="Construct Query">
-              {hasSemantics(projectService) ? (
-                <QueryBuilder
-                  projectService={projectService}
-                  setQuery={setQuery}
-                  setKey={setKey}
-                />
-              ) : (
-                <p className="my-2">
-                  There are no semantics for the current language
-                </p>
-              )}
-            </Tab>
-            {/* Tab for showing the results of the query */}
-            <Tab eventKey="results" title="Results" disabled={!resultsReady}>
-              {results.map((result, index) => (
-                <QueryResult
-                  key={index}
-                  index={index}
-                  result={result}
-                  projectService={projectService}
-                  onVisualize={queryResult_onVisualize}
-                />
-              ))}
-            </Tab>
-            <Tab
-              eventKey="semantics"
-              title="CLIF Semantics"
-              disabled={!semanticsReady}
+            </Container>
+          </TabPane>
+          {/* Tab for syncing the concrete solver semantics */}
+          <TabPane
+            eventKey="solversemantics"
+            title="Solver Specific Semantics"
+          >
+            <Container
+              style={{ maxHeight: "800px", overflow: "auto" }}
+              className="mt-2"
             >
-              <Container style={{ maxHeight: "800px", overflow: "auto" }}>
+              <Row>
+                <Col className="d-flex flex-column gap-2 p-0">
+                  <Dropdown>
+                    <Dropdown.Toggle variant="primary" id="dropdown-basic" className="w-100">
+                      Selected solver: <b>{selectedSolver}</b>
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      <Dropdown.Item onClick={() => setSelectedSolver("swi")}>
+                        SWI
+                      </Dropdown.Item>
+                      <Dropdown.Item
+                        onClick={() => setSelectedSolver("minizinc")}
+                      >
+                        MiniZinc
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+
+                  <Button
+                    variant="primary"
+                    onClick={() => handleGetConcreteSemantics(selectedSolver)}
+                  >
+                    Get <b>{selectedSolver}</b> Model
+                  </Button>
+                </Col>
+              </Row>
+
+              <Row>
                 <Editor
-                  value={semantics}
-                  onValueChange={setSemantics}
-                  highlight={(semantics) =>
-                    highlight(semantics, languages.lisp, "lisp")
-                  }
+                  value={solverSemantics}
+                  onValueChange={setSolverSemantics}
+                  highlight={(solverSemantics) => solverSemantics}
                   padding={10}
                   className="editor"
                   style={{
@@ -301,125 +361,69 @@ export default function QueryModal({
                     overflow: "auto",
                   }}
                 />
-              </Container>
-            </Tab>
-            {/* Tab for syncing the concrete solver semantics */}
-            <Tab eventKey="solversemantics" title="Solver Specific Semantics">
-              <Container
-                style={{ maxHeight: "800px", overflow: "auto" }}
-                className="mt-2"
-              >
-                <Row>
-                  <Col>
-                    <Dropdown>
-                      <Dropdown.Toggle variant="primary" id="dropdown-basic">
-                        Selected solver: <b>{selectedSolver}</b>
-                      </Dropdown.Toggle>
-                      <Dropdown.Menu>
-                        <Dropdown.Item onClick={() => setSelectedSolver("swi")}>
-                          SWI
-                        </Dropdown.Item>
-                        <Dropdown.Item
-                          onClick={() => setSelectedSolver("minizinc")}
-                        >
-                          MiniZinc
-                        </Dropdown.Item>
-                      </Dropdown.Menu>
-                    </Dropdown>
-                  </Col>
-                  <Col xs={9}>
+              </Row>
+            </Container>
+          </TabPane>
+          <TabPane eventKey="saved_queries" title="Saved Queries">
+            <Container style={{ maxHeight: "800px", overflow: "auto" }}>
+              {(Object.getOwnPropertyNames(savedQueries).length > 0 &&
+                Object.entries(savedQueries).map(([name, query], index) => (
+                  <div key={index}>
                     <Button
                       variant="primary"
-                      onClick={() => handleGetConcreteSemantics(selectedSolver)}
+                      onClick={() => setQuery(JSON.stringify(query))}
                     >
-                      Get <b>{selectedSolver}</b> Model
+                      {name}
                     </Button>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Editor
-                    value={solverSemantics}
-                    onValueChange={setSolverSemantics}
-                    highlight={(solverSemantics) => solverSemantics}
-                    padding={10}
-                    className="editor"
-                    style={{
-                      fontFamily: '"Fira code", "Fira Mono", monospace',
-                      fontSize: 18,
-                      backgroundColor: "#1e1e1e",
-                      caretColor: "gray",
-                      color: "gray",
-                      borderRadius: "10px",
-                      overflow: "auto",
-                    }}
-                  />
-                </Row>
-              </Container>
-            </Tab>
-            <Tab eventKey="saved_queries" title="Saved Queries">
-              <Container style={{ maxHeight: "800px", overflow: "auto" }}>
-                {(Object.getOwnPropertyNames(savedQueries).length > 0 &&
-                  Object.entries(savedQueries).map(([name, query], index) => (
-                    <div key={index}>
-                      <Button
-                        variant="primary"
-                        onClick={() => setQuery(JSON.stringify(query))}
-                      >
-                        {name}
-                      </Button>
-                    </div>
-                  ))) || (
-                  <div>
-                    <p>No saved queries</p>
                   </div>
-                )}
-              </Container>
-            </Tab>
-          </Tabs>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseCallback}>
-            Close
-          </Button>
-          {key === "query" && (
-            <Button variant="primary" onClick={handleSubmitQuery}>
-              {queryInProgress && (
-                <Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                />
+                ))) || (
+                <div>
+                  <p>No saved queries</p>
+                </div>
               )}
-              Submit Query
-            </Button>
-          )}
-          {key === "results" && (
-            <Button variant="primary" onClick={clearResults}>
-              Clear Query Results
-            </Button>
-          )}
-          {key !== "results" && (
-            <Button variant="primary" onClick={handleSyncSemantics}>
-              {semanticsInProgress && (
-                <Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                />
-              )}
-              Sync CLIF Semantics
-            </Button>
-          )}
-          <Button variant="primary" onClick={handleResetModelConfig}>
-            Reset model configuration state
+            </Container>
+          </TabPane>
+        </TabContent>
+      </TabContainer>
+
+      <div className="d-flex flex-column gap-2 mt-2">
+        {key === "query" && (
+          <Button variant="primary" onClick={handleSubmitQuery}>
+            {queryInProgress && (
+              <Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+              />
+            )}
+            Submit Query
           </Button>
-        </Modal.Footer>
-      </Modal>
-    </>
+        )}
+        {key === "results" && (
+          <Button variant="primary" onClick={clearResults}>
+            Clear Query Results
+          </Button>
+        )}
+        {key !== "results" && (
+          <Button variant="primary" onClick={handleSyncSemantics}>
+            {semanticsInProgress && (
+              <Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+              />
+            )}
+            Sync CLIF Semantics
+          </Button>
+        )}
+        <Button variant="primary" onClick={handleResetModelConfig}>
+          Reset model configuration state
+        </Button>
+      </div>
+    </div>
   );
 }

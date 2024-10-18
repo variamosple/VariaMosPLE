@@ -1,26 +1,40 @@
-import React, { Component } from "react";
-import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
+import { Component } from "react";
+import { Nav, Tab } from "react-bootstrap";
+import Editor from "react-simple-code-editor";
 import ProjectService from "../../Application/Project/ProjectService";
-import VariaMosLogo from "../../Addons/images/VariaMosLogo.png";
-import TreeMenu from "./TreeMenu";
+import { Adaptation } from "../../Domain/ProductLineEngineering/Entities/Adaptation";
+import { Application } from "../../Domain/ProductLineEngineering/Entities/Application";
+import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
+import {
+  getCurrentConstraints,
+  setModelConstraints,
+} from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
+import QueryModal from "../Queries/queryModal";
 import NavBar from "../WorkSpace/navBar";
 import "./TreeExplorer.css";
 import { TreeItem } from "./TreeItem";
-import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
-import { Application } from "../../Domain/ProductLineEngineering/Entities/Application";
-import { Adaptation } from "../../Domain/ProductLineEngineering/Entities/Adaptation";
+import TreeMenu from "./TreeMenu";
+
+import { highlight, languages } from "prismjs";
 
 interface Props {
   projectService: ProjectService;
 }
 
-interface State { }
+interface State {
+  contextMenuX: number,
+  contextMenuY: number,
+  showContextMenu: boolean,
+  arbitraryConstraints: string
+}
 
 class TreeExplorer extends Component<Props, State> {
   state = {
     contextMenuX: 100,
     contextMenuY: 100,
-    showContextMenu: false
+    showContextMenu: false,
+    arbitraryConstraints: "",
   };
 
   constructor(props: any) {
@@ -28,7 +42,7 @@ class TreeExplorer extends Component<Props, State> {
 
     this.btnSave_onClick = this.btnSave_onClick.bind(this);
     this.projectService_addListener =
-      this.projectService_addListener.bind(this);
+    this.projectService_addListener.bind(this);
     this.lps_onClick = this.lps_onClick.bind(this);
     this.updateLpSelected = this.updateLpSelected.bind(this);
     this.updateApplicationSelected = this.updateApplicationSelected.bind(this);
@@ -42,6 +56,7 @@ class TreeExplorer extends Component<Props, State> {
     this.btn_viewAdaptationModel = this.btn_viewAdaptationModel.bind(this);
 
     this.onContextMenuHide = this.onContextMenuHide.bind(this);
+    this.setArbitraryConstraints = this.setArbitraryConstraints.bind(this);
   }
 
   onContextMenuHide(e) {
@@ -61,6 +76,16 @@ class TreeExplorer extends Component<Props, State> {
         contextMenuY: e.event.clientY
       })
     }
+  }
+
+  setArbitraryConstraints(newArbitraryConstraints: string) {
+    this.setState({
+      ...this.state,
+      arbitraryConstraints: newArbitraryConstraints
+    })
+
+    //Handle changes on the model's arbitrary constraints
+    setModelConstraints(this.props.projectService , this.state.arbitraryConstraints);
   }
 
   btn_viewApplicationModel(
@@ -210,6 +235,10 @@ class TreeExplorer extends Component<Props, State> {
     me.props.projectService.addUpdateProjectListener(
       this.projectService_addListener
     );
+
+    //Load constraints on model change
+    const constraints = getCurrentConstraints(this.props.projectService);
+    this.setArbitraryConstraints(constraints);
 
     document.addEventListener("click", function(e:any) {
       if(!(''+e.target.className).includes("dropdown")){
@@ -430,17 +459,79 @@ class TreeExplorer extends Component<Props, State> {
     return (
       <div
         id="TreePannel"
-        className="TreeExplorer"
+        className="TreeExplorer pb-2 d-flex flex-column h-100"
         style={{ zIndex: 5 }}
-        onContextMenu={(e) => { e.preventDefault(); }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+        }}
       >
         <NavBar projectService={this.props.projectService} />
-        {this.renderTree()}
-        <TreeMenu projectService={this.props.projectService}
-          contextMenuX={this.state.contextMenuX}
-          contextMenuY={this.state.contextMenuY}
-          showContextMenu={this.state.showContextMenu}
-          onContextMenuHide={this.onContextMenuHide} />
+
+        <div
+          className="flex-grow-1 d-grid overflow-hidden"
+          style={{ gridTemplateRows: "max-content 1fr" }}
+        >
+          <Tab.Container defaultActiveKey="project" id="uncontrolled-tab">
+            <Nav variant="tabs" className="mb-2">
+              <Nav.Item>
+                <Nav.Link eventKey="project">Project</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="constraints">Constraints</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="queries">Queries</Nav.Link>
+              </Nav.Item>
+            </Nav>
+
+            <Tab.Content className="overflow-auto d-flex flex-column">
+              <Tab.Pane className="" eventKey="project">
+                {this.renderTree()}
+                <TreeMenu
+                  projectService={this.props.projectService}
+                  contextMenuX={this.state.contextMenuX}
+                  contextMenuY={this.state.contextMenuY}
+                  showContextMenu={this.state.showContextMenu}
+                  onContextMenuHide={this.onContextMenuHide}
+                />
+              </Tab.Pane>
+
+              <Tab.Pane className="px-2" eventKey="constraints">
+                <p className="text-muted small w-100">
+                  Specify any relationships or constraints that cannot be
+                  graphically represented in your language using the CLIF
+                  language.
+                </p>
+
+                <Editor
+                  value={this.state.arbitraryConstraints}
+                  onValueChange={this.setArbitraryConstraints}
+                  highlight={(arbitraryConstraints) =>
+                    highlight(arbitraryConstraints, languages.lisp, "lisp")
+                  }
+                  padding={10}
+                  className="editor"
+                  style={{
+                    fontFamily: '"Fira code", "Fira Mono", monospace',
+                    fontSize: 18,
+                    backgroundColor: "#1e1e1e",
+                    caretColor: "gray",
+                    color: "gray",
+                    borderRadius: "10px",
+                    overflow: "auto",
+                  }}
+                />
+              </Tab.Pane>
+
+              <Tab.Pane className="" eventKey="queries">
+                <QueryModal
+                  handleCloseCallback={() => {}}
+                  projectService={this.props.projectService}
+                />
+              </Tab.Pane>
+            </Tab.Content>
+          </Tab.Container>
+        </div>
       </div>
     );
   }

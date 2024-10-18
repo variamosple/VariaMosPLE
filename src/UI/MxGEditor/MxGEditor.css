@@ -13,6 +13,7 @@
   overflow: auto;
   width: 74.5vw;
   max-width: 74.5vw; 
+  width: 100%;
 }
 
 .MxGEditor img {
