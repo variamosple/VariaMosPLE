@@ -1,12 +1,11 @@
-import React from "react";
-import { Container, Navbar, Nav } from "react-bootstrap";
-import VariaMosLogo from "../../../Addons/images/VariaMosLogo.png";
-import NavDropdown from "react-bootstrap/NavDropdown";
 import { useEffect, useState } from "react";
+import { Container, Nav, Navbar } from "react-bootstrap";
+import NavDropdown from "react-bootstrap/NavDropdown";
+import VariaMosLogo from "../../../Addons/images/VariaMosLogo.png";
+import { Config } from "../../../Config";
+import { UserTypes } from "../../../UI/SignUp/SignUp.constants";
 import { getUserProfile, logoutUser } from "../../../UI/SignUp/SignUp.utils";
 import { REPOSITORY_URL } from "../../constants/constants";
-import { UserTypes } from "../../../UI/SignUp/SignUp.constants";
-import { Config } from "../../../Config";
 
 function Layout({ children }) {
   const [profile, setProfile] = useState(null);
@@ -29,7 +28,7 @@ function Layout({ children }) {
   };
 
   return (
-    <>
+    <div className="d-flex flex-column vh-100 overflow-hidden">
       <Navbar bg="dark" variant="dark">
         <Container fluid>
           <Navbar.Brand href="/">
@@ -42,24 +41,23 @@ function Layout({ children }) {
           </Navbar.Brand>
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
-              <Nav.Link href="/">
-                Home
-              </Nav.Link>
+              <Nav.Link href="/">Home</Nav.Link>
               <Nav.Link
                 href={Config.SERVICES.urlVariamosDocumentation}
                 target="_blank"
               >
                 Documentation
               </Nav.Link>
-              <Nav.Link
-                href="/variamos_languages/"
-                target="_blank"
-              >
+              <Nav.Link href="/variamos_languages/" target="_blank">
                 Languages
               </Nav.Link>
             </Nav>
             <Nav>
-              <NavDropdown title={profile?.givenName} className="me-5 pe-5" id="nav-dropdown">
+              <NavDropdown
+                title={profile?.givenName}
+                className="me-5 pe-5"
+                id="nav-dropdown"
+              >
                 {/* TODO: Add a Profile page */}
                 <NavDropdown.Item onClick={handleReportProblem}>
                   Report a problem
@@ -79,47 +77,14 @@ function Layout({ children }) {
           </Navbar.Collapse>
         </Container>
       </Navbar>
-      <div className="bodyContent">{children}</div>
-      <footer>
-        {/* <div className="row">
-          <div className="col-md-3">
-            <h3>Help</h3>
-            <div><a href="#">Link 1</a></div>
-            <div><a href="#">Link 2</a></div>
-            <div><a href="#">Link 3</a></div>
-            <div><a href="#">Link 4</a></div>
-            <div><a href="#">Link 5</a></div>
-          </div>
-          <div className="col-md-3">
-            <h3>Help</h3>
-            <div><a href="#">Link 1</a></div>
-            <div><a href="#">Link 2</a></div>
-            <div><a href="#">Link 3</a></div>
-            <div><a href="#">Link 4</a></div>
-            <div><a href="#">Link 5</a></div>
-          </div>
-          <div className="col-md-3">
-            <h3>Help</h3>
-            <div><a href="#">Link 1</a></div>
-            <div><a href="#">Link 2</a></div>
-            <div><a href="#">Link 3</a></div>
-            <div><a href="#">Link 4</a></div>
-            <div><a href="#">Link 5</a></div>
-          </div>
-          <div className="col-md-3">
-            <h3>Help</h3>
-            <div><a href="#">Link 1</a></div>
-            <div><a href="#">Link 2</a></div>
-            <div><a href="#">Link 3</a></div>
-            <div><a href="#">Link 4</a></div>
-            <div><a href="#">Link 5</a></div>
-          </div>
-        </div> */}
-        <div className="row copyright">
-          <p>© Copyright 2023 VariaMos.</p>
-        </div>
+      <div className="bodyContent flex-grow-1 overflow-hidden">{children}</div>
+      <footer
+        className="d-flex justify-content-center align-items-center p-0"
+        style={{ height: "50px" }}
+      >
+        <p className="m-0">© Copyright 2023 VariaMos.</p>
       </footer>
-    </>
+    </div>
   );
 }
 
