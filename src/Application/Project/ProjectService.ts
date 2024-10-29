@@ -1496,10 +1496,7 @@ export default class ProjectService {
     }
   }
   async drawCoreFeatureTree() {
-    //pintar el core del modelo. basicamente los elementos indispensables en todas las configuraciones. pintarlo de azul
-    // hablar con coco
-    //basicamente el query pregunta si el elemento puede tener el valor cero, como no lo puede tener ya que es indispensable, lo marca. 
-    const query_object = new Query({
+     const query_object = new Query({
       "solver": "minizinc",
       "operation": "sat",
       "iterate_over": [
