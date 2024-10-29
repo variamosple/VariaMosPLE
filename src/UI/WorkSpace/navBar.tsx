@@ -6,8 +6,6 @@ import SaveDialog from "../SaveDialog/saveDialog";
 import OpenDialog from "../OpenDialog/openDialog";
 import NewDialog from "../NewDialog/newDialog";
 
-//Dependencies for the query modal
-import QueryModal from "../Queries/queryModal";
 import "./NavBar.css";
 
 interface Props {
@@ -15,7 +13,6 @@ interface Props {
 }
 interface State {
   firstName: string;
-  show_query_modal: boolean;
   show_save_modal: boolean;
   show_open_modal: boolean;
   show_new_modal: boolean;
@@ -26,7 +23,6 @@ class navBar extends Component<Props, State> {
     super(props);
     this.state = {
       firstName: "",
-      show_query_modal: false,
       show_save_modal: false,
       show_open_modal: false,
       show_new_modal: false,
@@ -34,10 +30,6 @@ class navBar extends Component<Props, State> {
 
     this.exportProject = this.exportProject.bind(this);
     this.refreshNavBar = this.refreshNavBar.bind(this);
-
-    //modal functions binding
-    this.handleShowQueryModal = this.handleShowQueryModal.bind(this);
-    this.handleCloseQueryModal = this.handleCloseQueryModal.bind(this);
   }
 
   componentDidMount() {
@@ -122,15 +114,6 @@ class navBar extends Component<Props, State> {
     logoutUser();
   }
 
-  //Modal functions
-  handleShowQueryModal() {
-    this.setState({ show_query_modal: true });
-  }
-
-  handleCloseQueryModal() {
-    this.setState({ show_query_modal: false });
-  }
-
   render() {
     return (
       <div className="NavBar">
@@ -140,7 +123,6 @@ class navBar extends Component<Props, State> {
           <a title="Save project" onClick={this.saveProject.bind(this)}><span><img src="/images/menuIcons/save.png"></img></span></a>{" "}
           <a title="Save project as ..." onClick={this.saveProjectAs.bind(this)}><span><img src="/images/menuIcons/saveas.png"></img></span></a>{" "}
           <a title="Download project" onClick={this.exportProject.bind(this)}><span><img src="/images/menuIcons/download.png"></img></span></a>{" "}
-          <a title="Queries" onClick={() => this.handleShowQueryModal()}><span><img src="/images/menuIcons/queries.png"></img></span></a>{" "}
           <a title="Settings" onClick={() =>
             document.getElementById("projectManagement").click()
           }><span><img src="/images/menuIcons/settings.png"></img></span></a>{" "}
@@ -156,7 +138,6 @@ class navBar extends Component<Props, State> {
           </button>
         </div>
         <div>
-          <QueryModal show={this.state.show_query_modal} handleCloseCallback={this.handleCloseQueryModal} projectService={this.props.projectService} />
         </div>
         <div>
           {!this.state.show_save_modal ? (

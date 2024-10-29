@@ -1,20 +1,17 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 
-import ListGroup from "react-bootstrap/ListGroup";
 import Button from "react-bootstrap/Button";
-import Pagination from "react-bootstrap/Pagination";
 
 import ProjectService from "../../Application/Project/ProjectService";
 
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 import mx from "../MxGEditor/mxgraph";
-import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
 
 type QueryResultProps = {
   index: number;
   result: object | Array<any> | boolean;
   projectService: ProjectService;
-  onVisualize:any
+  onVisualize: any;
 };
 
 function isIterationResult(result: Array<any> | object | boolean): boolean {
@@ -37,7 +34,7 @@ export default function QueryResult({
   index,
   result,
   projectService,
-  onVisualize
+  onVisualize,
 }: QueryResultProps) {
   const [paginationSelection, setPaginationSelection] = useState(0);
 
@@ -135,48 +132,62 @@ export default function QueryResult({
   };
 
   return (
-    <>
-      <ListGroup horizontal className="flex d-flex my-2">
-        <ListGroup.Item className="flex-fill d-flex align-items-center justify-content-center">
-          Solution {index}
-        </ListGroup.Item>
-        {Array.isArray(visibleResults) && (
-          <ListGroup.Item className="flex-fill d-flex align-items-center justify-content-center" style={{ overflow: "hidden" }}>
-            {visibleResults.length > 0 && !isIterationResult(visibleResults) ? (
-              <Pagination style={{ overflow: "auto" }}>
-                {visibleResults.map((_, idx) => (
-                  <Pagination.Item
-                    key={idx}
-                    active={idx === paginationSelection}
-                    onClick={() => setPaginationSelection(idx)}
-                  >
-                    {idx + 1}
-                  </Pagination.Item>
-                ))}
-              </Pagination>
-            ) : hasFailedIterationResult(visibleResults) ? (
-              `${visibleResults.length} elements failed query`
+    <table className="my-2 border border-secondary-subtle rounded-table">
+      <tbody>
+        <tr>
+          <td className="text-center p-1 border border-secondary-subtle">
+            Solution {index}
+          </td>
+
+          <td className="text-center p-1 border border-secondary-subtle">
+            {(isIterationResult(result) &&
+              hasFailedIterationResult(result as Array<any>)) ||
+            (typeof result === "object" && !isIterationResult(result)) ? (
+              <Button size="sm" onClick={handleVisualize}>
+                Visualize
+              </Button>
             ) : (
-              "No element failed query"
+              typeof result === "boolean" && (result ? "SAT" : "UNSAT")
             )}
-          </ListGroup.Item>
+          </td>
+        </tr>
+
+        {Array.isArray(visibleResults) && (
+          <tr>
+            <td
+              colSpan={2}
+              className="text-center border border-secondary-subtle"
+            >
+              {visibleResults.length > 0 &&
+              !isIterationResult(visibleResults) ? (
+                <div
+                  className="d-grid justify-content-center gap-1 w-100 p-1"
+                  style={{
+                    gridTemplateColumns: "repeat(auto-fit, minmax(40px, 50px))",
+                    maxHeight: "200px",
+                    overflowY: "auto",
+                  }}
+                >
+                  {visibleResults.map((_, idx) => (
+                    <Button
+                      key={idx}
+                      active={idx === paginationSelection}
+                      onClick={() => setPaginationSelection(idx)}
+                      variant="outline-primary"
+                    >
+                      {idx + 1}
+                    </Button>
+                  ))}
+                </div>
+              ) : hasFailedIterationResult(visibleResults) ? (
+                `${visibleResults.length} elements failed query`
+              ) : (
+                "No element failed query"
+              )}
+            </td>
+          </tr>
         )}
-        {(isIterationResult(result) &&
-          hasFailedIterationResult(result as Array<any>)) ||
-        (typeof result === "object" && !isIterationResult(result)) ? (
-          <ListGroup.Item className="flex-fill d-flex align-items-center justify-content-center">
-            <Button size="sm" onClick={handleVisualize}>
-              Visualize
-            </Button>
-          </ListGroup.Item>
-        ) : (
-          typeof result === "boolean" && (
-            <ListGroup.Item className="flex-fill d-flex align-items-center justify-content-center">
-              {result ? "SAT" : "UNSAT"}
-            </ListGroup.Item>
-          )
-        )}
-      </ListGroup>
-    </>
+      </tbody>
+    </table>
   );
 }

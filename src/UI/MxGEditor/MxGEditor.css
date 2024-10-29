@@ -8,11 +8,17 @@
     padding-left: 0px; */
   /* background: url("../../Infraestructure/Images/grid.gif"); */
   /* border: solid 1px red; */
-  height: 80vh;
-  max-height: 80vh;
+  height: 100%;
   overflow: auto;
   width: 74.5vw;
   max-width: 74.5vw; 
+  width: 100%;
+}
+
+.MxGEditor {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
 }
 
 .MxGEditor img {
