@@ -1414,12 +1414,13 @@ export default class ProjectService {
     const domainElementsBackup = JSON.stringify(domainModel.elements);
     const getAppFeaturesId = appModel.elements.map(element => element.name)
     domainModel.elements.forEach((domElement) => {
-      console.log(domElement)
+      if(domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
       if (getAppFeaturesId.includes(domElement.name)) {
         domElement.properties[0].value = "Selected";
       } else {
         domElement.properties[0].value = "Unselected";
       }
+    }
     })
     const query_object = new Query({
       solver: "swi",
@@ -1455,21 +1456,22 @@ export default class ProjectService {
       const getAppFeaturesId = appModel.elements.map(element => element.name)
       domainModel.elements.forEach((domElement) => {
         console.log(domElement)
+        if(domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
         if (getAppFeaturesId.includes(domElement.name)) {
           domElement.properties[0].value = "Selected";
         } else {
           domElement.properties[0].value = "Unselected";
         }
+      }
       })
       const query_object = new Query({
         solver: "swi",
         operation: "sat"
       });
-      const result = await runQueryFromModel(
+      const result = await runQuery(
         this,
         "https://app.variamos.com/semantic_translator",
-        query_object,
-        appModel.sourceModelIds[0]
+        query_object
       );
       appModel.inconsistent = !result;
       this.raiseEventUpdateProject(this._project, domainModel.id);
