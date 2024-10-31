@@ -784,143 +784,145 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   loadModel(model: Model) {
-    let me = this;
-    this.currentModel = model;
-    if (!model) {
-      this.setState({
-        currentModelConstraints: null
-      })
-    } else {
-      this.setState({
-        currentModelConstraints: model.constraints
-      });
-      if (model.inconsistent) {
-        this.showMessageModal("Inconsistent model", model.consistencyError);
+    setTimeout(() => {
+      let me = this;
+      this.currentModel = model;
+      if (!model) {
+        this.setState({
+          currentModelConstraints: null
+        })
+      } else {
+        this.setState({
+          currentModelConstraints: model.constraints
+        });
+        if (model.inconsistent) {
+          this.showMessageModal("Inconsistent model", model.consistencyError);
+        }
       }
-    }
-    this.setState({
-      showContextMenuElement: false
-    });
+      this.setState({
+        showContextMenuElement: false
+      });
 
-    let graph: mxGraph | undefined = this.graph;
-    if (graph) {
-      graph.getModel().beginUpdate();
-      try {
-        graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
-        if (model) {
-          let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
-          let orden = [];
-          for (let i = 0; i < model.elements.length; i++) {
-            let element: any = model.elements[i];
-            if (element.parentId) {
-              this.pushIfNotExist(orden, element.parentId);
+      let graph: mxGraph | undefined = this.graph;
+      if (graph) {
+        graph.getModel().beginUpdate();
+        try {
+          graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
+          if (model) {
+            let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
+            let orden = [];
+            for (let i = 0; i < model.elements.length; i++) {
+              let element: any = model.elements[i];
+              if (element.parentId) {
+                this.pushIfNotExist(orden, element.parentId);
+              }
+              this.pushIfNotExist(orden, element.id);
             }
-            this.pushIfNotExist(orden, element.id);
-          }
 
-          let vertices = [];
+            let vertices = [];
 
-          for (let i = 0; i < orden.length; i++) {
-            let element: any = this.props.projectService.findModelElementById(model, orden[i]);
+            for (let i = 0; i < orden.length; i++) {
+              let element: any = this.props.projectService.findModelElementById(model, orden[i]);
 
-            let shape=null;
-            if (languageDefinition.concreteSyntax.elements[element.type].styles) {
-              let styles=languageDefinition.concreteSyntax.elements[element.type].styles;
-              for (let s = 0; s < styles.length; s++) {
-                const styleDef = styles[s];
-                if (!styleDef.linked_property) {
-                  shape = atob(styleDef.style);
-                } else {
-                  for (let p = 0; p < element.properties.length; p++) {
-                    const property = element.properties[p];
-                    if (property.name == styleDef.linked_property && ''+property.value == styleDef.linked_value) {
-                      shape = atob(styleDef.style);
-                      s = styles.length;
-                      break;
+              let shape = null;
+              if (languageDefinition.concreteSyntax.elements[element.type].styles) {
+                let styles = languageDefinition.concreteSyntax.elements[element.type].styles;
+                for (let s = 0; s < styles.length; s++) {
+                  const styleDef = styles[s];
+                  if (!styleDef.linked_property) {
+                    shape = atob(styleDef.style);
+                  } else {
+                    for (let p = 0; p < element.properties.length; p++) {
+                      const property = element.properties[p];
+                      if (property.name == styleDef.linked_property && '' + property.value == styleDef.linked_value) {
+                        shape = atob(styleDef.style);
+                        s = styles.length;
+                        break;
+                      }
                     }
                   }
                 }
               }
-            }
-            else if (languageDefinition.concreteSyntax.elements[element.type].draw) {
-              shape = atob(
-                languageDefinition.concreteSyntax.elements[element.type].draw
-              );
-            }
+              else if (languageDefinition.concreteSyntax.elements[element.type].draw) {
+                shape = atob(
+                  languageDefinition.concreteSyntax.elements[element.type].draw
+                );
+              }
 
-            if(shape){
-              let ne: any = mx.mxUtils.parseXml(shape).documentElement;
-              ne.setAttribute("name", element.type);
-              MxgraphUtils.modifyShape(ne);
-              let stencil = new mx.mxStencil(ne);
-              mx.mxStencilRegistry.addStencil(element.type, stencil);
+              if (shape) {
+                let ne: any = mx.mxUtils.parseXml(shape).documentElement;
+                ne.setAttribute("name", element.type);
+                MxgraphUtils.modifyShape(ne);
+                let stencil = new mx.mxStencil(ne);
+                mx.mxStencilRegistry.addStencil(element.type, stencil);
+              }
+
+              let parent = graph.getDefaultParent();
+              if (element.parentId) {
+                parent = vertices[element.parentId];
+              }
+
+              var doc = mx.mxUtils.createXmlDocument();
+              var node = doc.createElement(element.type);
+              node.setAttribute("uid", element.id);
+              node.setAttribute("label", element.name);
+              node.setAttribute("Name", element.name);
+              for (let i = 0; i < element.properties.length; i++) {
+                const p = element.properties[i];
+                node.setAttribute(p.name, p.value);
+              }
+              let fontcolor = "";
+              if (shape) {
+                let color = this.getFontColorFromShape(shape);
+                if (color) {
+                  fontcolor = "fontColor=" + color + ";"
+                }
+              }
+              let design = languageDefinition.concreteSyntax.elements[element.type].design;
+              var vertex = graph.insertVertex(
+                parent,
+                null,
+                node,
+                element.x,
+                element.y,
+                element.width,
+                element.height,
+                "shape=" +
+                element.type +
+                ";whiteSpace=wrap;" + fontcolor + design
+              );
+              this.refreshVertexLabel(vertex);
+              this.createOverlays(element, vertex);
+              vertices[element.id] = vertex;
             }
 
             let parent = graph.getDefaultParent();
-            if (element.parentId) {
-              parent = vertices[element.parentId];
-            }
 
-            var doc = mx.mxUtils.createXmlDocument();
-            var node = doc.createElement(element.type);
-            node.setAttribute("uid", element.id);
-            node.setAttribute("label", element.name);
-            node.setAttribute("Name", element.name);
-            for (let i = 0; i < element.properties.length; i++) {
-              const p = element.properties[i];
-              node.setAttribute(p.name, p.value);
-            }
-            let fontcolor = "";
-            if (shape) {
-              let color = this.getFontColorFromShape(shape);
-              if (color) {
-                fontcolor = "fontColor=" + color + ";"
-              }
-            }
-            let design = languageDefinition.concreteSyntax.elements[element.type].design;
-            var vertex = graph.insertVertex(
-              parent,
-              null,
-              node,
-              element.x,
-              element.y,
-              element.width,
-              element.height,
-              "shape=" +
-              element.type +
-              ";whiteSpace=wrap;" + fontcolor + design
-            );
-            this.refreshVertexLabel(vertex);
-            this.createOverlays(element, vertex);
-            vertices[element.id] = vertex;
-          }
+            for (let i = 0; i < model.relationships.length; i++) {
+              const relationship: Relationship = model.relationships[i];
+              let source = MxgraphUtils.findVerticeById(graph, relationship.sourceId, null);
+              let target = MxgraphUtils.findVerticeById(graph, relationship.targetId, null);
+              let doc = mx.mxUtils.createXmlDocument();
+              let node = doc.createElement("relationship");
+              node.setAttribute("uid", relationship.id);
+              node.setAttribute("label", relationship.name);
+              node.setAttribute("type", relationship.type);
 
-          let parent = graph.getDefaultParent();
-
-          for (let i = 0; i < model.relationships.length; i++) {
-            const relationship: Relationship = model.relationships[i];
-            let source = MxgraphUtils.findVerticeById(graph, relationship.sourceId, null);
-            let target = MxgraphUtils.findVerticeById(graph, relationship.targetId, null);
-            let doc = mx.mxUtils.createXmlDocument();
-            let node = doc.createElement("relationship");
-            node.setAttribute("uid", relationship.id);
-            node.setAttribute("label", relationship.name);
-            node.setAttribute("type", relationship.type);
-
-            var cell = this.graph?.insertEdge(parent, null, node, source, target, 'strokeColor=#69b630;strokeWidth=3;endArrow=block;endSize=8;edgeStyle=elbowEdgeStyle;');
-            cell.geometry.points = [];
-            if (relationship.points) {
-              for (let k = 0; k < relationship.points.length; k++) {
-                const p = relationship.points[k];
-                cell.geometry.points.push(new mx.mxPoint(p.x, p.y));
+              var cell = this.graph?.insertEdge(parent, null, node, source, target, 'strokeColor=#69b630;strokeWidth=3;endArrow=block;endSize=8;edgeStyle=elbowEdgeStyle;');
+              cell.geometry.points = [];
+              if (relationship.points) {
+                for (let k = 0; k < relationship.points.length; k++) {
+                  const p = relationship.points[k];
+                  cell.geometry.points.push(new mx.mxPoint(p.x, p.y));
+                }
               }
             }
           }
+        } finally {
+          graph.getModel().endUpdate();
         }
-      } finally {
-        this.graph?.getModel().endUpdate();
       }
-    }
+    }, 250);
   }
 
   getFontColorFromShape(xmlString) {
