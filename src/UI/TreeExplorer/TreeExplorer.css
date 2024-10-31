@@ -12,7 +12,5 @@
 
 .TreeExplorer .treeView{ 
   /* border: solid 1px red; */
-  height: 80vh;
-  max-height: 80vh;
   overflow: auto;
 }

@@ -16,7 +16,7 @@ class DiagramEditor extends Component<Props, State> {
 
   render() {
     return (
-      <div id="EditorPannel" className="">
+      <div id="EditorPannel" className="h-100">
             <MxGEditor projectService={this.props.projectService} />
       </div>
     );

@@ -1,66 +1,70 @@
-import React, { Component } from "react";
+import { FC, useEffect, useMemo } from "react";
+import { Pane, ResizablePanes } from "resizable-panes-react";
+import ProjectService from "../../Application/Project/ProjectService";
+import Layout from "../../core/components/Layout";
+import useWindowDimensions from "../../core/hooks/useWindowDimensions ";
 import DiagramEditor from "../DiagramEditor/DiagramEditor";
 import ElementsPannel from "../DiagramEditor/ElementsPannel";
-import PropiertiesPannel from "../DiagramEditor/PropiertiesPannel";
 import ProjectManagement from "../ProjectManagement/ProjectManagement";
-import TreeExplorer from "../TreeExplorer/TreeExplorer";
-import ProjectService from "../../Application/Project/ProjectService";
-import TreeMenu from "../TreeExplorer/TreeMenu";
 import { getUserProfile } from "../SignUp/SignUp.utils";
-import Layout from "../../core/components/Layout";
+import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import "./DashBoard.css";
 
 interface Props {
   loginEnabled?: boolean;
 }
-interface State { }
 
-class DashBoard extends Component<Props, State> {
-  state = {};
-  projectService: ProjectService = new ProjectService();
+const DashBoard: FC<Props> = ({ loginEnabled }) => {
+  const userProfile = useMemo(() => getUserProfile(), []);
+  const projectService: ProjectService = useMemo(
+    () => new ProjectService(),
+    []
+  );
+  const { width } = useWindowDimensions();
 
-  constructor(props: Props) {
-    super(props);
-  }
-
-  componentDidMount() { 
-    let project=this.projectService.createProject("My project");
-    if (project.productLines.length==0) {
-      this.projectService.createLPS(project, "My product line",  "System", "Retail");
+  useEffect(() => {
+    let project = projectService.createProject("My project");
+    if (project.productLines.length == 0) {
+      projectService.createLPS(project, "My product line", "System", "Retail");
     }
-    this.projectService.updateProject(project, null);
+    projectService.updateProject(project, null);
+  }, [projectService]);
+
+  if (loginEnabled && !userProfile) {
+    window.location.href = "/";
+    return null;
   }
 
-  render() {
-    const userProfile = getUserProfile();
-
-    if (this.props.loginEnabled && !userProfile) {
-      window.location.href = "/";
-      return null;
-    }
-
-    return (
-      <Layout>
-        <ProjectManagement projectService={this.projectService} />
-        {/* <NavBar projectService={this.projectService} /> */}
-        <table>
-          <tbody>
-            <tr>
-              <td className="tdTreeExplorer"> 
-                <TreeExplorer projectService={this.projectService} />
-              </td>
-              <td className="tdDiagramEditor">
-                <DiagramEditor projectService={this.projectService} />
-              </td>
-              <td className="tdElements">
-                <ElementsPannel projectService={this.projectService} /> 
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </Layout>
-    );
-  }
-}
+  return (
+    <Layout>
+      <ProjectManagement projectService={projectService} />
+      {/* <NavBar projectService={projectService} /> */}
+      <div className="w-100 h-100">
+        <ResizablePanes
+          uniqueId="dashboardPanes"
+          vertical
+          resizerClass="bg-slate-500"
+          unit="ratio"
+          minMaxUnit="ratio"
+        >
+          <Pane
+            id="TreeExplorerPane"
+            size={Math.ceil((330 * 100) / width)}
+            minSize={Math.ceil((330 * 100) / width)}
+            className="overflow-y-auto overflow-x-hidden"
+          >
+            <TreeExplorer projectService={projectService} />
+          </Pane>
+          <Pane id="DiagramEditorPane" size={75} minSize={50} maxSize={75}>
+            <DiagramEditor projectService={projectService} />
+          </Pane>
+          <Pane id="ElementsPannelPane" size={8} minSize={8} maxSize={8}>
+            <ElementsPannel projectService={projectService} />
+          </Pane>
+        </ResizablePanes>
+      </div>
+    </Layout>
+  );
+};
 
 export default DashBoard;
