@@ -275,7 +275,7 @@ export default class MxProperties extends Component<Props, State> {
     for (let i = 0; i < this.currentObject.properties.length; i++) {
       const element = this.currentObject.properties[i];
       if (element.name === this.state.propertyName) {
-        if (element.id!=this.state.propertyId) {
+        if (element.id != this.state.propertyId) {
           alertify.error("Property name already exist");
           document.getElementById("newPropertyName")?.focus();
           return false;
@@ -392,18 +392,18 @@ export default class MxProperties extends Component<Props, State> {
       let propertyId = this.state.propertyId;
       for (let i = 0; i < this.currentObject?.properties.length; i++) {
         if (this.currentObject.properties[i].id == propertyId) {
-          let property:Property=this.currentObject.properties[i];
-          property.name=this.state.propertyName;
-          property.type=this.state.propertyDomain;
-          property.comment=this.state.propertyComment;
-          property.possibleValues=this.state.propertyPossibleValues;
-          property.possibleValuesLinks=this.state.propertyPossibleValuesLinks;
-          property.minCardinality= parseInt(  this.state.propertyMinCardinality);
-          property.maxCardinality=parseInt(this.state.propertyMaxCardinality); 
-          property.constraint=this.state.propertyConstraint;
-          property.value="Undefined"
+          let property: Property = this.currentObject.properties[i];
+          property.name = this.state.propertyName;
+          property.type = this.state.propertyDomain;
+          property.comment = this.state.propertyComment;
+          property.possibleValues = this.state.propertyPossibleValues;
+          property.possibleValuesLinks = this.state.propertyPossibleValuesLinks;
+          property.minCardinality = parseInt(this.state.propertyMinCardinality);
+          property.maxCardinality = parseInt(this.state.propertyMaxCardinality);
+          property.constraint = this.state.propertyConstraint;
+          property.value = "Undefined"
         }
-      } 
+      }
 
       this.props.projectService.saveProject();
       this.props.projectService.raiseEventUpdatedElement(
@@ -751,26 +751,21 @@ export default class MxProperties extends Component<Props, State> {
           />
         );
         break;
-      case "Integer":
-        if (
-          possibleValues === undefined ||
-          possibleValues === ""
-        ) {
-          control = (
-            <input
+      case "Date":
+        control = (
+          <input
               className="form-control form-control-sm"
-              type="text"
+              type="date"
               title={titleToolTip}
               data-name={property.name}
               onChange={this.input_onChange}
               value={this.state.values[property.name]}
             />
-          );
-          break;
-        }
-
-        if (possibleValues && possibleValues!="") {
-          if (!property.constraint) {
+        );
+        break;
+      case "Integer":
+        if (possibleValues && possibleValues != "") {
+          if (!(possibleValues.includes('..'))) { 
             let options = [];
             let possibleValuesList = this.getListFromString(possibleValues);
             if (property.name != "Selected") {
@@ -806,32 +801,19 @@ export default class MxProperties extends Component<Props, State> {
               </select>
             );
             break;
-          }
-          else {
-            let checkboxItems: CheckboxItem[] = [];
-            checkboxItems.push(
-              { id: "Undefined", label: "Undefined", checked: false }
-            );
-            let possibleValuesList = this.getListFromString(possibleValues);
-            for (let i = 0; i < possibleValuesList.length; i++) {
-              const option: any = possibleValuesList[i];
-              let checked = false;
-              if (Array.isArray(value)) {
-                if (value.includes(option)) {
-                  checked = true;
-                }
-              }
-              checkboxItems.push(
-                { id: option, label: option, checked: checked }
-              );
-            }
-
-            control = (
-              <CheckboxList title="Multiple Checkbox List" data-name={property.name} items={checkboxItems} onChange={this.input_onChange} />
-            );
-          }
-          break;
+          } 
         }
+
+        control = (
+          <input
+            className="form-control form-control-sm"
+            type="text"
+            title={titleToolTip}
+            data-name={property.name}
+            onChange={this.input_onChange}
+            value={this.state.values[property.name]}
+          />
+        );
         break;
       case "String":
         if (
@@ -851,7 +833,7 @@ export default class MxProperties extends Component<Props, State> {
           break;
         }
 
-        if (possibleValues && possibleValues!="") {
+        if (possibleValues && possibleValues != "") {
           if (!property.constraint) {
             let options = [];
             let possibleValuesList = this.getListFromString(possibleValues);
@@ -1117,11 +1099,11 @@ export default class MxProperties extends Component<Props, State> {
                       value={this.state.propertyDomain}
                       onChange={this.selectDomainChange}
                     >
-                      <option value="String" selected>
-                        String
-                      </option>
+                      <option value="String" selected>String</option>
+                      <option value="Text" selected>Text</option>
                       <option value="Integer">Integer</option>
                       <option value="Boolean">Boolean</option>
+                      <option value="Date" selected>Date</option>
                     </select>
                   </div>
                 </div>
@@ -1134,7 +1116,7 @@ export default class MxProperties extends Component<Props, State> {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Example list: Red,Green,Blue; Example range: -100..100"
+                      placeholder="Example list: Red,Green,Blue; Example range: [-100..100]"
                       id="customPropertyPossibleValues"
                       value={this.state.propertyPossibleValues}
                       onChange={this.selectPossibleValuesChange}
