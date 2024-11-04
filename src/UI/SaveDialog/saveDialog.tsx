@@ -314,24 +314,28 @@ export default function SaveDialog({
                   <Form.Label>Name</Form.Label>
                   <Form.Control
                     type="text"
+                    placeholder="Enter your project name, e.g.: Editors"
                     value={projectInformation ? projectInformation.name : ""}
                     onChange={inputName_onChange}
                   />
                   <Form.Label>Description</Form.Label>
                   <Form.Control
                     type="text"
+                    placeholder="Enter your project description, e.g.: Editors"
                     value={projectInformation ? projectInformation.description : ""}
                     onChange={inputDescription_onChange}
                   />
                   <Form.Label>Author</Form.Label>
                   <Form.Control
                     type="text"
+                    placeholder="Enter your name or the author's name, e.g.: J. Doe"
                     value={projectInformation ? projectInformation.author : ""}
                     onChange={inputAuthor_onChange}
                   />
                   <Form.Label>Source</Form.Label>
                   <Form.Control
                     type="text"
+                    placeholder="Enter the bibliographic reference or source link"
                     value={projectInformation ? projectInformation.source : ""}
                     onChange={inputSource_onChange}
                   />

@@ -58,7 +58,7 @@ export default function NewDialog({
 
   const [projectName, setProjectName] = useState("");
   const [productLineName, setProductLineName] = useState("");
-  const [plDomains, setPlDomains] = useState(['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution']);
+  const [plDomains, setPlDomains] = useState(['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services','Office', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution', 'Other']);
   const [plTypes, setPlTypes] = useState(['Software', 'System']);
   const [productLineDomain, setProductLineDomain] = useState('Retail');
   const [productLineType, setProductLineType] = useState("System");
@@ -314,7 +314,7 @@ export default function NewDialog({
               <Form.Control
                 ref={inputProjectNameRef}
                 type="text"
-                placeholder=""
+                placeholder="Enter your project name, e.g.: Editors"
                 value={projectName}
                 onChange={inputProjectName_onChange}
               />
@@ -322,7 +322,7 @@ export default function NewDialog({
               <Form.Control
                 ref={inputProductLineNameRef}
                 type="text"
-                placeholder=""
+                placeholder="Enter your product line name, e.g.: Text editors"
                 value={productLineName}
                 onChange={inputProductLineName_onChange}
               />
