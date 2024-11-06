@@ -179,6 +179,7 @@ export default class MxGEditor extends Component<Props, State> {
     graph.setVertexLabelsMovable(false);
     graph.setGridEnabled(true);
     graph.setAllowDanglingEdges(false);
+    graph.setAllowLoops(true);
 
     // Allows dropping cells into new lanes and
     // lanes into new pools, but disallows dropping
