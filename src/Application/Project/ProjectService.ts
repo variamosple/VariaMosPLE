@@ -1409,9 +1409,50 @@ export default class ProjectService {
     this.raiseEventUpdateProject(this._project, model.id);
   }
 
+  async solveConsistencyAttributeModel(applicationModel: Model) {
+    const domainModel = this.findModelById(this.project, applicationModel.sourceModelIds[0]);
+    const domainModelElementsBackup = JSON.stringify(domainModel.elements);
+    type parsedElements = { }
+    const applicationElements = applicationModel.elements
+    const getAppFeaturesId = applicationModel.elements.map(element => element.name)
+    domainModel.elements.forEach((domElement) => {
+      if(domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
+      if (getAppFeaturesId.includes(domElement.name)) {
+        domElement.properties[0].value = "Selected";
+      } else {
+        domElement.properties[0].value = "Unselected";
+      }
+    }
+    })
+    const query_object = new Query({
+      solver: "swi",
+      operation: "sat"
+    });
+    const result = await runQueryFromModel(
+      this,
+      "https://app.variamos.com/semantic_translator",
+      query_object,
+      applicationModel.sourceModelIds[0]
+    );
+    domainModel.elements = JSON.parse(domainModelElementsBackup);
+    console.log(result);
+    applicationModel.inconsistent = !result;
+    if (result) {
+      alertify.success(`${applicationModel.name} is consistent with the domain model.`, 0);
+      applicationModel.consistencyError = null;
+    } else {
+      const errorMessage = `${applicationModel.name} is not consistent with the domain model.`;
+      applicationModel.consistencyError = errorMessage;
+      alertify.error(errorMessage, 0);
+
+    }
+    this.raiseEventUpdateProject(this._project, applicationModel.id);
+  }
+
   async solveConsistency(appModel: Model) {
     const domainModel = this.project.productLines[0].domainEngineering.models[0];
     const domainElementsBackup = JSON.stringify(domainModel.elements);
+    console.log(domainModel.elements);
     const getAppFeaturesId = appModel.elements.map(element => element.name)
     domainModel.elements.forEach((domElement) => {
       if(domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
@@ -1451,17 +1492,17 @@ export default class ProjectService {
     const appModels = this.project.productLines[0].applicationEngineering.applications.flatMap(app => {
       return app.models.filter(model => model.sourceModelIds && model.sourceModelIds[0] === domainModel.id);
     });
-    console.log(appModels);
     const domainElementsBackup = JSON.stringify(domainModel.elements);
     appModels.forEach(async appModel => {
       const getAppFeaturesId = appModel.elements.map(element => element.name)
-      domainModel.elements.filter(domElement => domElement.type === "ConcreteFeature" || domElement.type === "RootFeature")
+      domainModel.elements
       .forEach((domElement) => {
+        if(domElement.type === "ConcreteFeature" || domElement.type === "RootFeature"){
         if (getAppFeaturesId.includes(domElement.name)) {
           domElement.properties[0].value = "Selected";
         } else {
           domElement.properties[0].value = "Unselected";
-        }
+        }}
       })
       const query_object = new Query({
         solver: "swi",
@@ -1474,7 +1515,9 @@ export default class ProjectService {
         appModel.sourceModelIds[0]
       );
       appModel.inconsistent = !result;
+      domainModel.elements = JSON.parse(domainElementsBackup);
       this.raiseEventUpdateProject(this._project, domainModel.id);
+
       if (result) {
         alertify.success(`${appModel.name} is consistent with the domain model.`, 0);
         appModel.consistencyError = null;
@@ -1484,23 +1527,28 @@ export default class ProjectService {
         alertify.error(errorMessage, 0);
       }
     })
-    domainModel.elements = JSON.parse(domainElementsBackup);
   }
 
+  
+
   checkConsistency(model: Model) {
+    this.resetConfiguration(model);
     if (model.type === 'Application feature tree')
       this.solveConsistency(model);
     else {
-      this.resetConfiguration(model);
       this.solveConsistencyForAll(model);
     }
   }
 
-  async copyApplicationConfiguration(appModel: Model) {
+  formatApplicationConfiguration(appModel: Model) {
     let config = `[${appModel.elements.length}] `;
     config += appModel.elements.map(element => element.name).join(", ")
+    return config;
+  }
+
+  async copyApplicationConfiguration(appModel: Model) {
     try {
-      await navigator.clipboard.writeText(config);
+      await navigator.clipboard.writeText(this.formatApplicationConfiguration(appModel));
     } catch (error) {
       console.error("Failed to copy text: ", error);
     }
@@ -1508,12 +1556,20 @@ export default class ProjectService {
   }
 
   async copyDomainConfiguration(domainModel: Model) {
-    let config = `[${domainModel.elements.length}] `;
-    config += domainModel.elements.filter(domElement => domElement.properties[0].value = "Selected")
-    .map(element => element.name).join(", ")
+    const appModels = this.project.productLines[0].applicationEngineering.applications.flatMap(app => {
+      return app.models.filter(model => model.sourceModelIds && model.sourceModelIds[0] === domainModel.id);
+    });
+    let configs = ''
+    appModels.forEach(async appModel => {
+      let config = this.formatApplicationConfiguration(appModel)
+      configs += `{${config}} `
+    }
+    )
     try {
-      await navigator.clipboard.writeText(config);
+      alert(configs)
+      await navigator.clipboard.writeText(configs);
     } catch (error) {
+      alert(configs)
       console.error("Failed to copy text: ", error);
     }
 
