@@ -1451,27 +1451,27 @@ export default class ProjectService {
     const appModels = this.project.productLines[0].applicationEngineering.applications.flatMap(app => {
       return app.models.filter(model => model.sourceModelIds && model.sourceModelIds[0] === domainModel.id);
     });
+    console.log(appModels);
     const domainElementsBackup = JSON.stringify(domainModel.elements);
     appModels.forEach(async appModel => {
       const getAppFeaturesId = appModel.elements.map(element => element.name)
-      domainModel.elements.forEach((domElement) => {
-        console.log(domElement)
-        if(domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
+      domainModel.elements.filter(domElement => domElement.type === "ConcreteFeature" || domElement.type === "RootFeature")
+      .forEach((domElement) => {
         if (getAppFeaturesId.includes(domElement.name)) {
           domElement.properties[0].value = "Selected";
         } else {
           domElement.properties[0].value = "Unselected";
         }
-      }
       })
       const query_object = new Query({
         solver: "swi",
         operation: "sat"
       });
-      const result = await runQuery(
+      const result = await runQueryFromModel(
         this,
         "https://app.variamos.com/semantic_translator",
-        query_object
+        query_object,
+        appModel.sourceModelIds[0]
       );
       appModel.inconsistent = !result;
       this.raiseEventUpdateProject(this._project, domainModel.id);
@@ -1493,6 +1493,39 @@ export default class ProjectService {
     else {
       this.resetConfiguration(model);
       this.solveConsistencyForAll(model);
+    }
+  }
+
+  async copyApplicationConfiguration(appModel: Model) {
+    let config = `[${appModel.elements.length}] `;
+    config += appModel.elements.map(element => element.name).join(", ")
+    try {
+      await navigator.clipboard.writeText(config);
+    } catch (error) {
+      console.error("Failed to copy text: ", error);
+    }
+
+  }
+
+  async copyDomainConfiguration(domainModel: Model) {
+    let config = `[${domainModel.elements.length}] `;
+    config += domainModel.elements.filter(domElement => domElement.properties[0].value = "Selected")
+    .map(element => element.name).join(", ")
+    try {
+      await navigator.clipboard.writeText(config);
+    } catch (error) {
+      console.error("Failed to copy text: ", error);
+    }
+
+  }
+
+
+  copyModelConfiguration(model: Model) {
+    console.log(model);
+    if (model.type === 'Application feature tree')
+      this.copyApplicationConfiguration(model);
+    else {
+      this.copyDomainConfiguration(model);
     }
   }
   async drawCoreFeatureTree() {
