@@ -334,38 +334,38 @@ export default class MxgraphUtils {
                     child.innerHTML = `<![CDATA[
                         function(shape)
                         {
-                            try{
-                                if(!shape.state.cell){
-                                    return;
+                                try{
+                                    if(!shape.state.cell){
+                                        return;
+                                    }
+                                    if(!shape.state.cell.value){
+                                        return;
+                                    }
+                                    if(!shape.state.cell.value.attributes){
+                                        return;
+                                    }
+                                    
+                                    let attributes=shape.state.cell.value.attributes; 
+                                    var keys = Object.keys(attributes);
+                                    console.log(keys); 
+                                    keys = Object.getOwnPropertyNames(attributes);
+                                    console.log(keys); 
+                                    
+                                    let strs=[];
+                                    for (let i=0; i<keys.length; i++) {
+                                        let key=keys[i]; 
+                                        if (!attributes.hasOwnProperty(key)) continue; 
+                                        if (!isNaN(key)) continue; 
+                                        if (['uid', 'label', 'Name', 'Selected', 'type', 'title'].includes(key)) continue; 
+                                        let name=key; 
+                                        let value=attributes[key].value;
+                                        strs.push(name + ": " + value); 
+                                    }  
+                                    return strs.join('\\r\\n');
                                 }
-                                if(!shape.state.cell.value){
-                                    return;
-                                }
-                                if(!shape.state.cell.value.attributes){
-                                    return;
-                                }
-                                
-                                let attributes=shape.state.cell.value.attributes; 
-                                var keys = Object.keys(attributes);
-                                console.log(keys); 
-                                keys = Object.getOwnPropertyNames(attributes);
-                                console.log(keys); 
-                                
-                                let strs=[];
-                                for (let i=0; i<keys.length; i++) {
-                                    let key=keys[i]; 
-                                    if (!attributes.hasOwnProperty(key)) continue; 
-                                    if (!isNaN(key)) continue; 
-                                    if (['uid', 'label', 'Name', 'Selected', 'type', 'title'].includes(key)) continue; 
-                                    let name=key; 
-                                    let value=attributes[key].value;
-                                    strs.push(name + ": " + value); 
-                                }  
-                                return strs.join('\\r\\n');
-                            }
-                            catch(e){
-                                alert(JSON.stringify(e));
-                            }
+                                catch(e){
+                                    alert(JSON.stringify(e));
+                                } 
                         }
                     ]]>`;
                 } else if (child.attributes['propertyname']) {
@@ -385,26 +385,31 @@ export default class MxgraphUtils {
                     if (propertyNames.length == 1) {
                         child.innerHTML = `<![CDATA[ 
                             function(shape)
-                            {
-                                if(!shape){
-                                    return;
-                                }
-                                if(!shape.state){
-                                    return;
-                                }
-                                if(!shape.state.cell){
-                                    return;
-                                }
-                                if(!shape.state.cell.value){
-                                    return;
-                                }
-                                if(!shape.state.cell.value.attributes){
-                                    return;
-                                }
-                                console.log(JSON.stringify(shape.state.cell.value.attributes));
-                                if(shape.state.cell.value.attributes['` + propertyNames[0] + `']){
-                                    return shape.state.cell.value.attributes['` + propertyNames[0] + `'].value;
-                                } 
+                            { 
+                                    try{
+                                        if(!shape){
+                                            return;
+                                        }
+                                        if(!shape.state){
+                                            return;
+                                        }
+                                        if(!shape.state.cell){
+                                            return;
+                                        }
+                                        if(!shape.state.cell.value){
+                                            return;
+                                        }
+                                        if(!shape.state.cell.value.attributes){
+                                            return;
+                                        }
+                                        console.log(JSON.stringify(shape.state.cell.value.attributes));
+                                        if(shape.state.cell.value.attributes['` + propertyNames[0] + `']){
+                                            return shape.state.cell.value.attributes['` + propertyNames[0] + `'].value;
+                                        }
+                                    }
+                                    catch(e){
+                                        alert(JSON.stringify(e));
+                                    } 
                             }
                             ]]>`;
                     } else if (propertyNames.length > 1) {
@@ -425,7 +430,12 @@ export default class MxgraphUtils {
                         child.innerHTML = `<![CDATA[ 
                             function(shape)
                             {
-                               ` + str + `;
+                                try{
+                                    ` + str + `;
+                                }
+                                catch(e){
+                                    alert(JSON.stringify(e));
+                                } 
                             }
                             ]]>`;
                     }
