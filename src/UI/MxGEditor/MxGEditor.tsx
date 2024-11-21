@@ -171,6 +171,7 @@ export default class MxGEditor extends Component<Props, State> {
     //@ts-ignore
     rubber.setEnabled(true);
     // var parent = graph.getDefaultParent();
+    graph.setGridSize(5);
     graph.setPanning(true);
     graph.setTooltips(true);
     graph.setConnectable(true);
@@ -868,6 +869,7 @@ export default class MxGEditor extends Component<Props, State> {
               node.setAttribute("uid", element.id);
               node.setAttribute("label", element.name);
               node.setAttribute("Name", element.name);
+              node.setAttribute("type", element.type);
               for (let i = 0; i < element.properties.length; i++) {
                 const p = element.properties[i];
                 node.setAttribute(p.name, p.value);
@@ -880,6 +882,12 @@ export default class MxGEditor extends Component<Props, State> {
                 }
               }
               let design = languageDefinition.concreteSyntax.elements[element.type].design;
+              let styleShape="shape=" + element.type + ";whiteSpace=wrap;" + fontcolor + design; 
+              let resizable=languageDefinition.concreteSyntax.elements[element.type].resizable;
+              if ("" + resizable == "false") {
+                styleShape += ";resizable=0;";
+              }
+              styleShape+=fontcolor + design; 
               var vertex = graph.insertVertex(
                 parent,
                 null,
@@ -888,9 +896,7 @@ export default class MxGEditor extends Component<Props, State> {
                 element.y,
                 element.width,
                 element.height,
-                "shape=" +
-                element.type +
-                ";whiteSpace=wrap;" + fontcolor + design
+                styleShape
               );
               this.refreshVertexLabel(vertex);
               this.createOverlays(element, vertex);
@@ -1291,13 +1297,13 @@ export default class MxGEditor extends Component<Props, State> {
 
   hidePropertiesModal() {
     this.setState({ showPropertiesModal: false });
-    for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
-      const efunction = this.props.projectService.externalFunctions[i];
-      if (efunction.id == 510 || efunction.id == 511) { //todo: validar por el campo call_on_properties_changed
-        let selectedElementsIds = [this.state.selectedObject.id];
-        this.callExternalFuntionFromIndex(i, selectedElementsIds, null);
-      }
-    }
+    // for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
+    //   const efunction = this.props.projectService.externalFunctions[i];
+    //   if (efunction.id == 510 || efunction.id == 511) { //todo: validar por el campo call_on_properties_changed
+    //     let selectedElementsIds = [this.state.selectedObject.id];
+    //     this.callExternalFuntionFromIndex(i, selectedElementsIds, null);
+    //   }
+    // }
   }
 
   savePropertiesModal() {

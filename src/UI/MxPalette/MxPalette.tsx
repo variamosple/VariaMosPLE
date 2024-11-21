@@ -69,6 +69,10 @@ export default class MxPalette extends Component<Props, State> {
       if (element.design.includes("shape=")) {
         style = element.design;
       }
+    } 
+    style+=";whiteSpace=wrap";
+    if(""+element.resizable=="false"){
+      style+=";resizable=0;";
     }
     let vertex = new mx.mxCell(
       node,
