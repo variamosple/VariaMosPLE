@@ -25,6 +25,7 @@ import { ImZoomOut } from "react-icons/im";
 import { BsFillPencilFill } from "react-icons/bs";
 import { FaBolt } from "react-icons/fa";
 import { IoMdAlert } from "react-icons/io";
+import { BsFillClipboardFill } from "react-icons/bs";
 
 interface Props {
   projectService: ProjectService;
@@ -1148,6 +1149,10 @@ export default class MxGEditor extends Component<Props, State> {
     this.props.projectService.checkConsistency(this.currentModel);
   }
 
+  copyModelConfiguration() {
+    this.props.projectService.copyModelConfiguration(this.currentModel);
+  }
+
   drawCoreFeatureTree() {
     this.props.projectService.drawCoreFeatureTree();
   }
@@ -1213,6 +1218,14 @@ export default class MxGEditor extends Component<Props, State> {
   btnCheckConsistency_onClick(e) {
     try {
       this.checkConsistency();
+    } catch (ex) {
+      this.processException(ex);
+    }
+  }
+
+  btnCopyModelConfiguration_onClick(e) {
+    try {
+      this.copyModelConfiguration();
     } catch (ex) {
       this.processException(ex);
     }
@@ -1384,6 +1397,7 @@ export default class MxGEditor extends Component<Props, State> {
           <a title="Reset configuration" onClick={this.btnResetConfiguration_onClick.bind(this)}><span><FaBolt /></span></a>
           <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
           <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
+          <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
         </div>
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
