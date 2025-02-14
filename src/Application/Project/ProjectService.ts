@@ -69,6 +69,7 @@ export default class ProjectService {
   private newProductLineListeners: any = [];
   private newApplicationListeners: any = [];
   private newAdaptationListeners: any = [];
+  private scopeModelListeners: any = [];
   private newDomainEngineeringModelListeners: any = [];
   private newApplicationEngineeringModelListeners: any = [];
   private newApplicationModelListeners: any = [];
@@ -82,6 +83,7 @@ export default class ProjectService {
   private createdElementListeners: any = [];
   private requestSaveConfigurationListener: any = [];
   private requestOpenConfigurationListener: any = [];
+  private requestOpenCatalogListener: any = [];
 
   // constructor() {
   //   let me = this;
@@ -226,7 +228,104 @@ export default class ProjectService {
       }
     }
   }
+  getSelectedScope() {
+    const selectedId = this.getTreeIdItemSelected();
+    console.log("Selected ID:", selectedId);
+  
+    if (!selectedId) {
+      console.warn("No selected ID found");
+      return null;
+    }
+  
+    for (const productLine of this.project.productLines) {
+      const scopeModels = productLine?.scope?.models || [];
+      console.log("Checking scope models:", scopeModels);
+  
+      const foundModel = scopeModels.find((model) => model.id === selectedId);
+  
+      if (foundModel) {
+        console.log("Found model:", foundModel);
+        return foundModel; // Devuelve el modelo encontrado
+      }
+    }
+  
+    console.warn("No scope model matches the selected ID");
+    return null;
+  }
+  getScope(){
+    const selectedId = this.getTreeIdItemSelected();
+    for (const productLine of this.project.productLines) {
+      const scopeModels = productLine?.scope?.models || [];
+      const scope = productLine?.scope;
+      const foundModel = scopeModels.find((model) => model.id === selectedId);
+      if (foundModel) {
+        return scope;
+      }
+    }
+    return null;
+  }
+  
+  getStructureAndRelationships() {
+    const selectedScope = this.getSelectedScope();
+    if (!selectedScope) {
+      console.warn("No scope selected. Cannot fetch structure.");
+      return { elements: [], relationships: [] };
+    }
+  
+    const structure = selectedScope?.elements || [];
+    const relationships = selectedScope?.relationships || [];
+    return { elements: structure, relationships };
+  }
 
+  getFinalMaterials(structure, configurations) {
+    console.log("Structure:", structure);
+    console.log("Configurations:", configurations);
+  
+    if (!structure || !structure.elements || !structure.relationships) {
+      console.error("Structure is invalid or incomplete");
+      return { elements: [], relationships: [] };
+    }
+  
+    // Asocia configuraciones con elementos
+    const enrichedElements = structure.elements.map((element) => {
+      // Buscar todas las configuraciones relacionadas con este elemento
+      const matchingFeatures = configurations.filter(
+        (feature) => feature.id === element.id
+      );
+  
+      // Combinar las propiedades de las configuraciones relacionadas
+      const combinedProperties = matchingFeatures.flatMap(
+        (feature) => feature.properties || []
+      );
+  
+      return {
+        ...element,
+        properties: combinedProperties,
+      };
+    });
+  
+    console.log("Final enriched elements:", enrichedElements);
+  
+    return { elements: enrichedElements, relationships: structure.relationships };
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+
+  modelScopeSelected(idPl: number, idDomainModel: number) {
+    let modelSelected =
+      this._project.productLines[idPl].scope?.models[idDomainModel];
+    this.treeItemSelected = "model";
+    this.treeIdItemSelected = modelSelected.id;
+    this.loadExternalFunctions(modelSelected.type);
+    this.raiseEventSelectedModel(modelSelected);
+    this.raiseEventUpdateSelected(this.treeItemSelected);
+  }
   //Search Model functions_ START***********
   modelDomainSelected(idPl: number, idDomainModel: number) {
     let modelSelected =
@@ -408,6 +507,25 @@ export default class ProjectService {
     this.treeItemSelected = "domainEngineering";
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
+  updateScopeSelected(scopeModelId?: string) {
+    if (!scopeModelId) {
+      const selectedProductLine = this.project.productLines.find(
+        (pl) => pl.id === this.treeIdItemSelected
+      );
+  
+      if (selectedProductLine?.scope?.models?.length) {
+        scopeModelId = selectedProductLine.scope.models[0].id;
+      } else {
+        console.error("No valid scope models found to select.");
+        return;
+      }
+    }
+  
+    this.treeItemSelected = "scopeSPL";
+    this.treeIdItemSelected = scopeModelId;
+    this.raiseEventUpdateSelected(this.treeItemSelected);
+  }
+  
 
   updateAppEngSelected() {
     this.treeItemSelected = "applicationEngineering";
@@ -416,6 +534,7 @@ export default class ProjectService {
 
   //Function ot get currently selected model
   getTreeIdItemSelected(): string {
+    console.log("Tree ID Item Selected:", this.treeIdItemSelected);
     return this.treeIdItemSelected;
   }
 
@@ -888,6 +1007,15 @@ export default class ProjectService {
     this.requestOpenConfigurationListener[listener] = null;
   }
 
+  raiseEventRequestOpenCatalogListener(project: Project, modelSelectedId: string) {
+    let me = this;
+    let e = new ProjectEventArg(me, project, modelSelectedId);
+    for (let index = 0; index < me.requestOpenConfigurationListener.length; index++) {
+      let callback = this.requestOpenCatalogListener[index];
+      callback(e);
+    }
+  }
+
   raiseEventRequestOpenConfigurationListener(project: Project, modelSelectedId: string) {
     let me = this;
     let e = new ProjectEventArg(me, project, modelSelectedId);
@@ -1000,8 +1128,38 @@ export default class ProjectService {
     );
   }
 
+  createScopeModel(
+    project: Project,
+    languageType: string,
+    productLineIndex: number,
+    name: string
+  ): Model {
+    // Validar que el índice de la línea de producto es válido
+    if (!project.productLines[productLineIndex]) {
+      throw new Error("La línea de producto especificada no existe.");
+    }
+  
+    // Crear el nuevo modelo
+    const newModel = new Model(ProjectUseCases.generateId(), name, languageType);
+  
+    // Agregar el modelo al Scope de la línea de producto correspondiente
+    const scope = project.productLines[productLineIndex].scope;
+    scope.models.push(newModel);
+  
+    // Asegurar que el lenguaje esté permitido en el Scope
+    if (!scope.languagesAllowed.includes(languageType)) {
+      scope.languagesAllowed.push(languageType);
+    }
+  
+    return newModel;
+  }
+  
+  
   addNewDomainEngineeringModelListener(listener: any) {
     this.newDomainEngineeringModelListeners.push(listener);
+  }
+  addScopeModelListener(listener: any) {
+    this.scopeModelListeners.push(listener);
   }
 
   removeNewDomainEngineeringModelListener(listener: any) {
@@ -1019,6 +1177,11 @@ export default class ProjectService {
       let callback = this.newDomainEngineeringModelListeners[index];
       callback(e);
     }
+  }
+
+  raiseEventScopeModel(model: Model) {
+    const e = new NewModelEventArg(this, this._project, model);
+    this.scopeModelListeners.forEach((callback) => callback(e));
   }
   //createDomainEngineeringModel functions_ END***********
 
@@ -1528,7 +1691,42 @@ export default class ProjectService {
       }
     })
   }
-
+  async getCatalogData(): Promise<Array<{ Property: string; Value: string }>> {
+    try {
+      const currentLanguage = this.currentLanguage;
+      if (!currentLanguage) {
+        throw new Error("No modeling language selected");
+      }
+  
+      // Parsear el abstractSyntax del lenguaje actual
+      const abstractSyntax = JSON.parse(currentLanguage.abstractSyntax);
+  
+      // Verificar que existen elementos en la sintaxis abstracta
+      if (!abstractSyntax || !abstractSyntax.elements) {
+        throw new Error("Invalid abstract syntax structure for the selected language");
+      }
+  
+      // Extraer propiedades de cada elemento
+      const catalogData: Array<{ Property: string; Value: string }> = [];
+      for (const elementName in abstractSyntax.elements) {
+        const element = abstractSyntax.elements[elementName];
+        if (element.properties && Array.isArray(element.properties)) {
+          for (const property of element.properties) {
+            catalogData.push({
+              Property: `${elementName} - ${property.name}`,
+              Value: property.possibleValues || "N/A",
+            });
+          }
+        }
+      }
+  
+      return catalogData;
+    } catch (error) {
+      console.error("Error retrieving catalog data:", error);
+      return [];
+    }
+  }
+  
   
 
   checkConsistency(model: Model) {

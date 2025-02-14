@@ -26,3 +26,95 @@
   height: 1rem;
   margin-right: 0.25rem;
 }
+/* Contenedor del modal */
+.domain-catalog-modal-custom .modal-dialog {
+  width: 80%; /* Usar todo el ancho disponible */
+  max-width: 70%; /* Máximo 70% del viewport */
+  min-width: 50%; /* Mínimo 50% del viewport */
+  margin: auto; /* Centrar el modal */
+  overflow: hidden; /* Evitar desbordamientos externos */
+}
+
+/* Cuerpo del modal */
+.domain-catalog-body {
+  display: flex;
+  flex-wrap: nowrap; /* Evitar que los elementos pasen a la siguiente línea */
+  gap: 16px; /* Espacio entre los elementos */
+  overflow-x: auto; /* Scroll horizontal */
+  padding: 16px;
+  box-sizing: border-box;
+  max-width: 100%; /* Asegurarse de que no exceda el ancho del modal */
+  max-height: 70vh; /* Altura máxima del cuerpo del modal */
+  overflow-y: auto; /* Scroll vertical si excede la altura máxima */
+}
+
+/* Scroll horizontal estilizado */
+.domain-catalog-body::-webkit-scrollbar {
+  height: 8px; /* Altura del scrollbar horizontal */
+}
+
+.domain-catalog-body::-webkit-scrollbar-thumb {
+  background: #888; /* Color del scrollbar */
+  border-radius: 4px;
+}
+
+.domain-catalog-body::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Color cuando está en hover */
+}
+
+/* Scroll vertical estilizado */
+.domain-catalog-body::-webkit-scrollbar:vertical {
+  width: 8px; /* Ancho del scrollbar vertical */
+}
+
+.domain-catalog-body::-webkit-scrollbar-thumb:vertical {
+  background: #888; /* Color del scrollbar vertical */
+  border-radius: 4px;
+}
+
+.domain-catalog-body::-webkit-scrollbar-thumb:vertical:hover {
+  background: #555; /* Color cuando está en hover */
+}
+
+/* Tarjetas de productos */
+/* Tarjetas de productos con altura dinámica */
+.potential-product-card {
+  position: relative;
+  flex: 0 0 auto; /* No dejar que se expandan automáticamente */
+  width: 300px; /* Ancho fijo para cada tarjeta */
+  max-height: calc(70vh - 40px); /* Altura máxima dinámica según la pantalla */
+  overflow-y: auto; /* Scroll vertical si hay desbordamiento */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  transition: transform 0.2s ease-in-out;
+}
+
+.material-details {
+  word-wrap: break-word; /* Forzar saltos de línea en palabras largas */
+  overflow-wrap: break-word; /* Compatibilidad adicional */
+  white-space: normal; /* Asegurarse de que el texto pueda ocupar varias líneas */
+}
+
+.potential-product-title {
+  position: sticky; /* Se queda fija mientras haces scroll */
+  top: 0; /* Siempre pegada al borde superior */
+  background-color: #fff; /* Fondo blanco para mayor legibilidad */
+  z-index: 2; /* Asegura que esté encima de otros elementos */
+  width: 100%;
+  border-bottom: 1px solid #ccc; /* Línea inferior para delimitar visualmente */
+}
+
+.potential-product-title-container {
+  position: sticky;
+  top: 0;
+  background-color: #fff; /* Fondo sólido */
+  z-index: 2; /* Asegura que esté encima del contenido */
+  width: 100%;
+  height: 10px;
+  padding: 30px;
+}
+
+
+

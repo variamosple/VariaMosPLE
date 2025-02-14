@@ -58,6 +58,7 @@ export default function OpenDialog({
   const [projects, setProjects] = useState([]);
   const [templateProjects, setTemplateProjects] = useState([]);
   const [users, setUsers] = useState(["Hugo", "Paco", "Luis"]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   //Load the saved queries from the local storage on load
   useEffect(() => {
@@ -205,12 +206,20 @@ export default function OpenDialog({
       projectService.deleteProjectInServer(pi, successCallback, null);
     }
   }
+  const filterProjects = (projects) => {
+    if (!searchTerm) return projects;
+    return projects.filter((project) =>
+      project.name.toLowerCase().includes(searchTerm)
+    );
+  };
+
 
   const renderProjects = () => {
     let elements = [];
     if (projects) {
-      for (let i = 0; i < projects.length; i++) {
-        let project: ProjectInformation = projects[i];
+      const filteredProjects = filterProjects(projects);
+      for (let i = 0; i < filteredProjects.length; i++) {
+        let project: ProjectInformation = filteredProjects[i];
         const element = (
           <tr>
             {/* <a title="Change name" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}><MdEdit/></a> */}
@@ -258,9 +267,10 @@ export default function OpenDialog({
 
   const renderTemplateProjects = () => {
     if (templateProjects) {
+      const filteredTemplateProjects = filterProjects(templateProjects);
       let elements = [];
-      for (let i = 0; i < templateProjects.length; i++) {
-        let project: ProjectInformation = templateProjects[i];
+      for (let i = 0; i < filteredTemplateProjects.length; i++) {
+        let project: ProjectInformation = filteredTemplateProjects[i];
         const element = (
           <tr> 
             <td>
@@ -338,6 +348,9 @@ export default function OpenDialog({
       reader.readAsText(file);
     }
   }
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value.toLowerCase());
+  };
 
   return (
     <>
@@ -346,30 +359,76 @@ export default function OpenDialog({
           <Modal.Title>Open project</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div className="NavBar">
-            <a title="Upload" onClick={btnImportProject_onClick}><span><img src="/images/menuIcons/upload.png"></img></span></a>{" "}
-          </div>
-          <input type="file" id="uploadInput" onChange={uploadInput_onChange} style={{ display: 'none' }}></input>
-          <br />
-          <Tabs
-            defaultActiveKey="templateProjects"
-            activeKey={key}
-            id="controlled-tab-example"
-            onSelect={(k) => setKey(k)}
+          {/* Contenedor superior: pestañas, buscador y botón de upload */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottom: "1px solid #ccc",
+              paddingBottom: "10px",
+              marginBottom: "10px",
+            }}
           >
-            {projectService.isGuessUser() ? (null) : (
-              <Tab eventKey="privateProjects" title="Personal">
-                <div className="div-container-projects">
-                  {renderProjects()}
-                </div>
-              </Tab>
-            )}
-            <Tab eventKey="templateProjects" title="Public">
-              <div className="div-container-projects">
-                {renderTemplateProjects()}
-              </div>
-            </Tab>
-          </Tabs>
+            {/* Pestañas */}
+            <div style={{ marginRight: "10px" }}>
+              <Tabs
+                defaultActiveKey="templateProjects"
+                activeKey={key}
+                id="controlled-tab-example"
+                onSelect={(k) => setKey(k)}
+              >
+                {!projectService.isGuessUser() && (
+                  <Tab eventKey="privateProjects" title="Personal"></Tab>
+                )}
+                <Tab eventKey="templateProjects" title="Public"></Tab>
+              </Tabs>
+            </div>
+  
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              style={{
+                flex: 1, 
+                padding: "8px",
+                fontSize: "14px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                marginRight: "10px",
+                backgroundColor: "#ffffff",
+              }}
+            />
+  
+            <div>
+              <a title="Upload" onClick={btnImportProject_onClick}>
+                <img
+                  src="/images/menuIcons/upload.png"
+                  alt="Upload icon"
+                  style={{
+                    width: "24px", 
+                    height: "24px",
+                    cursor: "pointer",
+                  }}
+                />
+              </a>
+            </div>
+          </div>
+  
+          {/* Contenedor de proyectos */}
+          {key === "privateProjects" ? (
+            <div className="div-container-projects">{renderProjects()}</div>
+          ) : (
+            <div className="div-container-projects">{renderTemplateProjects()}</div>
+          )}
+  
+          <input
+            type="file"
+            id="uploadInput"
+            onChange={uploadInput_onChange}
+            style={{ display: "none" }}
+          />
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseCallback}>
@@ -379,4 +438,6 @@ export default function OpenDialog({
       </Modal>
     </>
   );
-}
+  
+  
+}  

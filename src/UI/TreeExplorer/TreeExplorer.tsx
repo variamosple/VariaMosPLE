@@ -6,6 +6,8 @@ import { Adaptation } from "../../Domain/ProductLineEngineering/Entities/Adaptat
 import { Application } from "../../Domain/ProductLineEngineering/Entities/Application";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
+import { ScopeSPL } from "../../Domain/ProductLineEngineering/Entities/ScopeSPL";
+import ScopeModal from "../Scope/ScopeModal";
 import {
   getCurrentConstraints,
   setModelConstraints,
@@ -26,7 +28,9 @@ interface State {
   contextMenuX: number,
   contextMenuY: number,
   showContextMenu: boolean,
-  arbitraryConstraints: string
+  arbitraryConstraints: string,
+  showScopeModal: boolean,
+  currentProductLineIndex: number,
 }
 
 class TreeExplorer extends Component<Props, State> {
@@ -35,6 +39,8 @@ class TreeExplorer extends Component<Props, State> {
     contextMenuY: 100,
     showContextMenu: false,
     arbitraryConstraints: "",
+    showScopeModal: false,
+    currentProductLineIndex: 0,
   };
 
   constructor(props: any) {
@@ -144,7 +150,11 @@ class TreeExplorer extends Component<Props, State> {
     this.props.projectService.updateLpSelected(idPl);
     if (e.target.props.dataKey === "domainEngineering") {
       this.props.projectService.updateDomainEngSelected();
-    } else if (e.target.props.dataKey === "applicationEngineering") {
+    } 
+    else if (e.target.props.dataKey === "scopeSPL") {
+      this.props.projectService.updateScopeSelected();
+    }
+    else if (e.target.props.dataKey === "applicationEngineering") {
       this.props.projectService.updateAppEngSelected();
     }
     this.props.projectService.saveProject();
@@ -225,6 +235,9 @@ class TreeExplorer extends Component<Props, State> {
       this.projectService_addListener
     );
 
+    me.props.projectService.addScopeModelListener(
+      this.projectService_addListener
+    );
     me.props.projectService.addNewDomainEngineeringModelListener(
       this.projectService_addListener
     );
@@ -287,6 +300,54 @@ class TreeExplorer extends Component<Props, State> {
     }
     return this.renderModelFolders(folders);
   }
+
+  renderScope(idProductLine: number) {
+    return (
+      <TreeItem
+        icon="/images/treeView/scope.png"
+        label="Scope"
+        dataKey="scopeSPL"
+        onClick={(e) => this.autoLoadScopeModel(idProductLine)}
+        onDoubleClick={(e) => this.autoLoadScopeModel(idProductLine)}
+        onAuxClick={(e) => 
+          this.updateLpSelected(e, idProductLine)}
+      />
+    );
+  }
+
+  autoLoadScopeModel(idProductLine: number) {
+    console.log("Se hizo doble clic en el Scope para idProductLine:", idProductLine);
+
+    let scope = this.props.projectService.project.productLines[idProductLine].scope;
+
+    if (!scope) {
+      console.log("Scope no existe, creándolo...");
+      const newScope = new ScopeSPL();
+      this.props.projectService.project.productLines[idProductLine].scope= newScope;
+  }
+
+    if (!scope.models.length || !scope) {
+        // Crear automáticamente un modelo de tipo ConceptualMap si no hay modelos en el Scope
+        const newConceptualMap = this.props.projectService.createScopeModel(
+            this.props.projectService.project,
+            "Bill of materials model",
+            idProductLine,
+            "Bill of materials model"
+        );
+        this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(newConceptualMap));
+        console.log("Modelo ConceptualMap creado y seleccionado automáticamente:", newConceptualMap);
+    } else {
+        // Intentar seleccionar un modelo existente de tipo ConceptualMap
+        const conceptualMap = scope.models.find(model => model.type === "Bill of materials model");
+        if (conceptualMap) {
+            this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(conceptualMap));
+        } else {
+            alert("No hay un modelo ConceptualMap en Scope.");
+        }
+    }
+    this.setState({ showScopeModal: true, currentProductLineIndex: idProductLine });
+}
+
 
   renderApplicationModels(models: Model[], idProductLine: number, idApplication: number) {
     let folders = [];
@@ -357,7 +418,10 @@ class TreeExplorer extends Component<Props, State> {
   renderDomainEngineering(productLine: ProductLine, idProductLine: number) {
     return this.renderDomainModels(productLine.domainEngineering.models, idProductLine)
   }
-
+  renderScopeSPL(productLine: ProductLine, idProductLine: number) {
+    return this.renderScope(idProductLine)
+  }
+ 
   renderAdaptation(adaptation: Adaptation, idProductLine: number, idApplication: number, idAdaptation: number) {
     let treeItems = [];
     treeItems.push(this.renderAdaptationModels(adaptation.models, idProductLine, idApplication, idAdaptation));
@@ -416,18 +480,43 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   renderProductLine(productLine: ProductLine, idProductLine: number) {
-    let treeItem = (
-      <TreeItem icon="/images/treeView/productLine.png" label={productLine.name} onAuxClick={(e) => { this.updateLpSelected(e, idProductLine) }}  onDoubleClick={(e) => { this.doubleClickLpSelected(e, idProductLine) }}>
-        <TreeItem icon="/images/treeView/domainEngineering.png" label="Domain engineering" dataKey="domainEngineering" onAuxClick={(e) => { this.updateLpSelected(e, idProductLine) }}>
-          {this.renderDomainEngineering(productLine, idProductLine)}
+    return (
+        <TreeItem
+            icon="/images/treeView/productLine.png"
+            label={productLine.name}
+            onAuxClick={(e) => {
+                this.updateLpSelected(e, idProductLine);
+            }}
+            onDoubleClick={(e) => {
+                this.doubleClickLpSelected(e, idProductLine);
+            }}
+        >
+            {this.renderScopeSPL(productLine, idProductLine)}
+            <TreeItem
+                icon="/images/treeView/domainEngineering.png"
+                label="Domain engineering"
+                dataKey="domainEngineering"
+                onAuxClick={(e) => {
+                    this.updateLpSelected(e, idProductLine);
+                }}
+            >
+                {this.renderDomainEngineering(productLine, idProductLine)}
+            </TreeItem>
+            <TreeItem
+                icon="/images/treeView/applicationEngineering.png"
+                label="Application engineering"
+                dataKey="applicationEngineering"
+                onAuxClick={(e) => {
+                    this.updateLpSelected(e, idProductLine);
+                }}
+            >
+                {this.renderApplicationEngineering(productLine, idProductLine)}
+            </TreeItem>
         </TreeItem>
-        <TreeItem icon="/images/treeView/applicationEngineering.png" label="Application engineering" dataKey="applicationEngineering" onAuxClick={(e) => { this.updateLpSelected(e, idProductLine) }}>
-          {this.renderApplicationEngineering(productLine, idProductLine)}
-        </TreeItem>
-      </TreeItem>
     );
-    return treeItem;
-  }
+}
+
+  
 
   renderProductLines() {
     let treeItems = []
@@ -532,7 +621,34 @@ class TreeExplorer extends Component<Props, State> {
             </Tab.Content>
           </Tab.Container>
         </div>
+        {this.state.showScopeModal && (
+          <ScopeModal
+          show={this.state.showScopeModal}
+          initialScope={
+            this.props.projectService.project.productLines[this.state.currentProductLineIndex].scope
+          }
+          domain={
+            this.props.projectService.project.productLines[this.state.currentProductLineIndex].domain
+          }
+          onHide={() => this.setState({ showScopeModal: false })}
+          onSave={(updatedScope: ScopeSPL) => {
+            this.props.projectService.project.productLines[this.state.currentProductLineIndex].scope = updatedScope;
+            const projectInfo = this.props.projectService.getProjectInformation();
+            this.props.projectService.saveProjectInServer(
+              projectInfo,
+              (response) => {
+                console.log("Proyecto guardado exitosamente:", response);
+              },
+              (error) => {
+                console.error("Error guardando el proyecto:", error);
+              }
+            );
+          }}
+          
+        />  
+        )}
       </div>
+      
     );
   }
 }
