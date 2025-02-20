@@ -29,8 +29,7 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/RestrictionsUseCases";
 import ProjectUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
-import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectPersistenceUseCases";
-import { isJSDocThisTag } from "typescript";
+import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectPersistenceUseCases"; 
 import * as alertify from "alertifyjs";
 import { Buffer } from "buffer";
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";

@@ -9,6 +9,7 @@ import ProjectManagement from "../ProjectManagement/ProjectManagement";
 import { getUserProfile } from "../SignUp/SignUp.utils";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import "./DashBoard.css";
+import ModelRenderer from "./ModelRenderer";
 
 interface Props {
   loginEnabled?: boolean;
@@ -40,28 +41,7 @@ const DashBoard: FC<Props> = ({ loginEnabled }) => {
       <ProjectManagement projectService={projectService} />
       {/* <NavBar projectService={projectService} /> */}
       <div className="w-100 h-100">
-        <ResizablePanes
-          uniqueId="dashboardPanes"
-          vertical
-          resizerClass="bg-slate-500"
-          unit="ratio"
-          minMaxUnit="ratio"
-        >
-          <Pane
-            id="TreeExplorerPane"
-            size={Math.ceil((330 * 100) / width)}
-            minSize={Math.ceil((330 * 100) / width)}
-            className="overflow-y-auto overflow-x-hidden"
-          >
-            <TreeExplorer projectService={projectService} />
-          </Pane>
-          <Pane id="DiagramEditorPane" size={75} minSize={50} maxSize={75}>
-            <DiagramEditor projectService={projectService} />
-          </Pane>
-          <Pane id="ElementsPannelPane" size={8} minSize={8} maxSize={8}>
-            <ElementsPannel projectService={projectService} />
-          </Pane>
-        </ResizablePanes>
+      <ModelRenderer projectService={projectService} />
       </div>
     </Layout>
   );
