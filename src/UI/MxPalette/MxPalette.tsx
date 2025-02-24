@@ -38,9 +38,7 @@ export default class MxPalette extends Component<Props, State> {
   }
 
   projectService_addSelectedModelListener(e: any) {
-    this.currentModel = e.model;
-    this.createPalette(e.model.type);
-    this.forceUpdate();
+    this.loadModel(e.model);
   }
 
   componentDidMount() {
@@ -51,6 +49,16 @@ export default class MxPalette extends Component<Props, State> {
     me.props.projectService.addSelectedModelListener(
       this.projectService_addSelectedModelListener
     );
+    let model=me.props.projectService.currentModel;
+    me.loadModel(model);
+  }
+
+  loadModel(model : Model) {
+    this.currentModel = model;
+    if (model) {
+      this.createPalette(model.type);
+      this.forceUpdate();
+    }
   }
 
   createPalette(modelType: string) {

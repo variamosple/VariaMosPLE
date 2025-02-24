@@ -992,7 +992,7 @@ export default class MxGEditor extends Component<Props, State> {
           graph.getModel().endUpdate();
         }
       }
-    }, 2500);
+    }, 250);
   }
 
   getFontColorFromShape(xmlString) {

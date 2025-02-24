@@ -84,6 +84,19 @@ class TreeExplorer extends Component<Props, State> {
     }
   }
 
+  btn_viewScopeModel(e: any, idPl: number, idScopeModel: number) {
+    console.log("treeExplorer btn_viewScopeModel")
+    this.props.projectService.modelScopeSelected(idPl, idScopeModel);
+    this.props.projectService.saveProject();
+    if (e) {
+      this.setState({
+        showContextMenu: true,
+        contextMenuX: e.event.clientX,
+        contextMenuY: e.event.clientY
+      })
+    }
+  }
+
   setArbitraryConstraints(newArbitraryConstraints: string) {
     this.setState({
       ...this.state,
@@ -301,18 +314,23 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderModelFolders(folders);
   }
 
-  renderScope(idProductLine: number) {
-    return (
-      <TreeItem
-        icon="/images/treeView/scope.png"
-        label="Scope"
-        dataKey="scopeSPL"
-        onClick={(e) => this.autoLoadScopeModel(idProductLine)}
-        onDoubleClick={(e) => this.autoLoadScopeModel(idProductLine)}
-        onAuxClick={(e) => 
-          this.updateLpSelected(e, idProductLine)}
-      />
-    );
+  renderScopeModels(models: Model[], idProductLine: number) {
+    let folders = [];
+    for (let idModel = 0; idModel < models.length; idModel++) {
+      const model: Model = models[idModel];
+      if (!model.type) {
+        model.type = model.name;
+      }
+      let type = "" + model.type;
+      if (!folders[type]) {
+        folders[type] = [];
+      }
+      folders[type].push(
+        <TreeItem icon="/images/treeView/model.png" label={model.name} onClick={(e) => this.btn_viewScopeModel(null, idProductLine, idModel)} onAuxClick={(e) => this.btn_viewScopeModel( e, idProductLine, idModel ) }>
+        </TreeItem>
+      )
+    }
+    return this.renderModelFolders(folders);
   }
 
   autoLoadScopeModel(idProductLine: number) {
@@ -418,8 +436,9 @@ class TreeExplorer extends Component<Props, State> {
   renderDomainEngineering(productLine: ProductLine, idProductLine: number) {
     return this.renderDomainModels(productLine.domainEngineering.models, idProductLine)
   }
-  renderScopeSPL(productLine: ProductLine, idProductLine: number) {
-    return this.renderScope(idProductLine)
+
+  renderScope(productLine: ProductLine, idProductLine: number) {
+    return this.renderScopeModels(productLine.scope.models, idProductLine)
   }
  
   renderAdaptation(adaptation: Adaptation, idProductLine: number, idApplication: number, idAdaptation: number) {
@@ -490,8 +509,17 @@ class TreeExplorer extends Component<Props, State> {
             onDoubleClick={(e) => {
                 this.doubleClickLpSelected(e, idProductLine);
             }}
-        >
-            {this.renderScopeSPL(productLine, idProductLine)}
+        > 
+            <TreeItem
+                icon="/images/treeView/scope.png"
+                label="Scope"
+                dataKey="scope"
+                onAuxClick={(e) => {
+                    this.updateLpSelected(e, idProductLine);
+                }}
+            >
+                {this.renderScope(productLine, idProductLine)}
+            </TreeItem>
             <TreeItem
                 icon="/images/treeView/domainEngineering.png"
                 label="Domain engineering"

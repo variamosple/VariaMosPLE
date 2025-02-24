@@ -53,6 +53,7 @@ export default class ProjectService {
   // more and more it's clear we need redux or something like it
   // to manage the state of the application
   private _currentLanguage: Language = null;
+  private _currentModel: Model = null;
 
   private _environment: string = Config.NODE_ENV;
   private _languages: any = this.getLanguagesByUser();
@@ -92,6 +93,10 @@ export default class ProjectService {
 
   //   this.languageService.getLanguages(fun);
   // }
+
+  public get currentModel(): Model {
+    return this._currentModel;
+  }
 
   public get currentLanguage(): Language {
     return this._currentLanguage;
@@ -402,6 +407,7 @@ export default class ProjectService {
   raiseEventSelectedModel(model: Model | undefined) {
     if (model) {
       let me = this;
+      me._currentModel=model;
       let e = new SelectedModelEventArg(me, model);
       for (let index = 0; index < me.selectedModelListeners.length; index++) {
         let callback = this.selectedModelListeners[index];
@@ -577,7 +583,7 @@ export default class ProjectService {
       userId = data.user.id;
     }
     if (userId == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") {
-      //  userId = "21cd2d82-1bbc-43e9-898a-d5a45abdeced";
+      userId = "21cd2d82-1bbc-43e9-898a-d5a45abdeced";
     }
     return userId;
   }
