@@ -348,15 +348,15 @@ class TreeExplorer extends Component<Props, State> {
         // Crear automáticamente un modelo de tipo ConceptualMap si no hay modelos en el Scope
         const newConceptualMap = this.props.projectService.createScopeModel(
             this.props.projectService.project,
-            "Bill of materials model",
+            "Catalog of potencials products",
             idProductLine,
-            "Bill of materials model"
+            "Catalog of potential products"
         );
         this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(newConceptualMap));
         console.log("Modelo ConceptualMap creado y seleccionado automáticamente:", newConceptualMap);
     } else {
         // Intentar seleccionar un modelo existente de tipo ConceptualMap
-        const conceptualMap = scope.models.find(model => model.type === "Bill of materials model");
+        const conceptualMap = scope.models.find(model => model.type === "Catalog of potential products");
         if (conceptualMap) {
             this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(conceptualMap));
         } else {
