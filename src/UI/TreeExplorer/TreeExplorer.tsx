@@ -164,7 +164,7 @@ class TreeExplorer extends Component<Props, State> {
     if (e.target.props.dataKey === "domainEngineering") {
       this.props.projectService.updateDomainEngSelected();
     } 
-    else if (e.target.props.dataKey === "scopeSPL") {
+    else if (e.target.props.dataKey === "scope") {
       this.props.projectService.updateScopeSelected();
     }
     else if (e.target.props.dataKey === "applicationEngineering") {

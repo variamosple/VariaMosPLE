@@ -513,22 +513,24 @@ export default class ProjectService {
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
   updateScopeSelected(scopeModelId?: string) {
-    if (!scopeModelId) {
-      const selectedProductLine = this.project.productLines.find(
-        (pl) => pl.id === this.treeIdItemSelected
-      );
-  
-      if (selectedProductLine?.scope?.models?.length) {
-        scopeModelId = selectedProductLine.scope.models[0].id;
-      } else {
-        console.error("No valid scope models found to select.");
-        return;
-      }
-    }
-  
-    this.treeItemSelected = "scopeSPL";
-    this.treeIdItemSelected = scopeModelId;
+    this.treeItemSelected = "scope";
     this.raiseEventUpdateSelected(this.treeItemSelected);
+    // if (!scopeModelId) {
+    //   const selectedProductLine = this.project.productLines.find(
+    //     (pl) => pl.id === this.treeIdItemSelected
+    //   );
+  
+    //   if (selectedProductLine?.scope?.models?.length) {
+    //     scopeModelId = selectedProductLine.scope.models[0].id;
+    //   } else {
+    //     console.error("No valid scope models found to select.");
+    //     return;
+    //   }
+    // }
+  
+    // this.treeItemSelected = "scopeSPL";
+    // this.treeIdItemSelected = scopeModelId;
+    // this.raiseEventUpdateSelected(this.treeItemSelected);
   }
   
 
