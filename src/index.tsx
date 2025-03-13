@@ -1,23 +1,28 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import SignInUp from "./UI/SignUp/SignUp";
-import DashBoard from "./UI/WorkSpace/DashBoard";
-import LanguagePage from "./core/pages/LanguagesPage";
-import { BrowserRouter, Routes, Route } from "react-router-dom"; 
-//import 'bootstrap-dark-5/dist/css/bootstrap-dark.min.css';
- 
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/">
-          <Route index element={<SignInUp />} />
-          <Route path="dashboard" element={<DashBoard loginEnabled={true}/>} />
-          <Route path="languages" element={<LanguagePage/>} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
-}
+import React, { lazy, Suspense } from "react";
+import { Spinner } from "react-bootstrap";
+import ReactDOM from "react-dom/client";
 
-ReactDOM.render(<App/>, document.getElementById("root"));
+const App = lazy(() => import("./App"));
+
+const Root = () => (
+  <Suspense
+    fallback={
+      <div className="d-flex justify-content-center align-items-center w-100 h-100">
+        <Spinner
+          animation="border"
+          variant="primary"
+          style={{ width: "3rem", height: "3rem", borderWidth: "0.5rem" }}
+        />
+      </div>
+    }
+  >
+    <App />
+  </Suspense>
+);
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <React.StrictMode>
+    <Root />
+  </React.StrictMode>
+);

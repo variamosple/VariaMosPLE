@@ -28,11 +28,18 @@ html{
   color: var(--dark-color-font) !important;
 }
 
-body{
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
   margin: 0px;
-  padding: 0px;  
-  background-color: var(--dark-color-font);
-} 
+  padding: 0px;
+}
 
 .bodyContent{ 
   background-color: white;
@@ -257,10 +264,8 @@ a:hover {
 }
 
 
-footer{
-  background-color: var(--dark-color-font);
-  color: white;
-  padding-top: 3rem;
+footer .row {
+  padding-bottom: unset !important;
 }
 
 .form-control{

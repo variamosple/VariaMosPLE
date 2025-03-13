@@ -6,16 +6,10 @@ import useWindowDimensions from "../../core/hooks/useWindowDimensions ";
 import DiagramEditor from "../DiagramEditor/DiagramEditor";
 import ElementsPannel from "../DiagramEditor/ElementsPannel";
 import ProjectManagement from "../ProjectManagement/ProjectManagement";
-import { getUserProfile } from "../SignUp/SignUp.utils";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import "./DashBoard.css";
 
-interface Props {
-  loginEnabled?: boolean;
-}
-
-const DashBoard: FC<Props> = ({ loginEnabled }) => {
-  const userProfile = useMemo(() => getUserProfile(), []);
+const DashBoard: FC<unknown> = () => {
   const projectService: ProjectService = useMemo(
     () => new ProjectService(),
     []
@@ -30,14 +24,10 @@ const DashBoard: FC<Props> = ({ loginEnabled }) => {
     projectService.updateProject(project, null);
   }, [projectService]);
 
-  if (loginEnabled && !userProfile) {
-    window.location.href = "/";
-    return null;
-  }
 
   return (
     <Layout>
-      <ProjectManagement projectService={projectService} />
+      <ProjectManagement projectService={projectService}/>
       {/* <NavBar projectService={projectService} /> */}
       <div className="w-100 h-100">
         <ResizablePanes
