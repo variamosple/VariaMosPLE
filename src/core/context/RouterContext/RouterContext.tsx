@@ -22,7 +22,8 @@ export const RouterProvider: FC<{ children?: ReactNode }> = ({ children }) => {
   const navigateTo = useCallback(
     (url: string, options: any) => {
       const basePath = window.location.origin + pathname;
-      if (isAbsoluteUrl(url) && !url.startsWith(basePath)) {
+      const newUrl = url.replace(basePath, "");
+      if (isAbsoluteUrl(url) && (!url.startsWith(basePath) || !newUrl.startsWith("#"))) {
         window.open(url, options?.target || "_self");
       } else {
         navigate(url.replace(basePath, "").replace(/^#/, ""), options);
