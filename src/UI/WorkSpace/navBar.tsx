@@ -1,11 +1,11 @@
-import React, { Component } from "react";
+import { Component } from "react";
 
 import ProjectService from "../../Application/Project/ProjectService";
-import { getUserProfile, logoutUser } from "../SignUp/SignUp.utils";
-import SaveDialog from "../SaveDialog/saveDialog";
-import OpenDialog from "../OpenDialog/openDialog";
 import NewDialog from "../NewDialog/newDialog";
+import OpenDialog from "../OpenDialog/openDialog";
+import SaveDialog from "../SaveDialog/saveDialog";
 
+import { SessionUser } from "@variamosple/variamos-components";
 import "./NavBar.css";
 
 interface Props {
@@ -16,6 +16,7 @@ interface State {
   show_save_modal: boolean;
   show_open_modal: boolean;
   show_new_modal: boolean;
+  user?: SessionUser;
 }
 
 class navBar extends Component<Props, State> {
@@ -33,11 +34,6 @@ class navBar extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const userProfile = getUserProfile();
-
-    if (userProfile) {
-      this.setState({ firstName: userProfile.givenName })
-    }
   }
 
   saveProject() {
@@ -46,6 +42,7 @@ class navBar extends Component<Props, State> {
       this.exportProject(); 
     }else{
       let pf=this.props.projectService.getProjectInformation();
+      debugger;
       if (!pf) {
         this.handleShowSaveModal();
       }else if (!pf.id) {
@@ -108,10 +105,6 @@ class navBar extends Component<Props, State> {
 
   refreshNavBar() {
     this.forceUpdate();
-  }
-
-  handlerLogout() {
-    logoutUser();
   }
 
   render() {

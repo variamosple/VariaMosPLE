@@ -270,7 +270,7 @@ class TreeExplorer extends Component<Props, State> {
     let treeItems = []
     for (var key in folders) {
       treeItems.push(
-        <TreeItem icon="/images/treeView/folder.png" label={key}>
+        <TreeItem key={key} icon="/images/treeView/folder.png" label={key}>
           {folders[key]}
         </TreeItem>
       )
@@ -294,7 +294,7 @@ class TreeExplorer extends Component<Props, State> {
         folders[type] = [];
       }
       folders[type].push(
-        <TreeItem icon="/images/treeView/model.png" label={model.name} onClick={(e) => this.btn_viewDomainModel(null, idProductLine, idModel)} onAuxClick={(e) => this.btn_viewDomainModel( e, idProductLine, idModel ) }>
+        <TreeItem key={model.id} icon="/images/treeView/model.png" label={model.name} onClick={(e) => this.btn_viewDomainModel(null, idProductLine, idModel)} onAuxClick={(e) => this.btn_viewDomainModel( e, idProductLine, idModel ) }>
         </TreeItem>
       )
     }
@@ -365,7 +365,7 @@ class TreeExplorer extends Component<Props, State> {
          icon="/images/treeView/modelInconsistent.png";
       }
       folders[type].push(
-        <TreeItem icon={icon} label={model.name} onClick={(e) => this.btn_viewApplicationModel(
+        <TreeItem key={model.id} icon={icon} label={model.name} onClick={(e) => this.btn_viewApplicationModel(
           null,
           idProductLine,
           idApplication,
@@ -396,7 +396,7 @@ class TreeExplorer extends Component<Props, State> {
         folders[type] = [];
       }
       folders[type].push(
-        <TreeItem icon="/images/treeView/model.png" label={model.name} onClick={(e) => this.btn_viewAdaptationModel(
+        <TreeItem key={model.id} icon="/images/treeView/model.png" label={model.name} onClick={(e) => this.btn_viewAdaptationModel(
           null,
           idProductLine,
           idApplication,
@@ -442,7 +442,7 @@ class TreeExplorer extends Component<Props, State> {
       treeAdaptations.push(this.renderAdaptation(adaptation, idProductLine, idApplication, idAdaptation));
     }
     treeItems.push(
-      <TreeItem icon="/images/treeView/folder.png" label="Adaptations">
+      <TreeItem key="AdaptationTreeItem" icon="/images/treeView/folder.png" label="Adaptations">
         {treeAdaptations}
       </TreeItem>
     )
@@ -472,7 +472,7 @@ class TreeExplorer extends Component<Props, State> {
       treeApplications.push(this.renderApplication(application, idProductLine, idApplication));
     }
     treeItems.push(
-      <TreeItem icon="/images/treeView/folder.png" label="Applications">
+      <TreeItem key="ApplicationsTreeIteem" icon="/images/treeView/folder.png" label="Applications">
         {treeApplications}
       </TreeItem>
     )
