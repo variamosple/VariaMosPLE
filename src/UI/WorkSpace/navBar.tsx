@@ -42,7 +42,6 @@ class navBar extends Component<Props, State> {
       this.exportProject(); 
     }else{
       let pf=this.props.projectService.getProjectInformation();
-      debugger;
       if (!pf) {
         this.handleShowSaveModal();
       }else if (!pf.id) {

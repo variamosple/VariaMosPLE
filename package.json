@@ -45,7 +45,8 @@
     "variamos-ple": "file:"
   },
   "scripts": {
-    "start": "set PORT=3002 && react-scripts start",
+    "start": "react-scripts start",
+    "dev": "set PORT=3002 && react-scripts start",
     "build": "CI=false && react-scripts build",
     "buildwindows": "set CI=false && react-scripts build",
     "test": "react-scripts test",
