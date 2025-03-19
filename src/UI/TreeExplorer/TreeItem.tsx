@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import { Component, ReactNode } from "react";
 import "./TreeItem.css";
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   onClick?:any,
   onDoubleClick?:any,
   onAuxClick?:any
+  children?: ReactNode
 }
 
 interface State {
