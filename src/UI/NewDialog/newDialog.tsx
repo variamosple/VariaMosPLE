@@ -3,14 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import Modal from "react-bootstrap/Modal";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
-import Tab from "react-bootstrap/Tab";
-import Tabs from "react-bootstrap/Tabs";
-import Spinner from "react-bootstrap/Spinner";
-import Container from "react-bootstrap/Container";
-import Row from "react-bootstrap/Row";
-import Col from "react-bootstrap/Col";
-import Dropdown from "react-bootstrap/Dropdown";
-import Editor from "react-simple-code-editor";
 import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
 
 //Import the code to run the query
@@ -22,8 +14,6 @@ import {
 } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
 import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import ProjectService from "../../Application/Project/ProjectService";
-import { set } from "immer/dist/internal";
-import { json } from "react-router-dom";
 
 type NewDialogProps = {
   show: boolean;

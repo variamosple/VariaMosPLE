@@ -960,7 +960,7 @@ class TreeMenu extends Component<Props, State> {
                     onChange={this.selectProductLineTypeChange}
                   >
                     {this.state.plTypes.map((option, index) => (
-                      <option key={index} value={option}>
+                      <option key={option} value={option}>
                         {option}
                       </option>
                     ))}
@@ -980,7 +980,7 @@ class TreeMenu extends Component<Props, State> {
                     onChange={this.selectProductLineDomainChange}
                   >
                     {this.state.plDomains.map((option, index) => (
-                      <option key={index} value={option}>
+                      <option key={option} value={option}>
                         {option}
                       </option>
                     ))}

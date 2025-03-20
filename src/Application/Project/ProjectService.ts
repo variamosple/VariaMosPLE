@@ -1,42 +1,43 @@
 
-import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
-import { Adaptation } from "../../Domain/ProductLineEngineering/Entities/Adaptation";
-import { Application } from "../../Domain/ProductLineEngineering/Entities/Application";
-import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
-import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
-import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
-import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
-import { NewModelEventArg } from "./Events/NewModelEventArg";
-import ProjectManager, {
-  ModelLookupResult,
-} from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
-import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
-import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
-import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
-import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
-import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { CreatedElementEventArg } from "./Events/CreatedElementEventArg";
-import { LanguagesDetailEventArg } from "./Events/LanguagesDetailEventArg";
-import { ProjectEventArg } from "./Events/ProjectEventArg";
-import { NewProductLineEventArg } from "./Events/NewProductLineEventArg";
-import { NewApplicationEventArg } from "./Events/NewApplicationEventArg";
-import { NewAdaptationEventArg } from "./Events/NewAdaptationEventArg";
-import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
-import { Utils } from "../../Addons/Library/Utils/Utils";
-import { Config } from "../../Config";
-import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
-import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
-import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
-import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/RestrictionsUseCases";
-import ProjectUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
-import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectPersistenceUseCases"; 
+import { SessionUser } from "@variamosple/variamos-components";
 import * as alertify from "alertifyjs";
 import { Buffer } from "buffer";
+import { Utils } from "../../Addons/Library/Utils/Utils";
+import { Config } from "../../Config";
+import { Adaptation } from "../../Domain/ProductLineEngineering/Entities/Adaptation";
+import { Application } from "../../Domain/ProductLineEngineering/Entities/Application";
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
+import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
+import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
+import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
+import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
+import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
+import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
+import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
+import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
+import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
+import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
+import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectPersistenceUseCases";
+import {
+  ModelLookupResult,
+  default as ProjectManager,
+  default as ProjectUseCases,
+} from "../../Domain/ProductLineEngineering/UseCases/ProjectUseCases";
 import { runQuery, runQueryFromModel } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
-import QueryResult from "../../UI/Queries/queryResult";
-import mx from "../../UI/MxGEditor/mxgraph";
+import RestrictionsUseCases from "../../Domain/ProductLineEngineering/UseCases/RestrictionsUseCases";
+import { CreatedElementEventArg } from "./Events/CreatedElementEventArg";
+import { LanguagesDetailEventArg } from "./Events/LanguagesDetailEventArg";
+import { NewAdaptationEventArg } from "./Events/NewAdaptationEventArg";
+import { NewApplicationEventArg } from "./Events/NewApplicationEventArg";
+import { NewModelEventArg } from "./Events/NewModelEventArg";
+import { NewProductLineEventArg } from "./Events/NewProductLineEventArg";
+import { ProjectEventArg } from "./Events/ProjectEventArg";
+import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
+import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
+import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
+
 
 export default class ProjectService {
   private graph: any;
@@ -84,15 +85,11 @@ export default class ProjectService {
   private requestSaveConfigurationListener: any = [];
   private requestOpenConfigurationListener: any = [];
   private requestOpenCatalogListener: any = [];
+  private user?: SessionUser;
 
-  // constructor() {
-  //   let me = this;
-  //   let fun = function (data: any) {
-  //     me._languages = data;
-  //   };
-
-  //   this.languageService.getLanguages(fun);
-  // }
+  constructor(user?: SessionUser) {
+    this.user = user;
+  }
 
   public get currentModel(): Model {
     return this._currentModel;
@@ -578,26 +575,13 @@ export default class ProjectService {
   }
 
   getUser() {
-    let userId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-    let databaseUserProfile = sessionStorage.getItem("databaseUserProfile");
-    if (databaseUserProfile) {
-      let data = JSON.parse(databaseUserProfile);
-      userId = data.user.id;
-    }
-    if (userId == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa") {
-      userId = "21cd2d82-1bbc-43e9-898a-d5a45abdeced";
-    }
-    return userId;
+    return this.user?.id;
   }
 
   isGuessUser() {
-    let userId = this.getUser();
-    let guessUserId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-    if (userId == guessUserId) {
-      return true;
-    } else {
-      return false;
-    }
+    const roles = this.user?.roles || []
+
+    return !!roles.find((role) => role.toLowerCase() === "guest");
   }
 
   getLanguagesByUser(): Language[] {

@@ -1,42 +1,33 @@
 import React, { Component } from "react";
 import "./MxGEditor.css";
 
-import mx from "./mxgraph";
 import { mxGraph } from "mxgraph";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
+import mx from "./mxgraph";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
-import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
-import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
-import { isLabeledStatement } from "typescript";
-import SuggestionInput from "../SuggestionInput/SuggestionInput";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { FaGears } from "react-icons/fa6";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
+import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
+import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
 
-import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import Dropdown from 'react-bootstrap/Dropdown';
-import Form from "react-bootstrap/Form";
-import Table from "react-bootstrap/Table";
+import Modal from "react-bootstrap/Modal";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
-import MxProperties from "../MxProperties/MxProperties";
 import * as alertify from "alertifyjs";
-import { RiSave3Fill } from "react-icons/ri";
-import { LuSheet } from "react-icons/lu";
-import { FaBook } from "react-icons/fa";
+import { BsFillClipboardFill, BsFillPencilFill } from "react-icons/bs";
+import { FaBolt, FaBook, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 import { FaRegFolderOpen } from "react-icons/fa6";
-import { ImZoomIn } from "react-icons/im";
-import { ImZoomOut } from "react-icons/im";
-import { BsFillPencilFill } from "react-icons/bs";
-import { FaBolt } from "react-icons/fa";
+import { FcHighPriority, FcLowPriority, FcMediumPriority } from 'react-icons/fc';
+import { ImZoomIn, ImZoomOut } from "react-icons/im";
 import { IoMdAlert } from "react-icons/io";
-import { FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
-import { FaBan } from "react-icons/fa";
-import { BsFillClipboardFill } from "react-icons/bs";
-import { FcHighPriority, FcMediumPriority, FcLowPriority } from 'react-icons/fc';
+import { LuSheet } from "react-icons/lu";
+import { RiSave3Fill } from "react-icons/ri";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reactstrap";
+import MxProperties from "../MxProperties/MxProperties";
 
 interface Props {
   projectService: ProjectService;
@@ -181,9 +172,13 @@ export default class MxGEditor extends Component<Props, State> {
 
   componentDidMount() {
     let me = this;
-    this.graph = new mx.mxGraph(this.graphContainerRef.current);
-    this.props.projectService.setGraph(this.graph);
+    if (!this.graph) {
+      this.graph = new mx.mxGraph(this.graphContainerRef.current);
+      this.props.projectService.setGraph(this.graph);
+    }
+    
     this.LoadGraph(this.graph);
+
     me.props.projectService.addNewProductLineListener(
       this.projectService_addNewProductLineListener
     );
@@ -430,6 +425,11 @@ export default class MxGEditor extends Component<Props, State> {
         let edge = evt.getProperty("edge");
         let source = edge.source;
         let target = edge.target;
+
+        if (!target) {
+          return;
+        }
+
         let name = source.value.getAttribute("label") + "_" + target.value.getAttribute("label");
         let relationshipType = null; //  source.value.tagName + "_" + target.value.tagName;
 
