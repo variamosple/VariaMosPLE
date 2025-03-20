@@ -1,4 +1,4 @@
-class vxConstants {
+export class vxConstants {
     static ALIGN_RIGHT: 'ALIGN_RIGHT';
     static ALIGN_TOP: 'ALIGN_RIGHT';
     static ALIGN_BOTTOM: 'ALIGN_BOTTOM';

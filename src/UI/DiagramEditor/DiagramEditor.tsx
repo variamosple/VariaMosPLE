@@ -1,7 +1,6 @@
 import React, { Component } from "react";
-import ProjectService from "../../Application/Project/ProjectService";
-import MxGEditor from "../MxGEditor/MxGEditor";
-import VxGEditor from "../MxGEditor/MxGEditor";
+import ProjectService from "../../Application/Project/ProjectService";  
+import VxGEditor from "../MxGEditor/VxGEditor";
 
 interface Props {
   projectService: ProjectService;

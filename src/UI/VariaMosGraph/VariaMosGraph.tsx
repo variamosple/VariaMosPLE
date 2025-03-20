@@ -16,6 +16,7 @@ export class VariaMosGraph extends Component<Props, State> {
 
   constructor(props: Props) {
     super(props); 
+    this.model=new Model();
   }
 
   getModel(){
@@ -95,7 +96,8 @@ export class VariaMosGraph extends Component<Props, State> {
 
   getView():VariamosGraphView{
     //no creo que se deba implementar algo
-     return;
+    let view=new VariamosGraphView();
+     return view;
   }
 
   insertVertex(

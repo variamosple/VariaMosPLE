@@ -1,4 +1,4 @@
-class vxEvent {
+export class vxEvent {
     static CELLS_ADDED: 'CELLS_ADDED';
     static CELLS_MOVED: 'CELLS_MOVED';
     static CELLS_RESIZED: 'CELLS_RESIZED';

@@ -27,6 +27,8 @@ import GeometryPoint from "../VariaMosGraph/logic/entities/geometryPoint";
 import vxImage from "../VariaMosGraph/vxImage";
 import vxCellOverlay from "../VariaMosGraph/vxCellOverlay";
 import vxStencil from "../VariaMosGraph/vxStencil";
+import { vxEvent } from "../VariaMosGraph/vxEvent";
+import { vxConstants } from "../VariaMosGraph/vxConstants";
 
 interface Props {
   projectService: ProjectService;
