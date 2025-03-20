@@ -40,7 +40,7 @@ class ModelRenderer extends Component<ModelRendererProps, ModelRendererState> {
         let elements = [];
         const { selectedModel } = this.state;
         if (selectedModel) {
-            const isMxGraphModel = selectedModel.type !== "Bill of materials model";
+            const isMxGraphModel = selectedModel.type !== "Catalog of potential products";
             if (isMxGraphModel) {
                 elements.push(
                     <td>
@@ -74,7 +74,7 @@ class ModelRenderer extends Component<ModelRendererProps, ModelRendererState> {
             <div className="w-100 h-100">
                 <table>
                     <tr>
-                        <td>
+                        <td className="td-treexplorer">
                             <TreeExplorer projectService={this.props.projectService} />
                         </td>
                         {this.renderEditor()}

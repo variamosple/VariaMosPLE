@@ -11,6 +11,7 @@ import {
   InputGroup
 } from "react-bootstrap";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reactstrap";
+import ProductCatalogManager from "./ProductCatalogManager";
 import ProjectService from "../../Application/Project/ProjectService";
 
 /** Devuelve el número del BoM_level o 99 si no está definido */
@@ -391,7 +392,7 @@ export default class BillOfMaterialsEditor extends Component<
             Cerrar
           </Button>
         </div>
-
+        <ProductCatalogManager projectService={this.props.projectService} />
         {this.renderSearchBar()}
         {this.renderProductsList()}
         {this.renderDetailModal()}
