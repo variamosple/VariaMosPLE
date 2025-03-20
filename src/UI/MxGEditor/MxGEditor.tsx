@@ -155,6 +155,10 @@ export default class MxGEditor extends Component<Props, State> {
         if (edge) {
           this.refreshEdgeLabel(edge);
           this.refreshEdgeStyle(edge);
+          let relationship = this.props.projectService.findModelRelationshipById(this.currentModel, edge.value.getAttribute("uid"));
+          if (relationship) {
+            this.createRelationshipOverlays(relationship, edge);
+          }
         }
       }
       this.graph.refresh();
@@ -505,6 +509,10 @@ export default class MxGEditor extends Component<Props, State> {
         }
         me.refreshEdgeLabel(edge);
         me.refreshEdgeStyle(edge);
+        let relationship = me.props.projectService.findModelRelationshipById(me.currentModel, edge.value.getAttribute("uid"));
+        if (relationship) {
+          me.createRelationshipOverlays(relationship, edge);
+        }
       } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         let m = error;
@@ -886,7 +894,11 @@ export default class MxGEditor extends Component<Props, State> {
 
             let vertices = [];
 
+            let shapeDraws = [];
+            let stencils = [];
+
             for (let i = 0; i < orden.length; i++) {
+              console.log(i);
               let element: any = this.props.projectService.findModelElementById(model, orden[i]);
 
               let shape = null;
@@ -909,17 +921,25 @@ export default class MxGEditor extends Component<Props, State> {
                 }
               }
               else if (languageDefinition.concreteSyntax.elements[element.type].draw) {
-                shape = atob(
-                  languageDefinition.concreteSyntax.elements[element.type].draw
-                );
+                if (shapeDraws[element.type]) {
+                  shape = shapeDraws[element.type];
+                } else {
+                  shape = atob(
+                    languageDefinition.concreteSyntax.elements[element.type].draw
+                  );
+                  shapeDraws[element.type] = shape;
+                }
               }
 
               if (shape) {
-                let ne: any = mx.mxUtils.parseXml(shape).documentElement;
-                ne.setAttribute("name", element.type);
-                MxgraphUtils.modifyShape(ne);
-                let stencil = new mx.mxStencil(ne);
-                mx.mxStencilRegistry.addStencil(element.type, stencil);
+                if (!stencils[element.type]) {
+                  let ne: any = mx.mxUtils.parseXml(shape).documentElement;
+                  ne.setAttribute("name", element.type);
+                  MxgraphUtils.modifyShape(ne);
+                  let stencil = new mx.mxStencil(ne);
+                  mx.mxStencilRegistry.addStencil(element.type, stencil);
+                  stencils[element.type] = true;
+                }
               }
 
               let parent = graph.getDefaultParent();
@@ -945,12 +965,12 @@ export default class MxGEditor extends Component<Props, State> {
                 }
               }
               let design = languageDefinition.concreteSyntax.elements[element.type].design;
-              let styleShape="shape=" + element.type + ";whiteSpace=wrap;" + fontcolor + design; 
-              let resizable=languageDefinition.concreteSyntax.elements[element.type].resizable;
+              let styleShape = "shape=" + element.type + ";whiteSpace=wrap;" + fontcolor + design;
+              let resizable = languageDefinition.concreteSyntax.elements[element.type].resizable;
               if ("" + resizable == "false") {
                 styleShape += ";resizable=0;";
               }
-              styleShape+=fontcolor + design; 
+              styleShape += fontcolor + design;
               var vertex = graph.insertVertex(
                 parent,
                 null,
@@ -986,6 +1006,7 @@ export default class MxGEditor extends Component<Props, State> {
                   cell.geometry.points.push(new mx.mxPoint(p.x, p.y));
                 }
               }
+              this.createRelationshipOverlays(relationship, cell);
             }
           }
         } finally {
@@ -1004,6 +1025,49 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   //sacar esto en una libreria
+
+  createRelationshipOverlays(relationship: any, cell: any) {
+    this.graph.removeCellOverlays(cell);
+    this.createRelationshipSelectionOverlay(relationship, cell);
+  }
+
+  createRelationshipSelectionOverlay(relationship: any, cell: any) {
+    let me = this;
+    for (let i = 0; i < relationship.properties.length; i++) {
+      const property = relationship.properties[i];
+      if (property.name == "Selected") {
+        let icon = 'images/models/' + property.value + '.png'
+        let overlayFrame = new mx.mxCellOverlay(new mx.mxImage(icon, 24, 24), 'Overlay tooltip');
+        overlayFrame.align = mx.mxConstants.ALIGN_RIGHT;
+        overlayFrame.verticalAlign = mx.mxConstants.ALIGN_TOP;
+        overlayFrame.offset = new mx.mxPoint(0, 0);
+
+        overlayFrame.addListener(mx.mxEvent.CLICK, function (sender, evt) {
+          try {
+            evt.consume();
+            let parentCell = evt.properties.cell;
+            let uid = parentCell.value.attributes.uid.value;
+            let relationship = me.props.projectService.findModelRelationshipById(me.currentModel, uid);
+            for (let i = 0; i < relationship.properties.length; i++) {
+              const property = relationship.properties[i];
+              if (property.name == "Selected") {
+                switch (property.value) {
+                  case "Selected": property.value = "Unselected"; break;
+                  case "Unselected": property.value = "Undefined"; break;
+                  case "Undefined": property.value = "Selected"; break;
+                  default: property.value = "Unselected"; break;
+                }
+              }
+            }
+            me.createRelationshipOverlays(relationship, parentCell);
+          } catch (error) { }
+        });
+
+        this.graph.addCellOverlay(cell, overlayFrame);
+        this.graph.refresh();
+      }
+    }
+  }
 
 
   createOverlays(element: any, cell: any) {

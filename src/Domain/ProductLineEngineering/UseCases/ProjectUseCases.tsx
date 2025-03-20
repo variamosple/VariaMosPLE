@@ -3,10 +3,12 @@ import { Application } from "../Entities/Application";
 import { Model } from "../Entities/Model";
 import { ProductLine } from "../Entities/ProductLine";
 import { Project } from "../Entities/Project";
+import { ProjectInformation } from "../Entities/ProjectInformation";
 import { Relationship } from "../Entities/Relationship";
 import { Point } from "../Entities/Point";
 import { Property } from "../Entities/Property";
 import { Element } from "../Entities/Element";
+import ProjectStorage from "./ProjectStorage";
 
 enum ModelType {
   Domain = "Domain",
@@ -24,8 +26,11 @@ export type ModelLookupResult = {
   adapIdx?: number;
 };
 export default class ProjectUseCases {
-  // constructor() {
-  // }
+  projectStorage: ProjectStorage;
+
+  constructor() {
+    this.projectStorage  = new ProjectStorage();
+  }
 
   createProject(projectName: string): Project {
     let project = new Project(ProjectUseCases.generateId(), projectName);
@@ -552,17 +557,26 @@ export default class ProjectUseCases {
     itemDelete: string | number
   ) {}
 
-  saveProject(project: Project): void {
-    // Save data to sessionStorage
-    sessionStorage.setItem("Project", JSON.stringify(project));
+  saveProject(projectInformation: ProjectInformation): void {
+    this.projectStorage.saveProject(projectInformation); 
   }
 
-  deleteProject() {
-    // Remove saved data from sessionStorage
-    sessionStorage.removeItem("Project");
+  async loadProject(): Promise<ProjectInformation> { 
+    try {
+      let projectInformation = await this.projectStorage.openProject(1);
+      if(projectInformation){
+        if(projectInformation.project){
+          return projectInformation;
+        }
+      }
+      return null;
+    } catch (error) {
+      return null;
+    } 
+  }
 
-    // Remove all saved data from sessionStorage
-    sessionStorage.clear();
+  deleteProject() { 
+    this.projectStorage.clearProjects(); 
   }
 
   static generateId(): string {

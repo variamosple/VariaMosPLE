@@ -86,8 +86,9 @@ export default function LanguageDetail({
     setLanguageType(currentType);
   };
 
-  const handleSaveLanguage = () => {
+  const handleSaveLanguage = async() => {
     const service = new ProjectService();
+    await service.initialize();
     const currentLanguage: Language = {
       ...(isCreatingLanguage ? {} : { id: language?.id }),
       name: languageName,

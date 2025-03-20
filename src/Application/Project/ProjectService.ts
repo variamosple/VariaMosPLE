@@ -43,8 +43,7 @@ export default class ProjectService {
   private projectManager: ProjectManager = new ProjectManager();
   private languageUseCases: LanguageUseCases = new LanguageUseCases();
   private projectPersistenceUseCases: ProjectPersistenceUseCases = new ProjectPersistenceUseCases();
-  private restrictionsUseCases: RestrictionsUseCases =
-    new RestrictionsUseCases();
+  private restrictionsUseCases: RestrictionsUseCases = new RestrictionsUseCases();
 
   private utils: Utils = new Utils();
 
@@ -57,8 +56,8 @@ export default class ProjectService {
   private _environment: string = Config.NODE_ENV;
   private _languages: any = this.getLanguagesByUser();
   private _externalFunctions: ExternalFuntion[] = [];
-  private _project: Project = this.createProject("");
   private _projectInformation: ProjectInformation;
+  private _project: Project = null;
   private treeItemSelected: string = "";
   private treeIdItemSelected: string = "";
   private productLineSelected: number = 0;
@@ -87,6 +86,12 @@ export default class ProjectService {
 
   constructor(user?: SessionUser) {
     this.user = user;
+    let me = this;
+  }
+
+  public async initialize(){
+    let me = this;
+    this._project = await this.loadOrCreateProject();
   }
 
   public get currentLanguage(): Language {
@@ -720,9 +725,7 @@ export default class ProjectService {
   }
 
   createProject(projectName: string): Project {
-    let project = this.projectManager.createProject(projectName);
-    project = this.loadProject(project);
-
+    let project = this.projectManager.createProject(projectName); 
     return project;
   }
 
@@ -733,7 +736,7 @@ export default class ProjectService {
     console.log(file);
     if (file) {
       this._project = Object.assign(this._project, JSON.parse(file));
-      this._projectInformation = new ProjectInformation(null, this._project.name, null, false, null, null, null, new Date());
+      this._projectInformation = new ProjectInformation(null, this._project.name, this._project, false, null, null, null, new Date());
     }
     this.raiseEventUpdateProject(this._project, null);
   }
@@ -745,14 +748,13 @@ export default class ProjectService {
     //By default, only a single product line is supported
   }
 
-  loadProject(project: Project): Project {
-    let projectSessionStorage = sessionStorage.getItem("Project");
-    if (projectSessionStorage) {
-      project = Object.assign(project, JSON.parse(projectSessionStorage));
+  async loadOrCreateProject(): Promise<Project>  {
+    this._projectInformation= await this.projectManager.loadProject();
+    if (this._projectInformation) {
+      return this._projectInformation.project; 
     }
-
-    return project;
-  }
+    return new Project (this.generateId(),   "My project");
+  } 
 
   openProjectInServer(projectId: string, template: boolean): void {
     let me = this;
@@ -896,7 +898,10 @@ export default class ProjectService {
   }
 
   saveProject(): void {
-    this.projectManager.saveProject(this._project);
+    if (!this._projectInformation) {
+      this._projectInformation=new ProjectInformation(null,this.project.name, this.project,false,null,null,null,new Date());
+    }
+    this.projectManager.saveProject(this._projectInformation);
   }
 
   deleteProject(): void {
