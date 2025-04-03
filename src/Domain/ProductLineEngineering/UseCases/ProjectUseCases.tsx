@@ -277,6 +277,24 @@ export default class ProjectUseCases {
     return adaptation;
   }
 
+  createScopeModel(
+    project: Project,
+    languageType: string,
+    productLine: number,
+    name: string
+  ): Model {
+    let model: Model = new Model(
+      ProjectUseCases.generateId(),
+      name,
+      languageType
+    );
+    project.productLines[productLine].scope?.models.push(model);
+
+    //Ejecutar el consumo de mxGraph.
+
+    return model;
+  }
+
   createDomainEngineeringModel(
     project: Project,
     languageType: string,

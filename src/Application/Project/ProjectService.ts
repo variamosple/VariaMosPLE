@@ -303,18 +303,10 @@ export default class ProjectService {
   
     return { elements: enrichedElements, relationships: structure.relationships };
   }
-  
-  
-  
-  
-  
-  
-  
-  
-
-  modelScopeSelected(idPl: number, idDomainModel: number) {
+   
+  modelScopeSelected(idPl: number, idScopeModel: number) {
     let modelSelected =
-      this._project.productLines[idPl].scope?.models[idDomainModel];
+      this._project.productLines[idPl].scope?.models[idScopeModel];
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
     this.loadExternalFunctions(modelSelected.type);
@@ -491,6 +483,7 @@ export default class ProjectService {
       ].id;
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
+
   updateLpSelected(idPl: number) {
     this.productLineSelected = idPl;
     this.treeItemSelected = "productLine";
@@ -498,11 +491,18 @@ export default class ProjectService {
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
 
+  updateScopeSelected() {
+    this.treeItemSelected = "scope";
+    this.raiseEventUpdateSelected(this.treeItemSelected);
+  }
+
   updateDomainEngSelected() {
     this.treeItemSelected = "domainEngineering";
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
-  updateScopeSelected(scopeModelId?: string) {
+
+
+  updateScopeSelectedOri(scopeModelId?: string) {
     if (!scopeModelId) {
       const selectedProductLine = this.project.productLines.find(
         (pl) => pl.id === this.treeIdItemSelected
@@ -1109,8 +1109,20 @@ export default class ProjectService {
       name
     );
   }
-
   createScopeModel(
+    project: Project,
+    languageType: string,
+    name: string
+  ) {
+    return this.projectManager.createScopeModel(
+      project,
+      languageType,
+      this.productLineSelected,
+      name
+    );
+  }
+
+  createScopeModelOld(
     project: Project,
     languageType: string,
     productLineIndex: number,

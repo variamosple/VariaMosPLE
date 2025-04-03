@@ -28,6 +28,7 @@ interface State {
   selectedFunction: number,
   optionAllowModelEnable: boolean,
   optionScopeEnable: boolean,
+  optionAllowModelScope: boolean,
   optionAllowModelDomain: boolean,
   optionAllowModelApplication: boolean,
   optionAllowModelAdaptation: boolean,
@@ -66,6 +67,7 @@ class TreeMenu extends Component<Props, State> {
     selectedFunction: -1,
     optionAllowModelEnable: false,
     optionScopeEnable: false,
+    optionAllowModelScope: false,
     optionAllowModelDomain: false,
     optionAllowModelApplication: false,
     optionAllowModelAdaptation: false,
@@ -229,16 +231,16 @@ class TreeMenu extends Component<Props, State> {
     this.setState({ showConfigurationManagementModal: false })
   }
 
-  showScopeManagementModal(){
+  showScopeManagementModal() {
     this.hideContextMenu();
     this.setState({ showScopeManagementModal: true })
   }
 
-  hideScopeManagementModal(){
+  hideScopeManagementModal() {
     this.setState({ showScopeManagementModal: false })
   }
 
-  
+
 
   saveProperties() {
     let me = this;
@@ -317,24 +319,14 @@ class TreeMenu extends Component<Props, State> {
           optionAllowRename: true,
           optionAllowDelete: true,
         });
+      }, 
+      scope: () => {
+        me.setState({
+          optionAllowModelEnable: true,
+          optionAllowModelScope: true,
+          newSelected: "SCOPE",
+        });
       },
-      scopeSPL: () => {
-        const selectedItem = this.props.projectService.getSelectedScope();
-        this.setState({optionScopeEnable:true});
-        if (!selectedItem) {
-            console.warn("No valid scope selected");
-            return;
-        }
-        
-        if (this.state.selectedScopeId !== selectedItem.id) {
-            console.log("Selected Scope Item:", selectedItem);
-            this.setState({
-                selectedScopeId: selectedItem.id,
-                optionScopeEnable: true,
-                newSelected: "SCOPE",
-            });
-        }
-    },
       domainEngineering: () => {
         me.setState({
           optionAllowModelEnable: true,
@@ -389,6 +381,7 @@ class TreeMenu extends Component<Props, State> {
     this.setState({
       optionAllowModelEnable: false,
       optionScopeEnable: false,
+      optionAllowModelScope:false,
       optionAllowModelDomain: false,
       optionAllowModelApplication: false,
       optionAllowModelAdaptation: false,
@@ -518,17 +511,17 @@ class TreeMenu extends Component<Props, State> {
   }
 
   projectService_requestSaveConfigurationListener(e: any) {
-    let me=this;
+    let me = this;
     this.showSaveConfigurationModal();
   }
 
   projectService_requestOpenConfigurationListener(e: any) {
-    let me=this;
+    let me = this;
     this.showConfigurationManagementModal();
   }
 
   projectService_requestOpenScopeManagementListener(e: any) {
-    let me=this;
+    let me = this;
     this.showScopeManagementModal();
   }
 
@@ -645,6 +638,9 @@ class TreeMenu extends Component<Props, State> {
     let me = this;
     let language: Language = me.state.newModelLanguage;
     const add: any = {
+      SCOPE: function () {
+        me.addNewScopeModel(language.name, name);
+      },
       DOMAIN: function () {
         me.addNewDomainEModel(language.name, name);
       },
@@ -662,6 +658,20 @@ class TreeMenu extends Component<Props, State> {
     };
 
     add[language.type]();
+  }
+
+  addNewScopeModel(languageName: string, name: string) {
+    let model =
+      this.props.projectService.createScopeModel(
+        this.props.projectService.project,
+        languageName,
+        name
+      );
+
+    this.props.projectService.raiseEventScopeModel(
+      model
+    );
+    this.props.projectService.saveProject();
   }
 
   addNewDomainEModel(languageName: string, name: string) {
@@ -712,11 +722,11 @@ class TreeMenu extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
-  configurationManagement_onConfigurationSelected(e){
+  configurationManagement_onConfigurationSelected(e) {
     this.hideConfigurationManagementModal();
   }
 
-  scopeManagement_onScopeSelected(e){
+  scopeManagement_onScopeSelected(e) {
     this.hideScopeManagementModal();
   }
 
@@ -737,7 +747,7 @@ class TreeMenu extends Component<Props, State> {
     console.log("Forcing Scope Management with ID:", selectedScopeModel.id);
 
     // Actualiza el Tree ID seleccionado y lanza el evento
-    this.props.projectService.updateScopeSelected(selectedScopeModel.id);
+    this.props.projectService.updateScopeSelectedOri(selectedScopeModel.id);
 
     // Llama a la lógica necesaria para manejar la configuración
     this.props.projectService.getAllConfigurations(
@@ -764,12 +774,12 @@ class TreeMenu extends Component<Props, State> {
       console.log("Rendering Scope management button");
       items.push(
         <Dropdown.Item
-                href="#"
-                onClick={this.showScopeManagementModal.bind(this)}
-                id="SCOPE"
-            >
-                Scope management
-            </Dropdown.Item>
+          href="#"
+          onClick={this.showScopeManagementModal.bind(this)}
+          id="SCOPE"
+        >
+          Scope management
+        </Dropdown.Item>
       );
     }
     if (this.state.optionAllowApplication) {
@@ -1032,8 +1042,8 @@ class TreeMenu extends Component<Props, State> {
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
-              <ConfigurationManagement reload={this.state.showConfigurationManagementModal} projectService={this.props.projectService} className="ConfigurationManagement" onConfigurationSelected={this.configurationManagement_onConfigurationSelected.bind(this)} />
-          </Modal.Body> 
+            <ConfigurationManagement reload={this.state.showConfigurationManagementModal} projectService={this.props.projectService} className="ConfigurationManagement" onConfigurationSelected={this.configurationManagement_onConfigurationSelected.bind(this)} />
+          </Modal.Body>
         </Modal>
 
         <Modal id="saveScopeModal" show={this.state.showScopeManagementModal} onHide={this.hideScopeManagementModal.bind(this)} size="lg" centered>
@@ -1043,8 +1053,8 @@ class TreeMenu extends Component<Props, State> {
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
-              <ConfigurationManagement reload={this.state.showScopeManagementModal} projectService={this.props.projectService} className="ConfigurationManagement" onConfigurationSelected={this.scopeManagement_onScopeSelected.bind(this)} />
-          </Modal.Body> 
+            <ConfigurationManagement reload={this.state.showScopeManagementModal} projectService={this.props.projectService} className="ConfigurationManagement" onConfigurationSelected={this.scopeManagement_onScopeSelected.bind(this)} />
+          </Modal.Body>
         </Modal>
 
         <ul className="dropdown-menu" id="context-menu">

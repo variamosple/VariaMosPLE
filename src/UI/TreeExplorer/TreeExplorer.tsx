@@ -71,6 +71,19 @@ class TreeExplorer extends Component<Props, State> {
     });
   }
 
+  btn_viewScopeModel(e: any, idPl: number, idScopeModel: number) {
+    console.log("treeExplorer btn_viewScopeModel")
+    this.props.projectService.modelScopeSelected(idPl, idScopeModel);
+    this.props.projectService.saveProject();
+    if (e) {
+      this.setState({
+        showContextMenu: true,
+        contextMenuX: e.event.clientX,
+        contextMenuY: e.event.clientY
+      })
+    }
+  }
+
   btn_viewDomainModel(e: any, idPl: number, idDomainModel: number) {
     console.log("treeExplorer btn_viewDomainModel")
     this.props.projectService.modelDomainSelected(idPl, idDomainModel);
@@ -148,12 +161,12 @@ class TreeExplorer extends Component<Props, State> {
 
   updateLpSelected(e: any, idPl: number) {
     this.props.projectService.updateLpSelected(idPl);
-    if (e.target.props.dataKey === "domainEngineering") {
-      this.props.projectService.updateDomainEngSelected();
-    } 
-    else if (e.target.props.dataKey === "scopeSPL") {
+    if (e.target.props.dataKey === "scope") {
       this.props.projectService.updateScopeSelected();
     }
+    else if (e.target.props.dataKey === "domainEngineering") {
+      this.props.projectService.updateDomainEngSelected();
+    } 
     else if (e.target.props.dataKey === "applicationEngineering") {
       this.props.projectService.updateAppEngSelected();
     }
@@ -282,6 +295,25 @@ class TreeExplorer extends Component<Props, State> {
     );
   } 
 
+  renderScopeModels(models: Model[], idProductLine: number) {
+    let folders = [];
+    for (let idModel = 0; idModel < models.length; idModel++) {
+      const model: Model = models[idModel];
+      if (!model.type) {
+        model.type = model.name;
+      }
+      let type = "" + model.type;
+      if (!folders[type]) {
+        folders[type] = [];
+      }
+      folders[type].push(
+        <TreeItem key={model.id} icon="/images/treeView/model.png" label={model.name} onClick={(e) => this.btn_viewScopeModel(null, idProductLine, idModel)} onAuxClick={(e) => this.btn_viewScopeModel( e, idProductLine, idModel ) }>
+        </TreeItem>
+      )
+    }
+    return this.renderModelFolders(folders);
+  }
+
   renderDomainModels(models: Model[], idProductLine: number) {
     let folders = [];
     for (let idModel = 0; idModel < models.length; idModel++) {
@@ -301,7 +333,7 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderModelFolders(folders);
   }
 
-  renderScope(idProductLine: number) {
+  renderScope2(idProductLine: number) {
     return (
       <TreeItem
         icon="/images/treeView/scope.png"
@@ -316,36 +348,36 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   autoLoadScopeModel(idProductLine: number) {
-    console.log("Se hizo doble clic en el Scope para idProductLine:", idProductLine);
+  //   console.log("Se hizo doble clic en el Scope para idProductLine:", idProductLine);
 
-    let scope = this.props.projectService.project.productLines[idProductLine].scope;
+  //   let scope = this.props.projectService.project.productLines[idProductLine].scope;
 
-    if (!scope) {
-      console.log("Scope no existe, creándolo...");
-      const newScope = new ScopeSPL();
-      this.props.projectService.project.productLines[idProductLine].scope= newScope;
-  }
+  //   if (!scope) {
+  //     console.log("Scope no existe, creándolo...");
+  //     const newScope = new ScopeSPL();
+  //     this.props.projectService.project.productLines[idProductLine].scope= newScope;
+  // }
 
-    if (!scope.models.length || !scope) {
-        // Crear automáticamente un modelo de tipo ConceptualMap si no hay modelos en el Scope
-        const newConceptualMap = this.props.projectService.createScopeModel(
-            this.props.projectService.project,
-            "Bill of materials model",
-            idProductLine,
-            "Bill of materials model"
-        );
-        this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(newConceptualMap));
-        console.log("Modelo ConceptualMap creado y seleccionado automáticamente:", newConceptualMap);
-    } else {
-        // Intentar seleccionar un modelo existente de tipo ConceptualMap
-        const conceptualMap = scope.models.find(model => model.type === "Bill of materials model");
-        if (conceptualMap) {
-            this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(conceptualMap));
-        } else {
-            alert("No hay un modelo ConceptualMap en Scope.");
-        }
-    }
-    this.setState({ showScopeModal: true, currentProductLineIndex: idProductLine });
+  //   if (!scope.models.length || !scope) {
+  //       // Crear automáticamente un modelo de tipo ConceptualMap si no hay modelos en el Scope
+  //       const newConceptualMap = this.props.projectService.createScopeModel(
+  //           this.props.projectService.project,
+  //           "Bill of materials model",
+  //           idProductLine,
+  //           "Bill of materials model"
+  //       );
+  //       this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(newConceptualMap));
+  //       console.log("Modelo ConceptualMap creado y seleccionado automáticamente:", newConceptualMap);
+  //   } else {
+  //       // Intentar seleccionar un modelo existente de tipo ConceptualMap
+  //       const conceptualMap = scope.models.find(model => model.type === "Bill of materials model");
+  //       if (conceptualMap) {
+  //           this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(conceptualMap));
+  //       } else {
+  //           alert("No hay un modelo ConceptualMap en Scope.");
+  //       }
+  //   }
+  //   this.setState({ showScopeModal: true, currentProductLineIndex: idProductLine });
 }
 
 
@@ -415,12 +447,17 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderModelFolders(folders);
   }
 
+  renderScope(productLine: ProductLine, idProductLine: number) {
+    return this.renderScopeModels(productLine.scope.models, idProductLine)
+  }
+
   renderDomainEngineering(productLine: ProductLine, idProductLine: number) {
     return this.renderDomainModels(productLine.domainEngineering.models, idProductLine)
   }
-  renderScopeSPL(productLine: ProductLine, idProductLine: number) {
-    return this.renderScope(idProductLine)
-  }
+
+  // renderScopeSPL(productLine: ProductLine, idProductLine: number) {
+  //   return this.renderScope(idProductLine)
+  // }
  
   renderAdaptation(adaptation: Adaptation, idProductLine: number, idApplication: number, idAdaptation: number) {
     let treeItems = [];
@@ -491,7 +528,16 @@ class TreeExplorer extends Component<Props, State> {
                 this.doubleClickLpSelected(e, idProductLine);
             }}
         >
-            {this.renderScopeSPL(productLine, idProductLine)}
+            <TreeItem
+                icon="/images/treeView/scope.png"
+                label="Scope"
+                dataKey="scope"
+                onAuxClick={(e) => {
+                    this.updateLpSelected(e, idProductLine);
+                }}
+            >
+                {this.renderScope(productLine, idProductLine)}
+            </TreeItem>
             <TreeItem
                 icon="/images/treeView/domainEngineering.png"
                 label="Domain engineering"
@@ -621,7 +667,7 @@ class TreeExplorer extends Component<Props, State> {
             </Tab.Content>
           </Tab.Container>
         </div>
-        {this.state.showScopeModal && (
+        {/* {this.state.showScopeModal && (
           <ScopeModal
           show={this.state.showScopeModal}
           initialScope={
@@ -646,7 +692,7 @@ class TreeExplorer extends Component<Props, State> {
           }}
           
         />  
-        )}
+        )} */}
       </div>
       
     );
