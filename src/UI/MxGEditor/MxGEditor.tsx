@@ -3116,6 +3116,33 @@ renderRequirementsReport() {
     }
   };
 
+
+//   NEW COLABORATIVE FUNCTIONALITY
+
+  makeProjectCollaborative() {
+    try {
+      const project = this.props.projectService.project; // Obtener el proyecto actual
+      if (!project) {
+        alert("No hay un proyecto seleccionado.");
+        return;
+      }
+
+      const projectId = project.id; // ID del proyecto
+      const projectName = project.name; // Nombre del proyecto
+
+      // Llamar al servicio de colaboración
+      const workspaceID = this.props.projectService.makeProjectCollaborative(projectId);
+
+      console.log(`Proyecto "${projectName}" (ID: ${projectId}) ahora es colaborativo con workspaceID: ${workspaceID}`);
+      alert(`El proyecto "${projectName}" ahora es colaborativo.`);
+    } catch (error) {
+      console.error("Error al hacer el proyecto colaborativo:", error);
+      alert("Ocurrió un error al intentar hacer el proyecto colaborativo.");
+    }
+  }
+
+// END NEW COLABORATIVE FUNCTIONALITY
+
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">

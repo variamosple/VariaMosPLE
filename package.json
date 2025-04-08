@@ -15,6 +15,7 @@
   "private": true,
   "dependencies": {
     "@variamosple/variamos-components": "^0.0.23",
+    "@y/websocket-server": "^0.1.1",
     "alertifyjs": "^1.13.1",
     "axios": "^0.21.1",
     "bootstrap": "^5.3.3",
@@ -42,7 +43,10 @@
     "resizable-panes-react": "^6.0.26",
     "stream-browserify": "^3.0.0",
     "typescript": "^4.2.3",
-    "variamos-ple": "file:"
+    "uuid": "^11.1.0",
+    "variamos-ple": "file:",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.24"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -37,6 +37,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
+import { makeProjectCollaborative } from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -232,24 +233,24 @@ export default class ProjectService {
   getSelectedScope() {
     const selectedId = this.getTreeIdItemSelected();
     console.log("Selected ID:", selectedId);
-  
+
     if (!selectedId) {
       console.warn("No selected ID found");
       return null;
     }
-  
+
     for (const productLine of this.project.productLines) {
       const scopeModels = productLine?.scope?.models || [];
       console.log("Checking scope models:", scopeModels);
-  
+
       const foundModel = scopeModels.find((model) => model.id === selectedId);
-  
+
       if (foundModel) {
         console.log("Found model:", foundModel);
         return foundModel; // Devuelve el modelo encontrado
       }
     }
-  
+
     console.warn("No scope model matches the selected ID");
     return null;
   }
@@ -265,14 +266,14 @@ export default class ProjectService {
     }
     return null;
   }
-  
+
   getStructureAndRelationships() {
     const selectedScope = this.getSelectedScope();
     if (!selectedScope) {
       console.warn("No scope selected. Cannot fetch structure.");
       return { elements: [], relationships: [] };
     }
-  
+
     const structure = selectedScope?.elements || [];
     const relationships = selectedScope?.relationships || [];
     return { elements: structure, relationships };
@@ -281,42 +282,42 @@ export default class ProjectService {
   getFinalMaterials(structure, configurations) {
     console.log("Structure:", structure);
     console.log("Configurations:", configurations);
-  
+
     if (!structure || !structure.elements || !structure.relationships) {
       console.error("Structure is invalid or incomplete");
       return { elements: [], relationships: [] };
     }
-  
+
     // Asocia configuraciones con elementos
     const enrichedElements = structure.elements.map((element) => {
       // Buscar todas las configuraciones relacionadas con este elemento
       const matchingFeatures = configurations.filter(
         (feature) => feature.id === element.id
       );
-  
+
       // Combinar las propiedades de las configuraciones relacionadas
       const combinedProperties = matchingFeatures.flatMap(
         (feature) => feature.properties || []
       );
-  
+
       return {
         ...element,
         properties: combinedProperties,
       };
     });
-  
+
     console.log("Final enriched elements:", enrichedElements);
-  
+
     return { elements: enrichedElements, relationships: structure.relationships };
   }
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
 
   modelScopeSelected(idPl: number, idDomainModel: number) {
     let modelSelected =
@@ -516,7 +517,7 @@ export default class ProjectService {
     //   const selectedProductLine = this.project.productLines.find(
     //     (pl) => pl.id === this.treeIdItemSelected
     //   );
-  
+
     //   if (selectedProductLine?.scope?.models?.length) {
     //     scopeModelId = selectedProductLine.scope.models[0].id;
     //   } else {
@@ -524,12 +525,12 @@ export default class ProjectService {
     //     return;
     //   }
     // }
-  
+
     // this.treeItemSelected = "scopeSPL";
     // this.treeIdItemSelected = scopeModelId;
     // this.raiseEventUpdateSelected(this.treeItemSelected);
   }
-  
+
 
   updateAppEngSelected() {
     this.treeItemSelected = "applicationEngineering";
@@ -1129,23 +1130,23 @@ export default class ProjectService {
     if (!project.productLines[productLineIndex]) {
       throw new Error("La línea de producto especificada no existe.");
     }
-  
+
     // Crear el nuevo modelo
     const newModel = new Model(ProjectUseCases.generateId(), name, languageType);
-  
+
     // Agregar el modelo al Scope de la línea de producto correspondiente
     const scope = project.productLines[productLineIndex].scope;
     scope.models.push(newModel);
-  
+
     // Asegurar que el lenguaje esté permitido en el Scope
     if (!scope.languagesAllowed.includes(languageType)) {
       scope.languagesAllowed.push(languageType);
     }
-  
+
     return newModel;
   }
-  
-  
+
+
   addNewDomainEngineeringModelListener(listener: any) {
     this.newDomainEngineeringModelListeners.push(listener);
   }
@@ -1688,15 +1689,15 @@ export default class ProjectService {
       if (!currentLanguage) {
         throw new Error("No modeling language selected");
       }
-  
+
       // Parsear el abstractSyntax del lenguaje actual
       const abstractSyntax = JSON.parse(currentLanguage.abstractSyntax);
-  
+
       // Verificar que existen elementos en la sintaxis abstracta
       if (!abstractSyntax || !abstractSyntax.elements) {
         throw new Error("Invalid abstract syntax structure for the selected language");
       }
-  
+
       // Extraer propiedades de cada elemento
       const catalogData: Array<{ Property: string; Value: string }> = [];
       for (const elementName in abstractSyntax.elements) {
@@ -1710,15 +1711,15 @@ export default class ProjectService {
           }
         }
       }
-  
+
       return catalogData;
     } catch (error) {
       console.error("Error retrieving catalog data:", error);
       return [];
     }
   }
-  
-  
+
+
 
   checkConsistency(model: Model) {
     this.resetConfiguration(model);
@@ -1806,4 +1807,15 @@ export default class ProjectService {
     });
     this.raiseEventUpdateProject(this._project, this.getTreeIdItemSelected());
   }
+
+// COLLABORATIVE FUNCTIONS START***********
+  makeProjectCollaborative = (projectId: string) => {
+    return makeProjectCollaborative(projectId);
+  }
+
+
+
+
+
+
 }
