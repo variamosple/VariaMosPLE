@@ -37,7 +37,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { makeProjectCollaborative } from "../../DataProvider/Services/collaborationService";
+import { makeProjectCollaborative, setupProjectSync , getAllProjectDocs} from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -1812,6 +1812,14 @@ export default class ProjectService {
   makeProjectCollaborative = (projectId: string) => {
     return makeProjectCollaborative(projectId);
   }
+
+    setupProjectSync = (projectId: string) => {
+        return setupProjectSync(projectId);
+    }
+
+    getAllProjectDocs = () => {
+        return getAllProjectDocs();
+    }
 
 
 

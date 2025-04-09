@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component} from "react";
 import "./MxGEditor.css";
 
 import { mxGraph } from "mxgraph";
@@ -26,7 +26,7 @@ import { ImZoomIn, ImZoomOut } from "react-icons/im";
 import { IoMdAlert } from "react-icons/io";
 import { LuSheet } from "react-icons/lu";
 import { RiSave3Fill } from "react-icons/ri";
-import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reactstrap";
+import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGroup } from "reactstrap";
 import MxProperties from "../MxProperties/MxProperties";
 
 interface Props {
@@ -51,6 +51,9 @@ interface State {
   messageModalTitle: string;
   openAccordion: string[];
   showRequirementsReportModal: boolean;
+//   Collab
+    showSyncModal: boolean;
+    workspaceIDInput: string;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -82,6 +85,11 @@ export default class MxGEditor extends Component<Props, State> {
       allScopeConfigurations: [] as Array<Record<string, any>>,
       openAccordion: [],
       showRequirementsReportModal: false,
+// Collab
+      showSyncModal: false,
+      workspaceIDInput: "",
+
+
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
     this.getRequirementsReport = this.getRequirementsReport.bind(this);
@@ -102,6 +110,11 @@ export default class MxGEditor extends Component<Props, State> {
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.savePropertiesModal = this.savePropertiesModal.bind(this);
     this.hideMessageModal = this.hideMessageModal.bind(this);
+
+    // Collabcondition
+    this.handleSyncModalToggle = this.handleSyncModalToggle.bind(this);
+    this.handleWorkspaceIDChange = this.handleWorkspaceIDChange.bind(this);
+    this.handleSyncWorkspace = this.handleSyncWorkspace.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -3119,6 +3132,39 @@ renderRequirementsReport() {
 
 //   NEW COLABORATIVE FUNCTIONALITY
 
+  handleSyncModalToggle = () => {
+    this.setState({ showSyncModal: !this.state.showSyncModal });
+  }
+
+  handleWorkspaceIDChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ workspaceIDInput: event.target.value });
+  }
+
+  handleSyncWorkspace() {
+const workspaceID  = this.state.workspaceIDInput.trim();
+if (!workspaceID) {
+  alert("Ingresar un ID de espacio de trabajo válido.");
+  return;
+}
+
+try {
+
+    const wsProvider = this.props.projectService.setupProjectSync(workspaceID);
+    console.log("Espacio de trabajo sincronizado----------------------------------:", wsProvider);
+    if (wsProvider) {
+        alert(`Espacio de trabajo ${workspaceID} sincronizado correctamente.`);
+    }else{
+        alert(`No se pudo sincronizar el espacio de trabajo ${workspaceID}.`);
+    }
+} catch (error) {
+    console.log("Error al sincronizar el espacio de trabajo:", error);
+    alert("Ocurrió un error al sincronizar el espacio de trabajo.");
+}
+
+    this.handleSyncModalToggle(); 
+
+  }
+
   makeProjectCollaborative() {
     try {
       const project = this.props.projectService.project; // Obtener el proyecto actual
@@ -3150,10 +3196,28 @@ renderRequirementsReport() {
       const projectName = project.name; // Nombre del proyecto
 
       console.log(`Proyecto "${projectName}" (ID: ${projectId})`);
-      alert(`El proyecto "${projectName}" Tiene id ${projectId}.`);
+      alert(`El proyecto "${projectName}" Tiene id ${projectId}`);
     } catch (error) {
       console.error("Error al hacer el proyecto colaborativo:", error);
       alert("Ocurrió un error al intentar hacer el proyecto colaborativo.");
+    }
+  }
+
+
+  // Nueva función para mostrar los documentos
+  showAllDocs() {
+    try {
+      const allDocs = this.props.projectService.getAllProjectDocs(); // Llama a la función del servicio
+      console.log("Todos los documentos:", allDocs);
+
+      // Opcional: Mostrar los documentos en un alert o modal
+      const docsArray = Array.from(allDocs.entries()).map(
+        ([projectId, data]) => `Project ID: ${projectId}, Workspace ID: ${data.workspaceID}`
+      );
+      alert(`Documentos:\n${docsArray.join("\n")}`);
+    } catch (error) {
+      console.error("Error al obtener los documentos:", error);
+      alert("Ocurrió un error al intentar obtener los documentos.");
     }
   }
 
@@ -3192,12 +3256,49 @@ renderRequirementsReport() {
           <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
           <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
           <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
-          <a title= "Get Proyect Indo"  onClick={this.getProjectData.bind(this)}><span>Project Data</span></a>          {/*DEBUG */}
+          <a title= "Get Proyect Indo"  onClick={this.getProjectData.bind(this)}><span>Data</span></a>          {/*DEBUG */}
            <a title= "Get Make Colaborative"  onClick={this.makeProjectCollaborative.bind(this)}><span>Colab</span></a> {/*DEBUG */}
+           <a title="Sync Workspace" onClick={this.handleSyncModalToggle.bind(this)}><span>Sync</span></a> {/* Nuevo botón */}
+           <a title="Show All Docs" onClick={this.showAllDocs.bind(this)}><span>Docs</span></a> {/* Nuevo botón */}
 
         </div>
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
+        
+        <Modal
+          show={this.state.showSyncModal}
+          onHide={this.handleSyncModalToggle}
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Sync Workspace</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form>
+              <FormGroup controlId="workspaceIDInput">
+                <label>Workspace ID</label>
+                <FormGroup>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter workspace ID"
+                    value={this.state.workspaceIDInput}
+                    onChange={this.handleWorkspaceIDChange}
+                  />
+                </FormGroup>
+              </FormGroup>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.handleSyncModalToggle}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={this.handleSyncWorkspace}>
+              Sync
+            </Button>
+          </Modal.Footer>
+        </Modal>
+        
         <div>
           <Modal
             show={this.state.showCatalogModal}

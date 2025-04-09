@@ -8,14 +8,48 @@ interface ProjectData {
 
 const projectDocs = new Map<string, ProjectData>(); // Mapa para almacenar los documentos Y.Doc por ID de proyecto, posteriormente se puede cambiar a una base de datos o almacenamiento persistente
 
+// AUXILIAR
+const projectListDoc = new Y.Doc();
+const projectsArray = projectListDoc.getArray<{
+  projectId: string;
+  workspaceID: string;
+}>("projectsList");
+
+const websocketUrl =
+  process.env.REACT_APP_WEBSOCKET_URL || "ws://localhost:1234";
+const projectListProvider = new WebsocketProvider(
+  websocketUrl,
+  "projectsList",
+  projectListDoc
+);
+
+projectsArray.observe((event) => {
+  console.log("Cambios en la lista de proyectos:", projectsArray.toArray());
+  projectsArray.toArray().forEach(({ projectId, workspaceID }) => {
+    if (!projectDocs.has(projectId)) {
+      const doc = new Y.Doc();
+      projectDocs.set(projectId, { doc, workspaceID });
+    }
+  });
+});
+// AUXILIAR END
+
+
+
+export const getAllProjectDocs = (): Map<string, ProjectData> => {
+  return projectDocs;
+};
+
 export const makeProjectCollaborative = (projectId: string): string => {
   if (!projectId) {
     throw new Error("El projectId no puede estar vacío.");
   }
-
   if (!projectDocs.has(projectId)) {
     const projectDoc = new Y.Doc();
+    projectDoc.getArray("notifications");
     projectDocs.set(projectId, { doc: projectDoc, workspaceID: projectId });
+    projectsArray.push([{ projectId, workspaceID: projectId }]);
+
     console.log(
       `Proyecto ${projectId} ahora es colaborativo con workspaceID: ${projectId}`
     );
@@ -36,7 +70,7 @@ export const setupProjectSync = (
   }
 
   const { doc, workspaceID } = projectData;
-  const websocketUrl = process.env.WEBSOCKET_URL;
+  const websocketUrl = process.env.REACT_APP_WEBSOCKET_URL;
   if (!websocketUrl) {
     throw new Error("La URL del WebSocket no está configurada.");
   }
@@ -47,14 +81,24 @@ export const setupProjectSync = (
     console.log(`Status WebSocket para proyecto ${projectId}:`, event.status);
   });
 
+  wsProvider.on("sync", () => {
+    console.log(`Un nuevo usuario se ha conectado al proyecto ${projectId}.`);
+    doc.getArray("notifications").push([`Usuario conectado al proyecto ${projectId}`]);
+  });
+
+  wsProvider.on("connection-close", () => {
+    console.log(`Un usuario se ha desconectado del proyecto ${projectId}.`);
+    doc.getArray("notifications").push([`Usuario desconectado del proyecto ${projectId}`]);
+  });
+
   return wsProvider;
 };
 
 export const removeProjectDoc = (projectId: string) => {
-    if (projectDocs.has(projectId)) {
-      const projectDoc = projectDocs.get(projectId);
-      projectDoc?.doc.destroy();
-      projectDocs.delete(projectId);
-      console.log(`Proyecto ${projectId} ya no es colaborativo`);
-    }
-  };
+  if (projectDocs.has(projectId)) {
+    const projectDoc = projectDocs.get(projectId);
+    projectDoc?.doc.destroy();
+    projectDocs.delete(projectId);
+    console.log(`Proyecto ${projectId} ya no es colaborativo`);
+  }
+};
