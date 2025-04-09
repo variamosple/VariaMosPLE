@@ -3132,9 +3132,25 @@ renderRequirementsReport() {
 
       // Llamar al servicio de colaboración
       const workspaceID = this.props.projectService.makeProjectCollaborative(projectId);
-
-      console.log(`Proyecto "${projectName}" (ID: ${projectId}) ahora es colaborativo con workspaceID: ${workspaceID}`);
       alert(`El proyecto "${projectName}" ahora es colaborativo.`);
+    } catch (error) {
+      console.error("Error al hacer el proyecto colaborativo:", error);
+      alert("Ocurrió un error al intentar hacer el proyecto colaborativo.");
+    }
+  }
+
+  getProjectData = () => {
+    try {
+      const project = this.props.projectService.project; // Obtener el proyecto actual
+      if (!project) {
+        alert("No hay un proyecto seleccionado.");
+        return;
+      }
+      const projectId = project.id; // ID del proyecto
+      const projectName = project.name; // Nombre del proyecto
+
+      console.log(`Proyecto "${projectName}" (ID: ${projectId})`);
+      alert(`El proyecto "${projectName}" Tiene id ${projectId}.`);
     } catch (error) {
       console.error("Error al hacer el proyecto colaborativo:", error);
       alert("Ocurrió un error al intentar hacer el proyecto colaborativo.");
@@ -3176,6 +3192,9 @@ renderRequirementsReport() {
           <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
           <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
           <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
+          <a title= "Get Proyect Indo"  onClick={this.getProjectData.bind(this)}><span>Project Data</span></a>          {/*DEBUG */}
+           <a title= "Get Make Colaborative"  onClick={this.makeProjectCollaborative.bind(this)}><span>Colab</span></a> {/*DEBUG */}
+
         </div>
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
