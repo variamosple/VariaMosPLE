@@ -3212,7 +3212,7 @@ try {
 
       // Opcional: Mostrar los documentos en un alert o modal
       const docsArray = Array.from(allDocs.entries()).map(
-        ([projectId, data]) => `Project ID: ${projectId}, Workspace ID: ${data.workspaceID}`
+        ([projectId]) => `Project ID and Workspace: ${projectId}`
       );
       alert(`Documentos:\n${docsArray.join("\n")}`);
     } catch (error) {
