@@ -743,7 +743,7 @@ export default class ProjectService {
     console.log(file);
     if (file) {
       this._project = Object.assign(this._project, JSON.parse(file));
-      this._projectInformation = new ProjectInformation(null, this._project.name, null, false, null, null, null, new Date());
+      this._projectInformation = new ProjectInformation(null, null, this._project.name, null, false, null, null, null, new Date());
     }
     this.raiseEventUpdateProject(this._project, null);
   }
@@ -1821,9 +1821,16 @@ export default class ProjectService {
         return getAllProjectDocs();
     }
 
-
-
-
-
-
+    shareProject = (project: ProjectInformation, ToUserId: string) => {
+        return this.projectPersistenceUseCases.shareProject(
+            project, 
+            ToUserId, 
+            (response) => {
+                console.log("Project shared successfully:", response);
+            }, 
+            (error) => {
+                console.error("Error sharing project:", error);
+            }
+        );
+    }
 }

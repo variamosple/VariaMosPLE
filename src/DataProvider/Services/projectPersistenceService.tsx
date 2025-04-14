@@ -6,17 +6,19 @@ export default class ProjectPersistenceService {
   getProjectsByUser(user: string, successCallback: any, errorCallback: any) {
     try {
       PROJECTS_CLIENT.get("/getProjects").then((res) => {
-        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
-        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
-        if (responseAPISuccess.message?.includes("Error")) {
-          throw new Error(JSON.stringify(res.data));
+        const { owned_projects, shared_projects } = res.data;
+        if (!owned_projects && !shared_projects) {
+          throw new Error("Invalid server response: Missing owned_projects or shared_projects");
         }
-        let records: ProjectInformation[] = [];
-        records = Object.assign(records, responseAPISuccess.data["projects"]);
-        successCallback(records);
+        successCallback({
+          owned_projects: owned_projects,
+          shared_projects: shared_projects});
       });
     } catch (error) {
       console.log("Something wrong in getProjectsByUser Service: " + error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
     }
   }
 
@@ -240,6 +242,53 @@ export default class ProjectPersistenceService {
     } catch (error) {
       console.log("Something wrong in getAllConfigurations Service: " + error);
     }
+  }
+  // ADDED SHARE FUNCTIONS
+  shareProject(
+    projectInformation: ProjectInformation,
+    toUserId: string,
+    successCallback: any,
+    errorCallback: any
+  ): void {
+
+    try {
+
+      if (!projectInformation?.id || !toUserId) {
+        console.error("Invalid project information or username.");
+        if (errorCallback) {
+          errorCallback("Invalid project information or username.");
+        }
+        return;
+      }
+
+      let project_id = projectInformation.id;
+      let user_id = toUserId;
+
+      PROJECTS_CLIENT.post("/shareProject", {
+        project_id,
+        user_id,
+      }).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        if (responseAPISuccess.message?.includes("Error")) {
+          throw new Error(JSON.stringify(res.data));
+        }
+        if (successCallback) {
+          successCallback(responseAPISuccess.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });
+
+    } catch (error) {
+      console.error("Something wrong in shareProject Service:", error);
+      if (errorCallback) {
+        errorCallback(error);
+      }    }
   }
 }
 

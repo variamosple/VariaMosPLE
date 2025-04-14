@@ -52,4 +52,13 @@ export default class ProjectPersistenceUseCases {
     let me=this; 
     this.projectPersistenceService.getAllConfigurations(user, projectInformation, configurationInformation, successCallback, errorCallback);
   } 
+
+  // ADDED SHARE FUNCTIONS
+  shareProject(projectInformation:ProjectInformation, toUserId: string, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.shareProject(projectInformation , toUserId, successCallback, errorCallback);
+  }
+
+
+
 }

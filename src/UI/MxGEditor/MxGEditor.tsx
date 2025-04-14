@@ -3140,25 +3140,46 @@ renderRequirementsReport() {
     this.setState({ workspaceIDInput: event.target.value });
   }
 
+//   handleSyncWorkspace() {
+// const workspaceID  = this.state.workspaceIDInput.trim();
+// if (!workspaceID) {
+//   alert("Ingresar un ID de espacio de trabajo válido.");
+//   return;
+// }
+
+// try {
+
+//     const wsProvider = this.props.projectService.setupProjectSync(workspaceID);
+//     console.log("Espacio de trabajo sincronizado----------------------------------:", wsProvider);
+//     if (wsProvider) {
+//         alert(`Espacio de trabajo ${workspaceID} sincronizado correctamente.`);
+//     }else{
+//         alert(`No se pudo sincronizar el espacio de trabajo ${workspaceID}.`);
+//     }
+// } catch (error) {
+//     console.log("Error al sincronizar el espacio de trabajo:", error);
+//     alert("Ocurrió un error al sincronizar el espacio de trabajo.");
+// }
+
+//     this.handleSyncModalToggle(); 
+
+//   }
+
   handleSyncWorkspace() {
-const workspaceID  = this.state.workspaceIDInput.trim();
-if (!workspaceID) {
-  alert("Ingresar un ID de espacio de trabajo válido.");
+const toUserId  = this.state.workspaceIDInput.trim();
+const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
+if (!toUserId || !project) {
+  alert("Please enter a valid user ID.");
   return;
 }
 
 try {
-
-    const wsProvider = this.props.projectService.setupProjectSync(workspaceID);
-    console.log("Espacio de trabajo sincronizado----------------------------------:", wsProvider);
-    if (wsProvider) {
-        alert(`Espacio de trabajo ${workspaceID} sincronizado correctamente.`);
-    }else{
-        alert(`No se pudo sincronizar el espacio de trabajo ${workspaceID}.`);
-    }
+  const share = this.props.projectService.shareProject(project, toUserId); 
+  console.log(`Espacio de trabajo sincronizado ${project} con: ${toUserId}`);
+  
 } catch (error) {
-    console.log("Error al sincronizar el espacio de trabajo:", error);
-    alert("Ocurrió un error al sincronizar el espacio de trabajo.");
+  console.error("Error syncing workspace:", error);
+  alert("An error occurred while syncing the workspace. Please try again.");
 }
 
     this.handleSyncModalToggle(); 
@@ -3187,7 +3208,7 @@ try {
 
   getProjectData = () => {
     try {
-      const project = this.props.projectService.project; // Obtener el proyecto actual
+      const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
       if (!project) {
         alert("No hay un proyecto seleccionado.");
         return;
