@@ -202,17 +202,31 @@ export default function OpenDialog({
   const btnDeleteProject_onClic = (e) => {
     e.preventDefault();
     if (window.confirm("Delete this project?") == true) {
-      let p = e.target;
-      p = p.parentElement;
-      p = p.parentElement;
-      let projectId = p.attributes["data-id"].value;
+
+      const targetRow = e.target.closest("tr");
+      if (!targetRow || !targetRow.hasAttribute("data-id")) {
+        console.log("No data-id attribute found in the target row.");
+        return; // No valid row found
+      }
+
+      const projectId = targetRow.getAttribute("data-id");
+
+      const isOwnedProjects = owned_projects.some((project) => project.id == projectId);
+
       let pi = new ProjectInformation(projectId, null, null, null, false, null, null, null, null);
-      let successCallback = (e) => {
-        getProjectsByUser();
+      let successCallback = () => {
+        if (isOwnedProjects) {
+          setOwnedProjects((prevProjects) => prevProjects.filter((project) => project.id !== projectId));
+        }
+        else {
+          setSharedProjects((prevProjects) => prevProjects.filter((project) => project.id !== projectId));
+        }
       }
       projectService.deleteProjectInServer(pi, successCallback, null);
     }
   }
+
+
   const filterProjects = (projects) => {
     if (!searchTerm) return projects;
     return projects.filter((project) =>
@@ -221,17 +235,18 @@ export default function OpenDialog({
   };
 
 
-  const renderProjects = (projects: ProjectInformation[]) => {
+  const renderProjects = (projects: ProjectInformation[], isDeletable: boolean) => {
     let elements = [];
     if (projects) {
       const filteredProjects = filterProjects(projects);
       for (let i = 0; i < filteredProjects.length; i++) {
         let project: ProjectInformation = filteredProjects[i];
         const element = (
-          <tr>
+          <tr key={project.id}>
             {/* <a title="Change name" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}><MdEdit/></a> */}
             <td>
-              <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
+              {isDeletable && <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
+            }
             </td>
             <td>
               <a href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
@@ -383,11 +398,11 @@ export default function OpenDialog({
   
           {/* Contenedor de proyectos */}
           {key === "privateProjects" ? (
-            <div className="div-container-projects">{renderProjects(owned_projects)}</div>
+            <div className="div-container-projects">{renderProjects(owned_projects, true)}</div>
           ) : key === "sharedProjects" ? (
-            <div className="div-container-projects">{renderProjects(sharedProjects)}</div>
+            <div className="div-container-projects">{renderProjects(sharedProjects, false)}</div>
           ) : (
-            <div className="div-container-projects">{renderProjects(templateProjects)}</div>
+            <div className="div-container-projects">{renderProjects(templateProjects, false)}</div>
           )}
             
           <input
