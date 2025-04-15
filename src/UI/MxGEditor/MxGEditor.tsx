@@ -55,6 +55,7 @@ interface State {
   //   Collab
     showSyncModal: boolean;
     shareInput: string;
+    shareRole: string;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -89,6 +90,7 @@ export default class MxGEditor extends Component<Props, State> {
 // Collab
       showSyncModal: false,
       shareInput: "",
+      shareRole: "",
 
 
     }
@@ -3141,6 +3143,11 @@ renderRequirementsReport() {
     this.setState({ shareInput: event.target.value });
   }
 
+  handleRoleChange = (role: string) => {
+    this.setState({ shareRole: role });
+  };
+
+
 //   handleSyncWorkspace() {
 // const workspaceID  = this.state.workspaceIDInput.trim();
 // if (!workspaceID) {
@@ -3168,15 +3175,17 @@ renderRequirementsReport() {
 
   handleSyncWorkspace() {
 const toUserEmail  = this.state.shareInput.trim();
-const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
-if (!toUserEmail || !project) {
+const role = this.state.shareRole.trim();
+const project = this.props.projectService.getProjectInformation();
+if (!toUserEmail || !project || !role) {
   alert("Please enter a valid user ID.");
   return;
 }
-
 try {
-  const share = this.props.projectService.shareProject(project, toUserEmail); 
-  console.log(`Espacio de trabajo sincronizado ${project} con: ${toUserEmail}`);
+  const projectId = project.id;
+  const share = this.props.projectService.shareProject(projectId, toUserEmail, role); 
+  console.log(`Project shared with ${toUserEmail} as ${role}`);
+  alert(`Project successfully shared with ${toUserEmail} as ${role}.`);
   
 } catch (error) {
   console.error("Error syncing workspace:", error);
@@ -3307,6 +3316,24 @@ try {
                     value={this.state.shareInput}
                     onChange={this.handleShareEmailChange}
                   />
+                </FormGroup>
+              </FormGroup>
+              <FormGroup controlId="shareRole">
+                <label>User Role</label>
+                <FormGroup>
+                  <Dropdown>
+                    <Dropdown.Toggle variant="secondary" id="dropdown-basic">
+                      {this.state.shareRole || "Select Role"}
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      <Dropdown.Item onClick={() => this.handleRoleChange("editor")}>
+                        Editor
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={() => this.handleRoleChange("viewer")}>
+                        Viewer
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
                 </FormGroup>
               </FormGroup>
             </Form>

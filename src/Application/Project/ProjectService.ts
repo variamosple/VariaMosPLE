@@ -1821,10 +1821,11 @@ export default class ProjectService {
         return getAllProjectDocs();
     }
 
-    shareProject = (project: ProjectInformation, ToUserEmail: string) => {
+    shareProject = (project: string, ToUserEmail: string, role:string) => {
         return this.projectPersistenceUseCases.shareProject(
             project, 
-            ToUserEmail, 
+            ToUserEmail,
+            role,
             (response) => {
                 console.log("Project shared successfully:", response);
             }, 
