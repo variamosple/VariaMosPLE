@@ -54,9 +54,9 @@ export default class ProjectPersistenceUseCases {
   } 
 
   // ADDED SHARE FUNCTIONS
-  shareProject(projectInformation:ProjectInformation, toUserId: string, successCallback:any, errorCallback: any): void {
+  shareProject(projectInformation:ProjectInformation, toUserEmail: string, successCallback:any, errorCallback: any): void {
     let me=this;
-    this.projectPersistenceService.shareProject(projectInformation , toUserId, successCallback, errorCallback);
+    this.projectPersistenceService.shareProject(projectInformation , toUserEmail, successCallback, errorCallback);
   }
 
 

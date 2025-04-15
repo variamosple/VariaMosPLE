@@ -51,9 +51,10 @@ interface State {
   messageModalTitle: string;
   openAccordion: string[];
   showRequirementsReportModal: boolean;
-//   Collab
+
+  //   Collab
     showSyncModal: boolean;
-    workspaceIDInput: string;
+    shareInput: string;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -87,7 +88,7 @@ export default class MxGEditor extends Component<Props, State> {
       showRequirementsReportModal: false,
 // Collab
       showSyncModal: false,
-      workspaceIDInput: "",
+      shareInput: "",
 
 
     }
@@ -113,7 +114,7 @@ export default class MxGEditor extends Component<Props, State> {
 
     // Collabcondition
     this.handleSyncModalToggle = this.handleSyncModalToggle.bind(this);
-    this.handleWorkspaceIDChange = this.handleWorkspaceIDChange.bind(this);
+    this.handleShareEmailChange = this.handleShareEmailChange.bind(this);
     this.handleSyncWorkspace = this.handleSyncWorkspace.bind(this);
   }
 
@@ -3136,8 +3137,8 @@ renderRequirementsReport() {
     this.setState({ showSyncModal: !this.state.showSyncModal });
   }
 
-  handleWorkspaceIDChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ workspaceIDInput: event.target.value });
+  handleShareEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ shareInput: event.target.value });
   }
 
 //   handleSyncWorkspace() {
@@ -3166,16 +3167,16 @@ renderRequirementsReport() {
 //   }
 
   handleSyncWorkspace() {
-const toUserId  = this.state.workspaceIDInput.trim();
+const toUserEmail  = this.state.shareInput.trim();
 const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
-if (!toUserId || !project) {
+if (!toUserEmail || !project) {
   alert("Please enter a valid user ID.");
   return;
 }
 
 try {
-  const share = this.props.projectService.shareProject(project, toUserId); 
-  console.log(`Espacio de trabajo sincronizado ${project} con: ${toUserId}`);
+  const share = this.props.projectService.shareProject(project, toUserEmail); 
+  console.log(`Espacio de trabajo sincronizado ${project} con: ${toUserEmail}`);
   
 } catch (error) {
   console.error("Error syncing workspace:", error);
@@ -3292,19 +3293,19 @@ try {
           centered
         >
           <Modal.Header closeButton>
-            <Modal.Title>Sync Workspace</Modal.Title>
+            <Modal.Title>Share with User</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Form>
-              <FormGroup controlId="workspaceIDInput">
-                <label>Workspace ID</label>
+              <FormGroup controlId="shareInput">
+                <label>User Email</label>
                 <FormGroup>
                   <input
                     type="text"
                     className="form-control"
-                    placeholder="Enter workspace ID"
-                    value={this.state.workspaceIDInput}
-                    onChange={this.handleWorkspaceIDChange}
+                    placeholder="Enter User Email"
+                    value={this.state.shareInput}
+                    onChange={this.handleShareEmailChange}
                   />
                 </FormGroup>
               </FormGroup>

@@ -246,14 +246,14 @@ export default class ProjectPersistenceService {
   // ADDED SHARE FUNCTIONS
   shareProject(
     projectInformation: ProjectInformation,
-    toUserId: string,
+    toUserEmail: string,
     successCallback: any,
     errorCallback: any
   ): void {
 
     try {
 
-      if (!projectInformation?.id || !toUserId) {
+      if (!projectInformation?.id || !toUserEmail) {
         console.error("Invalid project information or username.");
         if (errorCallback) {
           errorCallback("Invalid project information or username.");
@@ -262,11 +262,11 @@ export default class ProjectPersistenceService {
       }
 
       let project_id = projectInformation.id;
-      let user_id = toUserId;
+      let user_email = toUserEmail;
 
       PROJECTS_CLIENT.post("/shareProject", {
+        user_email,
         project_id,
-        user_id,
       }).then((res) => {
         let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
         responseAPISuccess = Object.assign(responseAPISuccess, res.data);

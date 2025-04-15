@@ -206,9 +206,8 @@ export default function OpenDialog({
       const targetRow = e.target.closest("tr");
       if (!targetRow || !targetRow.hasAttribute("data-id")) {
         console.log("No data-id attribute found in the target row.");
-        return; // No valid row found
+        return; 
       }
-
       const projectId = targetRow.getAttribute("data-id");
 
       const isOwnedProjects = owned_projects.some((project) => project.id == projectId);
@@ -242,7 +241,7 @@ export default function OpenDialog({
       for (let i = 0; i < filteredProjects.length; i++) {
         let project: ProjectInformation = filteredProjects[i];
         const element = (
-          <tr key={project.id}>
+          <tr key={project.id} data-id={project.id}>
             {/* <a title="Change name" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}><MdEdit/></a> */}
             <td>
               {isDeletable && <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
