@@ -291,10 +291,72 @@ export default class ProjectPersistenceService {
       console.error("Something wrong in shareProject Service:", error);
       if (errorCallback) {
         errorCallback(error);
-      }    }
+      }    }  
   }
 
+  changeProjectCollaborationState(
+    projectId: string,
+    successCallback: any,
+    errorCallback: any
+  ):void {
+    try {
+      PROJECTS_CLIENT.post("/changeProjectCollaborative", {
+        project_id: projectId,
+      }).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        if (responseAPISuccess.message?.includes("Error")) {
+          throw new Error(JSON.stringify(res.data));
+        }
+        if (successCallback) {
+          successCallback(responseAPISuccess.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });
+    } catch (error) {
+      console.error("Something wrong in changeProjectCollaborationState Service:", error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
+    }
+  }
 
+  getProjectCollaborators(
+    projectId: string,
+    successCallback: any,
+    errorCallback: any
+  ):void {
+    try {
+      PROJECTS_CLIENT.get("/usersProject", {
+        params: { project_id: projectId },
+      }).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        if (responseAPISuccess.message?.includes("Error")) {
+          throw new Error(JSON.stringify(res.data));
+        }
+        if (successCallback) {
+          successCallback(responseAPISuccess.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });
+    } catch (error) {
+      console.error("Something wrong in getProjectCollaborators Service:", error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
+    }
+  }
 }
 
 export class ResponseAPISuccess {

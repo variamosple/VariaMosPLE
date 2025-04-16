@@ -56,6 +56,7 @@ interface State {
     showSyncModal: boolean;
     shareInput: string;
     shareRole: string;
+    isCollaborative: boolean;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -91,6 +92,7 @@ export default class MxGEditor extends Component<Props, State> {
       showSyncModal: false,
       shareInput: "",
       shareRole: "",
+      isCollaborative: false,
 
 
     }
@@ -118,6 +120,7 @@ export default class MxGEditor extends Component<Props, State> {
     this.handleSyncModalToggle = this.handleSyncModalToggle.bind(this);
     this.handleShareEmailChange = this.handleShareEmailChange.bind(this);
     this.handleSyncWorkspace = this.handleSyncWorkspace.bind(this);
+    this.changeProjectCollaborative = this.changeProjectCollaborative.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -233,6 +236,14 @@ export default class MxGEditor extends Component<Props, State> {
       this.setState({ isBillOfMaterials: false });
     }
     this.logAccordionContents();
+
+    // Nuevo
+    const projectInfo = this.props.projectService.getProjectInformation();
+    if (projectInfo && projectInfo.is_collaborative != undefined) {
+      this.setState({isCollaborative: projectInfo.is_collaborative});
+    }
+
+
   }
 
   LoadGraph(graph: mxGraph) {
@@ -3196,9 +3207,10 @@ try {
 
   }
 
+  // Pensar que hacer con esto
   makeProjectCollaborative() {
     try {
-      const project = this.props.projectService.project; // Obtener el proyecto actual
+      const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
       if (!project) {
         alert("No hay un proyecto seleccionado.");
         return;
@@ -3215,42 +3227,68 @@ try {
       alert("Ocurrió un error al intentar hacer el proyecto colaborativo.");
     }
   }
+// Pensar que hacer con esto
 
-  getProjectData = () => {
+  changeProjectCollaborative() { 
     try {
-      const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
+      const project = this.props.projectService.getProjectInformation();
       if (!project) {
         alert("No hay un proyecto seleccionado.");
         return;
       }
-      const projectId = project.id; // ID del proyecto
-      const projectName = project.name; // Nombre del proyecto
-
-      console.log(`Proyecto "${projectName}" (ID: ${projectId})`);
-      alert(`El proyecto "${projectName}" Tiene id ${projectId}`);
-    } catch (error) {
-      console.error("Error al hacer el proyecto colaborativo:", error);
-      alert("Ocurrió un error al intentar hacer el proyecto colaborativo.");
-    }
-  }
-
-
-  // Nueva función para mostrar los documentos
-  showAllDocs() {
-    try {
-      const allDocs = this.props.projectService.getAllProjectDocs(); // Llama a la función del servicio
-      console.log("Todos los documentos:", allDocs);
-
-      // Opcional: Mostrar los documentos en un alert o modal
-      const docsArray = Array.from(allDocs.entries()).map(
-        ([projectId]) => `Project ID and Workspace: ${projectId}`
+      const projectId = project.id; 
+      this.props.projectService.changeProjectCollaborationState(
+        projectId,
+        (response) => {
+          if (response) {
+            const newCollaborativeState = response.collaborativeState;
+            this.setState({ isCollaborative: newCollaborativeState }); // Actualiza el estado
+            alert(`El proyecto ahora es ${newCollaborativeState ? "colaborativo" : "no colaborativo"}.`);
+          } else {
+            alert("No se pudo cambiar el estado de colaboración.");
+          }
+        },
+        (error) => {
+          console.error("Error al cambiar el estado de colaboración:", error);
+          alert("Ocurrió un error al intentar cambiar el estado de colaboración.");
+        }
       );
-      alert(`Documentos:\n${docsArray.join("\n")}`);
     } catch (error) {
-      console.error("Error al obtener los documentos:", error);
-      alert("Ocurrió un error al intentar obtener los documentos.");
+      console.error("Error al cambiar el estado de colaboración:", error);
+      alert("Ocurrió un error al intentar cambiar el estado de colaboración.");
     }
   }
+
+
+  getProyectCollaborators() {
+    try{
+    const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
+    if (!project) {
+      alert("No hay un proyecto seleccionado.");
+      return;
+    }
+    const projectId = project.id; // ID del proyecto
+    const collaborators = this.props.projectService.getProjectCollaborators(projectId,
+      (response) => {
+        if (response) {
+          console.log("Colaboradores del proyecto:", response.users);
+          const collaboratorsList = response.users.map((user: any) => { 
+            return`${user.name}, (${user.role})`}).join(", ");
+          alert(`Colaboradores del proyecto: ${collaboratorsList}`);
+        }
+      },
+      (error) => {
+        console.error("Error al obtener los colaboradores del proyecto:", error);
+        alert("Ocurrió un error al intentar obtener los colaboradores del proyecto.");
+      }
+    );
+  }catch(error) {
+    console.error("Error al obtener los colaboradores del proyecto:", error);
+    alert("Ocurrió un error al intentar obtener los colaboradores del proyecto.");
+  }
+  }
+
+
 
 // END NEW COLABORATIVE FUNCTIONALITY
 
@@ -3287,11 +3325,9 @@ try {
           <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
           <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
           <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
-          <a title= "Get Proyect Indo"  onClick={this.getProjectData.bind(this)}><span>Data</span></a>          {/*DEBUG */}
-           <a title= "Get Make Colaborative"  onClick={this.makeProjectCollaborative.bind(this)}><span>Colab</span></a> {/*DEBUG */}
-           <a title="Sync Workspace" onClick={this.handleSyncModalToggle.bind(this)}><span>Sync</span></a> {/* Nuevo botón */}
-           <a title="Show All Docs" onClick={this.showAllDocs.bind(this)}><span>Docs</span></a> {/* Nuevo botón */}
-
+          <a title="Share with users" onClick={this.handleSyncModalToggle.bind(this)}><span>Sync</span></a> {/* Nuevo botón */}
+          <a title="Collaborators" onClick={this.getProyectCollaborators.bind(this)}><span>Collaborators</span></a> {/* Nuevo botón */}
+          <a title="Cambiar estado colaborativo" onClick={this.changeProjectCollaborative}><span>{this.state.isCollaborative ? "Colaborativo: ON" : "Colaborativo: OFF"}</span></a>
         </div>
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>

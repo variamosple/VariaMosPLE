@@ -37,7 +37,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { makeProjectCollaborative, setupProjectSync , getAllProjectDocs} from "../../DataProvider/Services/collaborationService";
+import { makeProjectCollaborative, setupProjectSync} from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -743,7 +743,7 @@ export default class ProjectService {
     console.log(file);
     if (file) {
       this._project = Object.assign(this._project, JSON.parse(file));
-      this._projectInformation = new ProjectInformation(null, null, this._project.name, null, false, null, null, null, new Date());
+      this._projectInformation = new ProjectInformation(null, null, this._project.name, null, false, null, null, null, new Date(), false);
     }
     this.raiseEventUpdateProject(this._project, null);
   }
@@ -1817,10 +1817,6 @@ export default class ProjectService {
         return setupProjectSync(projectId);
     }
 
-    getAllProjectDocs = () => {
-        return getAllProjectDocs();
-    }
-
     shareProject = (project: string, ToUserEmail: string, role:string) => {
         return this.projectPersistenceUseCases.shareProject(
             project, 
@@ -1834,4 +1830,45 @@ export default class ProjectService {
             }
         );
     }
+
+    changeProjectCollaborationState = (projectId: string, successCallback: any, errorCallback:any) => {
+        return this.projectPersistenceUseCases.changeProjectCollaborationState(
+            projectId, 
+            (response) => {
+                console.log("Project collaboration state changed successfully:", response);
+                if (successCallback) {
+                    successCallback(response);
+                }
+            }, 
+            (error) => {
+                console.error("Error changing project collaboration state:", error);
+                if (errorCallback) {
+                    errorCallback(error);
+                }
+            }
+        );
+    }
+
+    getProjectCollaborators = (projectId: string, successCallback: any, errorCallback:any) => {
+        return this.projectPersistenceUseCases.getProjectCollaborators(
+            projectId, 
+            (response) => {
+                console.log("Project collaborators retrieved successfully:", response);
+                if (successCallback) {
+                    successCallback(response);
+                }
+            }, 
+            (error) => {
+                console.error("Error retrieving project collaborators:", error);
+                if (errorCallback) {
+                    errorCallback(error);
+                }
+            }
+        );
+    }
+
+
+
+
+
 }

@@ -59,6 +59,15 @@ export default class ProjectPersistenceUseCases {
     this.projectPersistenceService.shareProject(projectId , toUserEmail, role, successCallback, errorCallback);
   }
 
+  changeProjectCollaborationState(projectId:string, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.changeProjectCollaborationState(projectId, successCallback, errorCallback);
+  }
+
+  getProjectCollaborators(projectId:string, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.getProjectCollaborators(projectId, successCallback, errorCallback);
+  }
 
 
 }

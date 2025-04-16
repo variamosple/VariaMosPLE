@@ -212,7 +212,7 @@ export default function OpenDialog({
 
       const isOwnedProjects = owned_projects.some((project) => project.id == projectId);
 
-      let pi = new ProjectInformation(projectId, null, null, null, false, null, null, null, null);
+      let pi = new ProjectInformation(projectId, null, null, null, false, null, null, null, null, false);
       let successCallback = () => {
         if (isOwnedProjects) {
           setOwnedProjects((prevProjects) => prevProjects.filter((project) => project.id !== projectId));

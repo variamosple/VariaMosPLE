@@ -10,8 +10,9 @@ export class ProjectInformation {
   source: string;
   author: string;
   date: Date;
+  is_collaborative: boolean
 
-  constructor(id: string, owner_id: string, name: string, project: Project, template: boolean, description: string, source: string, author: string, date: Date) {
+  constructor(id: string, owner_id: string, name: string, project: Project, template: boolean, description: string, source: string, author: string, date: Date, is_collaborative: boolean) {
     this.id = id;
     this.owner_id = owner_id;
     this.name = name;
@@ -21,5 +22,6 @@ export class ProjectInformation {
     this.source = source;
     this.author = author;
     this.date = date;
+    this.is_collaborative = is_collaborative;
   }
 }
