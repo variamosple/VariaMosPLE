@@ -13,6 +13,9 @@ import {
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reactstrap";
 import ProductCatalogManager from "./ProductCatalogManager";
 import ProjectService from "../../Application/Project/ProjectService";
+import EditProductManager from "./EditProductManager";
+import './scope.css';
+
 
 /** Devuelve el número del BoM_level o 99 si no está definido */
 function getBoMLevel(material: any): number {
@@ -37,12 +40,18 @@ interface BillOfMaterialsEditorProps {
 }
 
 interface BillOfMaterialsEditorState {
+  modelVersion: number;
   searchTerm: string;
   allScopeConfigurations: Array<Record<string, any>>;
   showDetailModal: boolean;
   selectedConfig: Record<string, any> | null;
   openAccordion: string[]; // IDs de accordion abiertos
   allAccordionIds: string[]; // IDs posibles para expandir/colapsar
+  showEditProductManager: boolean;
+  showNewProductManager: boolean;
+  showContextMenu: boolean;
+  contextMenuConfig: any | null;
+  contextMenuPosition: { x: number; y: number };
 }
 
 export default class BillOfMaterialsEditor extends Component<
@@ -52,15 +61,24 @@ export default class BillOfMaterialsEditor extends Component<
   constructor(props: BillOfMaterialsEditorProps) {
     super(props);
     this.state = {
+      modelVersion: 0,
       searchTerm: "",
       allScopeConfigurations: [],
       showDetailModal: false,
       selectedConfig: null,
       openAccordion: [],
       allAccordionIds: [],
+      showEditProductManager: false,
+      showNewProductManager: false,
+      showContextMenu: false,
+      contextMenuConfig: null,
+      contextMenuPosition: { x: 0, y: 0 },
     };
   }
 
+  forceUpdateModel = () => {
+    this.setState(prevState => ({ modelVersion: prevState.modelVersion + 1 }));
+  };
   componentDidMount() {
     // Cargar todas las configuraciones del scope
     this.props.projectService.getAllConfigurations(
@@ -72,6 +90,31 @@ export default class BillOfMaterialsEditor extends Component<
       }
     );
   }
+  // Dentro de BillOfMaterialsEditor (en la clase)
+  handleCloseAllModals = () => {
+    this.setState({
+      showDetailModal: false,
+      selectedConfig: null,
+      showEditProductManager: false,
+    }, () => {
+      // Una vez cerrados los modals, actualizamos modelVersion para forzar el re-render
+      this.setState(prevState => ({ modelVersion: prevState.modelVersion + 1 }));
+    });
+
+    // También actualizamos la lista de configuraciones
+    this.props.projectService.getAllConfigurations(
+      (configs: any[]) => {
+        this.setState({ allScopeConfigurations: configs });
+      },
+      (error: any) => {
+        console.error("Error fetching updated configurations:", error);
+      }
+    );
+  };
+
+
+
+
 
   handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     this.setState({ searchTerm: e.target.value });
@@ -165,7 +208,7 @@ export default class BillOfMaterialsEditor extends Component<
       console.log(`Material ${materialWithValues.name} no cumple la condición de Quantity == "1". No se renderiza.`);
       return null;
     }
-    if (!levelProperty || levelProperty.value === "Product (level 0)"){
+    if (!levelProperty || levelProperty.value === "Product (level 0)") {
       return (this.renderChildMaterials(material.id, config));
     }
 
@@ -234,7 +277,7 @@ export default class BillOfMaterialsEditor extends Component<
 
   renderSearchBar() {
     return (
-      <InputGroup className="mb-3" style={{ maxWidth: "400px" }}>
+      <InputGroup>
         <Form.Control
           placeholder="Buscar producto..."
           value={this.state.searchTerm}
@@ -251,83 +294,165 @@ export default class BillOfMaterialsEditor extends Component<
     }
 
     return (
-      <Row>
-        {filtered.map((cfg: any) => (
-          <Col md={4} key={cfg.id} style={{ marginBottom: "15px" }}>
-            <Card
-              style={{ cursor: "pointer" }}
-              onClick={() => this.handleSelectProduct(cfg)}
-            >
-              {cfg.imageUrl ? (
-                <Card.Img
-                  variant="top"
-                  src={cfg.imageUrl}
-                  style={{ maxHeight: "180px", objectFit: "cover" }}
-                />
-              ) : (
-                <div
-                  style={{
-                    height: "180px",
-                    backgroundColor: "#eee",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#999",
-                  }}
+      <div style={{
+        height: "90vh",            
+        overflowY: "auto",        
+        boxSizing: "border-box",   
+        padding: "10px"            
+      }}>
+        <Row>
+          {filtered.map((cfg: any) => {
+            // Buscamos en las features el elemento de tipo "Product"
+            let imageSrc: string | null = null;
+            if (cfg.features) {
+              const productElem = cfg.features.find((f: any) => f.type === "Product");
+              if (productElem) {
+                const imageProp = productElem.properties?.find((p: any) => p.name === "Product_image");
+                if (imageProp && imageProp.value) {
+                  imageSrc = "data:image/jpeg;base64," + imageProp.value;
+                }
+              }
+            }
+            return (
+              <Col md={4} key={cfg.id} style={{ marginBottom: "15px" }}>
+                <Card
+                  style={{ cursor: "pointer" }}
+                  onClick={() => this.handleSelectProduct(cfg)}
+                  onContextMenu={(e) =>
+                    this.handleRightClickOnConfig(cfg, e as React.MouseEvent<HTMLDivElement, MouseEvent>)
+                  }
                 >
-                  Sin imagen
-                </div>
-              )}
-              <Card.Body>
-                <Card.Title>{cfg.name || "Producto"}</Card.Title>
-                {/* Podrías agregar más datos aquí */}
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+                  {imageSrc ? (
+                    <div style={{ height: "180px", width: "100%" }}>
+                      <img
+                        src={imageSrc}
+                        alt={cfg.name}
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "100%",
+                          objectFit: "contain",
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        height: "180px",
+                        backgroundColor: "#eee",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#999",
+                      }}
+                    >
+                      Sin imagen
+                    </div>
+                  )}
+                  <Card.Body>
+                    <Card.Title>{cfg.name || "Producto"}</Card.Title>
+                  </Card.Body>
+                </Card>
+              </Col>
+            );
+          })}
+        </Row>
+      </div>
     );
   }
+
+  handleRightClickOnConfig = (config: any, event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault(); // Evita el menú contextual por defecto del navegador
+    this.setState({
+      showContextMenu: true,
+      contextMenuConfig: config,
+      contextMenuPosition: { x: event.clientX, y: event.clientY }
+    });
+  };
+
+  handleDeleteContextConfig = () => {
+    const { contextMenuConfig } = this.state;
+    if (contextMenuConfig) {
+      // Llamamos a eliminar la configuración (sólo se requiere la id)
+      this.props.projectService.deleteConfigurationInServer(contextMenuConfig.id);
+      alert("Configuración eliminada exitosamente.");
+      // Actualizamos el listado de configuraciones
+      this.props.projectService.getAllConfigurations(
+        (configs: any[]) => {
+          this.setState({ allScopeConfigurations: configs });
+        },
+        (error: any) => {
+          console.error("Error fetching updated configurations:", error);
+        }
+      );
+      // Ocultamos el menú contextual y forzamos actualización del modelo
+      this.setState({ showContextMenu: false, contextMenuConfig: null });
+      this.handleCloseAllModals()
+    }
+  };
+
+
+
 
   renderDetailModal() {
     const { showDetailModal, selectedConfig, openAccordion } = this.state;
     if (!selectedConfig) return null;
 
+    // Buscamos en las features el elemento de tipo "Product"
+    const productElement = selectedConfig.features?.find((f: any) => f.type === "Product");
+    let imageSrc: string | null = null;
+    if (productElement) {
+      const imageProp = productElement.properties?.find((p: any) => p.name === "Product_image");
+      if (imageProp && imageProp.value) {
+        imageSrc = "data:image/jpeg;base64," + imageProp.value;
+      }
+    }
+
     return (
       <Modal
         show={showDetailModal}
         onHide={this.handleCloseModal}
-        fullscreen
         centered
+        scrollable
+        size="xl"
+        // Agregamos un marginBottom extra para que el modal se “levante” respecto al footer global
+        style={{ marginBottom: "150px" }}
       >
         <Modal.Header closeButton>
           <Modal.Title>{selectedConfig.name || "Detalle del Producto"}</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          <Row style={{ height: "100%" }}>
-            {/* Columna izquierda (1/3): Imagen */}
+        <Modal.Body
+          // Calculamos el alto máximo restando el espacio que queremos reservar (150px o el que necesites)
+          // y se agrega paddingBottom para que el contenido final no quede tapado
+          style={{
+            maxHeight: "calc(100vh - 300px)",
+            overflowY: "auto",
+            paddingBottom: "150px"
+          }}
+        >
+          <Row>
+            {/* Columna izquierda: Imagen */}
             <Col md={4} style={{ borderRight: "1px solid #ccc" }}>
-              {selectedConfig.imageUrl ? (
+              {imageSrc ? (
                 <div style={{ textAlign: "center" }}>
                   <img
-                    src={selectedConfig.imageUrl}
+                    src={imageSrc}
                     alt={selectedConfig.name}
                     style={{
-                      maxWidth: "100%",
-                      maxHeight: "80vh",
-                      objectFit: "contain",
+                      maxWidth: "50%",
+                      maxHeight: "50vh",
+                      objectFit: "contain"
                     }}
                   />
                 </div>
               ) : (
                 <div
                   style={{
-                    width: "100%",
-                    height: "80vh",
+                    width: "50%",
+                    height: "50vh",
                     backgroundColor: "#f0f0f0",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
+                    justifyContent: "center"
                   }}
                 >
                   Sin imagen
@@ -335,7 +460,7 @@ export default class BillOfMaterialsEditor extends Component<
               )}
             </Col>
 
-            {/* Columna derecha (2/3): Detalles */}
+            {/* Columna derecha: Detalles */}
             <Col md={8} style={{ paddingLeft: "20px" }}>
               <div style={{ marginBottom: "10px" }}>
                 <Button
@@ -356,8 +481,7 @@ export default class BillOfMaterialsEditor extends Component<
               </div>
               <h5>Especificaciones / Funcionalidades</h5>
               <p>
-                Se listan a continuación las funcionalidades con BoM_level
-                creciente y <code>Quantity=1</code>.
+                Se listan a continuación las funcionalidades con BoM_level creciente y <code>Quantity=1</code>.
               </p>
               <Accordion
                 flush
@@ -369,9 +493,23 @@ export default class BillOfMaterialsEditor extends Component<
             </Col>
           </Row>
         </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={this.handleCloseModal}>
+            Cerrar
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => this.setState({ showEditProductManager: true })}
+          >
+            Editar Configuración
+          </Button>
+        </Modal.Footer>
       </Modal>
     );
   }
+
+
+
 
   handleExpandAll = () => {
     this.setState((prev) => ({
@@ -383,20 +521,66 @@ export default class BillOfMaterialsEditor extends Component<
     this.setState({ openAccordion: [] });
   };
 
+
   render() {
+    let projectInformation = this.props.projectService.getProductLineSelected();
+    let namePL = projectInformation.name;
     return (
-      <div style={{ padding: "20px" }}>
-        <h4>Catálogo del Scope - Bill of Materials</h4>
-        <div style={{ marginBottom: "10px" }}>
-          <Button variant="outline-secondary" onClick={this.props.onClose}>
-            Cerrar
-          </Button>
+      <div key={this.state.modelVersion}>
+        <h3>Catalog of potencial products: {namePL}</h3>
+        <div
+          style={{
+            marginBottom: "10px",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: "10px"
+          }}
+        >
+          <div style={{ flex: 4 }}>
+            {this.renderSearchBar()}
+          </div>
+          <div style={{ flex: 1 }}>
+            <ProductCatalogManager projectService={this.props.projectService} />
+          </div>
+
         </div>
-        <ProductCatalogManager projectService={this.props.projectService} />
-        {this.renderSearchBar()}
+
+
         {this.renderProductsList()}
         {this.renderDetailModal()}
+        {this.state.showEditProductManager && (
+          <EditProductManager
+            projectService={this.props.projectService}
+            selectedConfig={this.state.selectedConfig}
+            onClose={this.handleCloseAllModals}
+          />
+        )}
+        {this.state.showContextMenu && (
+          <div
+            style={{
+              position: "fixed",
+              top: this.state.contextMenuPosition.y,
+              left: this.state.contextMenuPosition.x,
+              background: "#fff",
+              border: "1px solid #ccc",
+              zIndex: 1050,
+              padding: "10px",
+              boxShadow: "0px 2px 4px rgba(0,0,0,0.3)"
+            }}
+            onMouseLeave={() => this.setState({ showContextMenu: false })}
+          >
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={this.handleDeleteContextConfig}
+            >
+              Delete potencial product
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
+
 }
