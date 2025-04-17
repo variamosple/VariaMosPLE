@@ -37,7 +37,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { makeProjectCollaborative, setupProjectSync} from "../../DataProvider/Services/collaborationService";
+import { setupProjectSync} from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -1809,13 +1809,6 @@ export default class ProjectService {
   }
 
 // COLLABORATIVE FUNCTIONS START***********
-  makeProjectCollaborative = (projectId: string) => {
-    return makeProjectCollaborative(projectId);
-  }
-
-    setupProjectSync = (projectId: string) => {
-        return setupProjectSync(projectId);
-    }
 
     shareProject = (project: string, ToUserEmail: string, role:string) => {
         return this.projectPersistenceUseCases.shareProject(

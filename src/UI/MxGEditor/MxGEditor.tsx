@@ -3228,27 +3228,6 @@ try {
 
   }
 
-  // Pensar que hacer con esto
-  makeProjectCollaborative() {
-    try {
-      const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
-      if (!project) {
-        alert("There is no project selected.");
-        return;
-      }
-
-      const projectId = project.id; // ID del proyecto
-      const projectName = project.name; // Nombre del proyecto
-
-      // Llamar al servicio de colaboración
-      const workspaceID = this.props.projectService.makeProjectCollaborative(projectId);
-      alert(`The Project "${projectName}" is now collaborative.`);
-    } catch (error) {
-      console.error("Error making the project collaborative:", error);
-      alert("An error has occur while trying to make the project collaborative.");
-    }
-  }
-// Pensar que hacer con esto
 
   changeProjectCollaborative() { 
     try {
@@ -3593,9 +3572,19 @@ try {
           <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
           <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
           <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
-          <a title="Share with users" onClick={this.handleSyncModalToggle.bind(this)}><span>Sync</span></a> {/* Nuevo botón */}
-          <a title="Collaborators" onClick={this.getProyectCollaborators.bind(this)}><span>Collaborators</span></a> {/* Nuevo botón */}
-          <a title="Cambiar estado colaborativo" onClick={this.changeProjectCollaborative}><span>{this.state.isCollaborative ? "Colaborativo: ON" : "Colaborativo: OFF"}</span></a>
+          {this.state.userRole === RoleEnum.OWNER && (
+    <>
+      <a title="Share with users" onClick={this.handleSyncModalToggle.bind(this)}>
+        <span>Sync</span>
+      </a>
+      <a title="Collaborators" onClick={this.getProyectCollaborators.bind(this)}>
+        <span>Collaborators</span>
+      </a>
+      <a title="Cambiar estado colaborativo" onClick={this.changeProjectCollaborative}>
+        <span>{this.state.isCollaborative ? "Colaborativo: ON" : "Colaborativo: OFF"}</span>
+      </a>
+    </>
+  )}
         </div>
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>

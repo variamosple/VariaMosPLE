@@ -438,6 +438,11 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   renderScope(productLine: ProductLine, idProductLine: number) {
+    console.log("ProductLine: ", productLine);
+    if (!productLine.scope) {  
+      console.warn("Scope no existe, creando uno nuevo...");
+      return <div>No scope</div>
+    }
     return this.renderScopeModels(productLine.scope.models, idProductLine)
   }
  

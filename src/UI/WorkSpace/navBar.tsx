@@ -36,15 +36,14 @@ class navBar extends Component<Props, State> {
   componentDidMount() {
   }
 
+  // Modificar para que acepte el owner y solo el pueda guardar IMPORTANTE
   saveProject() {
     let me = this;
     if (this.props.projectService.isGuessUser()) {
       this.exportProject(); 
     }else{
       let pf=this.props.projectService.getProjectInformation();
-      if (!pf) {
-        this.handleShowSaveModal();
-      }else if (!pf.id) {
+      if (pf.template || !pf.id) {
         this.handleShowSaveModal();
       }else{
         this.props.projectService.saveProjectInServer(pf, null, null);
