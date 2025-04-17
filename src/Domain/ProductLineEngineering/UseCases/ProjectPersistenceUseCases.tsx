@@ -69,5 +69,19 @@ export default class ProjectPersistenceUseCases {
     this.projectPersistenceService.getProjectCollaborators(projectId, successCallback, errorCallback);
   }
 
+  removeCollaborator(projectId:string, collaboratorId:string, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.removeCollaborator(projectId, collaboratorId, successCallback, errorCallback);
+  }
+
+  changeCollaboratorRole(projectId:string, collaboratorId:string, role:string, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.changeCollaboratorRole(projectId, collaboratorId, role, successCallback, errorCallback);
+  }
+  
+  getUserRole(projectId:string, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.getUserRole(projectId, successCallback, errorCallback);
+  }
 
 }

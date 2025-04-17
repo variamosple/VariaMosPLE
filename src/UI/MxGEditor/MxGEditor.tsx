@@ -28,6 +28,7 @@ import { LuSheet } from "react-icons/lu";
 import { RiSave3Fill } from "react-icons/ri";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGroup } from "reactstrap";
 import MxProperties from "../MxProperties/MxProperties";
+import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 
 interface Props {
   projectService: ProjectService;
@@ -57,6 +58,9 @@ interface State {
     shareInput: string;
     shareRole: string;
     isCollaborative: boolean;
+    collaborators: Array<{id: string, name: string,email: string; role: string }>;
+    showCollaboratorsModal: boolean;
+    userRole: string;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -93,6 +97,9 @@ export default class MxGEditor extends Component<Props, State> {
       shareInput: "",
       shareRole: "",
       isCollaborative: false,
+      collaborators: [],
+      showCollaboratorsModal: false,
+      userRole: "",
 
 
     }
@@ -119,7 +126,7 @@ export default class MxGEditor extends Component<Props, State> {
     // Collabcondition
     this.handleSyncModalToggle = this.handleSyncModalToggle.bind(this);
     this.handleShareEmailChange = this.handleShareEmailChange.bind(this);
-    this.handleSyncWorkspace = this.handleSyncWorkspace.bind(this);
+    this.handleInviteCollaborator = this.handleInviteCollaborator.bind(this);
     this.changeProjectCollaborative = this.changeProjectCollaborative.bind(this);
   }
 
@@ -186,6 +193,15 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let model = me.props.projectService.findModelById(e.project, e.modelSelectedId);
     me.loadModel(model);
+
+    const projectInfo = this.props.projectService.getProjectInformation();
+    if (projectInfo) {
+      me.setState({isCollaborative: projectInfo.is_collaborative || false,
+      collaborators: []
+      });
+      me.getUserRole();
+    }
+
     me.forceUpdate();
   }
 
@@ -241,9 +257,8 @@ export default class MxGEditor extends Component<Props, State> {
     const projectInfo = this.props.projectService.getProjectInformation();
     if (projectInfo && projectInfo.is_collaborative != undefined) {
       this.setState({isCollaborative: projectInfo.is_collaborative});
+      this.getUserRole();
     }
-
-
   }
 
   LoadGraph(graph: mxGraph) {
@@ -3184,7 +3199,13 @@ renderRequirementsReport() {
 
 //   }
 
-  handleSyncWorkspace() {
+  handleInviteCollaborator() {
+const {userRole} = this.state;
+if (userRole !== RoleEnum.OWNER){
+  alert("Only the owner can invite collaborators.");
+  return;
+}
+
 const toUserEmail  = this.state.shareInput.trim();
 const role = this.state.shareRole.trim();
 const project = this.props.projectService.getProjectInformation();
@@ -3212,7 +3233,7 @@ try {
     try {
       const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
       if (!project) {
-        alert("No hay un proyecto seleccionado.");
+        alert("There is no project selected.");
         return;
       }
 
@@ -3221,10 +3242,10 @@ try {
 
       // Llamar al servicio de colaboración
       const workspaceID = this.props.projectService.makeProjectCollaborative(projectId);
-      alert(`El proyecto "${projectName}" ahora es colaborativo.`);
+      alert(`The Project "${projectName}" is now collaborative.`);
     } catch (error) {
-      console.error("Error al hacer el proyecto colaborativo:", error);
-      alert("Ocurrió un error al intentar hacer el proyecto colaborativo.");
+      console.error("Error making the project collaborative:", error);
+      alert("An error has occur while trying to make the project collaborative.");
     }
   }
 // Pensar que hacer con esto
@@ -3267,14 +3288,22 @@ try {
       alert("No hay un proyecto seleccionado.");
       return;
     }
-    const projectId = project.id; // ID del proyecto
+    const projectId = project.id;
     const collaborators = this.props.projectService.getProjectCollaborators(projectId,
       (response) => {
         if (response) {
           console.log("Colaboradores del proyecto:", response.users);
-          const collaboratorsList = response.users.map((user: any) => { 
-            return`${user.name}, (${user.role})`}).join(", ");
-          alert(`Colaboradores del proyecto: ${collaboratorsList}`);
+          const collaboratorsList = response.users.map((user: any) => 
+            ({ 
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            })
+          );
+          this.setState({ collaborators: collaboratorsList, showCollaboratorsModal: true });
+        }else{
+          alert("No se pudieron obtener los colaboradores del proyecto.");
         }
       },
       (error) => {
@@ -3286,6 +3315,245 @@ try {
     console.error("Error al obtener los colaboradores del proyecto:", error);
     alert("Ocurrió un error al intentar obtener los colaboradores del proyecto.");
   }
+  }
+
+  removeCollaborator(collaboratorId: string) {
+    try{
+    const project = this.props.projectService.getProjectInformation();
+    if (!project) {
+      alert("No hay un proyecto seleccionado.");
+      return;
+    }
+
+    const projectId = project.id;
+    this.props.projectService.removeCollaborator(projectId, collaboratorId, () => {
+      alert(`Colaborador ${collaboratorId} eliminado correctamente.`);
+      this.setState((prevState) => ({
+        collaborators: prevState.collaborators.filter((collab) => collab.id !== collaboratorId),
+      }));
+    }, (error) => {
+      console.error("Error al eliminar colaborador:", error);
+      alert("Ocurrió un error al intentar eliminar el colaborador.");
+    })
+    }catch (error){
+      console.error("Error al eliminar colaborador:", error);
+      alert("Ocurrió un error al intentar eliminar el colaborador.");
+    }
+  }
+
+  changeCollaboratorRole(collaboratorId: string, newRole: string) {
+    try{
+    const project = this.props.projectService.getProjectInformation();
+    if (!project) {
+      alert("No hay un proyecto seleccionado.");
+      return;
+    }
+    const projectId = project.id;
+    this.props.projectService.changeCollaboratorRole(projectId, collaboratorId, newRole, () => {
+      alert(`Rol del colaborador ${collaboratorId} cambiado a ${newRole} correctamente.`);
+      this.setState((prevState) => ({
+        collaborators: prevState.collaborators.map((collab) =>
+          collab.id === collaboratorId ? { ...collab, role: newRole } : collab
+        ),
+      }));
+    }, (error) => {
+      console.error("Error al cambiar el rol del colaborador:", error);
+      alert("Ocurrió un error al intentar cambiar el rol del colaborador.");
+    })
+    }catch (error){
+      console.error("Error al cambiar el rol del colaborador:", error);
+      alert("Ocurrió un error al intentar cambiar el rol del colaborador.");
+    }
+  }
+
+  getUserRole() {
+    try {
+      const project = this.props.projectService.getProjectInformation(); // Obtener información del proyecto actual
+      if (!project) {
+        alert("No hay un proyecto seleccionado.");
+        return;
+      }
+      const projectId = project.id;
+        this.props.projectService.getUserRole(
+        projectId,
+        (response) => {
+          if (response && response.role) {
+            console.log("Rol del usuario obtenido exitosamente:", response.role);
+            this.setState({ userRole: response.role }); 
+          } else {
+            console.error("No se pudo obtener el rol del usuario.");
+            alert("No se pudo obtener el rol del usuario en el proyecto.");
+          }
+        },
+        (error) => {
+          console.error("Error al obtener el rol del usuario:", error);
+          alert("Ocurrió un error al intentar obtener el rol del usuario.");
+        }
+      );
+    } catch (error) {
+      console.error("Error al obtener el rol del usuario:", error);
+      alert("Ocurrió un error inesperado.");
+    }
+  }
+
+
+  renderCollaboratorsModal() {
+    const { userRole, collaborators } = this.state; 
+    const isCurrentUserOwner = userRole === RoleEnum.OWNER; 
+    return (
+      <Modal
+        show={this.state.showCollaboratorsModal}
+        onHide={() => this.setState({ showCollaboratorsModal: false })}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Colaboradores del Proyecto</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {collaborators.length > 0 ? (
+            <ul className="list-group">
+              {collaborators.map((collaborator) => {
+                const isCollaboratorOwner = collaborator.role === RoleEnum.OWNER; 
+                const isCurrentUser = collaborator.id === this.props.projectService.getUser();
+                return (
+                  <li
+                    key={collaborator.id}
+                    className="list-group-item d-flex justify-content-between align-items-center"
+                  >
+                    <div>
+                      <span>
+                        {collaborator.name} ({collaborator.email})
+                      </span>
+                      <br />
+                      <span style={{ fontSize: "0.9em", color: "#666" }}>
+                        Rol actual: {collaborator.role}
+                      </span>
+                    </div>
+                    <div className="d-flex align-items-center">
+                      {/* Dropdown para cambiar el rol */}
+                      <Dropdown>
+                        <Dropdown.Toggle
+                          variant="secondary"
+                          size="sm"
+                          id={`dropdown-role-${collaborator.id}`}
+                          disabled={
+                            !isCurrentUserOwner || // Deshabilitar si el usuario actual no es owner
+                            isCollaboratorOwner || // Deshabilitar si el colaborador es owner
+                            isCurrentUser // Deshabilitar si el colaborador es el usuario actual
+                          }
+                        >
+                          Cambiar Rol
+                        </Dropdown.Toggle>
+                        <Dropdown.Menu>
+                          <Dropdown.Item
+                            onClick={() =>
+                              this.changeCollaboratorRole(collaborator.id, RoleEnum.EDIOR)
+                            }
+                            disabled={isCollaboratorOwner || isCurrentUser}
+                          >
+                            Editor
+                          </Dropdown.Item>
+                          <Dropdown.Item
+                            onClick={() =>
+                              this.changeCollaboratorRole(collaborator.id, RoleEnum.VIEWER)
+                            }
+                            disabled={isCollaboratorOwner || isCurrentUser}
+                          >
+                            Viewer
+                          </Dropdown.Item>
+                        </Dropdown.Menu>
+                      </Dropdown>
+                      {/* Botón para eliminar colaborador */}
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        className="ms-2"
+                        onClick={() => this.removeCollaborator(collaborator.id)}
+                        disabled={
+                          !isCurrentUserOwner || // Deshabilitar si el usuario actual no es owner
+                          isCollaboratorOwner // Deshabilitar si el colaborador es owner
+                        }
+                      >
+                        Eliminar
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p>No hay colaboradores en este proyecto.</p>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => this.setState({ showCollaboratorsModal: false })}
+          >
+            Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
+
+  renderAddCollaboratorModal() {
+    const { userRole } = this.state;
+    const isCurrentUserOwner = userRole === RoleEnum.OWNER; 
+    return(
+        <Modal
+          show={this.state.showSyncModal}
+          onHide={this.handleSyncModalToggle}
+          centered
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Share with User</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form>
+              <FormGroup controlId="shareInput">
+                <label>User Email</label>
+                <FormGroup>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter User Email"
+                    value={this.state.shareInput}
+                    onChange={this.handleShareEmailChange}
+                    disabled={!isCurrentUserOwner}
+                  />
+                </FormGroup>
+              </FormGroup>
+              <FormGroup controlId="shareRole">
+                <label>User Role</label>
+                <FormGroup>
+                  <Dropdown>
+                    <Dropdown.Toggle variant="secondary" id="dropdown-basic" disabled={!isCurrentUserOwner}>
+                      {this.state.shareRole || "Select Role"}
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      <Dropdown.Item onClick={() => this.handleRoleChange(RoleEnum.EDIOR)}>
+                        Editor
+                      </Dropdown.Item>
+                      <Dropdown.Item onClick={() => this.handleRoleChange(RoleEnum.VIEWER)}>
+                        Viewer
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                </FormGroup>
+              </FormGroup>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.handleSyncModalToggle}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={this.handleInviteCollaborator} disabled={!isCurrentUserOwner}>
+              Share
+            </Button>
+          </Modal.Footer>
+        </Modal>
+    )
   }
 
 
@@ -3332,57 +3600,9 @@ try {
         {this.renderContexMenu()}
         <div ref={this.graphContainerRef} className="GraphContainer"></div>
         
-        <Modal
-          show={this.state.showSyncModal}
-          onHide={this.handleSyncModalToggle}
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Share with User</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form>
-              <FormGroup controlId="shareInput">
-                <label>User Email</label>
-                <FormGroup>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter User Email"
-                    value={this.state.shareInput}
-                    onChange={this.handleShareEmailChange}
-                  />
-                </FormGroup>
-              </FormGroup>
-              <FormGroup controlId="shareRole">
-                <label>User Role</label>
-                <FormGroup>
-                  <Dropdown>
-                    <Dropdown.Toggle variant="secondary" id="dropdown-basic">
-                      {this.state.shareRole || "Select Role"}
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                      <Dropdown.Item onClick={() => this.handleRoleChange("editor")}>
-                        Editor
-                      </Dropdown.Item>
-                      <Dropdown.Item onClick={() => this.handleRoleChange("viewer")}>
-                        Viewer
-                      </Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown>
-                </FormGroup>
-              </FormGroup>
-            </Form>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={this.handleSyncModalToggle}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={this.handleSyncWorkspace}>
-              Sync
-            </Button>
-          </Modal.Footer>
-        </Modal>
+        {this.renderCollaboratorsModal()}
+
+        {this.renderAddCollaboratorModal()}
         
         <div>
           <Modal

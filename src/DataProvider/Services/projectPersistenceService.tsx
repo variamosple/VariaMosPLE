@@ -357,6 +357,96 @@ export default class ProjectPersistenceService {
       }
     }
   }
+
+  removeCollaborator(projectId:string, collaboratorId:string, successCallback:any, errorCallback: any):void {
+    try {
+      PROJECTS_CLIENT.delete("/removeCollaborator", {
+        params: { project_id: projectId, collaborator_id: collaboratorId },
+      }).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        if (responseAPISuccess.message?.includes("Error")) {
+          throw new Error(JSON.stringify(res.data));
+        }
+        if (successCallback) {
+          successCallback(responseAPISuccess.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });
+    } catch (error) {
+      console.error("Something wrong in removeCollaborator Service:", error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
+    }
+  }
+
+  changeCollaboratorRole(projectId :string, collaboratorId:string, role:string, successCallback:any, errorCallback: any):void {
+    try {
+      PROJECTS_CLIENT.post("/changeUserRole", {
+        project_id: projectId,
+        collaborator_id: collaboratorId, 
+        role: role,
+      }).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        if (responseAPISuccess.message?.includes("Error")) {
+          throw new Error(JSON.stringify(res.data));
+        }
+        if (successCallback) {
+          successCallback(responseAPISuccess.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });
+    } catch (error) {
+      console.error("Something wrong in changeCollaboratorRole Service:", error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
+    }
+  }
+
+  getUserRole(
+    projectId:string,
+    successCallback:any,
+    errorCallback:any
+  ):void {
+    try {
+      PROJECTS_CLIENT.get("/getUserRole", {
+        params: { project_id: projectId },
+      }).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        if (responseAPISuccess.message?.includes("Error")) {
+          throw new Error(JSON.stringify(res.data));
+        }
+        if (successCallback) {
+          successCallback(responseAPISuccess.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });
+    } catch (error) {
+      console.error("Something wrong in getUserRole Service:", error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
+    }
+  }
 }
 
 export class ResponseAPISuccess {

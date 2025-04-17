@@ -1867,8 +1867,59 @@ export default class ProjectService {
         );
     }
 
+    removeCollaborator = (projectId: string, collaboratorId: string, successCallback: any, errorCallback:any) => {
+      return this.projectPersistenceUseCases.removeCollaborator(
+        projectId, 
+        collaboratorId, 
+        (response) => {
+          console.log("Collaborator removed successfully:", response);
+          if (successCallback) {
+            successCallback(response);
+          }
+        }, 
+        (error) => {
+          console.error("Error removing collaborator:", error);
+          if (errorCallback) {
+            errorCallback(error);
+          }
+        }
+      );
+    }
 
+    changeCollaboratorRole = (projectId: string, collaboratorId: string, role: string, successCallback: any, errorCallback:any) => {
+      return this.projectPersistenceUseCases.changeCollaboratorRole(
+        projectId, 
+        collaboratorId, 
+        role, 
+        (response) => {
+          console.log("Collaborator role changed successfully:", response);
+          if (successCallback) {
+            successCallback(response);
+          }
+        }, 
+        (error) => {
+          console.error("Error changing collaborator role:", error);
+          if (errorCallback) {
+            errorCallback(error);
+          }
+        }
+      );
+    }
 
-
+    getUserRole(projectId: string, successCallback: any, errorCallback:any) {
+        return this.projectPersistenceUseCases.getUserRole(projectId, (response) => {
+            console.log("User role retrieved successfully:", response);
+            if (successCallback) {
+              successCallback(response);
+            }
+        }, 
+        (error) => {
+            console.error("Error retrieving user role:", error);
+            if (errorCallback) {
+              errorCallback(error);
+          }
+        }
+      );
+    }
 
 }
