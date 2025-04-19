@@ -416,6 +416,24 @@ export default class ProjectPersistenceService {
     }
   }
 
+  async initUser(): Promise<any> {
+    try {
+        const res = await PROJECTS_CLIENT.get("/getUser");
+        const responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
+
+        if (responseAPISuccess.message?.includes("Error")) {
+            throw new Error(JSON.stringify(res.data));
+        }
+        
+    return responseAPISuccess.data?.["user"];
+
+    } catch (error) {
+        console.error("Error in getActualUser Service:", error);
+        throw error;
+    }
+}
+
+
   getUserRole(
     projectId:string,
     successCallback:any,

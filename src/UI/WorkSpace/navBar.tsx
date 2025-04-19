@@ -36,17 +36,24 @@ class navBar extends Component<Props, State> {
   componentDidMount() {
   }
 
-  // Modificar para que acepte el owner y solo el pueda guardar IMPORTANTE
+  // TODO Modificar para que acepte el owner y solo el pueda guardar IMPORTANTE
   saveProject() {
     let me = this;
     if (this.props.projectService.isGuessUser()) {
       this.exportProject(); 
     }else{
       let pf=this.props.projectService.getProjectInformation();
-      if (pf.template || !pf.id) {
+
+      const currentUser = this.props.projectService.getUser();
+
+      if (!pf.id ) {
         this.handleShowSaveModal();
-      }else{
+      }else if (pf.id && pf.owner_id === currentUser) {
         this.props.projectService.saveProjectInServer(pf, null, null);
+      }else if (pf.template){
+        alert("You cannot save a template project");
+      }else{
+        alert("You cannot save this project, you are not the owner");
       }
     } 
   }

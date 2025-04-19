@@ -78,9 +78,12 @@ export default class ProjectPersistenceUseCases {
     let me=this;
     this.projectPersistenceService.changeCollaboratorRole(projectId, collaboratorId, role, successCallback, errorCallback);
   }
+
+  async initUser(): Promise<any> {
+    return this.projectPersistenceService.initUser();
+  }
   
   getUserRole(projectId:string, successCallback:any, errorCallback: any): void {
-    let me=this;
     this.projectPersistenceService.getUserRole(projectId, successCallback, errorCallback);
   }
 

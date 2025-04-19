@@ -1899,6 +1899,16 @@ export default class ProjectService {
       );
     }
 
+    async initUser(): Promise<any> {
+    try{
+      const user = await this.projectPersistenceUseCases.initUser();
+    this.user = user;
+    console.log("User initialized:", user);
+  }catch (error) {
+    console.error("Error initializing user:", error);
+  }
+}
+    
     getUserRole(projectId: string, successCallback: any, errorCallback:any) {
         return this.projectPersistenceUseCases.getUserRole(projectId, (response) => {
             console.log("User role retrieved successfully:", response);

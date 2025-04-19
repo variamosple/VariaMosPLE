@@ -205,7 +205,7 @@ export default class MxGEditor extends Component<Props, State> {
     me.forceUpdate();
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     let me = this;
     if (!this.graph) {
       this.graph = new mx.mxGraph(this.graphContainerRef.current);
@@ -252,8 +252,6 @@ export default class MxGEditor extends Component<Props, State> {
       this.setState({ isBillOfMaterials: false });
     }
     this.logAccordionContents();
-
-    // Nuevo
     const projectInfo = this.props.projectService.getProjectInformation();
     if (projectInfo && projectInfo.is_collaborative != undefined) {
       this.setState({isCollaborative: projectInfo.is_collaborative});
@@ -3377,7 +3375,7 @@ try {
 
 
   renderCollaboratorsModal() {
-    const { userRole, collaborators } = this.state; 
+    const { userRole, collaborators} = this.state; 
     const isCurrentUserOwner = userRole === RoleEnum.OWNER; 
     return (
       <Modal
