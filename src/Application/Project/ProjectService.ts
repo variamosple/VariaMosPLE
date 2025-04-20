@@ -764,17 +764,28 @@ export default class ProjectService {
     return project;
   }
 
+  // TODO TRABAJAR AQUı POSTERIORMENTE, se abre el proyecto en el servidor
   openProjectInServer(projectId: string, template: boolean): void {
     let me = this;
     let user = this.getUser();
 
-    let openProjectInServerSuccessCallback = (projectInformation: ProjectInformation) => {
+    let openProjectInServerSuccessCallback = async (projectInformation: ProjectInformation) => {
       me._project = projectInformation.project;
       me._projectInformation = projectInformation;
       if (template) {
         me._projectInformation.id = null;
         me._projectInformation.template = false;
       }
+
+      try {
+        const collaborators = await this.getProjectCollaborators(projectId);
+        const currentUserRole = await this.getUserRole(projectId);
+        me._projectInformation.collaborators = collaborators;
+        me._projectInformation.currentUserRole = currentUserRole;
+      }catch (e) {
+        console.error("Error setting up project sync:", e);
+      }
+      
       me.raiseEventUpdateProject(me._project, null);
     }
 
@@ -1842,22 +1853,8 @@ export default class ProjectService {
         );
     }
 
-    getProjectCollaborators = (projectId: string, successCallback: any, errorCallback:any) => {
-        return this.projectPersistenceUseCases.getProjectCollaborators(
-            projectId, 
-            (response) => {
-                console.log("Project collaborators retrieved successfully:", response);
-                if (successCallback) {
-                    successCallback(response);
-                }
-            }, 
-            (error) => {
-                console.error("Error retrieving project collaborators:", error);
-                if (errorCallback) {
-                    errorCallback(error);
-                }
-            }
-        );
+    async getProjectCollaborators(projectId: string) : Promise<any> {
+      return this.projectPersistenceUseCases.getProjectCollaborators(projectId)
     }
 
     removeCollaborator = (projectId: string, collaboratorId: string, successCallback: any, errorCallback:any) => {
@@ -1900,29 +1897,17 @@ export default class ProjectService {
     }
 
     async initUser(): Promise<any> {
-    try{
-      const user = await this.projectPersistenceUseCases.initUser();
-    this.user = user;
-    console.log("User initialized:", user);
-  }catch (error) {
-    console.error("Error initializing user:", error);
-  }
-}
+        try{
+        const user = await this.projectPersistenceUseCases.initUser();
+        this.user = user;
+        console.log("User initialized:", user);
+      }catch (error) {
+        console.error("Error initializing user:", error);
+      }
+    }
     
-    getUserRole(projectId: string, successCallback: any, errorCallback:any) {
-        return this.projectPersistenceUseCases.getUserRole(projectId, (response) => {
-            console.log("User role retrieved successfully:", response);
-            if (successCallback) {
-              successCallback(response);
-            }
-        }, 
-        (error) => {
-            console.error("Error retrieving user role:", error);
-            if (errorCallback) {
-              errorCallback(error);
-          }
-        }
-      );
+    getUserRole(projectId: string) {
+    return this.projectPersistenceUseCases.getUserRole(projectId)
     }
 
 }

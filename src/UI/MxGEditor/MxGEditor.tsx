@@ -189,6 +189,7 @@ export default class MxGEditor extends Component<Props, State> {
     }
   }
 
+  // TODO DESPUES DE QUE SE ABRE UN DIAGRAMA, SE EJECUTA CON CADA CAMBIO, EJ, ABRIR UN NUEVO PROYECTO
   projectService_addUpdateProjectListener(e: any) {
     let me = this;
     let model = me.props.projectService.findModelById(e.project, e.modelSelectedId);
@@ -197,15 +198,15 @@ export default class MxGEditor extends Component<Props, State> {
     const projectInfo = this.props.projectService.getProjectInformation();
     if (projectInfo) {
       me.setState({isCollaborative: projectInfo.is_collaborative || false,
-      collaborators: []
+      collaborators: projectInfo.collaborators || [],
+      userRole: projectInfo.currentUserRole || ""
       });
-      me.getUserRole();
     }
 
     me.forceUpdate();
   }
-
-  async componentDidMount() {
+// TODO SE EJECUTA CUANDO SE ABRE UN DIAGRAMA, NO UN PROYECTO
+  componentDidMount() {
     let me = this;
     if (!this.graph) {
       this.graph = new mx.mxGraph(this.graphContainerRef.current);
@@ -252,11 +253,15 @@ export default class MxGEditor extends Component<Props, State> {
       this.setState({ isBillOfMaterials: false });
     }
     this.logAccordionContents();
+
     const projectInfo = this.props.projectService.getProjectInformation();
-    if (projectInfo && projectInfo.is_collaborative != undefined) {
-      this.setState({isCollaborative: projectInfo.is_collaborative});
-      this.getUserRole();
+    if (projectInfo) {
+      me.setState({isCollaborative: projectInfo.is_collaborative || false,
+      collaborators: projectInfo.collaborators || [],
+      userRole: projectInfo.currentUserRole || ""
+      });
     }
+    
   }
 
   LoadGraph(graph: mxGraph) {
@@ -3257,43 +3262,6 @@ try {
     }
   }
 
-
-  getProyectCollaborators() {
-    try{
-    const project = this.props.projectService.getProjectInformation(); // Obtener el proyecto actual
-    if (!project) {
-      alert("No hay un proyecto seleccionado.");
-      return;
-    }
-    const projectId = project.id;
-    const collaborators = this.props.projectService.getProjectCollaborators(projectId,
-      (response) => {
-        if (response) {
-          console.log("Colaboradores del proyecto:", response.users);
-          const collaboratorsList = response.users.map((user: any) => 
-            ({ 
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            })
-          );
-          this.setState({ collaborators: collaboratorsList, showCollaboratorsModal: true });
-        }else{
-          alert("No se pudieron obtener los colaboradores del proyecto.");
-        }
-      },
-      (error) => {
-        console.error("Error al obtener los colaboradores del proyecto:", error);
-        alert("Ocurrió un error al intentar obtener los colaboradores del proyecto.");
-      }
-    );
-  }catch(error) {
-    console.error("Error al obtener los colaboradores del proyecto:", error);
-    alert("Ocurrió un error al intentar obtener los colaboradores del proyecto.");
-  }
-  }
-
   removeCollaborator(collaboratorId: string) {
     try{
     const project = this.props.projectService.getProjectInformation();
@@ -3340,36 +3308,6 @@ try {
     }catch (error){
       console.error("Error al cambiar el rol del colaborador:", error);
       alert("Ocurrió un error al intentar cambiar el rol del colaborador.");
-    }
-  }
-
-  getUserRole() {
-    try {
-      const project = this.props.projectService.getProjectInformation(); // Obtener información del proyecto actual
-      if (!project) {
-        alert("No hay un proyecto seleccionado.");
-        return;
-      }
-      const projectId = project.id;
-        this.props.projectService.getUserRole(
-        projectId,
-        (response) => {
-          if (response && response.role) {
-            console.log("Rol del usuario obtenido exitosamente:", response.role);
-            this.setState({ userRole: response.role }); 
-          } else {
-            console.error("No se pudo obtener el rol del usuario.");
-            alert("No se pudo obtener el rol del usuario en el proyecto.");
-          }
-        },
-        (error) => {
-          console.error("Error al obtener el rol del usuario:", error);
-          alert("Ocurrió un error al intentar obtener el rol del usuario.");
-        }
-      );
-    } catch (error) {
-      console.error("Error al obtener el rol del usuario:", error);
-      alert("Ocurrió un error inesperado.");
     }
   }
 
@@ -3533,8 +3471,6 @@ try {
     )
   }
 
-
-
 // END NEW COLABORATIVE FUNCTIONALITY
 
   render() {
@@ -3575,7 +3511,7 @@ try {
       <a title="Share with users" onClick={this.handleSyncModalToggle.bind(this)}>
         <span>Sync</span>
       </a>
-      <a title="Collaborators" onClick={this.getProyectCollaborators.bind(this)}>
+      <a title="Collaborators" onClick={() => this.setState({ showCollaboratorsModal: true })}>
         <span>Collaborators</span>
       </a>
       <a title="Cambiar estado colaborativo" onClick={this.changeProjectCollaborative}>

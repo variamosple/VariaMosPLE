@@ -326,37 +326,24 @@ export default class ProjectPersistenceService {
     }
   }
 
-  getProjectCollaborators(
-    projectId: string,
-    successCallback: any,
-    errorCallback: any
-  ):void {
+  async getProjectCollaborators(projectId: string):Promise<any> {
     try {
-      PROJECTS_CLIENT.get("/usersProject", {
+      const res = await PROJECTS_CLIENT.get("/usersProject", {
         params: { project_id: projectId },
-      }).then((res) => {
-        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
-        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
-        if (responseAPISuccess.message?.includes("Error")) {
-          throw new Error(JSON.stringify(res.data));
-        }
-        if (successCallback) {
-          successCallback(responseAPISuccess.data);
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        if (errorCallback) {
-          errorCallback(error);
-        }
       });
-    } catch (error) {
-      console.error("Something wrong in getProjectCollaborators Service:", error);
-      if (errorCallback) {
-        errorCallback(error);
+  
+      let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+      responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
       }
+      return responseAPISuccess.data?.["users"];
+  
+    }catch (error) {
+      console.error("Error in getProjectCollaborators Service:", error);
+      throw error;
     }
-  }
+}
 
   removeCollaborator(projectId:string, collaboratorId:string, successCallback:any, errorCallback: any):void {
     try {
@@ -431,42 +418,29 @@ export default class ProjectPersistenceService {
         console.error("Error in getActualUser Service:", error);
         throw error;
     }
-}
+  }
 
 
-  getUserRole(
-    projectId:string,
-    successCallback:any,
-    errorCallback:any
-  ):void {
-    try {
-      PROJECTS_CLIENT.get("/getUserRole", {
+  async getUserRole(projectId:string): Promise<any> {
+    try{
+      const res = await PROJECTS_CLIENT.get("/getUserRole", {
         params: { project_id: projectId },
-      }).then((res) => {
-        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
-        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
-        if (responseAPISuccess.message?.includes("Error")) {
-          throw new Error(JSON.stringify(res.data));
-        }
-        if (successCallback) {
-          successCallback(responseAPISuccess.data);
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        if (errorCallback) {
-          errorCallback(error);
-        }
       });
-    } catch (error) {
-      console.error("Something wrong in getUserRole Service:", error);
-      if (errorCallback) {
-        errorCallback(error);
+  
+      let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+      responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
       }
+      return responseAPISuccess.data?.["role"];
+
+    }catch (error) {
+      console.error("Error in getUserRole Service:", error);
+      throw error;
+
     }
   }
 }
-
 export class ResponseAPISuccess {
   transactionId?: string;
   message?: string;

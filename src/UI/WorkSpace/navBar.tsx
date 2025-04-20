@@ -46,7 +46,7 @@ class navBar extends Component<Props, State> {
 
       const currentUser = this.props.projectService.getUser();
 
-      if (!pf.id ) {
+      if (!pf || !pf.id ) {
         this.handleShowSaveModal();
       }else if (pf.id && pf.owner_id === currentUser) {
         this.props.projectService.saveProjectInServer(pf, null, null);
