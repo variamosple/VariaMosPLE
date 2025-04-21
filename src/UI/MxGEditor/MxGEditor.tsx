@@ -199,7 +199,7 @@ export default class MxGEditor extends Component<Props, State> {
     if (projectInfo) {
       me.setState({isCollaborative: projectInfo.is_collaborative || false,
       collaborators: projectInfo.collaborators || [],
-      userRole: projectInfo.currentUserRole || ""
+      userRole: projectInfo.role || ""
       });
     }
 
@@ -255,10 +255,11 @@ export default class MxGEditor extends Component<Props, State> {
     this.logAccordionContents();
 
     const projectInfo = this.props.projectService.getProjectInformation();
+    console.log("Project Info:", projectInfo);
     if (projectInfo) {
       me.setState({isCollaborative: projectInfo.is_collaborative || false,
       collaborators: projectInfo.collaborators || [],
-      userRole: projectInfo.currentUserRole || ""
+      userRole: projectInfo.role || ""
       });
     }
     
@@ -3202,7 +3203,7 @@ renderRequirementsReport() {
 
 //   }
 
-  handleInviteCollaborator() {
+async handleInviteCollaborator() {
 const {userRole} = this.state;
 if (userRole !== RoleEnum.OWNER){
   alert("Only the owner can invite collaborators.");
@@ -3218,10 +3219,20 @@ if (!toUserEmail || !project || !role) {
 }
 try {
   const projectId = project.id;
-  const share = this.props.projectService.shareProject(projectId, toUserEmail, role); 
+  const share = await this.props.projectService.shareProject(projectId, toUserEmail, role); 
+
   console.log(`Project shared with ${toUserEmail} as ${role}`);
   alert(`Project successfully shared with ${toUserEmail} as ${role}.`);
-  
+
+  const newCollaborator = {
+    id: share.id,
+    name: share.name,
+    email: share.email,
+    role: share.role,
+  };
+  this.setState((prevState) => ({
+    collaborators: [...prevState.collaborators, newCollaborator],
+  }));
 } catch (error) {
   console.error("Error syncing workspace:", error);
   alert("An error occurred while syncing the workspace. Please try again.");

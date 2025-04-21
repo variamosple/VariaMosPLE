@@ -244,54 +244,32 @@ export default class ProjectPersistenceService {
     }
   }
   // ADDED SHARE FUNCTIONS
-  shareProject(
-    projectId: string,
-    toUserEmail: string,
-    role: string,
-    successCallback: any,
-    errorCallback: any
-  ): void {
+  async shareProject(  projectId: string,  toUserEmail: string,  role: string): Promise<any> {
+    if (!projectId || !toUserEmail || !role) {
+      throw new Error("Invalid input parameters");
+    }
+    
 
+    let project_id = projectId;
+    let user_email = toUserEmail;
+    let user_role = role;
+    
     try {
-
-      if (!projectId || !toUserEmail || !role) {
-        console.error("Invalid project information or username.");
-        if (errorCallback) {
-          errorCallback("Invalid project information or username.");
-        }
-        return;
-      }
-
-      let project_id = projectId;
-      let user_email = toUserEmail;
-      let user_role = role;
-
-      PROJECTS_CLIENT.post("/shareProject", {
+      const res = await PROJECTS_CLIENT.post("/shareProject", {
         user_email,
         project_id,
-        user_role,  
-      }).then((res) => {
-        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
-        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
-        if (responseAPISuccess.message?.includes("Error")) {
-          throw new Error(JSON.stringify(res.data));
-        }
-        if (successCallback) {
-          successCallback(responseAPISuccess.data);
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        if (errorCallback) {
-          errorCallback(error);
-        }
+        user_role,
       });
 
+      const responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+      return responseAPISuccess.data;
     } catch (error) {
-      console.error("Something wrong in shareProject Service:", error);
-      if (errorCallback) {
-        errorCallback(error);
-      }    }  
+      console.error("Error in shareProject Service:", error);
+      throw error;
+    }
   }
 
   changeProjectCollaborationState(

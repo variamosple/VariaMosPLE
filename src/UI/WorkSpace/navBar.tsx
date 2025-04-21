@@ -36,7 +36,6 @@ class navBar extends Component<Props, State> {
   componentDidMount() {
   }
 
-  // TODO Modificar para que acepte el owner y solo el pueda guardar IMPORTANTE
   saveProject() {
     let me = this;
     if (this.props.projectService.isGuessUser()) {

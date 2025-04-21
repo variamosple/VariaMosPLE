@@ -51,7 +51,7 @@ export default function SaveDialog({
   const [semanticsReady, setSemanticsReady] = useState(false);
   const [savedQueries, setSavedQueries] = useState({});
   const [queryName, setQueryName] = useState("");
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState({owned: [], shared: []});
   const [projectInformation, setProjectInformation] = useState(new ProjectInformation(null, null, null, null, false, null, null, null, new Date(), false));
   const [users, setUsers] = useState(["Hugo", "Paco", "Luis"]);
 
@@ -214,9 +214,10 @@ export default function SaveDialog({
     }
     projectService.getProjectsByUser(getProjectsByUserSuccessCallback, getProjectsByUserErrorCallback);
   }
-
-  const getProjectsByUserSuccessCallback = (records: ProjectInformation[]) => {
-    setProjects(records);
+// TODO PREGUNTAR PARA QUE SIRVE?
+  const getProjectsByUserSuccessCallback = (data: {owned_projects: ProjectInformation[]; shared_projects: ProjectInformation[]}) => {
+    const {owned_projects, shared_projects} = data;
+    setProjects({owned: owned_projects || [], shared: shared_projects || []}); 
   }
 
   const getProjectsByUserErrorCallback = (e) => {
@@ -232,54 +233,54 @@ export default function SaveDialog({
   }
 
   const renderProjects = () => {
-    let elements = [];
-    if (projects) {
-      for (let i = 0; i < projects.length; i++) {
-        let project: ProjectInformation = projects[i];
-        const element = (
-          <tr>
-            {/* <a title="Change name" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}><MdEdit/></a> */}
-            {/* <td>
-              <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
-            </td> */}
-            <td>
-              <a href="#" className="link-project" data-id={project.id} data-index={i} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
-            </td>
-            <td>
-              {new Date(project.date).toLocaleString()}
-            </td>
-            <td>
-              {project.description}
-            </td>
-            <td>
-              {project.author}
-            </td>
-            <td>
-              {project.source}
-            </td>
-          </tr>
-        );
-        elements.push(element);
-      }
-    }
+    if (!projects) return null;
+  
+    const renderProjectGroup = (group, title) => (
+      <>
+        <h3>{title}</h3>
+        <table>
+          <thead style={{ position: "sticky", top: "0", backgroundColor: "white" }}>
+            <tr>
+              <th>Name</th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Author</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {group.map((project, i) => (
+              <tr key={i}>
+                <td>
+                  <a
+                    href="#"
+                    className="link-project"
+                    data-id={project.id}
+                    data-index={i}
+                    data-template={false}
+                    onClick={btnProject_onClic}
+                  >
+                    {project.name}
+                  </a>
+                </td>
+                <td>{new Date(project.date).toLocaleString()}</td>
+                <td>{project.description}</td>
+                <td>{project.author}</td>
+                <td>{project.source}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    );
+  
     return (
-      <table>
-        <thead style={{ position: 'sticky', top: '0', backgroundColor: 'white' }}>
-          <tr>
-            {/* <th></th> */}
-            <th>Name</th>
-            <th>Date</th>
-            <th>Description</th>
-            <th>Author</th>
-            <th>Source</th>
-          </tr>
-        </thead>
-        <tbody>
-          {elements}
-        </tbody>
-      </table>
-    )
-  }
+      <div>
+        {renderProjectGroup(projects.owned, "Owned Projects")}
+        {renderProjectGroup(projects.shared, "Shared Projects")}
+      </div>
+    );
+  };
 
   const renderUsers = () => {
     let elements = [];

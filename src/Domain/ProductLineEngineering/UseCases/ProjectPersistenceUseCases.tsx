@@ -54,9 +54,8 @@ export default class ProjectPersistenceUseCases {
   } 
 
   // ADDED SHARE FUNCTIONS
-  shareProject(projectId:string, toUserEmail: string, role: string, successCallback:any, errorCallback: any): void {
-    let me=this;
-    this.projectPersistenceService.shareProject(projectId , toUserEmail, role, successCallback, errorCallback);
+  async shareProject(projectId:string, toUserEmail: string, role: string): Promise<any> {
+    return this.projectPersistenceService.shareProject(projectId , toUserEmail, role);
   }
 
   changeProjectCollaborationState(projectId:string, successCallback:any, errorCallback: any): void {
