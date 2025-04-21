@@ -323,61 +323,42 @@ export default class ProjectPersistenceService {
     }
 }
 
-  removeCollaborator(projectId:string, collaboratorId:string, successCallback:any, errorCallback: any):void {
+  async removeCollaborator(projectId:string, collaboratorId:string): Promise<any> {
     try {
-      PROJECTS_CLIENT.delete("/removeCollaborator", {
+      const res = await PROJECTS_CLIENT.delete("/removeCollaborator", {
         params: { project_id: projectId, collaborator_id: collaboratorId },
-      }).then((res) => {
-        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
-        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
-        if (responseAPISuccess.message?.includes("Error")) {
-          throw new Error(JSON.stringify(res.data));
-        }
-        if (successCallback) {
-          successCallback(responseAPISuccess.data);
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        if (errorCallback) {
-          errorCallback(error);
-        }
       });
+
+      let responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      console.log("Response from removeCollaborator Service:", responseAPISuccess);
+      return responseAPISuccess;
     } catch (error) {
       console.error("Something wrong in removeCollaborator Service:", error);
-      if (errorCallback) {
-        errorCallback(error);
-      }
+      throw error;
     }
   }
 
-  changeCollaboratorRole(projectId :string, collaboratorId:string, role:string, successCallback:any, errorCallback: any):void {
+  async changeCollaboratorRole(projectId :string, collaboratorId:string, role:string): Promise<any> {
     try {
-      PROJECTS_CLIENT.post("/changeUserRole", {
+
+      const res = await PROJECTS_CLIENT.post("/changeUserRole", {
         project_id: projectId,
-        collaborator_id: collaboratorId, 
+        collaborator_id: collaboratorId,
         role: role,
-      }).then((res) => {
-        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
-        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
-        if (responseAPISuccess.message?.includes("Error")) {
-          throw new Error(JSON.stringify(res.data));
-        }
-        if (successCallback) {
-          successCallback(responseAPISuccess.data);
-        }
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        if (errorCallback) {
-          errorCallback(error);
-        }
       });
-    } catch (error) {
-      console.error("Something wrong in changeCollaboratorRole Service:", error);
-      if (errorCallback) {
-        errorCallback(error);
+      let responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
       }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.log("Something wrong in changeCollaboratorRole Service: " + error);
+      throw error;
     }
   }
 

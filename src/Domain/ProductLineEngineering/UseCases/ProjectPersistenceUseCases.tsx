@@ -67,17 +67,15 @@ export default class ProjectPersistenceUseCases {
     return this.projectPersistenceService.getProjectCollaborators(projectId);
   }
 
-  removeCollaborator(projectId:string, collaboratorId:string, successCallback:any, errorCallback: any): void {
-    let me=this;
-    this.projectPersistenceService.removeCollaborator(projectId, collaboratorId, successCallback, errorCallback);
+  removeCollaborator(projectId:string, collaboratorId:string): Promise<any> {
+    return this.projectPersistenceService.removeCollaborator(projectId, collaboratorId);
   }
 
-  changeCollaboratorRole(projectId:string, collaboratorId:string, role:string, successCallback:any, errorCallback: any): void {
-    let me=this;
-    this.projectPersistenceService.changeCollaboratorRole(projectId, collaboratorId, role, successCallback, errorCallback);
+  changeCollaboratorRole(projectId:string, collaboratorId:string, role:string): Promise<any> {
+    return this.projectPersistenceService.changeCollaboratorRole(projectId, collaboratorId, role);
   }
 
-  async initUser(): Promise<any> {
+  initUser(): Promise<any> {
     return this.projectPersistenceService.initUser();
   }
   

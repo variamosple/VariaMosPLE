@@ -3280,24 +3280,29 @@ try {
       alert("No hay un proyecto seleccionado.");
       return;
     }
-
     const projectId = project.id;
-    this.props.projectService.removeCollaborator(projectId, collaboratorId, () => {
-      alert(`Colaborador ${collaboratorId} eliminado correctamente.`);
-      this.setState((prevState) => ({
-        collaborators: prevState.collaborators.filter((collab) => collab.id !== collaboratorId),
-      }));
-    }, (error) => {
-      console.error("Error al eliminar colaborador:", error);
-      alert("Ocurrió un error al intentar eliminar el colaborador.");
+    this.props.projectService.removeCollaborator(projectId, collaboratorId)
+    .then((response) => {
+      if (response) {
+        alert(`Colaborador ${collaboratorId} eliminado.`);
+        this.setState((prevState) => ({
+          collaborators: prevState.collaborators.filter(
+            (collab) => collab.id !== collaboratorId
+          ),
+        }));
+      } else {
+        alert("No se pudo eliminar el colaborador.");
+      }
     })
-    }catch (error){
+    
+  
+  }catch (error){
       console.error("Error al eliminar colaborador:", error);
       alert("Ocurrió un error al intentar eliminar el colaborador.");
     }
   }
-
-  changeCollaboratorRole(collaboratorId: string, newRole: string) {
+// TODO Cambiar para que se pase el id del proyecto y así no llamar al getProjectInformationCadaVez, para TODAS LAS FUNCIONES IMPORTANTE!!
+  async changeCollaboratorRole(collaboratorId: string, newRole: string) {
     try{
     const project = this.props.projectService.getProjectInformation();
     if (!project) {
@@ -3305,16 +3310,18 @@ try {
       return;
     }
     const projectId = project.id;
-    this.props.projectService.changeCollaboratorRole(projectId, collaboratorId, newRole, () => {
-      alert(`Rol del colaborador ${collaboratorId} cambiado a ${newRole} correctamente.`);
-      this.setState((prevState) => ({
-        collaborators: prevState.collaborators.map((collab) =>
-          collab.id === collaboratorId ? { ...collab, role: newRole } : collab
-        ),
-      }));
-    }, (error) => {
-      console.error("Error al cambiar el rol del colaborador:", error);
-      alert("Ocurrió un error al intentar cambiar el rol del colaborador.");
+    await this.props.projectService.changeCollaboratorRole(projectId, collaboratorId, newRole)
+    .then((response) => {
+      if (response) {
+        alert(`Rol del colaborador ${collaboratorId} cambiado a ${newRole}.`);
+        this.setState((prevState) => ({
+          collaborators: prevState.collaborators.map((collab) =>
+            collab.id === collaboratorId ? { ...collab, role: newRole } : collab
+          ),
+        }));
+      } else {
+        alert("No se pudo cambiar el rol del colaborador.");
+      }
     })
     }catch (error){
       console.error("Error al cambiar el rol del colaborador:", error);
