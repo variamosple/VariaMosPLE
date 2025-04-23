@@ -36,6 +36,7 @@ class navBar extends Component<Props, State> {
   componentDidMount() {
   }
 
+  // TODO Recordatorio propio de cambios
   saveProject() {
     let me = this;
     if (this.props.projectService.isGuessUser()) {
@@ -50,9 +51,11 @@ class navBar extends Component<Props, State> {
       }else if (pf.id && pf.owner_id === currentUser) {
         this.props.projectService.saveProjectInServer(pf, null, null);
       }else if (pf.template){
-        alert("You cannot save a template project");
+        alert("This project is a template, Saving a Copy");
+        this.handleShowSaveModal();        
       }else{
-        alert("You cannot save this project, you are not the owner");
+        alert("You are not the owner of this project, you can only save a copy of it.");
+        this.handleShowSaveModal();
       }
     } 
   }
