@@ -919,8 +919,14 @@ export default class MxGEditor extends Component<Props, State> {
         graph.getModel().beginUpdate();
         try {
           graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
+          // TODO AQUÍ SE VE EL MODELO CARGADO
           if (model) {
             let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
+            if (!languageDefinition) {
+             console.error("Language definition not found for model type:", model.type);
+             this.showMessageModal("Error", "Language definition not found for model type: " + model.type);
+              return;
+            }
             let orden = [];
             for (let i = 0; i < model.elements.length; i++) {
               let element: any = model.elements[i];
