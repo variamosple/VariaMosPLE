@@ -832,6 +832,7 @@ export default class ProjectService {
     }
     this.projectPersistenceUseCases.addConfiguration(user, projectInformation, configurationInformation, sc, errorCallback);
   }
+  
 
   getProjectsByUser(successCallback: any, errorCallback: any) {
     let user = this.getUser();

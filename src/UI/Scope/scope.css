@@ -1,0 +1,68 @@
+/* Si querías un contenedor con scroll, lo mantienes: */
+.tree-container {
+  /* Esto es opcional, tu contenedor principal */
+  padding: 1rem;
+  max-height: 600px;  /* si quieres scroll */
+  overflow-y: auto;
+  border: 1px solid #ccc;
+}
+
+/* Lista anidada */
+.hierarchical-list {
+  /* Espaciado a la izquierda para la tabulación base */
+  padding-left: 1.5rem;
+  margin: 0;
+}
+
+/* Ajusta bullets para cada nivel (opcional) */
+.hierarchical-list ul {
+  list-style-type: circle; /* segundo nivel con círculos */
+  margin-left: 1.5rem;
+}
+.hierarchical-list ul ul {
+  list-style-type: square; /* tercer nivel con cuadrados */
+}
+
+/* Si quieres un poco de espacio vertical entre items */
+.hierarchical-list li {
+  margin: 6px 0;
+}
+
+/* Para resaltar el item si está "selected" */
+.node-content.selected {
+  font-weight: bold; 
+  color: #007bff;
+}
+
+/* Barra de herramientas, si quieres alinear en la misma línea */
+.node-toolbar {
+  display: inline-flex;
+  gap: 0.3rem;
+  margin-left: 0.75rem;
+}
+.hierarchical-list, 
+.hierarchical-list ul {
+  list-style-type: disc;       /* o circle, square... */
+  padding-left: 1.5rem;        /* sangría */
+  margin: 0;
+}
+
+.hierarchical-list ul ul {
+  list-style-type: circle;     /* 2do nivel: circulitos */
+  margin-left: 1.5rem;
+}
+
+.hierarchical-list ul ul ul {
+  list-style-type: square;     /* 3er nivel: cuadritos */
+  margin-left: 1.5rem;
+}
+
+.hierarchical-list li {
+  margin: 4px 0;  /* espaciado vertical opcional */
+}
+
+.list-unstyled, 
+ul.list-unstyled,
+ul.list-unstyled li {
+  list-style: disc !important; /* Sobrescribir si es necesario */
+}

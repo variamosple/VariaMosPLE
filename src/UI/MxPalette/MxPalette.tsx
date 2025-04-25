@@ -253,7 +253,8 @@ export default class MxPalette extends Component<Props, State> {
     let divToolbar: any = document.getElementById("graph_palette");
     //divToolbar.classList.add("list-inline");
     if (!divToolbar) {
-      throw new Error("The element #portal wasn't found");
+      return null;
+    //throw new Error("The element #portal wasn't found");
     }
     divToolbar.innerHTML = "";
     const toolbar = new mx.mxToolbar(divToolbar);
