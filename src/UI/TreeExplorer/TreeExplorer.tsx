@@ -436,8 +436,13 @@ class TreeExplorer extends Component<Props, State> {
   renderDomainEngineering(productLine: ProductLine, idProductLine: number) {
     return this.renderDomainModels(productLine.domainEngineering.models, idProductLine)
   }
-
+// TODO ver que sucede con el scope
   renderScope(productLine: ProductLine, idProductLine: number) {
+    console.log("ProductLine: ", productLine);
+    if (!productLine.scope) {  
+      console.warn("Scope no existe, creando uno nuevo...");
+      return <div>No scope</div>
+    }
     return this.renderScopeModels(productLine.scope.models, idProductLine)
   }
  

@@ -54,9 +54,8 @@ export default class ProjectPersistenceUseCases {
   } 
 
   // ADDED SHARE FUNCTIONS
-  shareProject(projectId:string, toUserEmail: string, role: string, successCallback:any, errorCallback: any): void {
-    let me=this;
-    this.projectPersistenceService.shareProject(projectId , toUserEmail, role, successCallback, errorCallback);
+  async shareProject(projectId:string, toUserEmail: string, role: string): Promise<any> {
+    return this.projectPersistenceService.shareProject(projectId , toUserEmail, role);
   }
 
   changeProjectCollaborationState(projectId:string, successCallback:any, errorCallback: any): void {
@@ -64,24 +63,24 @@ export default class ProjectPersistenceUseCases {
     this.projectPersistenceService.changeProjectCollaborationState(projectId, successCallback, errorCallback);
   }
 
-  getProjectCollaborators(projectId:string, successCallback:any, errorCallback: any): void {
-    let me=this;
-    this.projectPersistenceService.getProjectCollaborators(projectId, successCallback, errorCallback);
+  async getProjectCollaborators(projectId:string): Promise<any> {
+    return this.projectPersistenceService.getProjectCollaborators(projectId);
   }
 
-  removeCollaborator(projectId:string, collaboratorId:string, successCallback:any, errorCallback: any): void {
-    let me=this;
-    this.projectPersistenceService.removeCollaborator(projectId, collaboratorId, successCallback, errorCallback);
+  removeCollaborator(projectId:string, collaboratorId:string): Promise<any> {
+    return this.projectPersistenceService.removeCollaborator(projectId, collaboratorId);
   }
 
-  changeCollaboratorRole(projectId:string, collaboratorId:string, role:string, successCallback:any, errorCallback: any): void {
-    let me=this;
-    this.projectPersistenceService.changeCollaboratorRole(projectId, collaboratorId, role, successCallback, errorCallback);
+  changeCollaboratorRole(projectId:string, collaboratorId:string, role:string): Promise<any> {
+    return this.projectPersistenceService.changeCollaboratorRole(projectId, collaboratorId, role);
+  }
+
+  initUser(): Promise<any> {
+    return this.projectPersistenceService.initUser();
   }
   
-  getUserRole(projectId:string, successCallback:any, errorCallback: any): void {
-    let me=this;
-    this.projectPersistenceService.getUserRole(projectId, successCallback, errorCallback);
+  async getUserRole(projectId:string): Promise<any> {
+    return this.projectPersistenceService.getUserRole(projectId);
   }
 
 }

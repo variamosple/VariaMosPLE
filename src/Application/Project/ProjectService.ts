@@ -37,7 +37,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { makeProjectCollaborative, setupProjectSync} from "../../DataProvider/Services/collaborationService";
+import { setupProjectSync} from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -764,17 +764,18 @@ export default class ProjectService {
     return project;
   }
 
+  // TODO TRABAJAR AQUí POSTERIORMENTE, se abre el proyecto en el servidor
   openProjectInServer(projectId: string, template: boolean): void {
     let me = this;
     let user = this.getUser();
 
-    let openProjectInServerSuccessCallback = (projectInformation: ProjectInformation) => {
+    let openProjectInServerSuccessCallback = async (projectInformation: ProjectInformation) => {
       me._project = projectInformation.project;
       me._projectInformation = projectInformation;
       if (template) {
         me._projectInformation.id = null;
         me._projectInformation.template = false;
-      }
+      }          
       me.raiseEventUpdateProject(me._project, null);
     }
 
@@ -1809,26 +1810,9 @@ export default class ProjectService {
   }
 
 // COLLABORATIVE FUNCTIONS START***********
-  makeProjectCollaborative = (projectId: string) => {
-    return makeProjectCollaborative(projectId);
-  }
-
-    setupProjectSync = (projectId: string) => {
-        return setupProjectSync(projectId);
-    }
 
     shareProject = (project: string, ToUserEmail: string, role:string) => {
-        return this.projectPersistenceUseCases.shareProject(
-            project, 
-            ToUserEmail,
-            role,
-            (response) => {
-                console.log("Project shared successfully:", response);
-            }, 
-            (error) => {
-                console.error("Error sharing project:", error);
-            }
-        );
+        return this.projectPersistenceUseCases.shareProject(project, ToUserEmail,role);
     }
 
     changeProjectCollaborationState = (projectId: string, successCallback: any, errorCallback:any) => {
@@ -1849,77 +1833,30 @@ export default class ProjectService {
         );
     }
 
-    getProjectCollaborators = (projectId: string, successCallback: any, errorCallback:any) => {
-        return this.projectPersistenceUseCases.getProjectCollaborators(
-            projectId, 
-            (response) => {
-                console.log("Project collaborators retrieved successfully:", response);
-                if (successCallback) {
-                    successCallback(response);
-                }
-            }, 
-            (error) => {
-                console.error("Error retrieving project collaborators:", error);
-                if (errorCallback) {
-                    errorCallback(error);
-                }
-            }
-        );
+      getProjectCollaborators(projectId: string) : Promise<any> {
+      return this.projectPersistenceUseCases.getProjectCollaborators(projectId)
     }
 
-    removeCollaborator = (projectId: string, collaboratorId: string, successCallback: any, errorCallback:any) => {
-      return this.projectPersistenceUseCases.removeCollaborator(
-        projectId, 
-        collaboratorId, 
-        (response) => {
-          console.log("Collaborator removed successfully:", response);
-          if (successCallback) {
-            successCallback(response);
-          }
-        }, 
-        (error) => {
-          console.error("Error removing collaborator:", error);
-          if (errorCallback) {
-            errorCallback(error);
-          }
-        }
-      );
+    removeCollaborator = (projectId: string, collaboratorId: string) => {
+      return this.projectPersistenceUseCases.removeCollaborator(projectId, collaboratorId,);
     }
 
-    changeCollaboratorRole = (projectId: string, collaboratorId: string, role: string, successCallback: any, errorCallback:any) => {
-      return this.projectPersistenceUseCases.changeCollaboratorRole(
-        projectId, 
-        collaboratorId, 
-        role, 
-        (response) => {
-          console.log("Collaborator role changed successfully:", response);
-          if (successCallback) {
-            successCallback(response);
-          }
-        }, 
-        (error) => {
-          console.error("Error changing collaborator role:", error);
-          if (errorCallback) {
-            errorCallback(error);
-          }
-        }
-      );
+    changeCollaboratorRole = (projectId: string, collaboratorId: string, role: string) => {
+      return this.projectPersistenceUseCases.changeCollaboratorRole(projectId, collaboratorId, role,);
     }
 
-    getUserRole(projectId: string, successCallback: any, errorCallback:any) {
-        return this.projectPersistenceUseCases.getUserRole(projectId, (response) => {
-            console.log("User role retrieved successfully:", response);
-            if (successCallback) {
-              successCallback(response);
-            }
-        }, 
-        (error) => {
-            console.error("Error retrieving user role:", error);
-            if (errorCallback) {
-              errorCallback(error);
-          }
-        }
-      );
+    async initUser(): Promise<any> {
+        try{
+        const user = await this.projectPersistenceUseCases.initUser();
+        this.user = user;
+        console.log("User initialized:", user);
+      }catch (error) {
+        console.error("Error initializing user:", error);
+      }
+    }
+    
+    getUserRole(projectId: string) {
+    return this.projectPersistenceUseCases.getUserRole(projectId)
     }
 
 }

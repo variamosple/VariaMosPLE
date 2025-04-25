@@ -36,18 +36,26 @@ class navBar extends Component<Props, State> {
   componentDidMount() {
   }
 
+  // TODO Recordatorio propio de cambios
   saveProject() {
     let me = this;
     if (this.props.projectService.isGuessUser()) {
       this.exportProject(); 
     }else{
       let pf=this.props.projectService.getProjectInformation();
-      if (!pf) {
+
+      const currentUser = this.props.projectService.getUser();
+
+      if (!pf || !pf.id ) {
         this.handleShowSaveModal();
-      }else if (!pf.id) {
-        this.handleShowSaveModal();
-      }else{
+      }else if (pf.id && pf.owner_id === currentUser) {
         this.props.projectService.saveProjectInServer(pf, null, null);
+      }else if (pf.template){
+        alert("This project is a template, Saving a Copy");
+        this.handleShowSaveModal();        
+      }else{
+        alert("You are not the owner of this project, you can only save a copy of it.");
+        this.handleShowSaveModal();
       }
     } 
   }
