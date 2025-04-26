@@ -766,10 +766,12 @@ export default class ProjectService {
   openProjectInServer(projectId: string, template: boolean): void {
     let me = this;
     let user = this.getUser();
+    console.log("abro projecto en project service", user);
 
     let openProjectInServerSuccessCallback = (projectInformation: ProjectInformation) => {
       me._project = projectInformation.project;
       me._projectInformation = projectInformation;
+      me._currentModel=null;
       if (template) {
         me._projectInformation.id = null;
         me._projectInformation.template = false;
@@ -834,6 +836,7 @@ export default class ProjectService {
 
   getProjectsByUser(successCallback: any, errorCallback: any) {
     let user = this.getUser();
+    console.log("get project by user, ", user);
     this.projectPersistenceUseCases.getProjectsByUser(user, successCallback, errorCallback);
   }
 

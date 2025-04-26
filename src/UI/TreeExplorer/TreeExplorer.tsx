@@ -438,6 +438,8 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   renderScope(productLine: ProductLine, idProductLine: number) {
+    //colocar validación de que el scope se tiene que validar en el caso de que no exista
+    productLine.scope ??= new ScopeSPL();
     return this.renderScopeModels(productLine.scope.models, idProductLine)
   }
  

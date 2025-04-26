@@ -160,7 +160,7 @@ export default function OpenDialog({
     //setSavedQueries(savedQueries);
   };
 
-  const getProjectsByUser = () => {
+  const   getProjectsByUser = () => {
     if (!projectService.isGuessUser()) {
       setKey("privateProjects");
     }
