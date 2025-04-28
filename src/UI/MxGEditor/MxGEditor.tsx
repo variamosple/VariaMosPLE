@@ -3533,10 +3533,10 @@ try {
           {this.state.userRole === RoleEnum.OWNER && (
     <>
       <a title="Share with users" onClick={this.handleSyncModalToggle.bind(this)}>
-        <span>Sync</span>
+        <span> Invite </span>
       </a>
       <a title="Collaborators" onClick={() => this.setState({ showCollaboratorsModal: true })}>
-        <span>Collaborators</span>
+        <span>Collaborators </span>
       </a>
       <a title="Cambiar estado colaborativo" onClick={this.changeProjectCollaborative}>
         <span>{this.state.isCollaborative ? "Colaborativo: ON" : "Colaborativo: OFF"}</span>

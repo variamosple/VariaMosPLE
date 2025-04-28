@@ -48,7 +48,7 @@ class navBar extends Component<Props, State> {
 
       if (!pf || !pf.id ) {
         this.handleShowSaveModal();
-      }else if (pf.id && pf.owner_id === currentUser) {
+      }else if (pf.id && (pf.owner_id === currentUser || (pf.collaborators && pf.collaborators.some(collaborator => collaborator.id === currentUser)))) {
         this.props.projectService.saveProjectInServer(pf, null, null);
       }else if (pf.template){
         alert("This project is a template, Saving a Copy");
