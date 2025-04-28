@@ -438,11 +438,8 @@ class TreeExplorer extends Component<Props, State> {
   }
 // TODO ver que sucede con el scope
   renderScope(productLine: ProductLine, idProductLine: number) {
-    console.log("ProductLine: ", productLine);
-    if (!productLine.scope) {  
-      console.warn("Scope no existe, creando uno nuevo...");
-      return <div>No scope</div>
-    }
+    //colocar validación de que el scope se tiene que validar en el caso de que no exista
+    productLine.scope ??= new ScopeSPL();
     return this.renderScopeModels(productLine.scope.models, idProductLine)
   }
  

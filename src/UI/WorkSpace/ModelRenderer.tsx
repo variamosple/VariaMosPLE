@@ -30,7 +30,6 @@ class ModelRenderer extends Component<ModelRendererProps, ModelRendererState> {
         let model = e.model;
         this.setState({
             selectedModel: model
-
         }
         )
     };

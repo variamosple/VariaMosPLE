@@ -58,6 +58,8 @@ const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService })
    * dibujar líneas verticales/horizontales (css).
    */
   function renderAvailableFunctionalities() {
+    console.log("id del usuario: ", projectService.getUser());
+    //console.log("id del usuario: ", projectService.user);
     const rootElements = elements.filter((el: Element) =>
       !relationships.some((rel: Relationship) => rel.targetId === el.id)
     );
