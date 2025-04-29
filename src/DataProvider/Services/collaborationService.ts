@@ -85,3 +85,37 @@ export const handleCollaborativeProject = async (
     console.log(`El proyecto ${projectId} no es colaborativo.`);
   }
 };
+
+export const sendTestMessage = (projectId: string, message: string) => {
+  const collaborationData = projectCollaborationData.get(projectId);
+  
+  if (collaborationData) {
+    const ymap = collaborationData.doc.getMap("testMessages");
+    ymap.set("lastMessage", {
+      message,
+      timestamp: new Date().toISOString()
+    });
+    console.log(`Mensaje de prueba enviado: ${message}`);
+  } else {
+    console.warn("No hay datos de colaboración para este proyecto");
+  }
+};
+
+interface TestMessage {
+  message: string;
+  timestamp: string;
+}
+
+export const listenToTestMessages = (projectId: string, callback: (message: string) => void) => {
+  const collaborationData = projectCollaborationData.get(projectId);
+  
+  if (collaborationData) {
+    const ymap = collaborationData.doc.getMap("testMessages");
+    ymap.observe(() => {
+      const lastMessage = ymap.get("lastMessage") as TestMessage;
+      if (lastMessage) {
+        callback(lastMessage.message);
+      }
+    });
+  }
+};

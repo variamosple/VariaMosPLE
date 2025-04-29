@@ -37,7 +37,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { handleCollaborativeProject, removeProjectDoc, setupProjectSync } from "../../DataProvider/Services/collaborationService";
+import { handleCollaborativeProject, removeProjectDoc, sendTestMessage, setupProjectSync, listenToTestMessages } from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -1881,6 +1881,14 @@ export default class ProjectService {
       } catch (error) {
         console.error("Error al detener la sincronización:", error);
       }
+    }
+
+    testMessage = (projectId: string) => {
+      sendTestMessage(projectId, "Mensaje de prueba");
+    }
+
+    listenToTestMessages = (projectId: string, callback: (message: string) => void) => {
+      listenToTestMessages(projectId, callback);
     }
 
 }

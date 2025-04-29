@@ -202,6 +202,17 @@ export default class MxGEditor extends Component<Props, State> {
       userRole: projectInfo.role || ""
       });
     }
+  
+    if (projectInfo.id) {
+      console.log("Configurando listener para mensajes en proyecto:", projectInfo.id);
+      console.log("Configurando listener de mensajes");
+      this.props.projectService.listenToTestMessages(projectInfo.id, (message) => {
+        console.log("Mensaje recibido:", message);
+        this.showMessageModal("Mensaje Recibido", message);
+      });
+    } else {
+      console.warn("No se pudo configurar el listener: ID de proyecto no encontrado");
+    }
 
     me.forceUpdate();
   }
@@ -256,13 +267,28 @@ export default class MxGEditor extends Component<Props, State> {
 
     const projectInfo = this.props.projectService.getProjectInformation();
     console.log("Project Info:", projectInfo);
-    if (projectInfo) {
-      me.setState({isCollaborative: projectInfo.is_collaborative || false,
-      collaborators: projectInfo.collaborators || [],
-      userRole: projectInfo.role || ""
-      });
-    }
     
+    console.log("DIDMOUNT")
+
+    if (projectInfo) {
+      // Actualizar estado del proyecto
+      me.setState({
+        isCollaborative: projectInfo.is_collaborative || false,
+        collaborators: projectInfo.collaborators || [],
+        userRole: projectInfo.role || ""
+      });
+      // Configurar sincronización y listener de mensajes
+      if (projectInfo.id) {
+        console.log("Configurando listener para mensajes en proyecto:", projectInfo.id);
+        console.log("Configurando listener de mensajes");
+        this.props.projectService.listenToTestMessages(projectInfo.id, (message) => {
+          console.log("Mensaje recibido:", message);
+          this.showMessageModal("Mensaje Recibido", message);
+        });
+      } else {
+        console.warn("No se pudo configurar el listener: ID de proyecto no encontrado");
+      }
+    }
   }
 
   LoadGraph(graph: mxGraph) {
@@ -3546,6 +3572,32 @@ try {
       </a>
       <a title="Cambiar estado colaborativo" onClick={this.changeProjectCollaborative}>
         <span>{this.state.isCollaborative ? "Colaborativo: ON" : "Colaborativo: OFF"}</span>
+      </a>
+      <a title="TestMessage" onClick={async () => {
+        const projectInfo = this.props.projectService.getProjectInformation();
+        console.log("Project Info:", projectInfo);
+        
+        if (projectInfo?.id) {
+          if (!projectInfo.is_collaborative) {
+            console.log("Configurando proyecto como colaborativo...");
+            await this.props.projectService.changeProjectCollaborationState(projectInfo.id, 
+              () => {
+                console.log("Proyecto configurado como colaborativo");
+                this.props.projectService.testMessage(projectInfo.id);
+              },
+              (error) => {
+                console.error("Error al configurar proyecto como colaborativo:", error);
+              }
+            );
+          } else {
+            console.log("Enviando mensaje al proyecto:", projectInfo.id);
+            this.props.projectService.testMessage(projectInfo.id);
+          }
+        } else {
+          console.error("No se encontró el ID del proyecto");
+        }
+      }}>
+        <span>Probar Sincronización</span>
       </a>
     </>
   )}
