@@ -7,7 +7,7 @@ import { WEBSOCKET_URL } from "./constants";
 export class ProjectCollaborationManager {
   private static instance: ProjectCollaborationManager;
   private projectCollaborationData: Map<string, ProjectCollaborationData>;
-  // private messageObservers = new Map<string, ((message: string) => void)[]>();
+  private currentActiveProjectId: string | null = null;
 
   private constructor() {
     this.projectCollaborationData = new Map<string, ProjectCollaborationData>();
@@ -24,6 +24,11 @@ export class ProjectCollaborationManager {
     projectId: string,
     projectInfo: ProjectInformation
   ): Promise<WebsocketProvider | null> {
+    if (this.currentActiveProjectId && this.currentActiveProjectId !== projectId) {
+      console.log(`Se está intentando conectar al proyecto ${projectId} mientras que el proyecto ${this.currentActiveProjectId} está activo. Cerrando la conexión del proyecto ${this.currentActiveProjectId}.`);
+      this.removeProjectDoc(this.currentActiveProjectId);
+    }
+
     let collaborationData = this.projectCollaborationData.get(projectId);
 
     if (!collaborationData) {
@@ -31,6 +36,8 @@ export class ProjectCollaborationManager {
     } else {
       console.log(`Un usuario se unió al proyecto ${projectId}`);
     }
+
+    this.currentActiveProjectId = projectId;
 
     return collaborationData.provider;
   }
@@ -86,6 +93,9 @@ export class ProjectCollaborationManager {
     
     if (collaborationData) {
       this.cleanupProjectCollaboration(collaborationData, projectId);
+      if (this.currentActiveProjectId === projectId) {
+        this.currentActiveProjectId = null;
+      }
     }
   }
 
