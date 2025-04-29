@@ -37,7 +37,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { setupProjectSync} from "../../DataProvider/Services/collaborationService";
+import { handleCollaborativeProject, removeProjectDoc, setupProjectSync } from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -779,6 +779,8 @@ export default class ProjectService {
         me._projectInformation.template = false;
       }          
       me.raiseEventUpdateProject(me._project, null);
+
+      await handleCollaborativeProject(projectId, projectInformation);
     }
 
     let openProjectInServerErrorCallback = (e) => {
@@ -1861,6 +1863,24 @@ export default class ProjectService {
     
     getUserRole(projectId: string) {
     return this.projectPersistenceUseCases.getUserRole(projectId)
+    }
+
+    async setupProjectSync(projectId: string, projectInfo: ProjectInformation) {
+      try {
+        await setupProjectSync(projectId, projectInfo);
+        console.log(`Sincronización iniciada para el proyecto ${projectId}`);
+      } catch (error) {
+        console.error("Error al iniciar la sincronización:", error);
+      }
+    }
+
+    removeProjectDoc(projectId: string) {
+      try {
+        removeProjectDoc(projectId);
+        console.log(`Sincronización detenida para el proyecto ${projectId}`);
+      } catch (error) {
+        console.error("Error al detener la sincronización:", error);
+      }
     }
 
 }

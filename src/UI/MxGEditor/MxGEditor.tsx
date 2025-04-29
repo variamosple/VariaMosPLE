@@ -3248,7 +3248,6 @@ try {
 
   }
 
-
   changeProjectCollaborative() { 
     try {
       const project = this.props.projectService.getProjectInformation();
@@ -3259,11 +3258,18 @@ try {
       const projectId = project.id; 
       this.props.projectService.changeProjectCollaborationState(
         projectId,
-        (response) => {
+        async (response) => {
           if (response) {
             const newCollaborativeState = response.collaborativeState;
-            this.setState({ isCollaborative: newCollaborativeState }); // Actualiza el estado
-            alert(`El proyecto ahora es ${newCollaborativeState ? "colaborativo" : "no colaborativo"}.`);
+            this.setState({ isCollaborative: newCollaborativeState }); 
+            
+            // Manejar la conexión/desconexión del WebSocket
+            if (newCollaborativeState) {
+              await this.props.projectService.setupProjectSync(projectId, project);
+            } else {
+              this.props.projectService.removeProjectDoc(projectId);
+            }
+            // alert(`El proyecto ahora es ${newCollaborativeState ? "colaborativo" : "no colaborativo"}.`);
           } else {
             alert("No se pudo cambiar el estado de colaboración.");
           }

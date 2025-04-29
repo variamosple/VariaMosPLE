@@ -1,64 +1,87 @@
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import type ProjectService from "../../Application/Project/ProjectService";
+import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
 
+interface ProjectCollaborationData {
+  doc: Y.Doc;
+  provider: WebsocketProvider;
+}
 
-const projectDocs = new Map<string, Y.Doc>(); 
-
-
-export const getAllProjectDocs = (): Map<string, Y.Doc> => {
-  return projectDocs;
-};
+const projectCollaborationData = new Map<string, ProjectCollaborationData>();
 
 export const setupProjectSync = async (
   projectId: string,
-  projectService: ProjectService 
+  projectInfo: ProjectInformation
 ): Promise<WebsocketProvider | null> => {
-  let projectDoc = projectDocs.get(projectId);
+  let collaborationData = projectCollaborationData.get(projectId);
 
-  if (!projectDoc) {
-    projectDoc = new Y.Doc();
-
-    // Usar projectService para obtener la información del proyecto
-    const projectInfo = projectService.getProjectInformation();
+  if (!collaborationData) {
+    const projectDoc = new Y.Doc();
+    
+    // Crear un Y.Map para almacenar el estado del diagrama
+    const ymap = projectDoc.getMap("diagramState");
     if (projectInfo && projectInfo.project) {
-      const ymap = projectDoc.getMap("projectData");
+      // Guardar los datos del proyecto en el Y.Map
       ymap.set("data", projectInfo.project);
     }
 
-    projectDocs.set(projectId, projectDoc);
-    console.log(`Nuevo Y.Doc creado para el proyecto ${projectId}`);
+    const websocketUrl = process.env.REACT_APP_WEBSOCKET_URL;
+    if (!websocketUrl) {
+      throw new Error("La URL del WebSocket no está configurada.");
+    }
+
+    const wsProvider = new WebsocketProvider(websocketUrl, projectId, projectDoc);
+    
+    wsProvider.on("status", (event) => {
+      console.log(`Status WebSocket para proyecto ${projectId}:`, event.status);
+    });
+
+    wsProvider.on("sync", () => {
+      console.log(`Un nuevo usuario se ha conectado al proyecto ${projectId}.`);
+    });
+
+    wsProvider.on("connection-close", () => {
+      console.log(`Un usuario se ha desconectado del proyecto ${projectId}.`);
+    });
+
+    collaborationData = {
+      doc: projectDoc,
+      provider: wsProvider
+    };
+
+    projectCollaborationData.set(projectId, collaborationData);
+    console.log(`Nuevo Y.Doc y WebSocketProvider creados para el proyecto ${projectId}`);
   } else {
     console.log(`Un usuario se unió al proyecto ${projectId}`);
   }
 
-  const websocketUrl = process.env.REACT_APP_WEBSOCKET_URL;
-  if (!websocketUrl) {
-    throw new Error("La URL del WebSocket no está configurada.");
-  }
-
-  const wsProvider = new WebsocketProvider(websocketUrl, projectId, projectDoc);
-
-  wsProvider.on("status", (event) => {
-    console.log(`Status WebSocket para proyecto ${projectId}:`, event.status);
-  });
-
-  wsProvider.on("sync", () => {
-    console.log(`Un nuevo usuario se ha conectado al proyecto ${projectId}.`);
-  });
-
-  wsProvider.on("connection-close", () => {
-    console.log(`Un usuario se ha desconectado del proyecto ${projectId}.`);
-  });
-
-  return wsProvider;
+  return collaborationData.provider;
 };
 
 export const removeProjectDoc = (projectId: string) => {
-  if (projectDocs.has(projectId)) {
-    const projectDoc = projectDocs.get(projectId);
-    projectDoc?.destroy();
-    projectDocs.delete(projectId);
+  const collaborationData = projectCollaborationData.get(projectId);
+  
+  if (collaborationData) {
+    collaborationData.provider.disconnect();
+    console.log("WebSocketProvider desconectado");
+  
+    collaborationData.doc.destroy();
+    console.log("Y.Doc destruido");
+    
+    projectCollaborationData.delete(projectId);
     console.log(`Proyecto ${projectId} ya no es colaborativo`);
+  }
+};
+
+export const handleCollaborativeProject = async (
+  projectId: string,
+  projectInfo: ProjectInformation
+): Promise<void> => {
+  if (projectInfo?.is_collaborative) {
+    console.log(`El proyecto ${projectId} es colaborativo. Configurando Yjs...`);
+    await setupProjectSync(projectId, projectInfo);
+  } else {
+    console.log(`El proyecto ${projectId} no es colaborativo.`);
   }
 };
