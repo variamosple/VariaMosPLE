@@ -1,4 +1,3 @@
-
 import { SessionUser } from "@variamosple/variamos-components";
 import * as alertify from "alertifyjs";
 import { Buffer } from "buffer";
@@ -37,7 +36,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { handleCollaborativeProject, removeProjectDoc, sendTestMessage, setupProjectSync, listenToTestMessages } from "../../DataProvider/Services/collaborationService";
+import { setupProjectSync, removeProjectDoc, sendTestMessage, listenToTestMessages, handleCollaborativeProject} from "../../DataProvider/Services/collaboration/collaborationService";
 
 
 export default class ProjectService {
