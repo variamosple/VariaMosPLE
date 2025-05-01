@@ -170,7 +170,7 @@ export class ProjectCollaborationManager {
         ...event,
         timestamp: new Date().toISOString()
       });
-      console.log(`Evento de diagrama enviado: ${JSON.stringify(event)}`);
+      console.log(`Evento de diagrama enviado:`, event);
     }
   }
 

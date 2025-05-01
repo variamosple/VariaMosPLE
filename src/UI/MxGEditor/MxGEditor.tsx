@@ -311,15 +311,43 @@ export default class MxGEditor extends Component<Props, State> {
                 this.graph.fireEvent(event, mx.mxEvent.CELLS_MOVED);
               }
             });
-            
+            this.graph.refresh();
+          } else if (event.type === 'CELLS_RESIZED' && this.graph) {
+            event.data.forEach((update: { id: string, x: number, y: number, width: number, height: number }) => {
+              const cell = MxgraphUtils.findVerticeById(this.graph, update.id, null);
+              if (cell) {
+                // Marcar el evento como remoto
+                const event = new mx.mxEventObject(mx.mxEvent.CELLS_RESIZED, 'cells', [cell], 'source', 'remote');
+                
+                // Actualizar la posición y tamaño de la celda
+                cell.geometry.x = update.x;
+                cell.geometry.y = update.y;
+                cell.geometry.width = update.width;
+                cell.geometry.height = update.height;
+                
+                // Actualizar el modelo actual si existe
+                if (this.currentModel) {
+                  const element = this.props.projectService.findModelElementById(this.currentModel, update.id);
+                  if (element) {
+                    element.x = update.x;
+                    element.y = update.y;
+                    element.width = update.width;
+                    element.height = update.height;
+                  }
+                }
+                
+                this.graph.fireEvent(event, mx.mxEvent.CELLS_RESIZED);
+              }
+            });
             this.graph.refresh();
           }
         });
-
-
       } else {
         console.warn("No se pudo configurar el listener: ID de proyecto no encontrado");
       }
+
+      
+
     }
   }
 
@@ -459,9 +487,26 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
 
-    graph.addListener(mx.mxEvent.CELLS_RESIZED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.CELLS_RESIZED, (sender, evt) => {
       evt.consume();
       if (evt.properties.cells) {
+        if (evt.properties.source === 'remote') {
+          return;
+        }
+        const update = evt.properties.cells.map(cell => ({
+          id: cell.value.getAttribute("uid"),
+          x: cell.geometry.x,
+          y: cell.geometry.y,
+          width: cell.geometry.width,
+          height: cell.geometry.height
+        }));
+
+        this.props.projectService.sendDiagramEvent(this.state.projectId,
+          {
+            type: 'CELLS_RESIZED',
+            data: update
+          });
+
         let cell = evt.properties.cells[0];
         if (!cell.value.attributes) {
           return;
