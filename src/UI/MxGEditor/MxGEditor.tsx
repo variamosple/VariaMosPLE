@@ -340,6 +340,31 @@ export default class MxGEditor extends Component<Props, State> {
               }
             });
             this.graph.refresh();
+          } else if (event.type === 'CELLS_REMOVED' && this.graph) {
+            console.log("Procesando evento CELLS_REMOVED remoto");
+            
+            this.graph.getModel().beginUpdate();
+            try {
+              event.data.forEach((update: { id: string }) => {
+                const cell = MxgraphUtils.findVerticeById(this.graph, update.id, null);
+                if (cell) {
+                  // Remover del modelo actual
+                  if (this.currentModel) {
+                    this.props.projectService.removeModelElementById(this.currentModel, update.id);
+                  }
+                  
+                  const event = new mx.mxEventObject(mx.mxEvent.REMOVE_CELLS, 'cells', [cell], 'source', 'remote');
+                  
+                  const graphModel = this.graph.getModel();
+                  graphModel.remove(cell);
+                  
+                  this.graph.fireEvent(event, mx.mxEvent.REMOVE_CELLS);
+                }
+              });
+            } finally {
+              this.graph.getModel().endUpdate();
+              this.graph.refresh();
+            }
           }
         });
       } else {
@@ -688,11 +713,28 @@ export default class MxGEditor extends Component<Props, State> {
     //   var target = graph.getModel().getTerminal(edge, false);
     // });
 
-    graph.addListener(mx.mxEvent.REMOVE_CELLS, function (sender, evt) {
-      try {
-        evt.consume();
-      } catch (error) {
-        alert(error);
+    graph.addListener(mx.mxEvent.REMOVE_CELLS, (sender, evt) => {
+      console.log("Listener activated REMOVE_CELLS");
+      // Solo procesar si no es un evento remoto
+      if (!evt.properties.source || evt.properties.source !== 'remote') {
+        console.log("Cells being removed:", evt.properties.cells);
+        try {
+          evt.consume(); // probablemente no se necesite
+          if (evt.properties.cells) {
+            const updates = evt.properties.cells.map(cell => ({
+              id: cell.value.getAttribute("uid")
+            }));
+            
+            // Enviar el evento colaborativo
+            this.props.projectService.sendDiagramEvent(this.state.projectId, {
+              type: 'CELLS_REMOVED',
+              data: updates,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } catch (error) {
+          console.error("Error in REMOVE_CELLS listener:", error);
+        }
       }
     });
 
@@ -1041,8 +1083,19 @@ export default class MxGEditor extends Component<Props, State> {
       if (graph) {
         graph.getModel().beginUpdate();
         try {
-          graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
-          // TODO AQUÍ SE VE EL MODELO CARGADO
+
+          //---------------------------------------------------------
+          // TODO Cambio de el como se limpia el modelo, anteriormente, se limpiaba y se llamaba al listener, lo que ocasionaba problemas en collaborativo
+
+          
+          const graphModel = graph.getModel();
+          const parent = graph.getDefaultParent();
+          const childCount = graphModel.getChildCount(parent);
+          
+          for (let i = childCount - 1; i >= 0; i--) {
+            graphModel.remove(graphModel.getChildAt(parent, i));
+          }  
+            //---------------------------------------------------------  
           if (model) {
             let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
             if (!languageDefinition) {
