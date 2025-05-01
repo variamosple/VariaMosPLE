@@ -36,7 +36,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { setupProjectSync, removeProjectDoc, sendTestMessage, listenToTestMessages, handleCollaborativeProject} from "../../DataProvider/Services/collaboration/collaborationService";
+import { setupProjectSync, removeProjectDoc, sendTestMessage, listenToTestMessages, handleCollaborativeProject, setupDiagramEvents, sendDiagramEvent} from "../../DataProvider/Services/collaboration/collaborationService";
 
 
 export default class ProjectService {
@@ -1888,6 +1888,14 @@ export default class ProjectService {
 
     listenToTestMessages = (projectId: string, callback: (message: string) => void) => {
       listenToTestMessages(projectId, callback);
+    }
+
+    setupDiagramEvents = (projectId: string, callback: (event: any) => void) => {
+      setupDiagramEvents(projectId, callback);
+    }
+
+    sendDiagramEvent = (projectId: string, event: any) => {
+      sendDiagramEvent(projectId, event);
     }
 
 }

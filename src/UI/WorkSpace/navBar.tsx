@@ -43,18 +43,24 @@ class navBar extends Component<Props, State> {
       this.exportProject(); 
     }else{
       let pf=this.props.projectService.getProjectInformation();
-
       const currentUser = this.props.projectService.getUser();
 
       if (!pf || !pf.id ) {
         this.handleShowSaveModal();
-      }else if (pf.id && (pf.owner_id === currentUser || (pf.collaborators && pf.collaborators.some(collaborator => collaborator.id === currentUser)))) {
+      } else if (pf.owner_id === currentUser) {
+        this.props.projectService.saveProjectInServer(pf, null, null);
+      }else if (
+        pf.is_collaborative &&
+        pf.collaborators &&
+        pf.collaborators.some(
+          (collaborator: any) => collaborator.user_id === currentUser) 
+      ) {
         this.props.projectService.saveProjectInServer(pf, null, null);
       }else if (pf.template){
         alert("This project is a template, Saving a Copy");
         this.handleShowSaveModal();        
       }else{
-        alert("You are not the owner of this project, you can only save a copy of it.");
+        alert("The project in this moment is not collaborative, saving a copy");
         this.handleShowSaveModal();
       }
     } 

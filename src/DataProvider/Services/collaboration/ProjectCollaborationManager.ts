@@ -150,4 +150,28 @@ export class ProjectCollaborationManager {
       });
     }
   }
-} 
+
+  public setupDiagramEvents(projectId: string, callback: (event: any) => void): void {
+    const collaborationData = this.projectCollaborationData.get(projectId);
+    if (collaborationData) {
+      const ymap = collaborationData.doc.getMap("diagramEvents");
+      ymap.observe(() => {
+        const lastEvent = ymap.get("lastEvent");
+        callback(lastEvent);
+      });
+    }
+  }  
+
+  public sendDiagramEvent(projectId: string, event: any): void {
+    const collaborationData = this.projectCollaborationData.get(projectId);
+    if (collaborationData) {
+      const ymap = collaborationData.doc.getMap("diagramEvents");
+      ymap.set("lastEvent",{
+        ...event,
+        timestamp: new Date().toISOString()
+      });
+      console.log(`Evento de diagrama enviado: ${JSON.stringify(event)}`);
+    }
+  }
+
+}

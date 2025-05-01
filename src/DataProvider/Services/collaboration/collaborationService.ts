@@ -7,5 +7,7 @@ export const removeProjectDoc = collaborationManager.removeProjectDoc.bind(colla
 export const handleCollaborativeProject = collaborationManager.handleCollaborativeProject.bind(collaborationManager);
 export const sendTestMessage = collaborationManager.sendTestMessage.bind(collaborationManager);
 export const listenToTestMessages = collaborationManager.listenToTestMessages.bind(collaborationManager);
+export const setupDiagramEvents = collaborationManager.setupDiagramEvents.bind(collaborationManager);
+export const sendDiagramEvent = collaborationManager.sendDiagramEvent.bind(collaborationManager);
 
 export { collaborationManager }; 

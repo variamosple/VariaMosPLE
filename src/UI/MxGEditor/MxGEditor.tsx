@@ -284,6 +284,39 @@ export default class MxGEditor extends Component<Props, State> {
           console.log("Mensaje recibido:", message);
           this.showMessageModal("Mensaje Recibido", message);
         });
+
+        this.props.projectService.setupDiagramEvents(projectInfo.id, (event) => {
+          console.log("Evento recibido de otro usuario:", event);
+          
+          if (event.type === 'CELLS_MOVED' && this.graph) {
+            event.data.forEach((update: { id: string, x: number, y: number }) => {
+              const cell = MxgraphUtils.findVerticeById(this.graph, update.id, null);
+              if (cell) {
+                // Marcar el evento como remoto
+                const event = new mx.mxEventObject(mx.mxEvent.CELLS_MOVED, 'cells', [cell], 'source', 'remote');
+                
+                // Actualizar la posición de la celda
+                cell.geometry.x = update.x;
+                cell.geometry.y = update.y;
+                
+                // Actualizar el modelo actual si existe
+                if (this.currentModel) {
+                  const element = this.props.projectService.findModelElementById(this.currentModel, update.id);
+                  if (element) {
+                    element.x = update.x;
+                    element.y = update.y;
+                  }
+                }
+                
+                this.graph.fireEvent(event, mx.mxEvent.CELLS_MOVED);
+              }
+            });
+            
+            this.graph.refresh();
+          }
+        });
+
+
       } else {
         console.warn("No se pudo configurar el listener: ID de proyecto no encontrado");
       }
@@ -340,32 +373,52 @@ export default class MxGEditor extends Component<Props, State> {
         return "";
       }
     };
-    graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
+
+    graph.addListener(mx.mxEvent.CELLS_MOVED, (sender, evt) => {
       if (evt.properties.cells) {
-        for (const c of evt.properties.cells) {
-          console.log(c)
-          if (c.getGeometry().x < 0 || c.getGeometry().y < 0) {
-            c.getGeometry().x -= evt.properties.dx;
-            c.getGeometry().y -= evt.properties.dy;
-            alert("Out of bounds, position reset");
-          }
-        }
-      }
-      evt.consume();
-      if (evt.properties.cells) {
-        let cell = evt.properties.cells[0];
-        if (!cell.value.attributes) {
+
+        if(evt.properties.source === 'remote') {
           return;
         }
-        let uid = cell.value.getAttribute("uid");
-        if (me.currentModel) {
-          for (let i = 0; i < me.currentModel.elements.length; i++) {
-            const element: any = me.currentModel.elements[i];
-            if (element.id === uid) {
-              element.x = cell.geometry.x;
-              element.y = cell.geometry.y;
-              element.width = cell.geometry.width;
-              element.height = cell.geometry.height;
+
+        const updates = evt.properties.cells.map(cell => ({
+          id: cell.value.getAttribute("uid"),
+          x: cell.geometry.x,
+          y: cell.geometry.y
+        }));
+        
+        // Enviar evento de prueba
+        this.props.projectService.sendDiagramEvent(this.state.projectId, {
+          type: 'CELLS_MOVED',
+          data: updates
+        });
+        
+        // Mantener la lógica existente
+        if (evt.properties.cells) {
+          for (const c of evt.properties.cells) {
+            if (c.getGeometry().x < 0 || c.getGeometry().y < 0) {
+              c.getGeometry().x -= evt.properties.dx;
+              c.getGeometry().y -= evt.properties.dy;
+              alert("Out of bounds, position reset");
+            }
+          }
+        }
+        evt.consume();
+        if (evt.properties.cells) {
+          let cell = evt.properties.cells[0];
+          if (!cell.value.attributes) {
+            return;
+          }
+          let uid = cell.value.getAttribute("uid");
+          if (me.currentModel) {
+            for (let i = 0; i < me.currentModel.elements.length; i++) {
+              const element: any = me.currentModel.elements[i];
+              if (element.id === uid) {
+                element.x = cell.geometry.x;
+                element.y = cell.geometry.y;
+                element.width = cell.geometry.width;
+                element.height = cell.geometry.height;
+              }
             }
           }
         }
