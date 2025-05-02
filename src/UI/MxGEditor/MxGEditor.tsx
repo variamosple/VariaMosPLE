@@ -345,12 +345,18 @@ export default class MxGEditor extends Component<Props, State> {
             
             this.graph.getModel().beginUpdate();
             try {
-              event.data.forEach((update: { id: string }) => {
-                const cell = MxgraphUtils.findVerticeById(this.graph, update.id, null);
+              event.data.forEach((update: { id: string, isEdge: boolean }) => {
+                const cell = update.isEdge
+                  ? MxgraphUtils.findEdgeById(this.graph, update.id, null)
+                  : MxgraphUtils.findVerticeById(this.graph, update.id, null);
                 if (cell) {
                   // Remover del modelo actual
                   if (this.currentModel) {
-                    this.props.projectService.removeModelElementById(this.currentModel, update.id);
+                    if (update.isEdge) {
+                      this.props.projectService.removeModelRelationshipById(this.currentModel, update.id);
+                    } else {
+                      this.props.projectService.removeModelElementById(this.currentModel, update.id);
+                    }
                   }
                   
                   const event = new mx.mxEventObject(mx.mxEvent.REMOVE_CELLS, 'cells', [cell], 'source', 'remote');
@@ -552,10 +558,12 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
+      console.log("Listener activated SELECT");
       evt.consume();
     });
 
     graph.addListener(mx.mxEvent.DOUBLE_CLICK, function (sender, evt) {
+      console.log("Listener activated DOUBLE_CLICK");
       evt.consume();
       if (me.state.selectedObject) {
         me.showPropertiesModal();
@@ -563,6 +571,7 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
     graph.addListener(mx.mxEvent.CLICK, function (sender, evt) {
+      console.log("Listener activated CLICK");
       try {
         evt.consume();
         if (!me.currentModel) {
@@ -614,6 +623,7 @@ export default class MxGEditor extends Component<Props, State> {
 
 
     graph.addListener(mx.mxEvent.CELL_CONNECTED, function (sender, evt) {
+      console.log("Listener activated CELL_CONNECTED");
       try {
         evt.consume();
         let edge = evt.getProperty("edge");
@@ -721,9 +731,21 @@ export default class MxGEditor extends Component<Props, State> {
         try {
           evt.consume(); // probablemente no se necesite
           if (evt.properties.cells) {
-            const updates = evt.properties.cells.map(cell => ({
-              id: cell.value.getAttribute("uid")
-            }));
+            const updates = evt.properties.cells.map(cell => {
+              const connectedEdges = this.graph.getModel().getEdges(cell); // Obtener edges conectados
+              const edgeUpdates = connectedEdges.map(edge => ({
+                id: edge.value.getAttribute("uid"),
+                isEdge: true,
+              }));
+    
+              return [
+                {
+                  id: cell.value.getAttribute("uid"),
+                  isEdge: cell.isEdge(),
+                },
+                ...edgeUpdates, // Incluir los edges conectados
+              ];
+            }).flat();
             
             // Enviar el evento colaborativo
             this.props.projectService.sendDiagramEvent(this.state.projectId, {
@@ -739,6 +761,7 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
     graph.addListener(mx.mxEvent.LABEL_CHANGED, function (sender, evt) {
+      console.log("Listener activated LABEL_CHANGED");
       let t = 0;
       let name = evt.properties.value;
       evt.properties.value = evt.properties.old;
@@ -769,6 +792,7 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
     graph.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
+      console.log("Listener activated CHANGE");
       try {
         evt.consume();
         var changes = evt.getProperty('edit').changes;
