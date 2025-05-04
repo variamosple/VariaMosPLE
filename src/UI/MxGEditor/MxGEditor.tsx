@@ -371,6 +371,73 @@ export default class MxGEditor extends Component<Props, State> {
               this.graph.getModel().endUpdate();
               this.graph.refresh();
             }
+          } else if (event.type === 'CELLS_ADDED' && this.graph) {
+
+            this.graph.getModel().beginUpdate();
+  try {
+    event.data.forEach((update: { id: string, parentId: string | null, x: number, y: number, width: number, height: number, type:string, name:string }) => {
+      // Buscar si la celda ya existe en el grafo
+      let cell = MxgraphUtils.findVerticeById(this.graph, update.id, null);
+
+      if (!cell) {
+        // Crear una nueva celda si no existe
+        const parent = update.parentId
+          ? MxgraphUtils.findVerticeById(this.graph, update.parentId, null) || this.graph.getDefaultParent()
+          : this.graph.getDefaultParent();
+
+        const doc = mx.mxUtils.createXmlDocument();
+        const node = doc.createElement("element");
+        node.setAttribute("uid", update.id);
+
+        cell = this.graph.insertVertex(
+          parent,
+          null,
+          node,
+          update.x,
+          update.y,
+          update.width,
+          update.height,
+          "shape=rectangle;whiteSpace=wrap;"
+        );
+      }
+
+      // Actualizar el modelo interno si existe
+      if (this.currentModel) {
+        let element = this.props.projectService.findModelElementById(this.currentModel, update.id);
+        if (!element) {
+          // Si el elemento no existe en el modelo, agregarlo
+          element = {
+            id: update.id,
+            parentId: update.parentId,
+            x: update.x,
+            y: update.y,
+            width: update.width,
+            height: update.height,
+            properties: [],
+            type: update.type,
+            name: update.name,
+            sourceModelElements: [],
+            instanceOfId: null,
+          };
+          this.currentModel.elements.push(element);
+        } else {
+          // Si ya existe, actualizar sus propiedades
+          element.parentId = update.parentId;
+          element.x = update.x;
+          element.y = update.y;
+          element.width = update.width;
+          element.height = update.height;
+        }
+      }
+
+      // Marcar el evento como remoto y dispararlo en el grafo
+      const remoteEvent = new mx.mxEventObject(mx.mxEvent.CELLS_ADDED, 'cells', [cell], 'source', 'remote');
+      this.graph.fireEvent(remoteEvent, mx.mxEvent.CELLS_ADDED);
+    });
+  } finally {
+    this.graph.getModel().endUpdate();
+    this.graph.refresh();
+  }
           }
         });
       } else {
@@ -484,10 +551,50 @@ export default class MxGEditor extends Component<Props, State> {
       }
     });
 
-    graph.addListener(mx.mxEvent.CELLS_ADDED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.CELLS_ADDED, (sender, evt) => {
       try {
+        if (evt.properties.source === 'remote') {
+          return;
+        } 
+
         //evt.consume(); 
         if (evt.properties.cells) {
+
+          // TODO Solucionar, llamado a attribtes regresa undefined, tiene que ver con los setAttributes de los elementos en otras secciones, Preguntas
+          const updates = evt.properties.cells.map(cell => {
+            const parrentId = evt.properties.parent?.value?.getAttribute("uid") || null;
+
+            // ----------------------------------------------------------------------
+
+            const attributes = cell.value.attributes;
+            for (let i = 0; i < attributes.length; i++) {
+              console.log("ATRIBUTOOS",attributes[i].name, attributes[i].value);
+            }           
+            const type = cell.value.getAttribute("Type")
+            console.log("CELLS_ADDED TYPE:", type);
+            const name = cell.value.attributes.getNamedItem("Name")?.value;
+            console.log("CELLS_ADDED NAME:", name);
+
+            // ---------------------------------------------------------------------
+            return {
+              id: cell.value.getAttribute("uid"),
+              x: cell.geometry.x,
+              y: cell.geometry.y,
+              width: cell.geometry.width,
+              height: cell.geometry.height,
+              parentId: parrentId,
+              type: type,
+              name: name
+            };
+          })
+
+          this.props.projectService.sendDiagramEvent(this.state.projectId,
+            {
+              type: 'CELLS_ADDED',
+              data: updates
+            });
+
+
           let parentId = null;
           if (evt.properties.parent) {
             if (evt.properties.parent.value) {
