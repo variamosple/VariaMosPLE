@@ -29,7 +29,6 @@ import { RiSave3Fill } from "react-icons/ri";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGroup } from "reactstrap";
 import MxProperties from "../MxProperties/MxProperties";
 import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
-import { updateProjectState } from "../../DataProvider/Services/collaborationService";
 
 interface Props {
   projectService: ProjectService;
@@ -63,7 +62,7 @@ interface State {
     collaborators: Array<{id: string, name: string,email: string; role: string }>;
     showCollaboratorsModal: boolean;
     userRole: string;
-
+    isLocalChange: boolean;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -104,7 +103,7 @@ export default class MxGEditor extends Component<Props, State> {
       collaborators: [],
       showCollaboratorsModal: false,
       userRole: "",
-
+      isLocalChange: false
 
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
@@ -276,17 +275,18 @@ export default class MxGEditor extends Component<Props, State> {
           // Configurar observador para cambios en el estado del proyecto
           this.props.projectService.observeProjectCollabState(projectInfo.id, (state) => {
             if (state && state.data && me.currentModel) {
-              // Asegurarnos de que el modelo actualizado tenga todos los campos necesarios
-              const updatedModel = {
-                ...me.currentModel, // Mantener la estructura base del modelo actual
-                ...state.data, // Aplicar las actualizaciones
-                type: me.currentModel.type, // Mantener el tipo
-                elements: state.data.elements || me.currentModel.elements || [], // Asegurar que elements exista
-                relationships: state.data.relationships || me.currentModel.relationships || [], // Asegurar que relationships exista
-                constraints: state.data.constraints || me.currentModel.constraints || null // Asegurar que constraints exista
-              };
-              me.currentModel = updatedModel;
-              me.loadModel(updatedModel);
+              // Marcar que los cambios son remotos
+              this.setState({ isLocalChange: true });
+              
+              // Actualizar el modelo con los cambios recibidos
+              me.currentModel.elements = state.data.elements || me.currentModel.elements;
+              me.currentModel.relationships = state.data.relationships || me.currentModel.relationships;
+              
+              // Recargar el gráfico con los nuevos datos
+              me.loadModel(me.currentModel);
+              
+              // Restaurar el estado de cambios locales
+              this.setState({ isLocalChange: false });
             }
           });
         });
@@ -345,7 +345,7 @@ export default class MxGEditor extends Component<Props, State> {
       }
     };
 
-    graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.CELLS_MOVED, (sender, evt) => {
       if (evt.properties.cells) {
         for (const c of evt.properties.cells) {
           if (c.getGeometry().x < 0 || c.getGeometry().y < 0) {
@@ -356,33 +356,36 @@ export default class MxGEditor extends Component<Props, State> {
         }
       }
       evt.consume();
+      
       if (evt.properties.cells) {
-        let cell = evt.properties.cells[0];
-        if (!cell.value.attributes) {
-          return;
-        }
-        let uid = cell.value.getAttribute("uid");
-        if (me.currentModel) {
-          for (let i = 0; i < me.currentModel.elements.length; i++) {
-            const element: any = me.currentModel.elements[i];
-            if (element.id === uid) {
-              element.x = cell.geometry.x;
-              element.y = cell.geometry.y;
-              element.width = cell.geometry.width;
-              element.height = cell.geometry.height;
-
-              // Si el proyecto es colaborativo, actualizar el estado compartido
-              if (me.state.isCollaborative && me.state.projectId) {
-                updateProjectState(me.state.projectId, (state) => {
-                  const currentData = state.get("data") || {};
-                  state.set("data", {
-                    ...currentData,
-                    elements: me.currentModel.elements
-                  });
-                });
+        // Procesar todas las celdas movidas
+        evt.properties.cells.forEach(cell => {
+          if (!cell.value.attributes) {
+            return;
+          }
+          let uid = cell.value.getAttribute("uid");
+          if (me.currentModel) {
+            for (let i = 0; i < me.currentModel.elements.length; i++) {
+              const element: any = me.currentModel.elements[i];
+              if (element.id === uid) {
+                element.x = cell.geometry.x;
+                element.y = cell.geometry.y;
+                element.width = cell.geometry.width;
+                element.height = cell.geometry.height;
               }
             }
           }
+        });
+
+        // Solo actualizar el estado colaborativo si el cambio es local
+        if (me.state.isCollaborative && me.state.projectId && !me.state.isLocalChange) {
+          this.props.projectService.updateProjectCollabState(me.state.projectId, (state) => {
+            const currentData = state.get("data") || {};
+            state.set("data", {
+              ...currentData,
+              elements: me.currentModel.elements
+            });
+          });
         }
       }
     });
@@ -421,24 +424,39 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
 
-    graph.addListener(mx.mxEvent.CELLS_RESIZED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.CELLS_RESIZED, (sender, evt) => {
       evt.consume();
+    
       if (evt.properties.cells) {
-        let cell = evt.properties.cells[0];
-        if (!cell.value.attributes) {
-          return;
-        }
-        let uid = cell.value.getAttribute("uid");
-        if (me.currentModel) {
-          for (let i = 0; i < me.currentModel.elements.length; i++) {
-            const element: any = me.currentModel.elements[i];
-            if (element.id === uid) {
-              element.x = cell.geometry.x;
-              element.y = cell.geometry.y;
-              element.width = cell.geometry.width;
-              element.height = cell.geometry.height;
+        const resizedCells = evt.properties.cells;
+    
+        resizedCells.forEach((cell) => {
+          if (!cell.value.attributes) {
+            return;
+          }
+          const uid = cell.value.getAttribute("uid");
+          if (me.currentModel) {
+            for (let i = 0; i < me.currentModel.elements.length; i++) {
+              const element: any = me.currentModel.elements[i];
+              if (element.id === uid) {
+                // Actualizar las propiedades del elemento en el modelo local
+                element.x = cell.geometry.x;
+                element.y = cell.geometry.y;
+                element.width = cell.geometry.width;
+                element.height = cell.geometry.height;
+              }
             }
           }
+        });
+    
+        if (me.state.isCollaborative && me.state.projectId && !me.state.isLocalChange) {
+          this.props.projectService.updateProjectCollabState(me.state.projectId, (state) => {
+            const currentData = state.get("data") || {};
+            state.set("data", {
+              ...currentData,
+              elements: me.currentModel.elements,
+            });
+          });
         }
       }
     });
@@ -609,11 +627,36 @@ export default class MxGEditor extends Component<Props, State> {
     //   var target = graph.getModel().getTerminal(edge, false);
     // });
 
-    graph.addListener(mx.mxEvent.REMOVE_CELLS, function (sender, evt) {
-      try {
-        evt.consume();
-      } catch (error) {
-        alert(error);
+    graph.addListener(mx.mxEvent.REMOVE_CELLS, (sender, evt) => {
+      evt.consume();
+      
+      if (evt.properties.cells) {
+        const removedCells = evt.properties.cells;
+        
+        removedCells.forEach(cell => {
+          if (cell.value && cell.value.attributes) {
+            const uid = cell.value.getAttribute("uid");
+            if (uid) {
+              if (cell.edge) {
+                me.props.projectService.removeModelRelationshipById(me.currentModel, uid);
+              } else {
+                me.props.projectService.removeModelElementById(me.currentModel, uid);
+              }
+            }
+          }
+        });
+
+        // Actualizar el estado colaborativo solo si el cambio es local
+        if (me.state.isCollaborative && me.state.projectId && !me.state.isLocalChange) {
+          this.props.projectService.updateProjectCollabState(me.state.projectId, (state) => {
+            const currentData = state.get("data") || {};
+            state.set("data", {
+              ...currentData,
+              elements: me.currentModel.elements,
+              relationships: me.currentModel.relationships
+            });
+          });
+        }
       }
     });
 
@@ -943,44 +986,18 @@ export default class MxGEditor extends Component<Props, State> {
   loadModel(model: Model) {
     setTimeout(() => {
       let me = this;
-      
-      // Validación inicial del modelo
+      this.currentModel = model;
       if (!model) {
-        console.warn("Model is undefined");
         this.setState({
           currentModelConstraints: null
+        })
+      } else {
+        this.setState({
+          currentModelConstraints: model.constraints
         });
-        return;
-      }
-
-      // Asegurarnos de que el modelo tenga la estructura básica necesaria
-      if (!model.elements) {
-        console.warn("Model elements is undefined, initializing empty array");
-        model.elements = [];
-      }
-      if (!model.relationships) {
-        console.warn("Model relationships is undefined, initializing empty array");
-        model.relationships = [];
-      }
-
-      this.currentModel = model;
-      
-      // Verificar si el modelo tiene tipo
-      if (!model.type) {
-        console.warn("Model type is undefined, using current model type if available");
-        if (this.currentModel && this.currentModel.type) {
-          model.type = this.currentModel.type;
-        } else {
-          this.showMessageModal("Error", "No se puede cargar el modelo: tipo no definido");
-          return;
+        if (model.inconsistent) {
+          this.showMessageModal("Inconsistent model", model.consistencyError);
         }
-      }
-
-      this.setState({
-        currentModelConstraints: model.constraints || null
-      });
-      if (model.inconsistent) {
-        this.showMessageModal("Inconsistent model", model.consistencyError);
       }
       this.setState({
         showContextMenuElement: false
@@ -990,8 +1007,17 @@ export default class MxGEditor extends Component<Props, State> {
       if (graph) {
         graph.getModel().beginUpdate();
         try {
-          graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
-          // TODO AQUÍ SE VE EL MODELO CARGADO
+        // ---------------------------------------------------------
+        // TODO Cambio de el como se limpia el modelo, anteriormente, se limpiaba y se llamaba al listener, lo que ocasionaba problemas en collaborativo
+          const graphModel = graph.getModel();
+          const parent = graph.getDefaultParent();
+          const childCount = graphModel.getChildCount(parent);
+          
+          for (let i = childCount - 1; i >= 0; i--) {
+            graphModel.remove(graphModel.getChildAt(parent, i));
+          } 
+          
+          // ---------------------------------------------------------
           if (model) {
             let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
             if (!languageDefinition) {
