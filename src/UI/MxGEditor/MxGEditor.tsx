@@ -29,6 +29,7 @@ import { RiSave3Fill } from "react-icons/ri";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGroup } from "reactstrap";
 import MxProperties from "../MxProperties/MxProperties";
 import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
+import { updateProjectState } from "../../DataProvider/Services/collaborationService";
 
 interface Props {
   projectService: ProjectService;
@@ -207,16 +208,6 @@ export default class MxGEditor extends Component<Props, State> {
       });
     }
   
-    if (projectInfo.id) {
-      console.log("Configurando listener para mensajes en proyecto:", projectInfo.id);
-      this.props.projectService.listenToTestMessages(projectInfo.id, (message) => {
-        console.log("Mensaje recibido:", message);
-        this.showMessageModal("Mensaje Recibido", message);
-      });
-    } else {
-      console.warn("No se pudo configurar el listener: ID de proyecto no encontrado");
-    }
-
     me.forceUpdate();
   }
 // TODO SE EJECUTA CUANDO SE ABRE UN DIAGRAMA, NO UN PROYECTO
@@ -272,180 +263,34 @@ export default class MxGEditor extends Component<Props, State> {
     
     if (projectInfo) {
       // Actualizar estado del proyecto
-      me.setState({projectId: projectInfo.id || "",
+      me.setState({
+        projectId: projectInfo.id || "",
         isCollaborative: projectInfo.is_collaborative || false,
         collaborators: projectInfo.collaborators || [],
         userRole: projectInfo.role || "",
-        });
-      // Configurar sincronización y listener de mensajes
-      if (projectInfo.id) {
-        console.log("Configurando listener para mensajes en proyecto:", projectInfo.id);
-        this.props.projectService.listenToTestMessages(projectInfo.id, (message) => {
-          console.log("Mensaje recibido:", message);
-          this.showMessageModal("Mensaje Recibido", message);
-        });
+      });
 
-        this.props.projectService.setupDiagramEvents(projectInfo.id, (event) => {
-          console.log("Evento recibido de otro usuario:", event);
-          
-          if (event.type === 'CELLS_MOVED' && this.graph) {
-            event.data.forEach((update: { id: string, x: number, y: number }) => {
-              const cell = MxgraphUtils.findVerticeById(this.graph, update.id, null);
-              if (cell) {
-                // Marcar el evento como remoto
-                const event = new mx.mxEventObject(mx.mxEvent.CELLS_MOVED, 'cells', [cell], 'source', 'remote');
-                
-                // Actualizar la posición de la celda
-                cell.geometry.x = update.x;
-                cell.geometry.y = update.y;
-                
-                // Actualizar el modelo actual si existe
-                if (this.currentModel) {
-                  const element = this.props.projectService.findModelElementById(this.currentModel, update.id);
-                  if (element) {
-                    element.x = update.x;
-                    element.y = update.y;
-                  }
-                }
-                
-                this.graph.fireEvent(event, mx.mxEvent.CELLS_MOVED);
-              }
-            });
-            this.graph.refresh();
-          } else if (event.type === 'CELLS_RESIZED' && this.graph) {
-            event.data.forEach((update: { id: string, x: number, y: number, width: number, height: number }) => {
-              const cell = MxgraphUtils.findVerticeById(this.graph, update.id, null);
-              if (cell) {
-                // Marcar el evento como remoto
-                const event = new mx.mxEventObject(mx.mxEvent.CELLS_RESIZED, 'cells', [cell], 'source', 'remote');
-                
-                // Actualizar la posición y tamaño de la celda
-                cell.geometry.x = update.x;
-                cell.geometry.y = update.y;
-                cell.geometry.width = update.width;
-                cell.geometry.height = update.height;
-                
-                // Actualizar el modelo actual si existe
-                if (this.currentModel) {
-                  const element = this.props.projectService.findModelElementById(this.currentModel, update.id);
-                  if (element) {
-                    element.x = update.x;
-                    element.y = update.y;
-                    element.width = update.width;
-                    element.height = update.height;
-                  }
-                }
-                
-                this.graph.fireEvent(event, mx.mxEvent.CELLS_RESIZED);
-              }
-            });
-            this.graph.refresh();
-          } else if (event.type === 'CELLS_REMOVED' && this.graph) {
-            console.log("Procesando evento CELLS_REMOVED remoto");
-            
-            this.graph.getModel().beginUpdate();
-            try {
-              event.data.forEach((update: { id: string, isEdge: boolean }) => {
-                const cell = update.isEdge
-                  ? MxgraphUtils.findEdgeById(this.graph, update.id, null)
-                  : MxgraphUtils.findVerticeById(this.graph, update.id, null);
-                if (cell) {
-                  // Remover del modelo actual
-                  if (this.currentModel) {
-                    if (update.isEdge) {
-                      this.props.projectService.removeModelRelationshipById(this.currentModel, update.id);
-                    } else {
-                      this.props.projectService.removeModelElementById(this.currentModel, update.id);
-                    }
-                  }
-                  
-                  const event = new mx.mxEventObject(mx.mxEvent.REMOVE_CELLS, 'cells', [cell], 'source', 'remote');
-                  
-                  const graphModel = this.graph.getModel();
-                  graphModel.remove(cell);
-                  
-                  this.graph.fireEvent(event, mx.mxEvent.REMOVE_CELLS);
-                }
-              });
-            } finally {
-              this.graph.getModel().endUpdate();
-              this.graph.refresh();
+      // Configurar sincronización si el proyecto es colaborativo
+      if (projectInfo.is_collaborative && projectInfo.id) {
+        this.props.projectService.handleCollaborativeProject(projectInfo.id, projectInfo).then(() => {
+          // Configurar observador para cambios en el estado del proyecto
+          this.props.projectService.observeProjectCollabState(projectInfo.id, (state) => {
+            if (state && state.data && me.currentModel) {
+              // Asegurarnos de que el modelo actualizado tenga todos los campos necesarios
+              const updatedModel = {
+                ...me.currentModel, // Mantener la estructura base del modelo actual
+                ...state.data, // Aplicar las actualizaciones
+                type: me.currentModel.type, // Mantener el tipo
+                elements: state.data.elements || me.currentModel.elements || [], // Asegurar que elements exista
+                relationships: state.data.relationships || me.currentModel.relationships || [], // Asegurar que relationships exista
+                constraints: state.data.constraints || me.currentModel.constraints || null // Asegurar que constraints exista
+              };
+              me.currentModel = updatedModel;
+              me.loadModel(updatedModel);
             }
-          } else if (event.type === 'CELLS_ADDED' && this.graph) {
-
-            this.graph.getModel().beginUpdate();
-  try {
-    event.data.forEach((update: { id: string, parentId: string | null, x: number, y: number, width: number, height: number, type:string, name:string }) => {
-      // Buscar si la celda ya existe en el grafo
-      let cell = MxgraphUtils.findVerticeById(this.graph, update.id, null);
-
-      if (!cell) {
-        // Crear una nueva celda si no existe
-        const parent = update.parentId
-          ? MxgraphUtils.findVerticeById(this.graph, update.parentId, null) || this.graph.getDefaultParent()
-          : this.graph.getDefaultParent();
-
-        const doc = mx.mxUtils.createXmlDocument();
-        const node = doc.createElement("element");
-        node.setAttribute("uid", update.id);
-
-        cell = this.graph.insertVertex(
-          parent,
-          null,
-          node,
-          update.x,
-          update.y,
-          update.width,
-          update.height,
-          "shape=rectangle;whiteSpace=wrap;"
-        );
-      }
-
-      // Actualizar el modelo interno si existe
-      if (this.currentModel) {
-        let element = this.props.projectService.findModelElementById(this.currentModel, update.id);
-        if (!element) {
-          // Si el elemento no existe en el modelo, agregarlo
-          element = {
-            id: update.id,
-            parentId: update.parentId,
-            x: update.x,
-            y: update.y,
-            width: update.width,
-            height: update.height,
-            properties: [],
-            type: update.type,
-            name: update.name,
-            sourceModelElements: [],
-            instanceOfId: null,
-          };
-          this.currentModel.elements.push(element);
-        } else {
-          // Si ya existe, actualizar sus propiedades
-          element.parentId = update.parentId;
-          element.x = update.x;
-          element.y = update.y;
-          element.width = update.width;
-          element.height = update.height;
-        }
-      }
-
-      // Marcar el evento como remoto y dispararlo en el grafo
-      const remoteEvent = new mx.mxEventObject(mx.mxEvent.CELLS_ADDED, 'cells', [cell], 'source', 'remote');
-      this.graph.fireEvent(remoteEvent, mx.mxEvent.CELLS_ADDED);
-    });
-  } finally {
-    this.graph.getModel().endUpdate();
-    this.graph.refresh();
-  }
-          }
+          });
         });
-      } else {
-        console.warn("No se pudo configurar el listener: ID de proyecto no encontrado");
       }
-
-      
-
     }
   }
 
@@ -500,50 +345,41 @@ export default class MxGEditor extends Component<Props, State> {
       }
     };
 
-    graph.addListener(mx.mxEvent.CELLS_MOVED, (sender, evt) => {
+    graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
       if (evt.properties.cells) {
-
-        if(evt.properties.source === 'remote') {
+        for (const c of evt.properties.cells) {
+          if (c.getGeometry().x < 0 || c.getGeometry().y < 0) {
+            c.getGeometry().x -= evt.properties.dx;
+            c.getGeometry().y -= evt.properties.dy;
+            alert("Out of bounds, position reset");
+          }
+        }
+      }
+      evt.consume();
+      if (evt.properties.cells) {
+        let cell = evt.properties.cells[0];
+        if (!cell.value.attributes) {
           return;
         }
+        let uid = cell.value.getAttribute("uid");
+        if (me.currentModel) {
+          for (let i = 0; i < me.currentModel.elements.length; i++) {
+            const element: any = me.currentModel.elements[i];
+            if (element.id === uid) {
+              element.x = cell.geometry.x;
+              element.y = cell.geometry.y;
+              element.width = cell.geometry.width;
+              element.height = cell.geometry.height;
 
-        const updates = evt.properties.cells.map(cell => ({
-          id: cell.value.getAttribute("uid"),
-          x: cell.geometry.x,
-          y: cell.geometry.y
-        }));
-        
-        // Enviar evento de prueba
-        this.props.projectService.sendDiagramEvent(this.state.projectId, {
-          type: 'CELLS_MOVED',
-          data: updates
-        });
-        
-        // Mantener la lógica existente
-        if (evt.properties.cells) {
-          for (const c of evt.properties.cells) {
-            if (c.getGeometry().x < 0 || c.getGeometry().y < 0) {
-              c.getGeometry().x -= evt.properties.dx;
-              c.getGeometry().y -= evt.properties.dy;
-              alert("Out of bounds, position reset");
-            }
-          }
-        }
-        evt.consume();
-        if (evt.properties.cells) {
-          let cell = evt.properties.cells[0];
-          if (!cell.value.attributes) {
-            return;
-          }
-          let uid = cell.value.getAttribute("uid");
-          if (me.currentModel) {
-            for (let i = 0; i < me.currentModel.elements.length; i++) {
-              const element: any = me.currentModel.elements[i];
-              if (element.id === uid) {
-                element.x = cell.geometry.x;
-                element.y = cell.geometry.y;
-                element.width = cell.geometry.width;
-                element.height = cell.geometry.height;
+              // Si el proyecto es colaborativo, actualizar el estado compartido
+              if (me.state.isCollaborative && me.state.projectId) {
+                updateProjectState(me.state.projectId, (state) => {
+                  const currentData = state.get("data") || {};
+                  state.set("data", {
+                    ...currentData,
+                    elements: me.currentModel.elements
+                  });
+                });
               }
             }
           }
@@ -551,50 +387,10 @@ export default class MxGEditor extends Component<Props, State> {
       }
     });
 
-    graph.addListener(mx.mxEvent.CELLS_ADDED, (sender, evt) => {
+    graph.addListener(mx.mxEvent.CELLS_ADDED, function (sender, evt) {
       try {
-        if (evt.properties.source === 'remote') {
-          return;
-        } 
-
         //evt.consume(); 
         if (evt.properties.cells) {
-
-          // TODO Solucionar, llamado a attribtes regresa undefined, tiene que ver con los setAttributes de los elementos en otras secciones, Preguntas
-          const updates = evt.properties.cells.map(cell => {
-            const parrentId = evt.properties.parent?.value?.getAttribute("uid") || null;
-
-            // ----------------------------------------------------------------------
-
-            const attributes = cell.value.attributes;
-            for (let i = 0; i < attributes.length; i++) {
-              console.log("ATRIBUTOOS",attributes[i].name, attributes[i].value);
-            }           
-            const type = cell.value.getAttribute("Type")
-            console.log("CELLS_ADDED TYPE:", type);
-            const name = cell.value.attributes.getNamedItem("Name")?.value;
-            console.log("CELLS_ADDED NAME:", name);
-
-            // ---------------------------------------------------------------------
-            return {
-              id: cell.value.getAttribute("uid"),
-              x: cell.geometry.x,
-              y: cell.geometry.y,
-              width: cell.geometry.width,
-              height: cell.geometry.height,
-              parentId: parrentId,
-              type: type,
-              name: name
-            };
-          })
-
-          this.props.projectService.sendDiagramEvent(this.state.projectId,
-            {
-              type: 'CELLS_ADDED',
-              data: updates
-            });
-
-
           let parentId = null;
           if (evt.properties.parent) {
             if (evt.properties.parent.value) {
@@ -625,26 +421,9 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
 
-    graph.addListener(mx.mxEvent.CELLS_RESIZED, (sender, evt) => {
+    graph.addListener(mx.mxEvent.CELLS_RESIZED, function (sender, evt) {
       evt.consume();
       if (evt.properties.cells) {
-        if (evt.properties.source === 'remote') {
-          return;
-        }
-        const update = evt.properties.cells.map(cell => ({
-          id: cell.value.getAttribute("uid"),
-          x: cell.geometry.x,
-          y: cell.geometry.y,
-          width: cell.geometry.width,
-          height: cell.geometry.height
-        }));
-
-        this.props.projectService.sendDiagramEvent(this.state.projectId,
-          {
-            type: 'CELLS_RESIZED',
-            data: update
-          });
-
         let cell = evt.properties.cells[0];
         if (!cell.value.attributes) {
           return;
@@ -830,40 +609,11 @@ export default class MxGEditor extends Component<Props, State> {
     //   var target = graph.getModel().getTerminal(edge, false);
     // });
 
-    graph.addListener(mx.mxEvent.REMOVE_CELLS, (sender, evt) => {
-      console.log("Listener activated REMOVE_CELLS");
-      // Solo procesar si no es un evento remoto
-      if (!evt.properties.source || evt.properties.source !== 'remote') {
-        console.log("Cells being removed:", evt.properties.cells);
-        try {
-          evt.consume(); // probablemente no se necesite
-          if (evt.properties.cells) {
-            const updates = evt.properties.cells.map(cell => {
-              const connectedEdges = this.graph.getModel().getEdges(cell); // Obtener edges conectados
-              const edgeUpdates = connectedEdges.map(edge => ({
-                id: edge.value.getAttribute("uid"),
-                isEdge: true,
-              }));
-    
-              return [
-                {
-                  id: cell.value.getAttribute("uid"),
-                  isEdge: cell.isEdge(),
-                },
-                ...edgeUpdates, // Incluir los edges conectados
-              ];
-            }).flat();
-            
-            // Enviar el evento colaborativo
-            this.props.projectService.sendDiagramEvent(this.state.projectId, {
-              type: 'CELLS_REMOVED',
-              data: updates,
-              timestamp: new Date().toISOString()
-            });
-          }
-        } catch (error) {
-          console.error("Error in REMOVE_CELLS listener:", error);
-        }
+    graph.addListener(mx.mxEvent.REMOVE_CELLS, function (sender, evt) {
+      try {
+        evt.consume();
+      } catch (error) {
+        alert(error);
       }
     });
 
@@ -1193,18 +943,44 @@ export default class MxGEditor extends Component<Props, State> {
   loadModel(model: Model) {
     setTimeout(() => {
       let me = this;
-      this.currentModel = model;
+      
+      // Validación inicial del modelo
       if (!model) {
+        console.warn("Model is undefined");
         this.setState({
           currentModelConstraints: null
-        })
-      } else {
-        this.setState({
-          currentModelConstraints: model.constraints
         });
-        if (model.inconsistent) {
-          this.showMessageModal("Inconsistent model", model.consistencyError);
+        return;
+      }
+
+      // Asegurarnos de que el modelo tenga la estructura básica necesaria
+      if (!model.elements) {
+        console.warn("Model elements is undefined, initializing empty array");
+        model.elements = [];
+      }
+      if (!model.relationships) {
+        console.warn("Model relationships is undefined, initializing empty array");
+        model.relationships = [];
+      }
+
+      this.currentModel = model;
+      
+      // Verificar si el modelo tiene tipo
+      if (!model.type) {
+        console.warn("Model type is undefined, using current model type if available");
+        if (this.currentModel && this.currentModel.type) {
+          model.type = this.currentModel.type;
+        } else {
+          this.showMessageModal("Error", "No se puede cargar el modelo: tipo no definido");
+          return;
         }
+      }
+
+      this.setState({
+        currentModelConstraints: model.constraints || null
+      });
+      if (model.inconsistent) {
+        this.showMessageModal("Inconsistent model", model.consistencyError);
       }
       this.setState({
         showContextMenuElement: false
@@ -1214,19 +990,8 @@ export default class MxGEditor extends Component<Props, State> {
       if (graph) {
         graph.getModel().beginUpdate();
         try {
-
-          //---------------------------------------------------------
-          // TODO Cambio de el como se limpia el modelo, anteriormente, se limpiaba y se llamaba al listener, lo que ocasionaba problemas en collaborativo
-
-          
-          const graphModel = graph.getModel();
-          const parent = graph.getDefaultParent();
-          const childCount = graphModel.getChildCount(parent);
-          
-          for (let i = childCount - 1; i >= 0; i--) {
-            graphModel.remove(graphModel.getChildAt(parent, i));
-          }  
-            //---------------------------------------------------------  
+          graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
+          // TODO AQUÍ SE VE EL MODELO CARGADO
           if (model) {
             let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
             if (!languageDefinition) {
@@ -3853,25 +3618,6 @@ try {
       </a>
       <a title="Cambiar estado colaborativo" onClick={this.changeProjectCollaborative}>
         <span>{this.state.isCollaborative ? "Colaborativo: ON" : "Colaborativo: OFF"}</span>
-      </a>
-
-
-      <a title="TestMessage" onClick={async () => {
-        const projectInfo = this.props.projectService.getProjectInformation();
-        console.log("Project Info:", projectInfo);
-        
-        if (projectInfo?.id) {
-          if (!this.state.isCollaborative) {
-            console.log("Proyecto no colaborativo");
-          } else {
-            console.log("Enviando mensaje al proyecto:", projectInfo.id);
-            this.props.projectService.testMessage(projectInfo.id);
-          }
-        } else {
-          console.error("No se encontró el ID del proyecto");
-        }
-      }}>
-        <span>Probar Sincronización</span>
       </a>
     </>
   )}

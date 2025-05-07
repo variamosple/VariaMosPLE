@@ -36,7 +36,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { setupProjectSync, removeProjectDoc, sendTestMessage, listenToTestMessages, handleCollaborativeProject, setupDiagramEvents, sendDiagramEvent} from "../../DataProvider/Services/collaboration/collaborationService";
+import { setupProjectSync, removeProjectDoc, handleCollaborativeProject, observeProjectState, updateProjectState, getProjectState, sendProjectUpdate} from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -778,8 +778,6 @@ export default class ProjectService {
         me._projectInformation.template = false;
       }          
       me.raiseEventUpdateProject(me._project, null);
-
-      await handleCollaborativeProject(projectId, projectInformation);
     }
 
     let openProjectInServerErrorCallback = (e) => {
@@ -1863,7 +1861,6 @@ export default class ProjectService {
     getUserRole(projectId: string) {
     return this.projectPersistenceUseCases.getUserRole(projectId)
     }
-
     async setupProjectSync(projectId: string, projectInfo: ProjectInformation) {
       try {
         await setupProjectSync(projectId, projectInfo);
@@ -1882,20 +1879,24 @@ export default class ProjectService {
       }
     }
 
-    testMessage = (projectId: string) => {
-      sendTestMessage(projectId, "Mensaje de prueba");
+    observeProjectCollabState(projectId: string, callback: (state: any) => void) {
+      return observeProjectState(projectId, callback);
     }
 
-    listenToTestMessages = (projectId: string, callback: (message: string) => void) => {
-      listenToTestMessages(projectId, callback);
+    updateProjectCollabState(projectId: string, updateFn: (state: any) => void) {
+      return updateProjectState(projectId, updateFn);
     }
 
-    setupDiagramEvents = (projectId: string, callback: (event: any) => void) => {
-      setupDiagramEvents(projectId, callback);
+    getProjectCollabState(projectId: string) {
+      return getProjectState(projectId);
     }
 
-    sendDiagramEvent = (projectId: string, event: any) => {
-      sendDiagramEvent(projectId, event);
+    sendProjectUpdate(projectId: string, updateFn: (state: any) => void){
+      return sendProjectUpdate(projectId, updateFn)
+    }
+
+    handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation){
+      return handleCollaborativeProject(projectId, projectInfo)
     }
 
 }
