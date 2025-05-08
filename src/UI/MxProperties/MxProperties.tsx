@@ -27,6 +27,7 @@ interface Props {
   projectService: ProjectService;
   model: any;
   item: any;
+  onPropertyChange?: () => void;
 }
 interface State {
   values: any[];
@@ -182,6 +183,11 @@ export default class MxProperties extends Component<Props, State> {
       me.currentModel,
       me.currentObject
     );
+
+    // Notificar que hay cambios pendientes
+    if (this.props.onPropertyChange) {
+      this.props.onPropertyChange();
+    }
   }
 
   suggestionInput_onSuggestionReceived(e: SuggestionInputReceivedEventArgs) {
@@ -342,6 +348,18 @@ export default class MxProperties extends Component<Props, State> {
           this.currentModel,
           this.currentObject
         );
+        
+        // Actualizar el estado colaborativo
+        if (this.props.projectService.updateProjectCollabState) {
+          this.props.projectService.updateProjectCollabState(this.props.projectService.getProjectInformation()?.id, (state) => {
+            const currentData = state.get("data") || {};
+            state.set("data", {
+              ...currentData,
+              elements: this.currentModel.elements,
+              relationships: this.currentModel.relationships
+            });
+          });
+        }
 
         alertify.success("Property deleted successfully");
         this.clearForm();
@@ -380,6 +398,18 @@ export default class MxProperties extends Component<Props, State> {
         this.currentModel,
         this.currentObject
       );
+      
+      // Actualizar el estado colaborativo
+      if (this.props.projectService.updateProjectCollabState) {
+        this.props.projectService.updateProjectCollabState(this.props.projectService.getProjectInformation()?.id, (state) => {
+          const currentData = state.get("data") || {};
+          state.set("data", {
+            ...currentData,
+            elements: this.currentModel.elements,
+            relationships: this.currentModel.relationships
+          });
+        });
+      }
 
       alertify.success("Property created successfully");
       this.clearForm();
@@ -410,12 +440,23 @@ export default class MxProperties extends Component<Props, State> {
         this.currentModel,
         this.currentObject
       );
+      
+      // Actualizar el estado colaborativo
+      if (this.props.projectService.updateProjectCollabState) {
+        this.props.projectService.updateProjectCollabState(this.props.projectService.getProjectInformation()?.id, (state) => {
+          const currentData = state.get("data") || {};
+          state.set("data", {
+            ...currentData,
+            elements: this.currentModel.elements,
+            relationships: this.currentModel.relationships
+          });
+        });
+      }
 
       alertify.success("Property changed successfully");
       this.clearForm();
       this.setState({ showAddPropertyModal: false })
     }
-
   }
 
   updateCustomProperty() {

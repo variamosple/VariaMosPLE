@@ -52,6 +52,7 @@ interface State {
   messageModalTitle: string;
   openAccordion: string[];
   showRequirementsReportModal: boolean;
+  pendingChanges: boolean;  // Nuevo estado para cambios pendientes
 
   //   Collab
     showSyncModal: boolean;
@@ -104,6 +105,7 @@ export default class MxGEditor extends Component<Props, State> {
       collaborators: [],
       showCollaboratorsModal: false,
       userRole: "",
+      pendingChanges: false,  // Nuevo estado para cambios pendientes
 
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
@@ -598,6 +600,9 @@ export default class MxGEditor extends Component<Props, State> {
           node.setAttribute("uid", relationship.id);
           edge.style = "strokeColor=#446E79;strokeWidth=2;";
         }
+
+        this.syncModelChanges();
+        
         me.refreshEdgeLabel(edge);
         me.refreshEdgeStyle(edge);
       } catch (error) {
@@ -638,7 +643,7 @@ export default class MxGEditor extends Component<Props, State> {
       }
     });
 
-    graph.addListener(mx.mxEvent.LABEL_CHANGED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.LABEL_CHANGED, (sender, evt) => {
       console.log("Listener activated LABEL_CHANGED");
       let t = 0;
       let name = evt.properties.value;
@@ -656,6 +661,10 @@ export default class MxGEditor extends Component<Props, State> {
             me.currentModel,
             element
           );
+          
+          // Marcar que hay cambios pendientes
+          this.setState({ pendingChanges: true });
+          
         } else {
           const relationship: any = me.props.projectService.findModelRelationshipById(me.currentModel, uid);
           if (relationship) {
@@ -664,6 +673,9 @@ export default class MxGEditor extends Component<Props, State> {
               me.currentModel,
               relationship
             );
+            
+            // Marcar que hay cambios pendientes
+            this.setState({ pendingChanges: true });
           }
         }
       }
@@ -1719,14 +1731,10 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   hidePropertiesModal() {
-    this.setState({ showPropertiesModal: false });
-    // for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
-    //   const efunction = this.props.projectService.externalFunctions[i];
-    //   if (efunction.id == 510 || efunction.id == 511) { //todo: validar por el campo call_on_properties_changed
-    //     let selectedElementsIds = [this.state.selectedObject.id];
-    //     this.callExternalFuntionFromIndex(i, selectedElementsIds, null);
-    //   }
-    // }
+    this.setState({ 
+      showPropertiesModal: false,
+      pendingChanges: false 
+    });
   }
 
   /*
@@ -1888,12 +1896,11 @@ export default class MxGEditor extends Component<Props, State> {
 
 
   savePropertiesModal() {
-    // if (this.currentModel) {
-    //   // TODO: Everything we are doing with respect to
-    //   // the model management is an anti pattern
-    //   this.currentModel.constraints = this.state.currentModelConstraints;
-    // }
-    // //this.hideConstraintModal();
+    if (this.state.pendingChanges) {
+      this.syncModelChanges();
+      this.setState({ pendingChanges: false });
+    }
+    this.hidePropertiesModal();
   }
 
   showMessageModal(title, message) {
@@ -3759,15 +3766,27 @@ try {
             </Modal.Header>
             <Modal.Body>
               <div style={{ maxHeight: "65vh", overflow: "auto" }}>
-                <MxProperties projectService={this.props.projectService} model={this.currentModel} item={this.state.selectedObject} />
+                <MxProperties 
+                  projectService={this.props.projectService} 
+                  model={this.currentModel} 
+                  item={this.state.selectedObject}
+                  onPropertyChange={() => this.setState({ pendingChanges: true })}
+                />
               </div>
             </Modal.Body>
             <Modal.Footer>
               <Button
                 variant="primary"
+                onClick={this.savePropertiesModal}
+                disabled={!this.state.pendingChanges}
+              >
+                Save
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={this.hidePropertiesModal}
               >
-                Close
+                Cancel
               </Button>
             </Modal.Footer>
           </Modal>
