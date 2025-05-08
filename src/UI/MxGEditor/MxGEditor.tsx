@@ -62,7 +62,6 @@ interface State {
     collaborators: Array<{id: string, name: string,email: string; role: string }>;
     showCollaboratorsModal: boolean;
     userRole: string;
-    isLocalChange: boolean;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -71,6 +70,8 @@ export default class MxGEditor extends Component<Props, State> {
   graphContainerRef: any;
   graph?: mxGraph;
   currentModel?: Model;
+  isRemoteChange: boolean;
+  isInitialLoad: boolean= false;
 
   constructor(props: Props) {
     super(props);
@@ -103,7 +104,6 @@ export default class MxGEditor extends Component<Props, State> {
       collaborators: [],
       showCollaboratorsModal: false,
       userRole: "",
-      isLocalChange: false
 
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
@@ -276,7 +276,7 @@ export default class MxGEditor extends Component<Props, State> {
           this.props.projectService.observeProjectCollabState(projectInfo.id, (state) => {
             if (state && state.data && me.currentModel) {
               // Marcar que los cambios son remotos
-              this.setState({ isLocalChange: true });
+              me.isRemoteChange = true;
               
               // Actualizar el modelo con los cambios recibidos
               me.currentModel.elements = state.data.elements || me.currentModel.elements;
@@ -286,7 +286,7 @@ export default class MxGEditor extends Component<Props, State> {
               me.loadModel(me.currentModel);
               
               // Restaurar el estado de cambios locales
-              this.setState({ isLocalChange: false });
+              me.isRemoteChange = false;
             }
           });
         });
@@ -377,20 +377,12 @@ export default class MxGEditor extends Component<Props, State> {
           }
         });
 
-        // Solo actualizar el estado colaborativo si el cambio es local
-        if (me.state.isCollaborative && me.state.projectId && !me.state.isLocalChange) {
-          this.props.projectService.updateProjectCollabState(me.state.projectId, (state) => {
-            const currentData = state.get("data") || {};
-            state.set("data", {
-              ...currentData,
-              elements: me.currentModel.elements
-            });
-          });
-        }
+      this.syncModelChanges();
+
       }
     });
 
-    graph.addListener(mx.mxEvent.CELLS_ADDED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.CELLS_ADDED, (sender, evt) => {
       try {
         //evt.consume(); 
         if (evt.properties.cells) {
@@ -416,8 +408,11 @@ export default class MxGEditor extends Component<Props, State> {
                 element.height = cell.geometry.height;
               }
             }
-          }
+          } 
         }
+        
+        this.syncModelChanges();
+
       } catch (error) {
         me.processException(error);
       }
@@ -449,15 +444,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         });
     
-        if (me.state.isCollaborative && me.state.projectId && !me.state.isLocalChange) {
-          this.props.projectService.updateProjectCollabState(me.state.projectId, (state) => {
-            const currentData = state.get("data") || {};
-            state.set("data", {
-              ...currentData,
-              elements: me.currentModel.elements,
-            });
-          });
-        }
+        this.syncModelChanges();
       }
     });
 
@@ -526,7 +513,7 @@ export default class MxGEditor extends Component<Props, State> {
 
 
 
-    graph.addListener(mx.mxEvent.CELL_CONNECTED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.CELL_CONNECTED,  (sender, evt) => {
       console.log("Listener activated CELL_CONNECTED");
       try {
         evt.consume();
@@ -646,17 +633,8 @@ export default class MxGEditor extends Component<Props, State> {
           }
         });
 
-        // Actualizar el estado colaborativo solo si el cambio es local
-        if (me.state.isCollaborative && me.state.projectId && !me.state.isLocalChange) {
-          this.props.projectService.updateProjectCollabState(me.state.projectId, (state) => {
-            const currentData = state.get("data") || {};
-            state.set("data", {
-              ...currentData,
-              elements: me.currentModel.elements,
-              relationships: me.currentModel.relationships
-            });
-          });
-        }
+      this.syncModelChanges();
+
       }
     });
 
@@ -1003,6 +981,9 @@ export default class MxGEditor extends Component<Props, State> {
         showContextMenuElement: false
       });
 
+
+      this.isInitialLoad = true;
+      console.log("FirstInitialLoad", this.isInitialLoad);
       let graph: mxGraph | undefined = this.graph;
       if (graph) {
         graph.getModel().beginUpdate();
@@ -1139,6 +1120,8 @@ export default class MxGEditor extends Component<Props, State> {
             }
           }
         } finally {
+          this.isInitialLoad = false;
+          console.log("End InitialLoad", this.isInitialLoad);
           graph.getModel().endUpdate();
         }
       }
@@ -3268,6 +3251,19 @@ renderRequirementsReport() {
 
 
 //   NEW COLABORATIVE FUNCTIONALITY
+
+syncModelChanges() {
+  if (this.state.isCollaborative && this.state.projectId && !this.isRemoteChange && !this.isInitialLoad) {
+    this.props.projectService.updateProjectCollabState(this.state.projectId, (state) => {
+      const currentData = state.get("data") || {};
+      state.set("data", {
+        ...currentData,
+        elements: this.currentModel.elements,
+        relationships: this.currentModel.relationships
+      });
+    });
+  }
+}
 
   handleSyncModalToggle = () => {
     this.setState({ showSyncModal: !this.state.showSyncModal });
