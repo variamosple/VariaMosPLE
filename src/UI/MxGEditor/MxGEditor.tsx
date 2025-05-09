@@ -142,6 +142,7 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   projectService_addSelectedModelListener(e: any) {
+    console.log("NUEVO CAMBIO DE PROyeCTOo!", e.model?.type);
     this.loadModel(e.model);
     console.log("Model Type:", e.model?.type);
     // Verificar si el modelo es "Bill of Materials"
@@ -150,8 +151,26 @@ export default class MxGEditor extends Component<Props, State> {
     } else {
       this.setState({ isBillOfMaterials: false });
     }
-    this.forceUpdate();
 
+    // Configurar sincronización para el nuevo modelo seleccionado
+    const projectInfo = this.props.projectService.getProjectInformation();
+    if (projectInfo?.is_collaborative && projectInfo.id && e.model) {
+      // Configurar observador para cambios en el estado del modelo
+      this.props.projectService.observeModelCollabState(projectInfo.id, e.model.id, (state) => {
+        if (state && state.data && this.currentModel) {
+          this.isRemoteChange = true;
+          
+          this.currentModel.elements = state.data.elements || this.currentModel.elements;
+          this.currentModel.relationships = state.data.relationships || this.currentModel.relationships;
+          
+          this.loadModel(this.currentModel);
+          
+          this.isRemoteChange = false;
+        }
+      });
+    }
+
+    this.forceUpdate();
   }
 
   projectService_addCreatedElementListener(e: any) {
@@ -202,17 +221,19 @@ export default class MxGEditor extends Component<Props, State> {
     let model = me.props.projectService.findModelById(e.project, e.modelSelectedId);
     me.loadModel(model);
 
-    const projectInfo = this.props.projectService.getProjectInformation();
+    let projectInfo = this.props.projectService.getProjectInformation();
     if (projectInfo) {
-      me.setState({projectId: projectInfo.id || "",
-      isCollaborative: projectInfo.is_collaborative || false,
-      collaborators: projectInfo.collaborators || [],
-      userRole: projectInfo.role || "",
+      me.setState({
+        projectId: projectInfo.id || "",
+        isCollaborative: projectInfo.is_collaborative || false,
+        collaborators: projectInfo.collaborators || [],
+        userRole: projectInfo.role || "",
       });
       // Configurar sincronización si el proyecto es colaborativo
-      if (projectInfo.is_collaborative && projectInfo.id) {
-          // Configurar observador para cambios en el estado del proyecto
-          this.props.projectService.observeProjectCollabState(projectInfo.id, (state) => {
+      if (projectInfo.is_collaborative && projectInfo.id && model) {
+        this.props.projectService.handleCollaborativeProject(projectInfo.id, projectInfo, me.currentModel).then(() => {
+          // Configurar observador para cambios en el estado del modelo
+          this.props.projectService.observeModelCollabState(projectInfo.id, model.id, (state) => {
             if (state && state.data && me.currentModel) {
               // Marcar que los cambios son remotos
               me.isRemoteChange = true;
@@ -228,8 +249,8 @@ export default class MxGEditor extends Component<Props, State> {
               me.isRemoteChange = false;
             }
           });
+        });
       }
-
     }
   
     me.forceUpdate();
@@ -237,6 +258,7 @@ export default class MxGEditor extends Component<Props, State> {
 // TODO SE EJECUTA CUANDO SE ABRE UN DIAGRAMA, NO UN PROYECTO
   componentDidMount() {
     let me = this;
+    let model = null;
     if (!this.graph) {
       this.graph = new mx.mxGraph(this.graphContainerRef.current);
       this.props.projectService.setGraph(this.graph);
@@ -262,7 +284,7 @@ export default class MxGEditor extends Component<Props, State> {
     // Carga inicial del modelo actual
     const initialModelId = this.props.projectService.getTreeIdItemSelected();
     if (initialModelId) {
-      const model = this.props.projectService.findModelById(
+      model = this.props.projectService.findModelById(
         this.props.projectService.project,
         initialModelId
       );
@@ -283,10 +305,9 @@ export default class MxGEditor extends Component<Props, State> {
     }
     this.logAccordionContents();
 
-    const projectInfo = this.props.projectService.getProjectInformation();
+    let projectInfo = this.props.projectService.getProjectInformation();
     
     if (projectInfo) {
-      // Actualizar estado del proyecto
       me.setState({
         projectId: projectInfo.id || "",
         isCollaborative: projectInfo.is_collaborative || false,
@@ -294,11 +315,13 @@ export default class MxGEditor extends Component<Props, State> {
         userRole: projectInfo.role || "",
       });
 
-      if (projectInfo.is_collaborative && projectInfo.id) {
-          // Configurar observador para cambios en el estado del proyecto
-          this.props.projectService.observeProjectCollabState(projectInfo.id, (state) => {
+      // Inicializar proyecto colaborativo si es necesario
+      if (projectInfo.is_collaborative && projectInfo.id && model) {
+        this.props.projectService.handleCollaborativeProject(projectInfo.id, projectInfo, model).then(() => {
+          // Configurar observador para cambios en el estado del modelo
+          this.props.projectService.observeModelCollabState(projectInfo.id, model.id, (state) => {
             if (state && state.data && me.currentModel) {
-
+              // Marcar que los cambios son remotos
               me.isRemoteChange = true;
               
               // Actualizar el modelo con los cambios recibidos
@@ -310,9 +333,9 @@ export default class MxGEditor extends Component<Props, State> {
               
               // Restaurar el estado de cambios locales
               me.isRemoteChange = false;
-            } 
+            }
           });
-     
+        });
       }
     }
   }
@@ -3313,15 +3336,19 @@ renderRequirementsReport() {
 //   NEW COLABORATIVE FUNCTIONALITY
 
 syncModelChanges() {
-  if (this.state.isCollaborative && this.state.projectId && !this.isRemoteChange && !this.isInitialLoad) {
-    this.props.projectService.updateProjectCollabState(this.state.projectId, (state) => {
-      const currentData = state.get("data") || {};
-      state.set("data", {
-        ...currentData,
-        elements: this.currentModel.elements,
-        relationships: this.currentModel.relationships
-      });
-    });
+  if (this.state.isCollaborative && this.state.projectId && !this.isRemoteChange && !this.isInitialLoad && this.currentModel) {
+    this.props.projectService.updateModelCollabState(
+      this.state.projectId,
+      this.currentModel.id,
+      (state) => {
+        const currentData = state.get("data") || {};
+        state.set("data", {
+          ...currentData,
+          elements: this.currentModel.elements,
+          relationships: this.currentModel.relationships
+        });
+      }
+    );
   }
 }
 
