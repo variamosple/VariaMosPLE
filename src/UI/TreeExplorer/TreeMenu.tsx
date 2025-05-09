@@ -918,7 +918,7 @@ class TreeMenu extends Component<Props, State> {
         <Modal id="modelInformationEditorModal" show={this.state.showModelInformationEditorModal} onHide={this.hideModelInformationEditorModal.bind(this)} size="lg" centered>
           <Modal.Header closeButton>
             <Modal.Title>
-              {this.state.modalTittle}
+              Model properties
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
