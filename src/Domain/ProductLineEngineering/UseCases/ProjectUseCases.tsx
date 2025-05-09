@@ -280,13 +280,21 @@ export default class ProjectUseCases {
   createScopeModel(
     project: Project,
     languageType: string,
+    languageId: string,
     productLine: number,
-    name: string
+    name: string,
+    description: string,
+    author: string,
+    source: string
   ): Model {
     let model: Model = new Model(
       ProjectUseCases.generateId(),
       name,
-      languageType
+      languageType,
+      languageId,
+      description,
+      author,
+      source
     );
     project.productLines[productLine].scope?.models.push(model);
 
@@ -298,13 +306,21 @@ export default class ProjectUseCases {
   createDomainEngineeringModel(
     project: Project,
     languageType: string,
+    languageId: string,
     productLine: number,
-    name: string
+    name: string,
+    description: string,
+    author: string,
+    source: string
   ): Model {
     let model: Model = new Model(
       ProjectUseCases.generateId(),
       name,
-      languageType
+      languageType,
+      languageId,
+      description,
+      author,
+      source
     );
     project.productLines[productLine].domainEngineering?.models.push(model);
 
@@ -316,13 +332,21 @@ export default class ProjectUseCases {
   createApplicationEngineeringModel(
     project: Project,
     languageType: string,
+    languageId: string,
     productLine: number,
-    name: string
+    name: string,
+    description: string,
+    author: string,
+    source: string
   ): Model {
     let model: Model = new Model(
       ProjectUseCases.generateId(),
       name,
-      languageType
+      languageType,
+      languageId,
+      description,
+      author,
+      source
     );
     project.productLines[productLine].applicationEngineering?.models.push(
       model
@@ -336,16 +360,24 @@ export default class ProjectUseCases {
   createApplicationModel(
     project: Project,
     languageType: string,
+    languageId: string,
     productLine: number,
     application: number,
-    name: string
+    name: string,
+    description: string,
+    author: string,
+    source: string
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
     let model: Model = new Model(
       ProjectUseCases.generateId(),
       name,
-      languageType
+      languageType,
+      languageId,
+      description,
+      author,
+      source
     );
 
     project.productLines[productLine].applicationEngineering?.applications[
@@ -360,17 +392,25 @@ export default class ProjectUseCases {
   createAdaptationModel(
     project: Project,
     languageType: string,
+    languageId: string,
     productLine: number,
     application: number,
     adaptation: number,
-    name: string
+    name: string,
+    description: string,
+    author: string,
+    source: string
   ): Model {
     // let modelName = this.findLanguage(LanguageType);
 
     let model: Model = new Model(
       ProjectUseCases.generateId(),
       name,
-      languageType
+      languageType,
+      languageId,
+      description,
+      author,
+      source
     );
 
     project.productLines[productLine].applicationEngineering.applications[
@@ -568,7 +608,7 @@ export default class ProjectUseCases {
     application: number,
     adaptation: number,
     itemDelete: string | number
-  ) {}
+  ) { }
 
   saveProject(project: Project): void {
     // Save data to sessionStorage
@@ -600,7 +640,7 @@ export default class ProjectUseCases {
     if (project && uid) {
       for (let pl = 0; pl < project.productLines.length; pl++) {
         const productLine: ProductLine = project.productLines[pl];
-  
+
         // Buscar en domainEngineering
         for (let m = 0; m < productLine.domainEngineering.models.length; m++) {
           const model: Model = productLine.domainEngineering.models[m];
@@ -608,7 +648,7 @@ export default class ProjectUseCases {
             return model;
           }
         }
-  
+
         // Buscar en applicationEngineering (models)
         for (
           let m = 0;
@@ -620,7 +660,7 @@ export default class ProjectUseCases {
             return model;
           }
         }
-  
+
         // Buscar en applicationEngineering (applications y adaptations)
         for (
           let ap = 0;
@@ -645,7 +685,7 @@ export default class ProjectUseCases {
             }
           }
         }
-  
+
         // Buscar en scope
         if (productLine.scope && productLine.scope.models) {
           for (let m = 0; m < productLine.scope.models.length; m++) {
@@ -659,7 +699,7 @@ export default class ProjectUseCases {
     }
     return null;
   }
-  
+
 
   static findModelElementById(model: Model, uid: any) {
     if (model) {
@@ -957,14 +997,14 @@ export default class ProjectUseCases {
     return null;
   }
 
-  static resetConfiguration(model:Model) {
+  static resetConfiguration(model: Model) {
     for (const element of model.elements) {
       for (let i = 0; i < element.properties.length; i++) {
         const property = element.properties[i];
-        if(!["Type", "RangeMin", "RangeMax"].includes(property.name)){
+        if (!["Type", "RangeMin", "RangeMax"].includes(property.name)) {
           property.value = "Undefined";
         }
-      } 
+      }
     }
   }
 }
