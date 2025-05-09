@@ -209,6 +209,27 @@ export default class MxGEditor extends Component<Props, State> {
       collaborators: projectInfo.collaborators || [],
       userRole: projectInfo.role || "",
       });
+      // Configurar sincronización si el proyecto es colaborativo
+      if (projectInfo.is_collaborative && projectInfo.id) {
+          // Configurar observador para cambios en el estado del proyecto
+          this.props.projectService.observeProjectCollabState(projectInfo.id, (state) => {
+            if (state && state.data && me.currentModel) {
+              // Marcar que los cambios son remotos
+              me.isRemoteChange = true;
+              
+              // Actualizar el modelo con los cambios recibidos
+              me.currentModel.elements = state.data.elements || me.currentModel.elements;
+              me.currentModel.relationships = state.data.relationships || me.currentModel.relationships;
+              
+              // Recargar el gráfico con los nuevos datos
+              me.loadModel(me.currentModel);
+              
+              // Restaurar el estado de cambios locales
+              me.isRemoteChange = false;
+            }
+          });
+      }
+
     }
   
     me.forceUpdate();
@@ -273,13 +294,11 @@ export default class MxGEditor extends Component<Props, State> {
         userRole: projectInfo.role || "",
       });
 
-      // Configurar sincronización si el proyecto es colaborativo
       if (projectInfo.is_collaborative && projectInfo.id) {
-        this.props.projectService.handleCollaborativeProject(projectInfo.id, projectInfo).then(() => {
           // Configurar observador para cambios en el estado del proyecto
           this.props.projectService.observeProjectCollabState(projectInfo.id, (state) => {
             if (state && state.data && me.currentModel) {
-              // Marcar que los cambios son remotos
+
               me.isRemoteChange = true;
               
               // Actualizar el modelo con los cambios recibidos
@@ -291,9 +310,9 @@ export default class MxGEditor extends Component<Props, State> {
               
               // Restaurar el estado de cambios locales
               me.isRemoteChange = false;
-            }
+            } 
           });
-        });
+     
       }
     }
   }
@@ -3812,7 +3831,6 @@ try {
               <Button
                 variant="primary"
                 onClick={this.savePropertiesModal}
-                disabled={!this.state.pendingChanges}
               >
                 Save
               </Button>

@@ -778,6 +778,8 @@ export default class ProjectService {
         me._projectInformation.template = false;
       }          
       me.raiseEventUpdateProject(me._project, null);
+
+      me.handleCollaborativeProject(projectId, projectInformation)
     }
 
     let openProjectInServerErrorCallback = (e) => {

@@ -9,23 +9,35 @@ interface ProjectCollaborationData {
 }
 
 const projectCollaborationData = new Map<string, ProjectCollaborationData>();
+let currentActiveProjectId: string | null = null;
+
+// Función para desconectar el proyecto actual si existe
+const disconnectCurrentProject = () => {
+  if (currentActiveProjectId) {
+    const currentData = projectCollaborationData.get(currentActiveProjectId);
+    if (currentData) {
+      currentData.provider.disconnect();
+      currentData.doc.destroy();
+      projectCollaborationData.delete(currentActiveProjectId);
+      console.log(`Proyecto ${currentActiveProjectId} desconectado`);
+    }
+    currentActiveProjectId = null;
+  }
+};
 
 export const setupProjectSync = async (
   projectId: string,
   projectInfo: ProjectInformation
 ): Promise<WebsocketProvider | null> => {
+  // Si hay un proyecto activo diferente, desconectarlo
+  if (currentActiveProjectId && currentActiveProjectId !== projectId) {
+    disconnectCurrentProject();
+  }
+
   let collaborationData = projectCollaborationData.get(projectId);
 
   if (!collaborationData) {
     const projectDoc = new Y.Doc();
-    
-    // Crear un Y.Map para almacenar el estado del diagrama
-    const ymap = projectDoc.getMap("diagramState");
-    if (projectInfo && projectInfo.project) {
-      // Guardar los datos del proyecto en el Y.Map
-      ymap.set("data", projectInfo.project);
-    }
-
     const websocketUrl = process.env.REACT_APP_WEBSOCKET_URL;
     if (!websocketUrl) {
       throw new Error("La URL del WebSocket no está configurada.");
@@ -51,6 +63,7 @@ export const setupProjectSync = async (
     };
 
     projectCollaborationData.set(projectId, collaborationData);
+    currentActiveProjectId = projectId;
     console.log(`Nuevo Y.Doc y WebSocketProvider creados para el proyecto ${projectId}`);
   } else {
     console.log(`Un usuario se unió al proyecto ${projectId}`);
@@ -60,17 +73,8 @@ export const setupProjectSync = async (
 };
 
 export const removeProjectDoc = (projectId: string) => {
-  const collaborationData = projectCollaborationData.get(projectId);
-  
-  if (collaborationData) {
-    collaborationData.provider.disconnect();
-    console.log("WebSocketProvider desconectado");
-  
-    collaborationData.doc.destroy();
-    console.log("Y.Doc destruido");
-    
-    projectCollaborationData.delete(projectId);
-    console.log(`Proyecto ${projectId} ya no es colaborativo`);
+  if (currentActiveProjectId === projectId) {
+    disconnectCurrentProject();
   }
 };
 
@@ -83,6 +87,7 @@ export const handleCollaborativeProject = async (
     await setupProjectSync(projectId, projectInfo);
   } else {
     console.log(`El proyecto ${projectId} no es colaborativo.`);
+    removeProjectDoc(projectId);
   }
 };
 
