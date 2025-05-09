@@ -63,6 +63,7 @@ interface State {
     collaborators: Array<{id: string, name: string,email: string; role: string }>;
     showCollaboratorsModal: boolean;
     userRole: string;
+    backupObject: any;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -105,7 +106,8 @@ export default class MxGEditor extends Component<Props, State> {
       collaborators: [],
       showCollaboratorsModal: false,
       userRole: "",
-      pendingChanges: false,  // Nuevo estado para cambios pendientes
+      pendingChanges: false,
+      backupObject: null,
 
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
@@ -1727,13 +1729,42 @@ export default class MxGEditor extends Component<Props, State> {
     // } else {
     //   alertify.error("You have not opened a model")
     // }
-    this.setState({ showPropertiesModal: true });
+    const backup = JSON.parse(JSON.stringify(this.state.selectedObject));
+    this.setState({ 
+      showPropertiesModal: true,
+      backupObject: backup,
+      pendingChanges: false
+    });
   }
 
   hidePropertiesModal() {
+    if (this.state.pendingChanges) {
+      const originalObject = this.state.backupObject;
+      if (originalObject) {
+        // Restaurar el objeto en el modelo
+        if (this.currentModel) {
+          const element = this.props.projectService.findModelElementById(this.currentModel, originalObject.id);
+          if (element) {
+            Object.assign(element, originalObject);
+          } else {
+            const relationship = this.props.projectService.findModelRelationshipById(this.currentModel, originalObject.id);
+            if (relationship) {
+              Object.assign(relationship, originalObject);
+            }
+          }
+        }
+        // Actualizar la vista
+        this.props.projectService.raiseEventUpdatedElement(
+          this.currentModel,
+          originalObject
+        );
+      }
+    }
+    
     this.setState({ 
       showPropertiesModal: false,
-      pendingChanges: false 
+      pendingChanges: false,
+      backupObject: null
     });
   }
 
@@ -1898,9 +1929,12 @@ export default class MxGEditor extends Component<Props, State> {
   savePropertiesModal() {
     if (this.state.pendingChanges) {
       this.syncModelChanges();
-      this.setState({ pendingChanges: false });
     }
-    this.hidePropertiesModal();
+    this.setState({ 
+      showPropertiesModal: false,
+      pendingChanges: false,
+      backupObject: null
+    });
   }
 
   showMessageModal(title, message) {
