@@ -37,6 +37,7 @@ interface State {
   optionAllowProductLine: boolean,
   optionAllowApplication: boolean,
   optionAllowAdaptation: boolean,
+  optionAllowProperties: boolean,
   optionAllowRename: boolean,
   optionAllowDelete: boolean,
   optionAllowEFunctions: boolean,
@@ -78,6 +79,7 @@ class TreeMenu extends Component<Props, State> {
     optionAllowProductLine: false,
     optionAllowApplication: false,
     optionAllowAdaptation: false,
+    optionAllowProperties: false,
     optionAllowRename: false,
     optionAllowDelete: false,
     optionAllowEFunctions: false,
@@ -200,6 +202,17 @@ class TreeMenu extends Component<Props, State> {
 
   hideEditorTextModal() {
     this.setState({ showEditorTextModal: false })
+  }
+
+  showModelPropertiesModal=()=> {
+    let me=this;
+    let project=me.props.projectService.project;
+    let modelId=me.props.projectService.getTreeIdItemSelected();
+    let model=me.props.projectService.findModelById(project, modelId);
+    this.setState({
+      model: model,
+      showModelInformationEditorModal: true
+    })
   }
 
   showModelInformationEditorModal(model: Model) {
@@ -381,6 +394,7 @@ class TreeMenu extends Component<Props, State> {
       },
       model: function () {
         me.setState({
+          optionAllowProperties: true,
           optionAllowRename: true,
           optionAllowDelete: true,
           optionAllowEFunctions: true,
@@ -405,6 +419,7 @@ class TreeMenu extends Component<Props, State> {
       optionAllowProductLine: false,
       optionAllowApplication: false,
       optionAllowAdaptation: false,
+      optionAllowProperties: false,
       optionAllowRename: false,
       optionAllowDelete: false,
       optionAllowEFunctions: false,
@@ -572,7 +587,11 @@ class TreeMenu extends Component<Props, State> {
       alertify.error("The name is required");
       return;
     }
-    me.addNewModel(this.state.model.name, this.state.model.description, this.state.model.author, this.state.model.source);
+    if([null, '0'].includes(this.state.model.languageId)){
+      me.addNewModel(this.state.model.name, this.state.model.description, this.state.model.author, this.state.model.source);
+    }else{
+      me.props.projectService.saveProject();
+    }
     me.hideModelInformationEditorModal();
   }
 
@@ -840,6 +859,9 @@ class TreeMenu extends Component<Props, State> {
     }
     if (this.state.optionAllowAdaptation) {
       items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="ADAPTATION">New adaptation</Dropdown.Item>);
+    }
+    if (this.state.optionAllowProperties) {
+      items.push(<Dropdown.Item href="#" onClick={this.showModelPropertiesModal} id="propertiesItem">Properties</Dropdown.Item>);
     }
     if (this.state.optionAllowRename) {
       items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="renameItem">Rename</Dropdown.Item>);
@@ -1262,6 +1284,13 @@ class TreeMenu extends Component<Props, State> {
             </span>
           </li>
           <li>
+            {this.state.optionAllowProperties ? (
+              <hr className="dropdown-divider" />
+            ) : (
+              ""
+            )}
+          </li>
+          <li>
             {this.state.optionAllowRename ? (
               <hr className="dropdown-divider" />
             ) : (
@@ -1280,6 +1309,21 @@ class TreeMenu extends Component<Props, State> {
               data-bs-target="#deleteModal"
             >
               Delete
+            </span>
+          </li>
+          <li>
+            <span
+              className={
+                this.state.optionAllowProperties
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
+              id="propertiesItem"
+              onClick={this.handleUpdateNewSelected}
+              data-bs-toggle="modal"
+              data-bs-target="#editorTextModal"
+            >
+              Properties
             </span>
           </li>
           <li>
