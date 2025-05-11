@@ -659,10 +659,6 @@ export default class MxGEditor extends Component<Props, State> {
             me.currentModel,
             element
           );
-          
-          // Marcar que hay cambios pendientes
-          this.setState({ pendingChanges: true });
-          
         } else {
           const relationship: any = me.props.projectService.findModelRelationshipById(me.currentModel, uid);
           if (relationship) {
@@ -671,9 +667,6 @@ export default class MxGEditor extends Component<Props, State> {
               me.currentModel,
               relationship
             );
-            
-            // Marcar que hay cambios pendientes
-            this.setState({ pendingChanges: true });
           }
         }
       }
