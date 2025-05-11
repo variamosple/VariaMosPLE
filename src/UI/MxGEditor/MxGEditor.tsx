@@ -194,6 +194,9 @@ export default class MxGEditor extends Component<Props, State> {
           this.refreshEdgeStyle(edge);
         }
       }
+
+      this.setState({ pendingChanges: true });
+      
       this.graph.refresh();
     } catch (error) {
       let m = error;
@@ -3825,7 +3828,6 @@ try {
                   projectService={this.props.projectService} 
                   model={this.currentModel} 
                   item={this.state.selectedObject}
-                  onPropertyChange={() => this.setState({ pendingChanges: true })}
                 />
               </div>
             </Modal.Body>
