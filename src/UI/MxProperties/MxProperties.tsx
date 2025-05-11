@@ -350,16 +350,14 @@ export default class MxProperties extends Component<Props, State> {
         );
         
         // Actualizar el estado colaborativo
-        if (this.props.projectService.updateProjectCollabState) {
-          this.props.projectService.updateProjectCollabState(this.props.projectService.getProjectInformation()?.id, (state) => {
-            const currentData = state.get("data") || {};
-            state.set("data", {
-              ...currentData,
-              elements: this.currentModel.elements,
-              relationships: this.currentModel.relationships
-            });
-          });
-        }
+        if (this.props.projectService.updateModelState) {
+          this.props.projectService.updateModelState(this.props.projectService.getProjectInformation().id, this.currentModel.id, (state) => {
+          state.set("data", {
+          elements: this.currentModel.elements,
+          relationships: this.currentModel.relationships,
+        });
+      });
+    }
 
         alertify.success("Property deleted successfully");
         this.clearForm();
@@ -400,16 +398,14 @@ export default class MxProperties extends Component<Props, State> {
       );
       
       // Actualizar el estado colaborativo
-      if (this.props.projectService.updateProjectCollabState) {
-        this.props.projectService.updateProjectCollabState(this.props.projectService.getProjectInformation()?.id, (state) => {
-          const currentData = state.get("data") || {};
+        if (this.props.projectService.updateModelState) {
+          this.props.projectService.updateModelState(this.props.projectService.getProjectInformation().id, this.currentModel.id, (state) => {
           state.set("data", {
-            ...currentData,
-            elements: this.currentModel.elements,
-            relationships: this.currentModel.relationships
-          });
+          elements: this.currentModel.elements,
+          relationships: this.currentModel.relationships,
         });
-      }
+      });
+    }
 
       alertify.success("Property created successfully");
       this.clearForm();
@@ -442,16 +438,14 @@ export default class MxProperties extends Component<Props, State> {
       );
       
       // Actualizar el estado colaborativo
-      if (this.props.projectService.updateProjectCollabState) {
-        this.props.projectService.updateProjectCollabState(this.props.projectService.getProjectInformation()?.id, (state) => {
-          const currentData = state.get("data") || {};
+        if (this.props.projectService.updateModelState) {
+          this.props.projectService.updateModelState(this.props.projectService.getProjectInformation().id, this.currentModel.id, (state) => {
           state.set("data", {
-            ...currentData,
-            elements: this.currentModel.elements,
-            relationships: this.currentModel.relationships
-          });
+          elements: this.currentModel.elements,
+          relationships: this.currentModel.relationships,
         });
-      }
+      });
+    }
 
       alertify.success("Property changed successfully");
       this.clearForm();

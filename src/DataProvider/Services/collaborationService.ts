@@ -44,6 +44,8 @@ export const setupProjectSync = async (
     }
 
     const wsProvider = new WebsocketProvider(websocketUrl, projectId, projectDoc);
+
+    projectDoc.getMap("projectState");
     
     wsProvider.on("status", (event) => {
       console.log(`Status WebSocket para proyecto ${projectId}:`, event.status);
@@ -94,7 +96,7 @@ export const handleCollaborativeProject = async (
 export const getProjectState = (projectId: string): Y.Map<any> | null => {
   const collaborationData = projectCollaborationData.get(projectId);
   if (collaborationData) {
-    return collaborationData.doc.getMap("diagramState");
+    return collaborationData.doc.getMap("projectState");
   }
   return null;
 };
@@ -124,3 +126,70 @@ export const sendProjectUpdate = (projectId: string, update: any): void => {
     });
   }
 };
+
+export const observeModelState = (projectId: string, modelId: string, callback: (state: any) => void): () => void => {
+  const projectState = getProjectState(projectId);
+  if (projectState) {
+    let modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
+    
+    if (!modelState) {
+      modelState = manageModelState(projectId, modelId);
+    }
+    
+    if (modelState) {
+      console.log(`[observeModelState] Observando el estado del modelo ${modelId} para el proyecto ${projectId}`);
+      console.log(`[observeModelState] modelState inicial:`, modelState);
+      callback(modelState);
+
+      const observer = () => {
+      console.log(`[observeModelState] Cambio detectado en el modelo ${modelId}:`, modelState);
+      callback(modelState);
+      };
+
+
+      modelState.observe(observer);
+      return () => {
+        modelState.unobserve(observer);
+        console.log(`[observeModelState] Desobservando el estado del modelo ${modelId} para el proyecto ${projectId}`);
+      };
+    } else {
+      console.log(`No se pudo inicializar el estado del modelo ${modelId} para el proyecto ${projectId}`);
+    }
+  } else {
+    console.log(`No se encontró el estado del proyecto ${projectId}`);
+  }
+}
+
+export const manageModelState = (projectId: string, modelId: string): Y.Map<any> | null => {
+  const projectState = getProjectState(projectId);
+  if (projectState) {
+    let modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
+    
+    if (!modelState) {
+      modelState = new Y.Map<any>();
+      projectState.set(`model_${modelId}`, modelState);
+      console.log(`Estado del modelo ${modelId} creado e inicializado para el proyecto ${projectId}`);
+    } else {
+      console.log(`Estado del modelo ${modelId} ya existe para el proyecto ${projectId}`);
+    }
+    
+    return modelState;
+  }
+
+  console.log(`No se encontró el estado del proyecto ${projectId}`);
+  return null;
+}
+
+export const updateModelState = (projectId: string, modelId: string, updateFn: (state: Y.Map<any>) => void): void => {
+  const projectState = getProjectState(projectId);
+  if (projectState) {
+    const modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
+    if (modelState) {
+      updateFn(modelState);
+    } else {
+      console.log(`No se encontró el estado del modelo ${modelId} para el proyecto ${projectId}`);
+    }
+  } else {
+    console.log(`No se encontró el estado del proyecto ${projectId}`);
+  }
+}

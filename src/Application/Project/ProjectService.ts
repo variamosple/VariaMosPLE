@@ -36,7 +36,16 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { setupProjectSync, removeProjectDoc, handleCollaborativeProject, observeProjectState, updateProjectState, getProjectState, sendProjectUpdate} from "../../DataProvider/Services/collaborationService";
+import { setupProjectSync,
+         removeProjectDoc, 
+         handleCollaborativeProject, 
+         observeProjectState, 
+         updateProjectState, 
+         getProjectState, 
+         sendProjectUpdate,
+         observeModelState,
+         manageModelState,
+         updateModelState} from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -1900,5 +1909,18 @@ export default class ProjectService {
     handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation){
       return handleCollaborativeProject(projectId, projectInfo)
     }
+
+    observeModelState(projectId:string ,modelId: string, callback: (state: any) => void) {
+      return observeModelState(projectId, modelId, callback);
+    }
+
+    manageModelState(projectId: string, modelId: string) {
+      return manageModelState(projectId, modelId);
+    }
+
+    updateModelState(projectId: string, modelId: string, updateFn: (state: any) => void) {
+      return updateModelState(projectId, modelId, updateFn);
+    }
+
 
 }

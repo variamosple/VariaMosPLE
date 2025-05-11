@@ -74,6 +74,7 @@ export default class MxGEditor extends Component<Props, State> {
   currentModel?: Model;
   isRemoteChange: boolean;
   isInitialLoad: boolean= false;
+  currentModelObserver: (() => void) | null = null;
 
   constructor(props: Props) {
     super(props);
@@ -152,6 +153,9 @@ export default class MxGEditor extends Component<Props, State> {
     }
     this.forceUpdate();
 
+    const projectInfo = this.props.projectService.getProjectInformation();
+    this.observeModel(projectInfo.id, e.model);
+
   }
 
   projectService_addCreatedElementListener(e: any) {
@@ -211,23 +215,9 @@ export default class MxGEditor extends Component<Props, State> {
       });
       // Configurar sincronización si el proyecto es colaborativo
       if (projectInfo.is_collaborative && projectInfo.id) {
-          // Configurar observador para cambios en el estado del proyecto
-          this.props.projectService.observeProjectCollabState(projectInfo.id, (state) => {
-            if (state && state.data && me.currentModel) {
-              // Marcar que los cambios son remotos
-              me.isRemoteChange = true;
-              
-              // Actualizar el modelo con los cambios recibidos
-              me.currentModel.elements = state.data.elements || me.currentModel.elements;
-              me.currentModel.relationships = state.data.relationships || me.currentModel.relationships;
-              
-              // Recargar el gráfico con los nuevos datos
-              me.loadModel(me.currentModel);
-              
-              // Restaurar el estado de cambios locales
-              me.isRemoteChange = false;
-            }
-          });
+        if (projectInfo.is_collaborative && projectInfo.id) {
+          this.observeModel(projectInfo.id, model);
+      }
       }
 
     }
@@ -237,6 +227,7 @@ export default class MxGEditor extends Component<Props, State> {
 // TODO SE EJECUTA CUANDO SE ABRE UN DIAGRAMA, NO UN PROYECTO
   componentDidMount() {
     let me = this;
+    let model = null
     if (!this.graph) {
       this.graph = new mx.mxGraph(this.graphContainerRef.current);
       this.props.projectService.setGraph(this.graph);
@@ -262,7 +253,7 @@ export default class MxGEditor extends Component<Props, State> {
     // Carga inicial del modelo actual
     const initialModelId = this.props.projectService.getTreeIdItemSelected();
     if (initialModelId) {
-      const model = this.props.projectService.findModelById(
+      model = this.props.projectService.findModelById(
         this.props.projectService.project,
         initialModelId
       );
@@ -295,24 +286,7 @@ export default class MxGEditor extends Component<Props, State> {
       });
 
       if (projectInfo.is_collaborative && projectInfo.id) {
-          // Configurar observador para cambios en el estado del proyecto
-          this.props.projectService.observeProjectCollabState(projectInfo.id, (state) => {
-            if (state && state.data && me.currentModel) {
-
-              me.isRemoteChange = true;
-              
-              // Actualizar el modelo con los cambios recibidos
-              me.currentModel.elements = state.data.elements || me.currentModel.elements;
-              me.currentModel.relationships = state.data.relationships || me.currentModel.relationships;
-              
-              // Recargar el gráfico con los nuevos datos
-              me.loadModel(me.currentModel);
-              
-              // Restaurar el estado de cambios locales
-              me.isRemoteChange = false;
-            } 
-          });
-     
+        this.observeModel(projectInfo.id, model);
       }
     }
   }
@@ -3313,16 +3287,44 @@ renderRequirementsReport() {
 //   NEW COLABORATIVE FUNCTIONALITY
 
 syncModelChanges() {
-  if (this.state.isCollaborative && this.state.projectId && !this.isRemoteChange && !this.isInitialLoad) {
-    this.props.projectService.updateProjectCollabState(this.state.projectId, (state) => {
-      const currentData = state.get("data") || {};
+  if (this.state.isCollaborative && this.state.projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
+    this.props.projectService.updateModelState(this.state.projectId, this.currentModel.id, (state) => {
       state.set("data", {
-        ...currentData,
         elements: this.currentModel.elements,
-        relationships: this.currentModel.relationships
+        relationships: this.currentModel.relationships,
       });
     });
   }
+}
+
+observeModel(projectId: string, model: Model) {
+  // Eliminar el observador anterior si existe
+  if (this.currentModelObserver) {
+    this.currentModelObserver();
+    this.currentModelObserver = null;
+    console.log("Removed previous model observer.");
+  }
+
+  // Configurar el nuevo observador
+  this.currentModelObserver = this.props.projectService.observeModelState(
+    projectId,
+    model.id,
+    (state) => {
+      if (state && this.currentModel) {
+        this.isRemoteChange = true;
+
+        const modelData = state.get("data");
+        if (modelData) {
+          model.elements = modelData.elements || model.elements;
+          model.relationships = modelData.relationships || model.relationships;
+
+          this.loadModel(model);
+        }
+
+        this.isRemoteChange = false;
+      }
+    }
+  );
 }
 
   handleSyncModalToggle = () => {
