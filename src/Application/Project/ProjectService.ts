@@ -36,16 +36,7 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { 
-  setupProjectSync, 
-  removeProjectDoc, 
-  handleCollaborativeProject, 
-  observeModelState, 
-  updateModelState, 
-  getModelState, 
-  sendModelUpdate,
-  removeModelState 
-} from "../../DataProvider/Services/collaborationService";
+import { setupProjectSync, removeProjectDoc, handleCollaborativeProject, observeProjectState, updateProjectState, getProjectState, sendProjectUpdate} from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -787,6 +778,8 @@ export default class ProjectService {
         me._projectInformation.template = false;
       }          
       me.raiseEventUpdateProject(me._project, null);
+
+      me.handleCollaborativeProject(projectId, projectInformation)
     }
 
     let openProjectInServerErrorCallback = (e) => {
@@ -1889,44 +1882,23 @@ export default class ProjectService {
     }
 
     observeProjectCollabState(projectId: string, callback: (state: any) => void) {
-      // Usar observeModelState con el modelo actual
-      const currentModel = this._currentModel;
-      if (currentModel) {
-        return observeModelState(projectId, currentModel.id, callback);
-      }
+      return observeProjectState(projectId, callback);
     }
 
     updateProjectCollabState(projectId: string, updateFn: (state: any) => void) {
-      // Usar updateModelState con el modelo actual
-      const currentModel = this._currentModel;
-      if (currentModel) {
-        return updateModelState(projectId, currentModel.id, updateFn);
-      }
+      return updateProjectState(projectId, updateFn);
     }
 
-    // Nuevas funciones para manejo de colaboración por modelo
-    observeModelCollabState(projectId: string, modelId: string, callback: (state: any) => void) {
-      return observeModelState(projectId, modelId, callback);
+    getProjectCollabState(projectId: string) {
+      return getProjectState(projectId);
     }
 
-    updateModelCollabState(projectId: string, modelId: string, updateFn: (state: any) => void) {
-      return updateModelState(projectId, modelId, updateFn);
+    sendProjectUpdate(projectId: string, updateFn: (state: any) => void){
+      return sendProjectUpdate(projectId, updateFn)
     }
 
-    getModelCollabState(projectId: string, modelId: string) {
-      return getModelState(projectId, modelId);
-    }
-
-    sendModelCollabUpdate(projectId: string, modelId: string, update: any) {
-      return sendModelUpdate(projectId, modelId, update);
-    }
-
-    removeModelCollabState(projectId: string, modelId: string) {
-      return removeModelState(projectId, modelId);
-    }
-
-    handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation, model?: Model) {
-      return handleCollaborativeProject(projectId, projectInfo, model);
+    handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation){
+      return handleCollaborativeProject(projectId, projectInfo)
     }
 
 }

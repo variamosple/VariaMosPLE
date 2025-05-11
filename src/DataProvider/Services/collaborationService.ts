@@ -2,12 +2,10 @@ import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import type ProjectService from "../../Application/Project/ProjectService";
 import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
-import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 
 interface ProjectCollaborationData {
   doc: Y.Doc;
   provider: WebsocketProvider;
-  modelStates: Map<string, Y.Map<any>>;
 }
 
 const projectCollaborationData = new Map<string, ProjectCollaborationData>();
@@ -61,8 +59,7 @@ export const setupProjectSync = async (
 
     collaborationData = {
       doc: projectDoc,
-      provider: wsProvider,
-      modelStates: new Map()
+      provider: wsProvider
     };
 
     projectCollaborationData.set(projectId, collaborationData);
@@ -83,56 +80,34 @@ export const removeProjectDoc = (projectId: string) => {
 
 export const handleCollaborativeProject = async (
   projectId: string,
-  projectInfo: ProjectInformation,
-  model?: Model
+  projectInfo: ProjectInformation
 ): Promise<void> => {
-  if (!projectInfo.is_collaborative) return;
-
-  const provider = await setupProjectSync(projectId, projectInfo);
-  if (provider && model) {
-    // Inicializar el estado del modelo si existe
-    const modelState = getModelState(projectId, model.id);
-    if (!modelState) {
-      updateModelState(projectId, model.id, (state) => {
-        state.set('elements', model.elements);
-        state.set('relationships', model.relationships);
-      });
-    }
+  if (projectInfo?.is_collaborative) {
+    console.log(`El proyecto ${projectId} es colaborativo. Configurando Yjs...`);
+    await setupProjectSync(projectId, projectInfo);
+  } else {
+    console.log(`El proyecto ${projectId} no es colaborativo.`);
+    removeProjectDoc(projectId);
   }
 };
 
-// Obtener el estado de un modelo específico
-export const getModelState = (projectId: string, modelId: string): Y.Map<any> | null => {
+export const getProjectState = (projectId: string): Y.Map<any> | null => {
   const collaborationData = projectCollaborationData.get(projectId);
-  if (!collaborationData) return null;
-
-  if (!collaborationData.modelStates.has(modelId)) {
-    const modelState = collaborationData.doc.getMap(`model_${modelId}`);
-    collaborationData.modelStates.set(modelId, modelState);
+  if (collaborationData) {
+    return collaborationData.doc.getMap("diagramState");
   }
-
-  return collaborationData.modelStates.get(modelId) || null;
+  return null;
 };
 
-// Actualizar el estado de un modelo específico
-export const updateModelState = (
-  projectId: string, 
-  modelId: string, 
-  updateFn: (state: Y.Map<any>) => void
-): void => {
-  const state = getModelState(projectId, modelId);
+export const updateProjectState = (projectId: string, updateFn: (state: Y.Map<any>) => void): void => {
+  const state = getProjectState(projectId);
   if (state) {
     updateFn(state);
   }
 };
 
-// Observar cambios en un modelo específico
-export const observeModelState = (
-  projectId: string, 
-  modelId: string, 
-  callback: (state: any) => void
-): void => {
-  const state = getModelState(projectId, modelId);
+export const observeProjectState = (projectId: string, callback: (state: any) => void): void => {
+  const state = getProjectState(projectId);
   if (state) {
     state.observe(() => {
       callback(state.toJSON());
@@ -140,25 +115,12 @@ export const observeModelState = (
   }
 };
 
-// Enviar actualización para un modelo específico
-export const sendModelUpdate = (
-  projectId: string, 
-  modelId: string, 
-  update: any
-): void => {
-  const state = getModelState(projectId, modelId);
+export const sendProjectUpdate = (projectId: string, update: any): void => {
+  const state = getProjectState(projectId);
   if (state) {
     state.set("data", {
       ...state.get("data"),
       ...update
     });
-  }
-};
-
-// Eliminar el estado de un modelo específico
-export const removeModelState = (projectId: string, modelId: string): void => {
-  const collaborationData = projectCollaborationData.get(projectId);
-  if (collaborationData) {
-    collaborationData.modelStates.delete(modelId);
   }
 };
