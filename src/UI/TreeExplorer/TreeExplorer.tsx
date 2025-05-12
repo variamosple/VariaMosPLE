@@ -296,6 +296,10 @@ class TreeExplorer extends Component<Props, State> {
   } 
 
   renderScopeModels(models: Model[], idProductLine: number) {
+    if (!models) {
+      return null;
+    }
+    
     let folders = [];
     for (let idModel = 0; idModel < models.length; idModel++) {
       const model: Model = models[idModel];
@@ -448,7 +452,7 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   renderScope(productLine: ProductLine, idProductLine: number) {
-    return this.renderScopeModels(productLine.scope.models, idProductLine)
+    return this.renderScopeModels(productLine.scope?.models, idProductLine)
   }
 
   renderDomainEngineering(productLine: ProductLine, idProductLine: number) {
