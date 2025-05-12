@@ -154,8 +154,9 @@ export default class MxGEditor extends Component<Props, State> {
     this.forceUpdate();
 
     const projectInfo = this.props.projectService.getProjectInformation();
+    if (projectInfo) {
     this.observeModel(projectInfo.id, e.model);
-
+    }
   }
 
   projectService_addCreatedElementListener(e: any) {
@@ -217,12 +218,9 @@ export default class MxGEditor extends Component<Props, State> {
       userRole: projectInfo.role || "",
       });
       // Configurar sincronización si el proyecto es colaborativo
-      if (projectInfo.is_collaborative && projectInfo.id) {
-        if (projectInfo.is_collaborative && projectInfo.id) {
+        if (projectInfo.is_collaborative && projectInfo.id && model) {
           this.observeModel(projectInfo.id, model);
       }
-      }
-
     }
   
     me.forceUpdate();
@@ -288,7 +286,7 @@ export default class MxGEditor extends Component<Props, State> {
         userRole: projectInfo.role || "",
       });
 
-      if (projectInfo.is_collaborative && projectInfo.id) {
+      if (projectInfo.is_collaborative && projectInfo.id && model) {
         this.observeModel(projectInfo.id, model);
       }
     }
