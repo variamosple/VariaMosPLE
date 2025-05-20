@@ -29,6 +29,7 @@ import { RiSave3Fill } from "react-icons/ri";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGroup } from "reactstrap";
 import MxProperties from "../MxProperties/MxProperties";
 import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
+import KaosGenerator from "../Scope/KaosGenerator";
 
 interface Props {
   projectService: ProjectService;
@@ -1970,6 +1971,22 @@ export default class MxGEditor extends Component<Props, State> {
 
     let left = this.state.contextMenuX + "px";
     let top = this.state.contextMenuY + "px";
+    if (this.currentModel?.type === "Context diagram") {
+      items.push(
+        <Dropdown.Item
+          key="genKAOS"
+          href="#"
+          onClick={() => {
+            const kaosModel = KaosGenerator.generateFromContext(this.currentModel!, this.props.projectService);
+            this.props.projectService.getProductLineSelected().scope.models.push(kaosModel)
+            // lo añadimos al proyecto y lo abrimos
+            this.props.projectService.raiseEventSelectedModel(kaosModel);
+          }}
+        >
+          Generate KAOS model
+        </Dropdown.Item>
+      );
+    }
 
     return (
       <Dropdown.Menu

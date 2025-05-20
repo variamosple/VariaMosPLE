@@ -8,7 +8,8 @@ import {
   Row,
   Col,
   Form,
-  InputGroup
+  InputGroup,
+  Table
 } from "react-bootstrap";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reactstrap";
 import ProductCatalogManager from "./ProductCatalogManager";
@@ -52,6 +53,9 @@ interface BillOfMaterialsEditorState {
   showContextMenu: boolean;
   contextMenuConfig: any | null;
   contextMenuPosition: { x: number; y: number };
+  compareSelection: string[];
+  showCompareModal: boolean;
+
 }
 
 export default class BillOfMaterialsEditor extends Component<
@@ -73,6 +77,8 @@ export default class BillOfMaterialsEditor extends Component<
       showContextMenu: false,
       contextMenuConfig: null,
       contextMenuPosition: { x: 0, y: 0 },
+      compareSelection: [],
+      showCompareModal: false,
     };
   }
 
@@ -286,23 +292,123 @@ export default class BillOfMaterialsEditor extends Component<
       </InputGroup>
     );
   }
+  private renderComparisonModal() {
+    return (
+      <Modal
+        show={true}
+        onHide={() => this.setState({ showCompareModal: false })}
+        size="xl"
+        centered
+        scrollable
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Comparar Productos</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {this.renderComparisonTable()}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={() => this.setState({ showCompareModal: false })}>
+            Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
+  
+  private renderComparisonTable() {
+    const { compareSelection, allScopeConfigurations } = this.state;
+  
+    // 1) Filtramos cada configuración dejando solo Material con Quantity=1 y BoM_level distinto de Product (level 0)
+    const filteredFeaturesPerConfig = compareSelection.map(cfgId => {
+      const cfg = allScopeConfigurations.find(c => c.id === cfgId)!;
+      return (cfg.features || []).filter((f: any) => {
+        const qtyProp = f.properties?.find((p: any) => p.name === "Quantity")?.value;
+        const levelProp = f.properties?.find((p: any) => p.name === "BoM_level")?.value;
+        return (
+          f.type === "Material" &&
+          qtyProp === "1" &&
+          levelProp !== "Product (level 0)"
+        );
+      });
+    });
+  
+    // 2) Sacamos la lista única de nombres
+    const names = Array.from(new Set<string>(
+      filteredFeaturesPerConfig.flatMap(list => list.map(f => f.name))
+    ));
+  
+    // 3) Creamos un Map por producto para saber si cada nombre está activo
+    const maps = filteredFeaturesPerConfig.map(list => {
+      const m = new Map<string, boolean>();
+      names.forEach(name => m.set(name, false));
+      list.forEach((f: any) => m.set(f.name, true));
+      return m;
+    });
+  
+    // 4) Totales por producto
+    const productTotals = maps.map(m =>
+      names.reduce((acc, name) => acc + (m.get(name)! ? 1 : 0), 0)
+    );
+  
+    return (
+      <Table bordered hover>
+        <thead>
+          <tr>
+            <th>Funcionalidad</th>
+            {compareSelection.map(cfgId => {
+              const cfg = allScopeConfigurations.find(c => c.id === cfgId)!;
+              return <th key={cfgId}>{cfg.name}</th>;
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {names.map(name => {
+            const rowValues = maps.map(m => m.get(name)!);
+            return (
+              <tr key={name}>
+                <td>{name}</td>
+                {rowValues.map((active, i) =>
+                  <td key={i} style={{ textAlign: 'center' }}>
+                    {active ? '✔️' : '—'}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+  
+          {/* Fila de totales por producto */}
+          <tr>
+            <td style={{ fontWeight: 'bold' }}>Total functions per product</td>
+            {productTotals.map((tot, i) =>
+              <td key={i} style={{ fontWeight: 'bold', textAlign: 'center' }}>
+                {tot}
+              </td>
+            )}
+          </tr>
+        </tbody>
+      </Table>
+    );
+  }
+  
+  
 
   renderProductsList() {
     const filtered = this.getFilteredProducts();
     if (filtered.length === 0) {
       return <p>No se encontraron productos con ese filtro.</p>;
     }
-
+  
     return (
       <div style={{
-        height: "90vh",            
-        overflowY: "auto",        
-        boxSizing: "border-box",   
-        padding: "10px"            
+        height: "90vh",
+        overflowY: "auto",
+        boxSizing: "border-box",
+        padding: "10px"
       }}>
         <Row>
           {filtered.map((cfg: any) => {
-            // Buscamos en las features el elemento de tipo "Product"
+            // 1) Buscamos en las features el elemento de tipo "Product"
             let imageSrc: string | null = null;
             if (cfg.features) {
               const productElem = cfg.features.find((f: any) => f.type === "Product");
@@ -313,15 +419,44 @@ export default class BillOfMaterialsEditor extends Component<
                 }
               }
             }
+  
             return (
               <Col md={4} key={cfg.id} style={{ marginBottom: "15px" }}>
                 <Card
-                  style={{ cursor: "pointer" }}
+                  style={{ position: 'relative', cursor: "pointer" }}
                   onClick={() => this.handleSelectProduct(cfg)}
                   onContextMenu={(e) =>
                     this.handleRightClickOnConfig(cfg, e as React.MouseEvent<HTMLDivElement, MouseEvent>)
                   }
                 >
+                  {/* —– Checkbox Comparar —– */}
+                  <Form.Check
+                    type="checkbox"
+                    label="Compare"
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      left: 18,
+                      background: 'rgba(255,255,255,0.8)',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      zIndex: 10
+                    }}
+                    onClick={e => e.stopPropagation()}           // evita que abra el detalle
+                    checked={this.state.compareSelection.includes(cfg.id)}
+                    onChange={e => {
+                      e.stopPropagation();
+                      const sel = [...this.state.compareSelection];
+                      if (e.target.checked) {
+                        sel.push(cfg.id);
+                      } else {
+                        sel.splice(sel.indexOf(cfg.id), 1);
+                      }
+                      this.setState({ compareSelection: sel });
+                    }}
+                  />
+  
+                  {/* —– Tu código original de la imagen —– */}
                   {imageSrc ? (
                     <div style={{ height: "180px", width: "100%" }}>
                       <img
@@ -348,6 +483,7 @@ export default class BillOfMaterialsEditor extends Component<
                       Sin imagen
                     </div>
                   )}
+  
                   <Card.Body>
                     <Card.Title>{cfg.name || "Producto"}</Card.Title>
                   </Card.Body>
@@ -359,6 +495,8 @@ export default class BillOfMaterialsEditor extends Component<
       </div>
     );
   }
+  
+  
 
   handleRightClickOnConfig = (config: any, event: React.MouseEvent<HTMLElement>) => {
     event.preventDefault(); // Evita el menú contextual por defecto del navegador
@@ -543,12 +681,28 @@ export default class BillOfMaterialsEditor extends Component<
           <div style={{ flex: 1 }}>
             <ProductCatalogManager projectService={this.props.projectService} />
           </div>
-
+          <div style={{
+          // si necesitas exacto 150px, o usa flex:1 también
+          width: "150px",
+          flex:1
+        }}>
+          {this.state.compareSelection.length > 0 && (
+        <div style={{ textAlign: 'left',  width: "250px"}}>
+          <Button
+            variant="primary"
+            onClick={() => this.setState({ showCompareModal: true })}
+          >
+            Compare {this.state.compareSelection.length} product{this.state.compareSelection.length > 1 ? 's' : ''}
+          </Button>
+        </div>
+      )}
+      </div>
         </div>
 
 
         {this.renderProductsList()}
         {this.renderDetailModal()}
+        {this.state.showCompareModal && this.renderComparisonModal()}
         {this.state.showEditProductManager && (
           <EditProductManager
             projectService={this.props.projectService}
