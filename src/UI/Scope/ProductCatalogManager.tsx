@@ -43,6 +43,46 @@ const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService })
   const [, setModelVersion] = useState(0);
   const forceUpdateModel = () => setModelVersion(v => v + 1);
 
+  // al inicio de tu componente, tras tus otros useState…
+useEffect(() => {
+  if (showProductModal) {
+    // Si no hay NINGÚN elemento Material, creamos el root por defecto
+    const hasAnyMaterial = currentModel.elements.some(el => el.type === "Material");
+    if (!hasAnyMaterial) {
+      const newId = projectService.generateId();
+      const productLineName = projectService.getProductLineSelected().name;
+      // Propiedad Quantity = "1"
+      const qtyProp = new Property(
+        "Quantity", "1", "String",
+        undefined, undefined, undefined,
+        false, true, "", "", undefined,
+        0, 0, "", "1"
+      );
+      // Propiedad BoM_level = "Product (level 0)"
+      const levelProp = new Property(
+        "BoM_level", "Product (level 0)", "String",
+        undefined, undefined, undefined,
+        false, true, "", "", undefined,
+        0, 0, "", "Product (level 0)"
+      );
+      const rootMaterial: Element = {
+        id: newId,
+        name: productLineName,
+        type: "Material",
+        x: 0, y: 0, width: 120, height: 50,
+        parentId: null,
+        properties: [qtyProp, levelProp],
+        sourceModelElements: [],
+        instanceOfId: null
+      };
+      currentModel.elements.push(rootMaterial);
+      // dispara el evento para que lo guarde/reporte
+      projectService.raiseEventCreatedElement(currentModel, rootMaterial);
+      forceUpdateModel();
+    }
+  }
+}, [showProductModal]);
+
   // -----------------------------------------------------------------
   // Renderizado recursivo de la estructura de funcionalidades disponibles
   // -----------------------------------------------------------------
@@ -76,6 +116,7 @@ const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService })
     setShowOptionsForId((prev) => (prev === id ? null : id));
   }
 
+  
   /**
    * Versión recursiva, con <ul> anidado para los hijos.
    * Usamos <li> para cada elemento, y dentro un contenedor
