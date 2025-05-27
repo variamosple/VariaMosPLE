@@ -253,6 +253,7 @@ export default class ProjectService {
     console.warn("No scope model matches the selected ID");
     return null;
   }
+  /* 
   getScope(){
     const selectedId = this.getTreeIdItemSelected();
     for (const productLine of this.project.productLines) {
@@ -260,6 +261,18 @@ export default class ProjectService {
       const scope = productLine?.scope;
       const foundModel = scopeModels.find((model) => model.id === selectedId);
       if (foundModel) {
+        return scope;
+      }
+    }
+    return null;
+  }
+  */
+   getScope(){
+    const selectedId = this.getTreeIdItemSelected();
+    for (const productLine of this.project.productLines) {
+      const scopeModels = productLine?.scope?.models || [];
+      const scope = productLine?.scope;
+      if (scope) {
         return scope;
       }
     }

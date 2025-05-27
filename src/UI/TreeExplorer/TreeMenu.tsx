@@ -11,6 +11,7 @@ import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/Produc
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
 import ConfigurationManagement from "../ConfigurationManagement/configurationManagement";
 import { ScopeSPL } from "../../Domain/ProductLineEngineering/Entities/ScopeSPL";
+import AnalyzerScope from "../Scope/AnalyzerScope";
 
 interface Props {
   projectService: ProjectService;
@@ -38,6 +39,7 @@ interface State {
   optionAllowRename: boolean,
   optionAllowDelete: boolean,
   optionAllowEFunctions: boolean,
+  optionAllowAnalyzeScope: boolean,
   newSelected: string,
   showPropertiesModal: boolean,
   plDomains: string[],
@@ -54,7 +56,8 @@ interface State {
   configurationName: string,
   showConfigurationManagementModal: boolean,
   showScopeManagementModal: boolean,
-  selectedScopeId?: string
+  selectedScopeId?: string,
+  showAnalyzerScope: boolean
 }
 
 class TreeMenu extends Component<Props, State> {
@@ -77,6 +80,7 @@ class TreeMenu extends Component<Props, State> {
     optionAllowRename: false,
     optionAllowDelete: false,
     optionAllowEFunctions: false,
+    optionAllowAnalyzeScope: false,
     newSelected: "default",
     showPropertiesModal: false,
     plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution', "IoT", "IndustrialControlSystems", "HealthCare", "Communication", "Military", "WebServices", "Transportation", "SmartPhones", "PublicAdministration", "Multi-Domain", "Banking", "EmergencyServices", "Cloud-Provider"],
@@ -93,7 +97,8 @@ class TreeMenu extends Component<Props, State> {
     configurationName: "Configuration 1",
     showConfigurationManagementModal: false,
     showScopeManagementModal: false,
-    selectedScopeId: undefined
+    selectedScopeId: undefined,
+    showAnalyzerScope: false,
   };
 
   constructor(props: any) {
@@ -182,6 +187,7 @@ class TreeMenu extends Component<Props, State> {
       plType: pl.type
     })
     this.hideContextMenu();
+    me.forceUpdate();
   }
 
   hidePropertiesModal() {
@@ -249,6 +255,7 @@ class TreeMenu extends Component<Props, State> {
     pl.domain = me.state.plDomain;
     pl.type = me.state.plType;
     me.hidePropertiesModal();
+    me.forceUpdate();
   }
 
   callExternalFuntion(efunction: ExternalFuntion, query: any = null): void {
@@ -341,6 +348,7 @@ class TreeMenu extends Component<Props, State> {
         me.setState({
           optionAllowModelEnable: true,
           optionAllowModelScope: true,
+          optionAllowAnalyzeScope: true,
           newSelected: "SCOPE",
         });
       },
@@ -408,6 +416,7 @@ class TreeMenu extends Component<Props, State> {
       optionAllowRename: false,
       optionAllowDelete: false,
       optionAllowEFunctions: false,
+      optionAllowAnalyzeScope: false,
     });
   }
 
@@ -451,15 +460,6 @@ class TreeMenu extends Component<Props, State> {
         showContextMenu: this.props.showContextMenu
       })
     }
-    console.log(
-      "Props actualizadas en TreeMenu:",
-      "X:",
-      this.props.contextMenuX,
-      "Y:",
-      this.props.contextMenuY,
-      "Mostrar menú:",
-      this.props.showContextMenu
-    );
   }
 
   handleUpdateEditorText(event: any) {
@@ -679,7 +679,7 @@ class TreeMenu extends Component<Props, State> {
 
   addNewScopeModel(languageName: string, name: string) {
 
-    let productLineSelected=this.props.projectService.getProductLineSelected();
+    let productLineSelected = this.props.projectService.getProductLineSelected();
 
     let scopeModel =
       this.props.projectService.createScopeModel(
@@ -781,10 +781,19 @@ class TreeMenu extends Component<Props, State> {
       }
     );
   }
+  handleAnalyzeScope = () => {
+    // cierra el menú
+    this.hideContextMenu();
+    // abre el modal
+    this.setState({ showAnalyzerScope: true });
+  }
+
+  handleCloseAnalyzerScope = () => {
+    this.setState({ showAnalyzerScope: false });
+  }
+
 
   renderContexMenu() {
-    console.log("Mostrando menú contextual:", this.state.showContextMenu, "en X:", this.props.contextMenuX, "Y:", this.props.contextMenuY);
-
     let items = [];
 
     if (this.state.optionAllowProductLine) {
@@ -803,6 +812,18 @@ class TreeMenu extends Component<Props, State> {
         </Dropdown.Item>
       );
     }
+    if (this.state.optionAllowAnalyzeScope) {
+      items.push(
+        <Dropdown.Item
+          href="#"
+          onClick={() => this.handleAnalyzeScope()}
+          key="analyzeScope"
+        >
+          Analyze scope
+        </Dropdown.Item>
+      );
+    }
+
     if (this.state.optionAllowApplication) {
       items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="APPLICATION">New application</Dropdown.Item>);
     }
@@ -849,6 +870,7 @@ class TreeMenu extends Component<Props, State> {
 
     let left = this.props.contextMenuX + "px";
     let top = this.props.contextMenuY + "px";
+
     return (
       <Dropdown.Menu show={this.state.showContextMenu} style={{ left: left, top: top }}>
         {items}
@@ -1248,10 +1270,16 @@ class TreeMenu extends Component<Props, State> {
           </li>
         </ul>
         <script></script>
+        <AnalyzerScope
+          projectService={this.props.projectService}
+          show={this.state.showAnalyzerScope}
+          onHide={this.handleCloseAnalyzerScope}
+        />
 
 
       </div>
     );
+
   }
 }
 
