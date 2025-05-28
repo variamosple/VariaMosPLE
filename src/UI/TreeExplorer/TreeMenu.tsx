@@ -11,6 +11,7 @@ import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/Produc
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
 import ConfigurationManagement from "../ConfigurationManagement/configurationManagement";
 import { ScopeSPL } from "../../Domain/ProductLineEngineering/Entities/ScopeSPL";
+import ScopeModal from "../Scope/ScopeModal";
 import ModelInformationEditor from "./ModelInformationEditor";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 
@@ -41,6 +42,7 @@ interface State {
   optionAllowRename: boolean,
   optionAllowDelete: boolean,
   optionAllowEFunctions: boolean,
+  optionAllowAnalyzeScope: boolean,
   newSelected: string,
   showPropertiesModal: boolean,
   plDomains: string[],
@@ -59,6 +61,7 @@ interface State {
   showConfigurationManagementModal: boolean,
   showScopeManagementModal: boolean,
   selectedScopeId?: string,
+  showScopeModal: boolean
   model: Model
 }
 
@@ -83,6 +86,7 @@ class TreeMenu extends Component<Props, State> {
     optionAllowRename: false,
     optionAllowDelete: false,
     optionAllowEFunctions: false,
+    optionAllowAnalyzeScope: false,
     newSelected: "default",
     showPropertiesModal: false,
     plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution', "IoT", "IndustrialControlSystems", "HealthCare", "Communication", "Military", "WebServices", "Transportation", "SmartPhones", "PublicAdministration", "Multi-Domain", "Banking", "EmergencyServices", "Cloud-Provider"],
@@ -101,6 +105,7 @@ class TreeMenu extends Component<Props, State> {
     showConfigurationManagementModal: false,
     showScopeManagementModal: false,
     selectedScopeId: undefined,
+    showScopeModal: false,
     model: null
   };
 
@@ -190,6 +195,7 @@ class TreeMenu extends Component<Props, State> {
       plType: pl.type
     })
     this.hideContextMenu();
+    me.forceUpdate();
   }
 
   hidePropertiesModal() {
@@ -279,6 +285,7 @@ class TreeMenu extends Component<Props, State> {
     pl.domain = me.state.plDomain;
     pl.type = me.state.plType;
     me.hidePropertiesModal();
+    me.forceUpdate();
   }
 
   callExternalFuntion(efunction: ExternalFuntion, query: any = null): void {
@@ -350,7 +357,30 @@ class TreeMenu extends Component<Props, State> {
           optionAllowDelete: true,
         });
       },
+      scopeSPLOLD: () => {
+        const selectedItem = this.props.projectService.getSelectedScope();
+        this.setState({ optionScopeEnable: true });
+        if (!selectedItem) {
+          console.warn("No valid scope selected");
+          return;
+        }
+
+        if (this.state.selectedScopeId !== selectedItem.id) {
+          console.log("Selected Scope Item:", selectedItem);
+          this.setState({
+            selectedScopeId: selectedItem.id,
+            optionScopeEnable: true,
+            newSelected: "SCOPE",
+          });
+        }
+      },
       scope: () => {
+        console.log()
+        if(this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].scope.models.length > 0){
+          me.setState({
+          optionAllowAnalyzeScope: true,
+        });
+        }
         me.setState({
           optionAllowModelEnable: true,
           optionAllowModelScope: true,
@@ -423,6 +453,7 @@ class TreeMenu extends Component<Props, State> {
       optionAllowRename: false,
       optionAllowDelete: false,
       optionAllowEFunctions: false,
+      optionAllowAnalyzeScope: false,
     });
   }
 
@@ -466,15 +497,6 @@ class TreeMenu extends Component<Props, State> {
         showContextMenu: this.props.showContextMenu
       })
     }
-    console.log(
-      "Props actualizadas en TreeMenu:",
-      "X:",
-      this.props.contextMenuX,
-      "Y:",
-      this.props.contextMenuY,
-      "Mostrar menú:",
-      this.props.showContextMenu
-    );
   }
 
   handleUpdateEditorText(event: any) {
@@ -712,6 +734,7 @@ class TreeMenu extends Component<Props, State> {
     add[language.type]();
   }
 
+
   addNewScopeModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
     let model =
       this.props.projectService.createScopeModel(
@@ -729,6 +752,7 @@ class TreeMenu extends Component<Props, State> {
     );
     this.props.projectService.saveProject();
   }
+
 
   addNewDomainEModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
     let domainEngineeringModel =
@@ -832,10 +856,19 @@ class TreeMenu extends Component<Props, State> {
       }
     );
   }
+  handleAnalyzeScope = () => {
+    // cierra el menú
+    this.hideContextMenu();
+    // abre el modal
+    this.setState({ showScopeModal: true });
+  }
+
+  handleCloseAnalyzerScope = () => {
+    this.setState({ showScopeModal: false });
+  }
+
 
   renderContexMenu() {
-    console.log("Mostrando menú contextual:", this.state.showContextMenu, "en X:", this.props.contextMenuX, "Y:", this.props.contextMenuY);
-
     let items = [];
 
     if (this.state.optionAllowProductLine) {
@@ -854,6 +887,7 @@ class TreeMenu extends Component<Props, State> {
         </Dropdown.Item>
       );
     }
+
     if (this.state.optionAllowApplication) {
       items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="APPLICATION">New application</Dropdown.Item>);
     }
@@ -879,6 +913,17 @@ class TreeMenu extends Component<Props, State> {
       }
       items.push(<DropdownButton id="nested-dropdown" title="New model" key="end" drop="end" variant="Info">{children}</DropdownButton>);
     }
+        if (this.state.optionAllowAnalyzeScope) {
+      items.push(
+        <Dropdown.Item
+          href="#"
+          onClick={() => this.handleAnalyzeScope()}
+          key="analyzeScope"
+        >
+          Technical metrics of scope
+        </Dropdown.Item>
+      );
+    }
     if (this.state.optionAllowEFunctions) {
       if (this.props.projectService.externalFunctions) {
         if (this.props.projectService.externalFunctions.length >= 1) {
@@ -903,6 +948,7 @@ class TreeMenu extends Component<Props, State> {
 
     let left = this.props.contextMenuX + "px";
     let top = this.props.contextMenuY + "px";
+
     return (
       <Dropdown.Menu show={this.state.showContextMenu} style={{ left: left, top: top }}>
         {items}
@@ -1342,11 +1388,38 @@ class TreeMenu extends Component<Props, State> {
             </span>
           </li>
         </ul>
-        <script></script>
-
+        { this.state.showScopeModal &&
+  this.props.projectService.project.productLines.length > 0 &&
+  this.props.projectService.getScope() != null && (
+        <ScopeModal
+          show={this.state.showScopeModal}
+          initialScope={
+            this.props.projectService.getScope()
+          }
+          domain={
+            this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].domain
+          }
+          onHide={() => this.setState({ showScopeModal: false })}
+          onSave={(updatedScope: ScopeSPL) => {
+            this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].scope = updatedScope;
+            const projectInfo = this.props.projectService.getProjectInformation();
+            this.props.projectService.saveProjectInServer(
+              projectInfo,
+              (response) => {
+                console.log("Proyecto guardado exitosamente:", response);
+              },
+              (error) => {
+                console.error("Error guardando el proyecto:", error);
+              }
+            );
+          }}
+          
+        />  
+) }
 
       </div>
     );
+
   }
 }
 

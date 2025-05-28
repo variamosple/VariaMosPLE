@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Button, Form } from "react-bootstrap";
+import { Modal, Button, Form, Row, Col, InputGroup} from "react-bootstrap";
 import { ScopeSPL, Prioridad } from "../../Domain/ProductLineEngineering/Entities/ScopeSPL";
 
 interface ScopeModalProps {
@@ -17,6 +17,10 @@ const ScopeModal: React.FC<ScopeModalProps> = ({ show, initialScope, domain, onH
   // Technical Complexity ahora es un select con valores Low/Medium/High
   const [technicalComplexity, setTechnicalComplexity] = useState<Prioridad>("Low");
   const [risk, setRisk] = useState<Prioridad>("Medium");
+  const [derivedSystems, setDerivedSystems] = useState<string[]>([]);
+  const [techConstraints, setTechConstraints] = useState<string[]>([]);
+  const [regulatoryConstraints, setRegulatoryConstraints] = useState<string[]>([]);
+  const [evolutionStrategy, setEvolutionStrategy] = useState("");
 
   useEffect(() => {
     if (show && initialScope) {
@@ -24,6 +28,10 @@ const ScopeModal: React.FC<ScopeModalProps> = ({ show, initialScope, domain, onH
       setMarketImpact(initialScope.marketImpact || 0);
       setTechnicalComplexity(initialScope.technicalComplexity || "Low");
       setRisk(initialScope.risk || "Medium");
+      setDerivedSystems(initialScope.derivedSystems || []);
+      setTechConstraints(initialScope.techConstraints || []);
+      setRegulatoryConstraints(initialScope.regulatoryConstraints || []);
+      setEvolutionStrategy(initialScope.evolutionStrategy || "");
     }
   }, [show, initialScope, domain]);
 
@@ -34,17 +42,36 @@ const ScopeModal: React.FC<ScopeModalProps> = ({ show, initialScope, domain, onH
       marketImpact,
       technicalComplexity,
       risk,
+      derivedSystems,
+      techConstraints,
+      regulatoryConstraints,
+      evolutionStrategy,
     };
     onSave(updatedScope);
     onHide();
   };
+
+  const handleListChange = (setter: React.Dispatch<React.SetStateAction<string[]>>, idx: number, value: string) => {
+    setter(prev => {
+      const copy = [...prev];
+      copy[idx] = value;
+      return copy;
+    });
+  };
+  const addListItem = (setter: React.Dispatch<React.SetStateAction<string[]>>) =>
+    setter(prev => [...prev, ""]);
 
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
       <Modal.Header closeButton>
         <Modal.Title>Edit Scope Metrics</Modal.Title>
       </Modal.Header>
-      <Modal.Body>
+      <Modal.Body
+      style={{
+          maxHeight: "70vh",
+          overflowY: "auto",
+          paddingRight: "1rem",
+        }}>
         <Form>
           {/* Market Segment – campo no editable */}
           <Form.Group controlId="scopeMarketSegment">
@@ -94,6 +121,114 @@ const ScopeModal: React.FC<ScopeModalProps> = ({ show, initialScope, domain, onH
               <option value="Medium">Medium</option>
               <option value="High">High</option>
             </Form.Control>
+          </Form.Group>
+          
+    {/* Derived Systems */}
+          <Form.Group className="mt-4">
+            <InputGroup className="align-items-center mb-2">
+              <Form.Label className="mb-0 me-2">Derived Systems Types</Form.Label>
+              <Button 
+                size="sm" variant="outline-primary" 
+                onClick={() => addListItem(setDerivedSystems)}
+                style={{ width: "1.75rem", padding: "0", textAlign: "center" }}
+              >
+                +  
+              </Button>
+            </InputGroup>
+            {derivedSystems.map((item, idx) => (
+              <Row key={idx} className="mb-2">
+                <Col xs={10}>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g. drones, autonomous submarines"
+                    value={item}
+                    onChange={e => handleListChange(setDerivedSystems, idx, e.target.value)}
+                  />
+                </Col>
+                <Col xs={2}>
+                  <Button variant="outline-secondary" size="sm"
+                          onClick={() => setDerivedSystems(prev => prev.filter((_, i) => i !== idx))}>
+                    ×
+                  </Button>
+                </Col>
+              </Row>
+            ))}
+          </Form.Group>
+
+          {/* Technical Constraints */}
+          <Form.Group className="mt-4">
+            <InputGroup className="align-items-center mb-2">
+              <Form.Label className="mb-0 me-2">Technical Constraints</Form.Label>
+              <Button 
+                size="sm" variant="outline-primary" 
+                onClick={() => addListItem(setTechConstraints)}
+                style={{ width: "1.75rem", padding: "0", textAlign: "center" }}
+              >
+                +
+              </Button>
+            </InputGroup>
+            {techConstraints.map((item, idx) => (
+              <Row key={idx} className="mb-2">
+                <Col xs={10}>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g. STANAG, DO-178C"
+                    value={item}
+                    onChange={e => handleListChange(setTechConstraints, idx, e.target.value)}
+                  />
+                </Col>
+                <Col xs={2}>
+                  <Button variant="outline-secondary" size="sm"
+                          onClick={() => setTechConstraints(prev => prev.filter((_, i) => i !== idx))}>
+                    ×
+                  </Button>
+                </Col>
+              </Row>
+            ))}
+          </Form.Group>
+
+          {/* Regulatory Constraints */}
+          <Form.Group className="mt-4">
+            <InputGroup className="align-items-center mb-2">
+              <Form.Label className="mb-0 me-2">Regulatory Constraints</Form.Label>
+              <Button 
+                size="sm" variant="outline-primary" 
+                onClick={() => addListItem(setRegulatoryConstraints)}
+                style={{ width: "1.75rem", padding: "0", textAlign: "center" }}
+              >
+                +
+              </Button>
+            </InputGroup>
+            {regulatoryConstraints.map((item, idx) => (
+              <Row key={idx} className="mb-2">
+                <Col xs={10}>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g. GDPR"
+                    value={item}
+                    onChange={e => handleListChange(setRegulatoryConstraints, idx, e.target.value)}
+                  />
+                </Col>
+                <Col xs={2}>
+                  <Button variant="outline-secondary" size="sm"
+                          onClick={() => setRegulatoryConstraints(prev => prev.filter((_, i) => i !== idx))}>
+                    ×
+                  </Button>
+                </Col>
+              </Row>
+            ))}
+          </Form.Group>
+          {/* 5. Evolution Strategy */}
+          <Form.Group controlId="scopeEvolution" className="mt-4">
+            <Form.Label>Evolution Strategy</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={6}
+              style={{ resize: "vertical", padding: "0.75rem" }}
+              placeholder="Describe what could be implemented in future stages of the product line"
+              value={evolutionStrategy}
+              onChange={e => setEvolutionStrategy(e.target.value)}
+            />
           </Form.Group>
         </Form>
       </Modal.Body>

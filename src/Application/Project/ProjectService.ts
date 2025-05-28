@@ -38,6 +38,7 @@ import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
 
+
 export default class ProjectService {
   private graph: any;
   private projectManager: ProjectManager = new ProjectManager();
@@ -53,6 +54,7 @@ export default class ProjectService {
   // more and more it's clear we need redux or something like it
   // to manage the state of the application
   private _currentLanguage: Language = null;
+  private _currentModel: Model = null;
 
   private _environment: string = Config.NODE_ENV;
   private _languages: any = this.getLanguagesByUser();
@@ -87,6 +89,10 @@ export default class ProjectService {
 
   constructor(user?: SessionUser) {
     this.user = user;
+  }
+
+  public get currentModel(): Model {
+    return this._currentModel;
   }
 
   public get currentLanguage(): Language {
@@ -223,6 +229,16 @@ export default class ProjectService {
       }
     }
   }
+
+  getIdCurrentProductLine(){
+     for (let idProductLine = 0; idProductLine < this.project.productLines.length; idProductLine++) {
+      const productLine = this.project.productLines[idProductLine];
+      if (productLine.scope == this.getScope()){
+        return idProductLine;
+      }
+    }
+    return 0;
+  }
   getSelectedScope() {
     const selectedId = this.getTreeIdItemSelected();
     console.log("Selected ID:", selectedId);
@@ -247,19 +263,18 @@ export default class ProjectService {
     console.warn("No scope model matches the selected ID");
     return null;
   }
-  getScope() {
+   getScope(){
     const selectedId = this.getTreeIdItemSelected();
     for (const productLine of this.project.productLines) {
       const scopeModels = productLine?.scope?.models || [];
       const scope = productLine?.scope;
-      const foundModel = scopeModels.find((model) => model.id === selectedId);
-      if (foundModel) {
+      if (scope) {
         return scope;
       }
     }
     return null;
   }
-
+  
   getStructureAndRelationships() {
     const selectedScope = this.getSelectedScope();
     if (!selectedScope) {
@@ -390,6 +405,7 @@ export default class ProjectService {
   raiseEventSelectedModel(model: Model | undefined) {
     if (model) {
       let me = this;
+      me._currentModel=model;
       let e = new SelectedModelEventArg(me, model);
       for (let index = 0; index < me.selectedModelListeners.length; index++) {
         let callback = this.selectedModelListeners[index];
@@ -500,6 +516,27 @@ export default class ProjectService {
     this.treeItemSelected = "domainEngineering";
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
+
+  updateScopeSelected(scopeModelId?: string) {
+    this.treeItemSelected = "scope";
+    this.raiseEventUpdateSelected(this.treeItemSelected);
+    // if (!scopeModelId) {
+    //   const selectedProductLine = this.project.productLines.find(
+    //     (pl) => pl.id === this.treeIdItemSelected
+    //   );
+  
+    //   if (selectedProductLine?.scope?.models?.length) {
+    //     scopeModelId = selectedProductLine.scope.models[0].id;
+    //   } else {
+    //     console.error("No valid scope models found to select.");
+    //     return;
+    //   }
+    // }
+  
+    // this.treeItemSelected = "scopeSPL";
+    // this.treeIdItemSelected = scopeModelId;
+    // this.raiseEventUpdateSelected(this.treeItemSelected);
+
 
 
   updateScopeSelectedOri(scopeModelId?: string) {
@@ -757,10 +794,12 @@ export default class ProjectService {
   openProjectInServer(projectId: string, template: boolean): void {
     let me = this;
     let user = this.getUser();
+    console.log("abro projecto en project service", user);
 
     let openProjectInServerSuccessCallback = (projectInformation: ProjectInformation) => {
       me._project = projectInformation.project;
       me._projectInformation = projectInformation;
+      me._currentModel=null;
       if (template) {
         me._projectInformation.id = null;
         me._projectInformation.template = false;
@@ -821,9 +860,11 @@ export default class ProjectService {
     }
     this.projectPersistenceUseCases.addConfiguration(user, projectInformation, configurationInformation, sc, errorCallback);
   }
+  
 
   getProjectsByUser(successCallback: any, errorCallback: any) {
     let user = this.getUser();
+    console.log("get project by user, ", user);
     this.projectPersistenceUseCases.getProjectsByUser(user, successCallback, errorCallback);
   }
 
