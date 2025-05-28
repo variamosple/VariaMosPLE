@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Button, Form, Row, Col} from "react-bootstrap";
+import { Modal, Button, Form, Row, Col, InputGroup} from "react-bootstrap";
 import { ScopeSPL, Prioridad } from "../../Domain/ProductLineEngineering/Entities/ScopeSPL";
 
 interface ScopeModalProps {
@@ -122,12 +122,19 @@ const ScopeModal: React.FC<ScopeModalProps> = ({ show, initialScope, domain, onH
               <option value="High">High</option>
             </Form.Control>
           </Form.Group>
-           {/* 2. Derived Systems */}
-          <Form.Group controlId="scopeDerivedSystems" className="mt-4">
-            <Form.Label>Derived Systems Types</Form.Label>
-            <div className="d-flex align-items-center mb-2">
-              <Button size="sm" onClick={() => addListItem(setDerivedSystems)}>+ Add System</Button>
-            </div>
+          
+    {/* Derived Systems */}
+          <Form.Group className="mt-4">
+            <InputGroup className="align-items-center mb-2">
+              <Form.Label className="mb-0 me-2">Derived Systems Types</Form.Label>
+              <Button 
+                size="sm" variant="outline-primary" 
+                onClick={() => addListItem(setDerivedSystems)}
+                style={{ width: "1.75rem", padding: "0", textAlign: "center" }}
+              >
+                +  
+              </Button>
+            </InputGroup>
             {derivedSystems.map((item, idx) => (
               <Row key={idx} className="mb-2">
                 <Col xs={10}>
@@ -148,12 +155,18 @@ const ScopeModal: React.FC<ScopeModalProps> = ({ show, initialScope, domain, onH
             ))}
           </Form.Group>
 
-          {/* 3. Technical Constraints */}
-          <Form.Group controlId="scopeTechConstraints" className="mt-4">
-            <Form.Label>Technical Constraints</Form.Label>
-            <div className="d-flex align-items-center mb-2">
-              <Button size="sm" onClick={() => addListItem(setTechConstraints)}>+ Add Constraint</Button>
-            </div>
+          {/* Technical Constraints */}
+          <Form.Group className="mt-4">
+            <InputGroup className="align-items-center mb-2">
+              <Form.Label className="mb-0 me-2">Technical Constraints</Form.Label>
+              <Button 
+                size="sm" variant="outline-primary" 
+                onClick={() => addListItem(setTechConstraints)}
+                style={{ width: "1.75rem", padding: "0", textAlign: "center" }}
+              >
+                +
+              </Button>
+            </InputGroup>
             {techConstraints.map((item, idx) => (
               <Row key={idx} className="mb-2">
                 <Col xs={10}>
@@ -174,12 +187,18 @@ const ScopeModal: React.FC<ScopeModalProps> = ({ show, initialScope, domain, onH
             ))}
           </Form.Group>
 
-          {/* 4. Regulatory Constraints */}
-          <Form.Group controlId="scopeRegulatoryConstraints" className="mt-4">
-            <Form.Label>Regulatory Constraints</Form.Label>
-            <div className="d-flex align-items-center mb-2">
-              <Button size="sm" onClick={() => addListItem(setRegulatoryConstraints)}>+ Add Constraint</Button>
-            </div>
+          {/* Regulatory Constraints */}
+          <Form.Group className="mt-4">
+            <InputGroup className="align-items-center mb-2">
+              <Form.Label className="mb-0 me-2">Regulatory Constraints</Form.Label>
+              <Button 
+                size="sm" variant="outline-primary" 
+                onClick={() => addListItem(setRegulatoryConstraints)}
+                style={{ width: "1.75rem", padding: "0", textAlign: "center" }}
+              >
+                +
+              </Button>
+            </InputGroup>
             {regulatoryConstraints.map((item, idx) => (
               <Row key={idx} className="mb-2">
                 <Col xs={10}>
@@ -199,7 +218,6 @@ const ScopeModal: React.FC<ScopeModalProps> = ({ show, initialScope, domain, onH
               </Row>
             ))}
           </Form.Group>
-
           {/* 5. Evolution Strategy */}
           <Form.Group controlId="scopeEvolution" className="mt-4">
             <Form.Label>Evolution Strategy</Form.Label>
@@ -207,7 +225,7 @@ const ScopeModal: React.FC<ScopeModalProps> = ({ show, initialScope, domain, onH
               as="textarea"
               rows={6}
               style={{ resize: "vertical", padding: "0.75rem" }}
-              placeholder="Describe what will NOT be included in phase 1 and the roadmap for future evolution"
+              placeholder="Describe what could be implemented in future stages of the product line"
               value={evolutionStrategy}
               onChange={e => setEvolutionStrategy(e.target.value)}
             />

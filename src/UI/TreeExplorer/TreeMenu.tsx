@@ -345,10 +345,15 @@ class TreeMenu extends Component<Props, State> {
         }
       },
       scope: () => {
+        console.log()
+        if(this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].scope.models.length > 0){
+          me.setState({
+          optionAllowAnalyzeScope: true,
+        });
+        }
         me.setState({
           optionAllowModelEnable: true,
           optionAllowModelScope: true,
-          optionAllowAnalyzeScope: true,
           newSelected: "SCOPE",
         });
       },
@@ -812,17 +817,6 @@ class TreeMenu extends Component<Props, State> {
         </Dropdown.Item>
       );
     }
-    if (this.state.optionAllowAnalyzeScope) {
-      items.push(
-        <Dropdown.Item
-          href="#"
-          onClick={() => this.handleAnalyzeScope()}
-          key="analyzeScope"
-        >
-          Analyze scope
-        </Dropdown.Item>
-      );
-    }
 
     if (this.state.optionAllowApplication) {
       items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="APPLICATION">New application</Dropdown.Item>);
@@ -845,6 +839,17 @@ class TreeMenu extends Component<Props, State> {
         }
       }
       items.push(<DropdownButton id="nested-dropdown" title="New model" key="end" drop="end" variant="Info">{children}</DropdownButton>);
+    }
+        if (this.state.optionAllowAnalyzeScope) {
+      items.push(
+        <Dropdown.Item
+          href="#"
+          onClick={() => this.handleAnalyzeScope()}
+          key="analyzeScope"
+        >
+          Technical metrics of scope
+        </Dropdown.Item>
+      );
     }
     if (this.state.optionAllowEFunctions) {
       if (this.props.projectService.externalFunctions) {

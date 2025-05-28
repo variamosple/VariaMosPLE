@@ -39,6 +39,7 @@ class ModelRenderer extends Component<ModelRendererProps, ModelRendererState> {
         let elements = [];
         const { selectedModel } = this.state;
         if (selectedModel) {
+            const key = selectedModel.id;
             const isMxGraphModel = selectedModel.type !== "Catalog of potential products";
             if (isMxGraphModel) {
                 elements.push(
@@ -56,6 +57,7 @@ class ModelRenderer extends Component<ModelRendererProps, ModelRendererState> {
                 elements.push(
                     <td>
                         <BillOfMaterialsEditor
+                            key={`bom-${key}`}
                             projectService={this.props.projectService}
                             onClose={() => {
                                 // Aquí puedes agregar acciones opcionales al cerrar el editor BOM
@@ -72,12 +74,14 @@ class ModelRenderer extends Component<ModelRendererProps, ModelRendererState> {
         return (
             <div className="w-100 h-100">
                 <table>
+                    <tbody>
                     <tr>
                         <td className="td-treexplorer">
                             <TreeExplorer projectService={this.props.projectService} />
                         </td>
                         {this.renderEditor()}
                     </tr>
+                    </tbody>
                 </table>
             </div>
         )
