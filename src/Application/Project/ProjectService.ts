@@ -229,6 +229,16 @@ export default class ProjectService {
       }
     }
   }
+
+  getIdCurrentProductLine(){
+     for (let idProductLine = 0; idProductLine < this.project.productLines.length; idProductLine++) {
+      const productLine = this.project.productLines[idProductLine];
+      if (productLine.scope == this.getScope()){
+        return idProductLine;
+      }
+    }
+    return 0;
+  }
   getSelectedScope() {
     const selectedId = this.getTreeIdItemSelected();
     console.log("Selected ID:", selectedId);

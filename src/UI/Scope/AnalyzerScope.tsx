@@ -298,6 +298,9 @@ renderPartialDependenciesTable(deps: any[]) {
     const TC = ['Low','Low','Low','Medium','High'][Math.round(1+4*avg)] || 'Low';
     const MI = Math.round(100*avg), risk= avg>0.7?'High':avg>0.3?'Medium':'Low';
     const scope = this.props.projectService.getScope();
+    if(!scope){
+      return null;
+    }
     const expTC=scope.technicalComplexity || 'Low';
     const expMI=scope.marketImpact||0;
     const expR=scope.risk||'Medium';
@@ -311,6 +314,9 @@ renderPartialDependenciesTable(deps: any[]) {
   }
 
   renderScopeMetricsAnalysis() {
+    if(!this.analyzeScopeMetrics()){
+      return null;
+    }
     const lines=this.analyzeScopeMetrics(), main=lines.filter(l=>!l.startsWith('Warning')), warn=lines.filter(l=>l.startsWith('Warning'));
     return (
       <div>

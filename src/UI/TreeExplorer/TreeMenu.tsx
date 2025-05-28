@@ -11,7 +11,7 @@ import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/Produc
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
 import ConfigurationManagement from "../ConfigurationManagement/configurationManagement";
 import { ScopeSPL } from "../../Domain/ProductLineEngineering/Entities/ScopeSPL";
-import AnalyzerScope from "../Scope/AnalyzerScope";
+import ScopeModal from "../Scope/ScopeModal";
 
 interface Props {
   projectService: ProjectService;
@@ -57,7 +57,7 @@ interface State {
   showConfigurationManagementModal: boolean,
   showScopeManagementModal: boolean,
   selectedScopeId?: string,
-  showAnalyzerScope: boolean
+  showScopeModal: boolean
 }
 
 class TreeMenu extends Component<Props, State> {
@@ -98,7 +98,7 @@ class TreeMenu extends Component<Props, State> {
     showConfigurationManagementModal: false,
     showScopeManagementModal: false,
     selectedScopeId: undefined,
-    showAnalyzerScope: false,
+    showScopeModal: false,
   };
 
   constructor(props: any) {
@@ -785,11 +785,11 @@ class TreeMenu extends Component<Props, State> {
     // cierra el menú
     this.hideContextMenu();
     // abre el modal
-    this.setState({ showAnalyzerScope: true });
+    this.setState({ showScopeModal: true });
   }
 
   handleCloseAnalyzerScope = () => {
-    this.setState({ showAnalyzerScope: false });
+    this.setState({ showScopeModal: false });
   }
 
 
@@ -1269,13 +1269,34 @@ class TreeMenu extends Component<Props, State> {
             </span>
           </li>
         </ul>
-        <script></script>
-        <AnalyzerScope
-          projectService={this.props.projectService}
-          show={this.state.showAnalyzerScope}
-          onHide={this.handleCloseAnalyzerScope}
-        />
-
+        { this.state.showScopeModal &&
+  this.props.projectService.project.productLines.length > 0 &&
+  this.props.projectService.getScope() != null && (
+        <ScopeModal
+          show={this.state.showScopeModal}
+          initialScope={
+            this.props.projectService.getScope()
+          }
+          domain={
+            this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].domain
+          }
+          onHide={() => this.setState({ showScopeModal: false })}
+          onSave={(updatedScope: ScopeSPL) => {
+            this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].scope = updatedScope;
+            const projectInfo = this.props.projectService.getProjectInformation();
+            this.props.projectService.saveProjectInServer(
+              projectInfo,
+              (response) => {
+                console.log("Proyecto guardado exitosamente:", response);
+              },
+              (error) => {
+                console.error("Error guardando el proyecto:", error);
+              }
+            );
+          }}
+          
+        />  
+) }
 
       </div>
     );
