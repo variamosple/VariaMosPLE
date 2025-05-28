@@ -71,6 +71,19 @@ class TreeExplorer extends Component<Props, State> {
     });
   }
 
+  btn_viewScopeModel(e: any, idPl: number, idScopeModel: number) {
+    console.log("treeExplorer btn_viewScopeModel")
+    this.props.projectService.modelScopeSelected(idPl, idScopeModel);
+    this.props.projectService.saveProject();
+    if (e) {
+      this.setState({
+        showContextMenu: true,
+        contextMenuX: e.event.clientX,
+        contextMenuY: e.event.clientY
+      })
+    }
+  }
+
   btn_viewDomainModel(e: any, idPl: number, idDomainModel: number) {
     console.log("treeExplorer btn_viewDomainModel")
     this.props.projectService.modelDomainSelected(idPl, idDomainModel);
@@ -161,12 +174,12 @@ class TreeExplorer extends Component<Props, State> {
 
   updateLpSelected(e: any, idPl: number) {
     this.props.projectService.updateLpSelected(idPl);
-    if (e.target.props.dataKey === "domainEngineering") {
-      this.props.projectService.updateDomainEngSelected();
-    } 
-    else if (e.target.props.dataKey === "scope") {
+    if (e.target.props.dataKey === "scope") {
       this.props.projectService.updateScopeSelected();
     }
+    else if (e.target.props.dataKey === "domainEngineering") {
+      this.props.projectService.updateDomainEngSelected();
+    } 
     else if (e.target.props.dataKey === "applicationEngineering") {
       this.props.projectService.updateAppEngSelected();
     }
@@ -294,6 +307,29 @@ class TreeExplorer extends Component<Props, State> {
       </TreeItem>
     );
   } 
+
+  renderScopeModels(models: Model[], idProductLine: number) {
+    if (!models) {
+      return null;
+    }
+    
+    let folders = [];
+    for (let idModel = 0; idModel < models.length; idModel++) {
+      const model: Model = models[idModel];
+      if (!model.type) {
+        model.type = model.name;
+      }
+      let type = "" + model.type;
+      if (!folders[type]) {
+        folders[type] = [];
+      }
+      folders[type].push(
+        <TreeItem key={model.id} icon="/images/treeView/model.png" label={model.name} onClick={(e) => this.btn_viewScopeModel(null, idProductLine, idModel)} onAuxClick={(e) => this.btn_viewScopeModel( e, idProductLine, idModel ) }>
+        </TreeItem>
+      )
+    }
+    return this.renderModelFolders(folders);
+  }
 
   renderDomainModels(models: Model[], idProductLine: number) {
     let folders = [];
@@ -433,6 +469,10 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderModelFolders(folders);
   }
 
+  renderScope(productLine: ProductLine, idProductLine: number) {
+    return this.renderScopeModels(productLine.scope?.models, idProductLine)
+  }
+
   renderDomainEngineering(productLine: ProductLine, idProductLine: number) {
     return this.renderDomainModels(productLine.domainEngineering.models, idProductLine)
   }
@@ -511,7 +551,6 @@ class TreeExplorer extends Component<Props, State> {
             onDoubleClick={(e) => {
                 this.doubleClickLpSelected(e, idProductLine);
             }}
-        > 
             <TreeItem
                 icon="/images/treeView/scope.png"
                 label="Scope"
@@ -651,7 +690,7 @@ class TreeExplorer extends Component<Props, State> {
             </Tab.Content>
           </Tab.Container>
         </div>
-        {this.state.showScopeModal && (
+        {/* {this.state.showScopeModal && (
           <ScopeModal
           show={this.state.showScopeModal}
           initialScope={
@@ -676,7 +715,7 @@ class TreeExplorer extends Component<Props, State> {
           }}
           
         />  
-        )}
+        )} */}
       </div>
       
     );

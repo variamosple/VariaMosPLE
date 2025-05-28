@@ -47,8 +47,9 @@ describe('all methods should work', ()=>{
     // @ts-ignore
     let languages: any = languageUseCases.getLanguagesDetail().data;
     let element: Element[]=[]
-    let relationShip: Relationship[] = []
-    let model = new Model('Model Id','Model Name','Type',element,relationShip, "Type Engineering")
+    let relationShip: Relationship[] = [] 
+    let model = new Model('Model Id','Model Name','Type','LanguageId','Description','Author','Source',element, relationShip, "Type Engineering")
+
     let languageByName: Language = languageUseCases.getLanguageByName(
         'istar3',
         languages
@@ -79,8 +80,8 @@ describe('all methods should work', ()=>{
     // @ts-ignore
     let languages: any = languageUseCases.getLanguagesDetail().data;
     let element: Element[]=[]
-    let relationShip: Relationship[] = []
-    let model = new Model('Model Id','Model Name','Type',element,relationShip, "Type Engineering")
+    let relationShip: Relationship[] = [] 
+    let model = new Model('Model Id','Model Name','Type','LanguageType','Description','Author','Source',element, relationShip, "Type Engineering")
     let languageByName: Language = languageUseCases.getLanguageByName(
         'istar2',
         languages

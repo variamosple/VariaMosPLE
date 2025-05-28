@@ -358,6 +358,7 @@ export default class MxgraphUtils {
                                         if (!isNaN(key)) continue; 
                                         if (['uid', 'label', 'Name', 'Selected', 'type', 'title'].includes(key)) continue; 
                                         let name=key; 
+                                        //alert(JSON.stringify(attributes[key]));
                                         let value=attributes[key].value;
                                         strs.push(name + ": " + value); 
                                     }  
