@@ -97,19 +97,6 @@ class TreeExplorer extends Component<Props, State> {
     }
   }
 
-  btn_viewScopeModel(e: any, idPl: number, idScopeModel: number) {
-    console.log("treeExplorer btn_viewScopeModel")
-    this.props.projectService.modelScopeSelected(idPl, idScopeModel);
-    this.props.projectService.saveProject();
-    if (e) {
-      this.setState({
-        showContextMenu: true,
-        contextMenuX: e.event.clientX,
-        contextMenuY: e.event.clientY
-      })
-    }
-  }
-
   setArbitraryConstraints(newArbitraryConstraints: string) {
     this.setState({
       ...this.state,
@@ -308,29 +295,6 @@ class TreeExplorer extends Component<Props, State> {
     );
   } 
 
-  renderScopeModels(models: Model[], idProductLine: number) {
-    if (!models) {
-      return null;
-    }
-    
-    let folders = [];
-    for (let idModel = 0; idModel < models.length; idModel++) {
-      const model: Model = models[idModel];
-      if (!model.type) {
-        model.type = model.name;
-      }
-      let type = "" + model.type;
-      if (!folders[type]) {
-        folders[type] = [];
-      }
-      folders[type].push(
-        <TreeItem key={model.id} icon="/images/treeView/model.png" label={model.name} onClick={(e) => this.btn_viewScopeModel(null, idProductLine, idModel)} onAuxClick={(e) => this.btn_viewScopeModel( e, idProductLine, idModel ) }>
-        </TreeItem>
-      )
-    }
-    return this.renderModelFolders(folders);
-  }
-
   renderDomainModels(models: Model[], idProductLine: number) {
     let folders = [];
     for (let idModel = 0; idModel < models.length; idModel++) {
@@ -369,38 +333,6 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderModelFolders(folders);
   }
 
-  autoLoadScopeModel(idProductLine: number) {
-    console.log("Se hizo doble clic en el Scope para idProductLine:", idProductLine);
-
-    let scope = this.props.projectService.project.productLines[idProductLine].scope;
-
-    if (!scope) {
-      console.log("Scope no existe, creándolo...");
-      const newScope = new ScopeSPL();
-      this.props.projectService.project.productLines[idProductLine].scope= newScope;
-  }
-
-    if (!scope.models.length || !scope) {
-        // Crear automáticamente un modelo de tipo ConceptualMap si no hay modelos en el Scope
-        const newConceptualMap = this.props.projectService.createScopeModel(
-            this.props.projectService.project,
-            "Catalog of potencials products",
-            idProductLine,
-            "Catalog of potential products"
-        );
-        this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(newConceptualMap));
-        console.log("Modelo ConceptualMap creado y seleccionado automáticamente:", newConceptualMap);
-    } else {
-        // Intentar seleccionar un modelo existente de tipo ConceptualMap
-        const conceptualMap = scope.models.find(model => model.type === "Catalog of potential products");
-        if (conceptualMap) {
-            this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(conceptualMap));
-        } else {
-            alert("No hay un modelo ConceptualMap en Scope.");
-        }
-    }
-    this.setState({ showScopeModal: true, currentProductLineIndex: idProductLine });
-}
 
 
   renderApplicationModels(models: Model[], idProductLine: number, idApplication: number) {
@@ -469,10 +401,7 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderModelFolders(folders);
   }
 
-  renderScope(productLine: ProductLine, idProductLine: number) {
-    return this.renderScopeModels(productLine.scope?.models, idProductLine)
-  }
-
+ 
   renderDomainEngineering(productLine: ProductLine, idProductLine: number) {
     return this.renderDomainModels(productLine.domainEngineering.models, idProductLine)
   }
@@ -550,7 +479,7 @@ class TreeExplorer extends Component<Props, State> {
             }}
             onDoubleClick={(e) => {
                 this.doubleClickLpSelected(e, idProductLine);
-            }}
+            }}>
             <TreeItem
                 icon="/images/treeView/scope.png"
                 label="Scope"

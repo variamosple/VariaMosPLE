@@ -285,7 +285,7 @@ export default class BillOfMaterialsEditor extends Component<
     return (
       <InputGroup>
         <Form.Control
-          placeholder="Buscar producto..."
+          placeholder="Search for potential product..."
           value={this.state.searchTerm}
           onChange={this.handleSearchChange}
         />
@@ -302,14 +302,14 @@ export default class BillOfMaterialsEditor extends Component<
         scrollable
       >
         <Modal.Header closeButton>
-          <Modal.Title>Comparar Productos</Modal.Title>
+          <Modal.Title>Compare products</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {this.renderComparisonTable()}
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={() => this.setState({ showCompareModal: false })}>
-            Cerrar
+            Close
           </Button>
         </Modal.Footer>
       </Modal>
@@ -355,7 +355,7 @@ export default class BillOfMaterialsEditor extends Component<
       <Table bordered hover>
         <thead>
           <tr>
-            <th>Funcionalidad</th>
+            <th>Functionality</th>
             {compareSelection.map(cfgId => {
               const cfg = allScopeConfigurations.find(c => c.id === cfgId)!;
               return <th key={cfgId}>{cfg.name}</th>;
@@ -396,12 +396,12 @@ export default class BillOfMaterialsEditor extends Component<
   renderProductsList() {
     const filtered = this.getFilteredProducts();
     if (filtered.length === 0) {
-      return <p>No se encontraron productos con ese filtro.</p>;
+      return <p>No products were found with that filter.</p>;
     }
   
     return (
       <div style={{
-        height: "90vh",
+        height: "80vh",
         overflowY: "auto",
         boxSizing: "border-box",
         padding: "10px"
@@ -480,7 +480,7 @@ export default class BillOfMaterialsEditor extends Component<
                         color: "#999",
                       }}
                     >
-                      Sin imagen
+                      No image
                     </div>
                   )}
   
@@ -512,14 +512,14 @@ export default class BillOfMaterialsEditor extends Component<
     if (contextMenuConfig) {
       // Llamamos a eliminar la configuración (sólo se requiere la id)
       this.props.projectService.deleteConfigurationInServer(contextMenuConfig.id);
-      alert("Configuración eliminada exitosamente.");
+      alert("Potential product successfully removed.");
       // Actualizamos el listado de configuraciones
       this.props.projectService.getAllConfigurations(
         (configs: any[]) => {
           this.setState({ allScopeConfigurations: configs });
         },
         (error: any) => {
-          console.error("Error fetching updated configurations:", error);
+          console.error("Error fetching updated product:", error);
         }
       );
       // Ocultamos el menú contextual y forzamos actualización del modelo
@@ -593,7 +593,7 @@ export default class BillOfMaterialsEditor extends Component<
                     justifyContent: "center"
                   }}
                 >
-                  Sin imagen
+                  No image
                 </div>
               )}
             </Col>
@@ -601,25 +601,11 @@ export default class BillOfMaterialsEditor extends Component<
             {/* Columna derecha: Detalles */}
             <Col md={8} style={{ paddingLeft: "20px" }}>
               <div style={{ marginBottom: "10px" }}>
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  onClick={this.handleExpandAll}
-                  style={{ marginRight: "5px" }}
-                >
-                  Expandir Todo
-                </Button>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={this.handleCollapseAll}
-                >
-                  Colapsar Todo
-                </Button>
+                
               </div>
-              <h5>Especificaciones / Funcionalidades</h5>
+              <h5>Functionalities</h5>
               <p>
-                Se listan a continuación las funcionalidades con BoM_level creciente y <code>Quantity=1</code>.
+                The features available in this potential product are listed below.
               </p>
               <Accordion
                 flush
@@ -633,13 +619,13 @@ export default class BillOfMaterialsEditor extends Component<
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={this.handleCloseModal}>
-            Cerrar
+            Close
           </Button>
           <Button
             variant="primary"
             onClick={() => this.setState({ showEditProductManager: true })}
           >
-            Editar Configuración
+            Edit product potential
           </Button>
         </Modal.Footer>
       </Modal>
