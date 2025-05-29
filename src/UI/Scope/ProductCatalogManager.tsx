@@ -587,7 +587,7 @@ useEffect(() => {
   return (
     <div>
       <Button variant="primary" onClick={() => setShowProductModal(true)}>
-        Agregar Nuevo Producto
+        Add new potential product
       </Button>
 
       <Modal
@@ -597,12 +597,12 @@ useEffect(() => {
         centered
       >
         <Modal.Header closeButton>
-          <Modal.Title>Nuevo Producto</Modal.Title>
+          <Modal.Title>New Product</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
             <Form.Group controlId="newProductName">
-              <Form.Label>Nombre del Producto</Form.Label>
+              <Form.Label>Product name</Form.Label>
               <Form.Control
                 type="text"
                 value={productName}
@@ -610,7 +610,7 @@ useEffect(() => {
               />
             </Form.Group>
             <Form.Group controlId="newProductImage">
-              <Form.Label>Subir Imagen</Form.Label>
+              <Form.Label>Upload image</Form.Label>
               <Form.Control
                 type="file"
                 accept="image/jpeg, image/png"
@@ -623,7 +623,7 @@ useEffect(() => {
             </Form.Group>
 
             <hr />
-            <h5>Seleccionar Funcionalidades (del catálogo)</h5>
+            <h5>Select functionalities (from the catalog)</h5>
             <div style={{ maxHeight: '600px', overflowY: 'auto', border: '1px solid #ccc', padding: '10px' }}>
               {renderAvailableFunctionalities()}
             </div>
@@ -631,8 +631,8 @@ useEffect(() => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowProductModal(false)}>Cancelar</Button>
-          <Button variant="primary" onClick={handleSaveProduct}>Guardar Configuración</Button>
+          <Button variant="secondary" onClick={() => setShowProductModal(false)}>Cancel</Button>
+          <Button variant="primary" onClick={handleSaveProduct}>Save potential product</Button>
         </Modal.Footer>
       </Modal>
 
@@ -671,11 +671,11 @@ useEffect(() => {
           backdrop="static"  // Evita que el modal se cierre al hacer click fuera
         >
           <Modal.Header closeButton>
-            <Modal.Title>Agregar Sub‐Funcionalidad</Modal.Title>
+            <Modal.Title>Add subfunctionality</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Form.Group controlId="newSubName">
-              <Form.Label>Nombre de la sub‐funcionalidad</Form.Label>
+              <Form.Label>Name of subfunctionality</Form.Label>
               <Form.Control
                 type="text"
                 placeholder="Ingrese el nombre..."
@@ -695,7 +695,7 @@ useEffect(() => {
                 setSelectedParentId(null);
               }}
             >
-              Cancelar
+              Cancel
             </Button>
             <Button
               variant="primary"
@@ -704,7 +704,7 @@ useEffect(() => {
                 handleConfirmAddSubFunctionality();
               }}
             >
-              Agregar
+              Add
             </Button>
           </Modal.Footer>
         </Modal>

@@ -6,6 +6,7 @@ import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relat
 import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 import { v4 as uuidv4 } from "uuid";
+import { Language } from "../../Domain/ProductLineEngineering/Entities/Language";
 
 export default class KaosGenerator {
   /**
@@ -20,10 +21,13 @@ export default class KaosGenerator {
       uuidv4(),
       `${contextModel.name} - KAOS`,
       "KAOS",
+      "KAOS model",
+      "",
+      "",
+      "",
       [], // elements
       [], // relationships
       undefined,
-      ""
     );
 
     // Parámetros de layout

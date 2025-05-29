@@ -1,13 +1,13 @@
 import { ApplicationEngineering } from "./ApplicationEngineering";
 import { DomainEngineering } from "./DomainEngineering";
-import { Scope } from "./Scope";
+import { ScopeSPL } from "./ScopeSPL";
 
 export class ProductLine {
   id: string;
   name: string;
   type: string; //System or Software
   domain: string; //Medical, Transportation, etc.
-  scope: Scope = new Scope();
+  scope: ScopeSPL = new ScopeSPL();
   domainEngineering: DomainEngineering = new DomainEngineering();
   applicationEngineering: ApplicationEngineering = new ApplicationEngineering();
 
@@ -18,7 +18,7 @@ export class ProductLine {
     domain: string, //Medical, Transportation, etc.
     domainEngineering: DomainEngineering = new DomainEngineering(),
     applicationEngineering: ApplicationEngineering = new ApplicationEngineering(),
-    scope: Scope = new Scope()
+    scope: ScopeSPL = new ScopeSPL()
   ) {
     this.id = id;
     this.name = name;

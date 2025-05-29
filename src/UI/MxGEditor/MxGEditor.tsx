@@ -1824,6 +1824,8 @@ export default class MxGEditor extends Component<Props, State> {
 
     let left = this.state.contextMenuX + "px";
     let top = this.state.contextMenuY + "px";
+
+    /*
     if (this.currentModel?.type === "Context diagram") {
       items.push(
         <Dropdown.Item
@@ -1839,7 +1841,8 @@ export default class MxGEditor extends Component<Props, State> {
           Generate KAOS model
         </Dropdown.Item>
       );
-    }
+      
+    }*/
 
     return (
       <Dropdown.Menu

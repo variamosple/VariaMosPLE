@@ -240,7 +240,7 @@ export default class ProjectService {
     return 0;
   }
   getSelectedScope() {
-    const selectedId = this.getTreeIdItemSelected();
+    const selectedId = this.treeIdItemSelected;
     console.log("Selected ID:", selectedId);
 
     if (!selectedId) {
@@ -264,7 +264,7 @@ export default class ProjectService {
     return null;
   }
    getScope(){
-    const selectedId = this.getTreeIdItemSelected();
+    const selectedId = this.treeIdItemSelected;
     for (const productLine of this.project.productLines) {
       const scopeModels = productLine?.scope?.models || [];
       const scope = productLine?.scope;
@@ -516,26 +516,6 @@ export default class ProjectService {
     this.treeItemSelected = "domainEngineering";
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
-
-  updateScopeSelected(scopeModelId?: string) {
-    this.treeItemSelected = "scope";
-    this.raiseEventUpdateSelected(this.treeItemSelected);
-    // if (!scopeModelId) {
-    //   const selectedProductLine = this.project.productLines.find(
-    //     (pl) => pl.id === this.treeIdItemSelected
-    //   );
-  
-    //   if (selectedProductLine?.scope?.models?.length) {
-    //     scopeModelId = selectedProductLine.scope.models[0].id;
-    //   } else {
-    //     console.error("No valid scope models found to select.");
-    //     return;
-    //   }
-    // }
-  
-    // this.treeItemSelected = "scopeSPL";
-    // this.treeIdItemSelected = scopeModelId;
-    // this.raiseEventUpdateSelected(this.treeItemSelected);
 
 
 
