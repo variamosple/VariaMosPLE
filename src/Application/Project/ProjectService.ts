@@ -238,8 +238,18 @@ export default class ProjectService {
       }
     }
   }
+
+  getIdCurrentProductLine(){
+     for (let idProductLine = 0; idProductLine < this.project.productLines.length; idProductLine++) {
+      const productLine = this.project.productLines[idProductLine];
+      if (productLine.scope == this.getScope()){
+        return idProductLine;
+      }
+    }
+    return 0;
+  }
   getSelectedScope() {
-    const selectedId = this.getTreeIdItemSelected();
+    const selectedId = this.treeIdItemSelected;
     console.log("Selected ID:", selectedId);
 
     if (!selectedId) {
@@ -262,13 +272,12 @@ export default class ProjectService {
     console.warn("No scope model matches the selected ID");
     return null;
   }
-  getScope(){
-    const selectedId = this.getTreeIdItemSelected();
+   getScope(){
+    const selectedId = this.treeIdItemSelected;
     for (const productLine of this.project.productLines) {
       const scopeModels = productLine?.scope?.models || [];
       const scope = productLine?.scope;
-      const foundModel = scopeModels.find((model) => model.id === selectedId);
-      if (foundModel) {
+      if (scope) {
         return scope;
       }
     }
@@ -319,17 +328,9 @@ export default class ProjectService {
     return { elements: enrichedElements, relationships: structure.relationships };
   }
 
-
-
-
-
-
-
-
-
-  modelScopeSelected(idPl: number, idDomainModel: number) {
+  modelScopeSelected(idPl: number, idScopeModel: number) {
     let modelSelected =
-      this._project.productLines[idPl].scope?.models[idDomainModel];
+      this._project.productLines[idPl].scope?.models[idScopeModel];
     this.treeItemSelected = "model";
     this.treeIdItemSelected = modelSelected.id;
     this.loadExternalFunctions(modelSelected.type);
@@ -507,6 +508,7 @@ export default class ProjectService {
       ].id;
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
+
   updateLpSelected(idPl: number) {
     this.productLineSelected = idPl;
     this.treeItemSelected = "productLine";
@@ -514,29 +516,35 @@ export default class ProjectService {
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
 
+  updateScopeSelected() {
+    this.treeItemSelected = "scope";
+    this.raiseEventUpdateSelected(this.treeItemSelected);
+  }
+
   updateDomainEngSelected() {
     this.treeItemSelected = "domainEngineering";
     this.raiseEventUpdateSelected(this.treeItemSelected);
   }
-  updateScopeSelected(scopeModelId?: string) {
-    this.treeItemSelected = "scope";
+
+
+
+  updateScopeSelectedOri(scopeModelId?: string) {
+    if (!scopeModelId) {
+      const selectedProductLine = this.project.productLines.find(
+        (pl) => pl.id === this.treeIdItemSelected
+      );
+
+      if (selectedProductLine?.scope?.models?.length) {
+        scopeModelId = selectedProductLine.scope.models[0].id;
+      } else {
+        console.error("No valid scope models found to select.");
+        return;
+      }
+    }
+
+    this.treeItemSelected = "scopeSPL";
+    this.treeIdItemSelected = scopeModelId;
     this.raiseEventUpdateSelected(this.treeItemSelected);
-    // if (!scopeModelId) {
-    //   const selectedProductLine = this.project.productLines.find(
-    //     (pl) => pl.id === this.treeIdItemSelected
-    //   );
-
-    //   if (selectedProductLine?.scope?.models?.length) {
-    //     scopeModelId = selectedProductLine.scope.models[0].id;
-    //   } else {
-    //     console.error("No valid scope models found to select.");
-    //     return;
-    //   }
-    // }
-
-    // this.treeItemSelected = "scopeSPL";
-    // this.treeIdItemSelected = scopeModelId;
-    // this.raiseEventUpdateSelected(this.treeItemSelected);
   }
 
 
@@ -1125,43 +1133,44 @@ export default class ProjectService {
   createDomainEngineeringModel(
     project: Project,
     languageType: string,
-    name: string
+    languageId: string,
+    name: string, 
+    description: string, 
+    author: string, 
+    source: string
   ) {
     return this.projectManager.createDomainEngineeringModel(
       project,
       languageType,
+      languageId,
       this.productLineSelected,
-      name
+      name,
+      description,
+      author,
+      source
     );
   }
-
   createScopeModel(
     project: Project,
     languageType: string,
-    productLineIndex: number,
-    name: string
-  ): Model {
-    // Validar que el índice de la línea de producto es válido
-    if (!project.productLines[productLineIndex]) {
-      throw new Error("La línea de producto especificada no existe.");
-    }
-
-    // Crear el nuevo modelo
-    const newModel = new Model(ProjectUseCases.generateId(), name, languageType);
-
-    // Agregar el modelo al Scope de la línea de producto correspondiente
-    const scope = project.productLines[productLineIndex].scope;
-    scope.models.push(newModel);
-
-    // Asegurar que el lenguaje esté permitido en el Scope
-    if (!scope.languagesAllowed.includes(languageType)) {
-      scope.languagesAllowed.push(languageType);
-    }
-
-    return newModel;
+    languageId: string,
+    name: string, 
+    description: string, 
+    author: string, 
+    source: string
+  ) {
+    return this.projectManager.createScopeModel(
+      project,
+      languageType,
+      languageId,
+      this.productLineSelected,
+      name,
+      description,
+      author,
+      source
+    );
   }
-
-
+ 
   addNewDomainEngineeringModelListener(listener: any) {
     this.newDomainEngineeringModelListeners.push(listener);
   }
@@ -1196,13 +1205,21 @@ export default class ProjectService {
   createApplicationEngineeringModel(
     project: Project,
     languageType: string,
-    name: string
+    languageId: string,
+    name: string,
+    description: string,
+    author: string,
+    source: string
   ) {
     return this.projectManager.createApplicationEngineeringModel(
       project,
       languageType,
+      languageId,
       this.productLineSelected,
-      name
+      name,
+      description,
+      author,
+      source
     );
   }
 
@@ -1229,13 +1246,23 @@ export default class ProjectService {
   //createApplicationEngineeringModel functions_ END***********
 
   //createApplicationModel functions_ START***********
-  createApplicationModel(project: Project, languageType: string, name: string) {
+  createApplicationModel(project: Project, 
+    languageType: string, 
+    languageId: string,
+    name: string,
+    description: string,
+    author: string,
+    source: string) {
     return this.projectManager.createApplicationModel(
       project,
       languageType,
+      languageId,
       this.productLineSelected,
       this.applicationSelected,
-      name
+      name,
+      description,
+      author,
+      source
     );
   }
 
@@ -1262,14 +1289,24 @@ export default class ProjectService {
   //createApplicationModel functions_ END***********
 
   //createAdaptationModel functions_ START***********
-  createAdaptationModel(project: Project, languageType: string, name: string) {
+  createAdaptationModel(project: Project,
+     languageType: string, 
+     languageId: string,
+     name: string,
+    description: string,
+    author: string,
+    source: string) {
     return this.projectManager.createAdaptationModel(
       project,
       languageType,
+      languageId,
       this.productLineSelected,
       this.applicationSelected,
       this.adaptationSelected,
-      name
+      name,
+      description,
+      author,
+      source
     );
   }
 
@@ -1582,17 +1619,17 @@ export default class ProjectService {
   async solveConsistencyAttributeModel(applicationModel: Model) {
     const domainModel = this.findModelById(this.project, applicationModel.sourceModelIds[0]);
     const domainModelElementsBackup = JSON.stringify(domainModel.elements);
-    type parsedElements = { }
+    type parsedElements = {}
     const applicationElements = applicationModel.elements
     const getAppFeaturesId = applicationModel.elements.map(element => element.name)
     domainModel.elements.forEach((domElement) => {
-      if(domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
-      if (getAppFeaturesId.includes(domElement.name)) {
-        domElement.properties[0].value = "Selected";
-      } else {
-        domElement.properties[0].value = "Unselected";
+      if (domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
+        if (getAppFeaturesId.includes(domElement.name)) {
+          domElement.properties[0].value = "Selected";
+        } else {
+          domElement.properties[0].value = "Unselected";
+        }
       }
-    }
     })
     const query_object = new Query({
       solver: "swi",
@@ -1625,13 +1662,13 @@ export default class ProjectService {
     console.log(domainModel.elements);
     const getAppFeaturesId = appModel.elements.map(element => element.name)
     domainModel.elements.forEach((domElement) => {
-      if(domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
-      if (getAppFeaturesId.includes(domElement.name)) {
-        domElement.properties[0].value = "Selected";
-      } else {
-        domElement.properties[0].value = "Unselected";
+      if (domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
+        if (getAppFeaturesId.includes(domElement.name)) {
+          domElement.properties[0].value = "Selected";
+        } else {
+          domElement.properties[0].value = "Unselected";
+        }
       }
-    }
     })
     const query_object = new Query({
       solver: "swi",
@@ -1666,14 +1703,15 @@ export default class ProjectService {
     appModels.forEach(async appModel => {
       const getAppFeaturesId = appModel.elements.map(element => element.name)
       domainModel.elements
-      .forEach((domElement) => {
-        if(domElement.type === "ConcreteFeature" || domElement.type === "RootFeature"){
-        if (getAppFeaturesId.includes(domElement.name)) {
-          domElement.properties[0].value = "Selected";
-        } else {
-          domElement.properties[0].value = "Unselected";
-        }}
-      })
+        .forEach((domElement) => {
+          if (domElement.type === "ConcreteFeature" || domElement.type === "RootFeature") {
+            if (getAppFeaturesId.includes(domElement.name)) {
+              domElement.properties[0].value = "Selected";
+            } else {
+              domElement.properties[0].value = "Unselected";
+            }
+          }
+        })
       const query_object = new Query({
         solver: "swi",
         operation: "sat"
@@ -1790,7 +1828,7 @@ export default class ProjectService {
     }
   }
   async drawCoreFeatureTree() {
-     const query_object = new Query({
+    const query_object = new Query({
       "solver": "minizinc",
       "operation": "sat",
       "iterate_over": [

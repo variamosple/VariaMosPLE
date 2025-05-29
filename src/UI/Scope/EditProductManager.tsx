@@ -485,12 +485,12 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
   return (
     <Modal show={true} onHide={onClose} size="lg" centered>
       <Modal.Header closeButton>
-        <Modal.Title>Editar Configuración del Producto</Modal.Title>
+        <Modal.Title>Edit product properties</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form>
           <Form.Group controlId="editProductName">
-            <Form.Label>Nombre del Producto</Form.Label>
+            <Form.Label>Product name</Form.Label>
             <Form.Control
               type="text"
               value={productName}
@@ -498,7 +498,7 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
             />
           </Form.Group>
           <Form.Group controlId="editProductImage">
-            <Form.Label>Subir Imagen</Form.Label>
+            <Form.Label>Upload image</Form.Label>
             <Form.Control
               type="file"
               accept="image/jpeg, image/png"
@@ -510,15 +510,15 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
             />
           </Form.Group>
           <hr />
-          <h5>Funcionalidades Disponibles</h5>
+          <h5>Available functionalities</h5>
           <div style={{ maxHeight: '600px', overflowY: 'auto', border: '1px solid #ccc', padding: '10px' }}>
             {renderAvailableFunctionalities()}
           </div>
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-        <Button variant="primary" onClick={handleSaveConfiguration}>Guardar Configuración</Button>
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" onClick={handleSaveConfiguration}>Save product</Button>
       </Modal.Footer>
       {showEditFeatureModal && editingFeatureId && getFeatureById(editingFeatureId) && (
         <EditFeatureModal

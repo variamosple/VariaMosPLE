@@ -10,6 +10,7 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 import CustomProperties from "./CustomProperties";
 import "./PropertiesMenu.css";
 import * as alertify from "alertifyjs";
+import ImageInput from "../ImageInput/ImageInput";
 import SuggestionInput from "../SuggestionInput/SuggestionInput";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
@@ -750,6 +751,16 @@ export default class MxProperties extends Component<Props, State> {
           />
         );
         break;
+      case "Image":
+            control = (
+              <ImageInput
+                className="form-control form-control-sm ImageInput"
+                data-name={property.name}
+                onChange={this.input_onChange}
+                value={this.state.values[property.name]}
+              />
+            );
+            break;
       case "Date":
         control = (
           <input
@@ -1103,6 +1114,7 @@ export default class MxProperties extends Component<Props, State> {
                       <option value="Integer">Integer</option>
                       <option value="Boolean">Boolean</option>
                       <option value="Date" selected>Date</option>
+                      <option value="Image">Image</option>
                     </select>
                   </div>
                 </div>

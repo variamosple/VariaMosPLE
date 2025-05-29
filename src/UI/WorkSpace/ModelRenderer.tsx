@@ -35,49 +35,60 @@ class ModelRenderer extends Component<ModelRendererProps, ModelRendererState> {
     };
 
 
-    renderEditor(): any {
-        let elements = [];
-        const { selectedModel } = this.state;
-        if (selectedModel) {
-            const isMxGraphModel = selectedModel.type !== "Catalog of potential products";
-            if (isMxGraphModel) {
-                elements.push(
-                    <td>
-                        <DiagramEditor projectService={this.props.projectService} />
-                    </td>
-                )
-                elements.push(
-                    <td>
-                        <ElementsPannel projectService={this.props.projectService} />
-                    </td>
-                )
-            }
-            else {
-                elements.push(
-                    <td>
-                        <BillOfMaterialsEditor
-                            projectService={this.props.projectService}
-                            onClose={() => {
-                                // Aquí puedes agregar acciones opcionales al cerrar el editor BOM
-                            }}
-                        ></BillOfMaterialsEditor>
-                    </td>
-                )
-            }
-        }
-        return elements;
-    }
 
-    render() {
+renderEditor(): any {
+  const { selectedModel } = this.state;
+  const key = selectedModel?.id;
+
+  if (!selectedModel) return [];
+
+  const isMxGraphModel = selectedModel.type !== "Catalog of potential products";
+  if (isMxGraphModel) {
+    return [
+      <td key="diagram" style={{ padding: 0, width: "85%", verticalAlign: "top" }}>
+        <div style={{
+            width: "100%",           // llena el 100% de la celda
+            height: "calc(100vh - 100px)",          // idéntico para altura
+            overflow: "auto",        // scroll cuando ancho o alto se excedan
+            boxSizing: "border-box",
+          }}>
+       <DiagramEditor projectService={this.props.projectService} />
+       </div>
+      </td>,
+      <td key="panel" style={{ padding: 0, width: "15%", verticalAlign: "top" }}>
+        <ElementsPannel projectService={this.props.projectService} />
+      </td>
+    ];
+  } else {
+    return [
+      <td key="bom">
+        <div>
+        <BillOfMaterialsEditor
+          key={`bom-${key}`}
+          projectService={this.props.projectService}
+          onClose={() => {}}
+        />
+        </div>
+      </td>
+    ];
+  }
+}
+
+
+
+
+render() {
         return (
             <div className="w-100 h-100">
                 <table>
+                    <tbody>
                     <tr>
                         <td className="td-treexplorer">
                             <TreeExplorer projectService={this.props.projectService} />
                         </td>
                         {this.renderEditor()}
                     </tr>
+                    </tbody>
                 </table>
             </div>
         )

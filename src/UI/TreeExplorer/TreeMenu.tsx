@@ -11,6 +11,9 @@ import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/Produc
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
 import ConfigurationManagement from "../ConfigurationManagement/configurationManagement";
 import { ScopeSPL } from "../../Domain/ProductLineEngineering/Entities/ScopeSPL";
+import ScopeModal from "../Scope/ScopeModal";
+import ModelInformationEditor from "./ModelInformationEditor";
+import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 
 interface Props {
   projectService: ProjectService;
@@ -23,7 +26,7 @@ interface State {
   menu: boolean,
   modalTittle: string,
   modalInputText: string,
-  modalInputValue: string,
+  modalInputValue: string, 
   query: string,
   selectedFunction: number,
   optionAllowModelEnable: boolean,
@@ -35,9 +38,11 @@ interface State {
   optionAllowProductLine: boolean,
   optionAllowApplication: boolean,
   optionAllowAdaptation: boolean,
+  optionAllowProperties: boolean,
   optionAllowRename: boolean,
   optionAllowDelete: boolean,
   optionAllowEFunctions: boolean,
+  optionAllowAnalyzeScope: boolean,
   newSelected: string,
   showPropertiesModal: boolean,
   plDomains: string[],
@@ -47,6 +52,7 @@ interface State {
   plName: string,
   showContextMenu: boolean,
   showEditorTextModal: boolean,
+  showModelInformationEditorModal: boolean,
   showQueryModal: boolean,
   showDeleteModal: boolean,
   newModelLanguage?: Language,
@@ -54,7 +60,9 @@ interface State {
   configurationName: string,
   showConfigurationManagementModal: boolean,
   showScopeManagementModal: boolean,
-  selectedScopeId?: string
+  selectedScopeId?: string,
+  showScopeModal: boolean
+  model: Model
 }
 
 class TreeMenu extends Component<Props, State> {
@@ -62,7 +70,7 @@ class TreeMenu extends Component<Props, State> {
     menu: false,
     modalTittle: "",
     modalInputText: "",
-    modalInputValue: "",
+    modalInputValue: "", 
     query: "",
     selectedFunction: -1,
     optionAllowModelEnable: false,
@@ -74,9 +82,11 @@ class TreeMenu extends Component<Props, State> {
     optionAllowProductLine: false,
     optionAllowApplication: false,
     optionAllowAdaptation: false,
+    optionAllowProperties: false,
     optionAllowRename: false,
     optionAllowDelete: false,
     optionAllowEFunctions: false,
+    optionAllowAnalyzeScope: false,
     newSelected: "default",
     showPropertiesModal: false,
     plDomains: ['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution', "IoT", "IndustrialControlSystems", "HealthCare", "Communication", "Military", "WebServices", "Transportation", "SmartPhones", "PublicAdministration", "Multi-Domain", "Banking", "EmergencyServices", "Cloud-Provider"],
@@ -86,6 +96,7 @@ class TreeMenu extends Component<Props, State> {
     plName: null,
     showContextMenu: false,
     showEditorTextModal: false,
+    showModelInformationEditorModal: false,
     showQueryModal: false,
     showDeleteModal: false,
     newModelLanguage: null,
@@ -93,7 +104,9 @@ class TreeMenu extends Component<Props, State> {
     configurationName: "Configuration 1",
     showConfigurationManagementModal: false,
     showScopeManagementModal: false,
-    selectedScopeId: undefined
+    selectedScopeId: undefined,
+    showScopeModal: false,
+    model: null
   };
 
   constructor(props: any) {
@@ -182,6 +195,7 @@ class TreeMenu extends Component<Props, State> {
       plType: pl.type
     })
     this.hideContextMenu();
+    me.forceUpdate();
   }
 
   hidePropertiesModal() {
@@ -194,6 +208,28 @@ class TreeMenu extends Component<Props, State> {
 
   hideEditorTextModal() {
     this.setState({ showEditorTextModal: false })
+  }
+
+  showModelPropertiesModal=()=> {
+    let me=this;
+    let project=me.props.projectService.project;
+    let modelId=me.props.projectService.getTreeIdItemSelected();
+    let model=me.props.projectService.findModelById(project, modelId);
+    this.setState({
+      model: model,
+      showModelInformationEditorModal: true
+    })
+  }
+
+  showModelInformationEditorModal(model: Model) {
+    this.setState({
+      model: model,
+      showModelInformationEditorModal: true
+    })
+  }
+
+  hideModelInformationEditorModal() {
+    this.setState({ showModelInformationEditorModal: false })
   }
 
   showQueryModal() {
@@ -249,6 +285,7 @@ class TreeMenu extends Component<Props, State> {
     pl.domain = me.state.plDomain;
     pl.type = me.state.plType;
     me.hidePropertiesModal();
+    me.forceUpdate();
   }
 
   callExternalFuntion(efunction: ExternalFuntion, query: any = null): void {
@@ -338,6 +375,12 @@ class TreeMenu extends Component<Props, State> {
         }
       },
       scope: () => {
+        console.log()
+        if(this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].scope.models.length > 0){
+          me.setState({
+          optionAllowAnalyzeScope: true,
+        });
+        }
         me.setState({
           optionAllowModelEnable: true,
           optionAllowModelScope: true,
@@ -381,6 +424,7 @@ class TreeMenu extends Component<Props, State> {
       },
       model: function () {
         me.setState({
+          optionAllowProperties: true,
           optionAllowRename: true,
           optionAllowDelete: true,
           optionAllowEFunctions: true,
@@ -405,9 +449,11 @@ class TreeMenu extends Component<Props, State> {
       optionAllowProductLine: false,
       optionAllowApplication: false,
       optionAllowAdaptation: false,
+      optionAllowProperties: false,
       optionAllowRename: false,
       optionAllowDelete: false,
       optionAllowEFunctions: false,
+      optionAllowAnalyzeScope: false,
     });
   }
 
@@ -451,20 +497,11 @@ class TreeMenu extends Component<Props, State> {
         showContextMenu: this.props.showContextMenu
       })
     }
-    console.log(
-      "Props actualizadas en TreeMenu:",
-      "X:",
-      this.props.contextMenuX,
-      "Y:",
-      this.props.contextMenuY,
-      "Mostrar menú:",
-      this.props.showContextMenu
-    );
   }
 
   handleUpdateEditorText(event: any) {
     this.setState({
-      modalInputValue: event.target.value,
+      modalInputValue: event.target.value
     });
   }
 
@@ -482,7 +519,7 @@ class TreeMenu extends Component<Props, State> {
   updateModal(eventId: string, value: string) {
 
     let me = this;
-    me.state.modalInputValue = value;
+    me.state.modalInputValue = value; 
     const updateModal: any = {
       PRODUCTLINE: function () {
         me.state.modalTittle = "New product line";
@@ -519,7 +556,13 @@ class TreeMenu extends Component<Props, State> {
     });
 
     this.hideContextMenu();
-    this.showEditorTextModal();
+
+    if (me.state.modalInputText == "Enter new model name") {
+      let model = new Model("1", value,"none","0", null, null, null, null);
+      this.showModelInformationEditorModal(model);
+    } else {
+      this.showEditorTextModal();
+    }
   }
 
   projectService_addListener(e: any) {
@@ -560,6 +603,20 @@ class TreeMenu extends Component<Props, State> {
     this.callExternalFuntion(this.props.projectService.externalFunctions[this.state.selectedFunction], query_json)
   }
 
+  modelInformationEditorModal_onAccept = (e) => {
+    let me = this;
+    if (this.state.model.name === "") {
+      alertify.error("The name is required");
+      return;
+    }
+    if([null, '0'].includes(this.state.model.languageId)){
+      me.addNewModel(this.state.model.name, this.state.model.description, this.state.model.author, this.state.model.source);
+    }else{
+      me.props.projectService.saveProject();
+    }
+    me.hideModelInformationEditorModal();
+  }
+
   addNewFolder(event: any) {
     if (this.state.modalInputValue === "") {
       alertify.error("The name is required");
@@ -579,7 +636,7 @@ class TreeMenu extends Component<Props, State> {
         me.addNewAdaptation(me.state.modalInputValue);
       },
       MODEL: function () {
-        me.addNewModel(me.state.modalInputValue);
+        me.addNewModel(me.state.modalInputValue, null, null, null);
       },
       renameItem: function () {
         me.renameItemProject(me.state.modalInputValue);
@@ -628,7 +685,7 @@ class TreeMenu extends Component<Props, State> {
     let me = this;
     me.hideContextMenu();
     me.state.newModelLanguage = language;
-    let e = { target: { id: "MODEL", value: language.name } }
+    let e = { target: { id: "MODEL", value: language.name} }
     this.handleUpdateNewSelected(e);
 
     // const add: any = {
@@ -651,56 +708,62 @@ class TreeMenu extends Component<Props, State> {
     // add[language.type]();
   }
 
-  addNewModel(name: string) {
+  addNewModel(name: string, description: string, author: string, source: string) {
     let me = this;
     let language: Language = me.state.newModelLanguage;
     const add: any = {
       SCOPE: function () {
-        me.addNewScopeModel(language.name, name);
+        me.addNewScopeModel(language.name, "" + language.id, name, description, author, source);
       },
       DOMAIN: function () {
-        me.addNewDomainEModel(language.name, name);
+        me.addNewDomainEModel(language.name, "" + language.id, name, description, author, source);
       },
       APPLICATION: function () {
         if (me.props.projectService.getTreeItemSelected() === "applicationEngineering") {
-          me.addNewApplicationEModel(language.name, name);
+          me.addNewApplicationEModel(language.name, "" + language.id, name, description, author, source);
         }
         else {
-          me.addNewApplicationModel(language.name, name);
+          me.addNewApplicationModel(language.name, "" + language.id, name, description, author, source);
         }
       },
       ADAPTATION: function () {
-        me.addNewAdaptationModel(language.name, name);
+        me.addNewAdaptationModel(language.name, "" + language.id, name, description, author, source);
       },
     };
 
     add[language.type]();
   }
 
-  addNewScopeModel(languageName: string, name: string) {
 
-    let productLineSelected=this.props.projectService.getProductLineSelected();
-
-    let scopeModel =
+  addNewScopeModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
+    let model =
       this.props.projectService.createScopeModel(
         this.props.projectService.project,
         languageName,
-        0,
-        name
+        languageId,
+        name,
+        description,
+        author,
+        source
       );
 
     this.props.projectService.raiseEventScopeModel(
-      scopeModel
+      model
     );
     this.props.projectService.saveProject();
   }
 
-  addNewDomainEModel(languageName: string, name: string) {
+
+  addNewDomainEModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
     let domainEngineeringModel =
       this.props.projectService.createDomainEngineeringModel(
         this.props.projectService.project,
         languageName,
-        name
+        languageId,
+        name,
+        description,
+        author,
+        source
       );
 
     this.props.projectService.raiseEventDomainEngineeringModel(
@@ -709,12 +772,16 @@ class TreeMenu extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
-  addNewApplicationEModel(languageName: string, name: string) {
+  addNewApplicationEModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
     let applicationEngineeringModel =
       this.props.projectService.createApplicationEngineeringModel(
         this.props.projectService.project,
         languageName,
-        name
+        languageId,
+        name,
+        description,
+        author,
+        source
       );
 
     this.props.projectService.raiseEventApplicationEngineeringModel(
@@ -723,21 +790,29 @@ class TreeMenu extends Component<Props, State> {
     this.props.projectService.saveProject();
   }
 
-  addNewApplicationModel(languageName: string, name: string) {
+  addNewApplicationModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
     let applicationModel = this.props.projectService.createApplicationModel(
       this.props.projectService.project,
       languageName,
-      name
+      languageId,
+      name,
+      description,
+      author,
+      source
     );
     this.props.projectService.raiseEventApplicationModelModel(applicationModel);
     this.props.projectService.saveProject();
   }
 
-  addNewAdaptationModel(languageName: string, name: string) {
+  addNewAdaptationModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
     let adaptationModel = this.props.projectService.createAdaptationModel(
       this.props.projectService.project,
       languageName,
-      name
+      languageId,
+      name,
+      description,
+      author,
+      source
     );
     this.props.projectService.raiseEventAdaptationModelModel(adaptationModel);
     this.props.projectService.saveProject();
@@ -768,7 +843,7 @@ class TreeMenu extends Component<Props, State> {
     console.log("Forcing Scope Management with ID:", selectedScopeModel.id);
 
     // Actualiza el Tree ID seleccionado y lanza el evento
-    this.props.projectService.updateScopeSelected(selectedScopeModel.id);
+    this.props.projectService.updateScopeSelectedOri(selectedScopeModel.id);
 
     // Llama a la lógica necesaria para manejar la configuración
     this.props.projectService.getAllConfigurations(
@@ -781,10 +856,19 @@ class TreeMenu extends Component<Props, State> {
       }
     );
   }
+  handleAnalyzeScope = () => {
+    // cierra el menú
+    this.hideContextMenu();
+    // abre el modal
+    this.setState({ showScopeModal: true });
+  }
+
+  handleCloseAnalyzerScope = () => {
+    this.setState({ showScopeModal: false });
+  }
+
 
   renderContexMenu() {
-    console.log("Mostrando menú contextual:", this.state.showContextMenu, "en X:", this.props.contextMenuX, "Y:", this.props.contextMenuY);
-
     let items = [];
 
     if (this.state.optionAllowProductLine) {
@@ -803,11 +887,15 @@ class TreeMenu extends Component<Props, State> {
         </Dropdown.Item>
       );
     }
+
     if (this.state.optionAllowApplication) {
       items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="APPLICATION">New application</Dropdown.Item>);
     }
     if (this.state.optionAllowAdaptation) {
       items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="ADAPTATION">New adaptation</Dropdown.Item>);
+    }
+    if (this.state.optionAllowProperties) {
+      items.push(<Dropdown.Item href="#" onClick={this.showModelPropertiesModal} id="propertiesItem">Properties</Dropdown.Item>);
     }
     if (this.state.optionAllowRename) {
       items.push(<Dropdown.Item href="#" onClick={this.handleUpdateNewSelected} id="renameItem">Rename</Dropdown.Item>);
@@ -824,6 +912,17 @@ class TreeMenu extends Component<Props, State> {
         }
       }
       items.push(<DropdownButton id="nested-dropdown" title="New model" key="end" drop="end" variant="Info">{children}</DropdownButton>);
+    }
+        if (this.state.optionAllowAnalyzeScope) {
+      items.push(
+        <Dropdown.Item
+          href="#"
+          onClick={() => this.handleAnalyzeScope()}
+          key="analyzeScope"
+        >
+          Technical metrics of scope
+        </Dropdown.Item>
+      );
     }
     if (this.state.optionAllowEFunctions) {
       if (this.props.projectService.externalFunctions) {
@@ -849,6 +948,7 @@ class TreeMenu extends Component<Props, State> {
 
     let left = this.props.contextMenuX + "px";
     let top = this.props.contextMenuY + "px";
+
     return (
       <Dropdown.Menu show={this.state.showContextMenu} style={{ left: left, top: top }}>
         {items}
@@ -860,6 +960,25 @@ class TreeMenu extends Component<Props, State> {
     return (
       <div className="treeMenu pb-2">
         {this.renderContexMenu()}
+
+        <Modal id="modelInformationEditorModal" show={this.state.showModelInformationEditorModal} onHide={this.hideModelInformationEditorModal.bind(this)} size="lg" centered>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              Model properties
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <ModelInformationEditor model={this.state.model} />
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={this.hideModelInformationEditorModal.bind(this)} >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={this.modelInformationEditorModal_onAccept} >
+              Accept
+            </Button>
+          </Modal.Footer>
+        </Modal>
 
         <Modal id="editorTextModal" show={this.state.showEditorTextModal} onHide={this.hideEditorTextModal} size="lg" centered>
           <Modal.Header closeButton>
@@ -1211,6 +1330,13 @@ class TreeMenu extends Component<Props, State> {
             </span>
           </li>
           <li>
+            {this.state.optionAllowProperties ? (
+              <hr className="dropdown-divider" />
+            ) : (
+              ""
+            )}
+          </li>
+          <li>
             {this.state.optionAllowRename ? (
               <hr className="dropdown-divider" />
             ) : (
@@ -1234,6 +1360,21 @@ class TreeMenu extends Component<Props, State> {
           <li>
             <span
               className={
+                this.state.optionAllowProperties
+                  ? "dropdown-item"
+                  : "hidden dropdown-item"
+              }
+              id="propertiesItem"
+              onClick={this.handleUpdateNewSelected}
+              data-bs-toggle="modal"
+              data-bs-target="#editorTextModal"
+            >
+              Properties
+            </span>
+          </li>
+          <li>
+            <span
+              className={
                 this.state.optionAllowRename
                   ? "dropdown-item"
                   : "hidden dropdown-item"
@@ -1247,11 +1388,38 @@ class TreeMenu extends Component<Props, State> {
             </span>
           </li>
         </ul>
-        <script></script>
-
+        { this.state.showScopeModal &&
+  this.props.projectService.project.productLines.length > 0 &&
+  this.props.projectService.getScope() != null && (
+        <ScopeModal
+          show={this.state.showScopeModal}
+          initialScope={
+            this.props.projectService.getScope()
+          }
+          domain={
+            this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].domain
+          }
+          onHide={() => this.setState({ showScopeModal: false })}
+          onSave={(updatedScope: ScopeSPL) => {
+            this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].scope = updatedScope;
+            const projectInfo = this.props.projectService.getProjectInformation();
+            this.props.projectService.saveProjectInServer(
+              projectInfo,
+              (response) => {
+                console.log("Proyecto guardado exitosamente:", response);
+              },
+              (error) => {
+                console.error("Error guardando el proyecto:", error);
+              }
+            );
+          }}
+          
+        />  
+) }
 
       </div>
     );
+
   }
 }
 

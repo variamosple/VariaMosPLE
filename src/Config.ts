@@ -1,5 +1,5 @@
 export const Config = {
-  VERSION: "4.25.02.14.14",
+  VERSION: "4.25.05.09.07",
   NODE_ENV: process.env.REACT_APP_NODE_ENV || "development",
   HOST: process.env.REACT_APP_HOST || "127.0.0.1",
   PORT: process.env.REACT_APP_PORT || 3000,

@@ -71,9 +71,9 @@ class TreeExplorer extends Component<Props, State> {
     });
   }
 
-  btn_viewDomainModel(e: any, idPl: number, idDomainModel: number) {
-    console.log("treeExplorer btn_viewDomainModel")
-    this.props.projectService.modelDomainSelected(idPl, idDomainModel);
+  btn_viewScopeModel(e: any, idPl: number, idScopeModel: number) {
+    console.log("treeExplorer btn_viewScopeModel")
+    this.props.projectService.modelScopeSelected(idPl, idScopeModel);
     this.props.projectService.saveProject();
     if (e) {
       this.setState({
@@ -84,9 +84,9 @@ class TreeExplorer extends Component<Props, State> {
     }
   }
 
-  btn_viewScopeModel(e: any, idPl: number, idScopeModel: number) {
-    console.log("treeExplorer btn_viewScopeModel")
-    this.props.projectService.modelScopeSelected(idPl, idScopeModel);
+  btn_viewDomainModel(e: any, idPl: number, idDomainModel: number) {
+    console.log("treeExplorer btn_viewDomainModel")
+    this.props.projectService.modelDomainSelected(idPl, idDomainModel);
     this.props.projectService.saveProject();
     if (e) {
       this.setState({
@@ -161,12 +161,12 @@ class TreeExplorer extends Component<Props, State> {
 
   updateLpSelected(e: any, idPl: number) {
     this.props.projectService.updateLpSelected(idPl);
-    if (e.target.props.dataKey === "domainEngineering") {
-      this.props.projectService.updateDomainEngSelected();
-    } 
-    else if (e.target.props.dataKey === "scope") {
+    if (e.target.props.dataKey === "scope") {
       this.props.projectService.updateScopeSelected();
     }
+    else if (e.target.props.dataKey === "domainEngineering") {
+      this.props.projectService.updateDomainEngSelected();
+    } 
     else if (e.target.props.dataKey === "applicationEngineering") {
       this.props.projectService.updateAppEngSelected();
     }
@@ -333,38 +333,6 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderModelFolders(folders);
   }
 
-  autoLoadScopeModel(idProductLine: number) {
-    console.log("Se hizo doble clic en el Scope para idProductLine:", idProductLine);
-
-    let scope = this.props.projectService.project.productLines[idProductLine].scope;
-
-    if (!scope) {
-      console.log("Scope no existe, creándolo...");
-      const newScope = new ScopeSPL();
-      this.props.projectService.project.productLines[idProductLine].scope= newScope;
-  }
-
-    if (!scope.models.length || !scope) {
-        // Crear automáticamente un modelo de tipo ConceptualMap si no hay modelos en el Scope
-        const newConceptualMap = this.props.projectService.createScopeModel(
-            this.props.projectService.project,
-            "Catalog of potencials products",
-            idProductLine,
-            "Catalog of potential products"
-        );
-        this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(newConceptualMap));
-        console.log("Modelo ConceptualMap creado y seleccionado automáticamente:", newConceptualMap);
-    } else {
-        // Intentar seleccionar un modelo existente de tipo ConceptualMap
-        const conceptualMap = scope.models.find(model => model.type === "Catalog of potential products");
-        if (conceptualMap) {
-            this.props.projectService.modelScopeSelected(idProductLine, scope.models.indexOf(conceptualMap));
-        } else {
-            alert("No hay un modelo ConceptualMap en Scope.");
-        }
-    }
-    this.setState({ showScopeModal: true, currentProductLineIndex: idProductLine });
-}
 
 
   renderApplicationModels(models: Model[], idProductLine: number, idApplication: number) {
@@ -433,6 +401,7 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderModelFolders(folders);
   }
 
+ 
   renderDomainEngineering(productLine: ProductLine, idProductLine: number) {
     return this.renderDomainModels(productLine.domainEngineering.models, idProductLine)
   }
@@ -510,8 +479,7 @@ class TreeExplorer extends Component<Props, State> {
             }}
             onDoubleClick={(e) => {
                 this.doubleClickLpSelected(e, idProductLine);
-            }}
-        > 
+            }}>
             <TreeItem
                 icon="/images/treeView/scope.png"
                 label="Scope"
@@ -651,7 +619,7 @@ class TreeExplorer extends Component<Props, State> {
             </Tab.Content>
           </Tab.Container>
         </div>
-        {this.state.showScopeModal && (
+        {/* {this.state.showScopeModal && (
           <ScopeModal
           show={this.state.showScopeModal}
           initialScope={
@@ -676,7 +644,7 @@ class TreeExplorer extends Component<Props, State> {
           }}
           
         />  
-        )}
+        )} */}
       </div>
       
     );

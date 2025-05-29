@@ -31,7 +31,7 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
   return (
     <Modal show={show} onHide={onClose} centered>
       <Modal.Header closeButton>
-        <Modal.Title>Editar Funcionalidad: {localFeature.name}</Modal.Title>
+        <Modal.Title>Edit functionality: {localFeature.name}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form onSubmit={e => e.preventDefault()}>
@@ -63,14 +63,14 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose} type="button">
-          Cancelar
+          Cancel
         </Button>
         <Button
           variant="primary"
           onClick={() => onSave(localFeature)}
           type="button"
         >
-          Guardar Cambios
+          Save changes
         </Button>
       </Modal.Footer>
     </Modal>

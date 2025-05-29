@@ -26,7 +26,10 @@ export class ScopeSPL {
   customerNeeds: string = "";           // Principales necesidades de los clientes
   customerExpectations: string = "";    // Expectativas que tienen los clientes
   impactPotential: Prioridad = "Medium";   // Impacto potencial (Bajo/Medio/Alto)
-
+  derivedSystems: string[] = [];          // Ej. ["drones", "sous-marins autonomes"]
+  techConstraints: string[] = [];      // Ej. ["STANAG", "DO-178C", "RGPD"]
+  regulatoryConstraints: string[] = [];   
+  evolutionStrategy: string = "";  
   // Lista de prestaciones o capacidades clave (en lugar de "materiales" o "componentes")
   capabilities: Capability[] = [];
 

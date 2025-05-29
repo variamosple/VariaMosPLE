@@ -181,6 +181,7 @@ export default class MxGEditor extends Component<Props, State> {
         // this.refreshEdgeStyle(edge);
       }
     }
+    this.forceUpdate();
   }
 
   projectService_addUpdatedElementListener(e: any) {
@@ -200,9 +201,13 @@ export default class MxGEditor extends Component<Props, State> {
       this.setState({ pendingChanges: true });
       
       this.graph.refresh();
+      let model = this.currentModel;
+      this.loadModel(model);
+      this.forceUpdate();
     } catch (error) {
       let m = error;
     }
+    
   }
 
   // TODO DESPUES DE QUE SE ABRE UN DIAGRAMA, SE EJECUTA CON CADA CAMBIO, EJ, ABRIR UN NUEVO PROYECTO
@@ -415,6 +420,7 @@ export default class MxGEditor extends Component<Props, State> {
       } catch (error) {
         me.processException(error);
       }
+      me.forceUpdate();
     });
 
 
@@ -445,7 +451,10 @@ export default class MxGEditor extends Component<Props, State> {
     
         this.syncModelChanges();
       }
-    });
+      me.forceUpdate();
+    }
+    
+  );
 
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
       console.log("Listener activated SELECT");
@@ -607,7 +616,10 @@ export default class MxGEditor extends Component<Props, State> {
         let m = error;
         console.error("something went wrong: ", error)
       }
-    });
+      
+    }
+    
+  );
 
     // graph.connectionHandler.addListener(mx.mxEvent.CONNECT, function(sender, evt)
     // {
@@ -669,6 +681,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
       }
+      me.forceUpdate();
     });
 
     graph.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
@@ -684,6 +697,7 @@ export default class MxGEditor extends Component<Props, State> {
       } catch (error) {
         alert(error);
       }
+      me.forceUpdate();
     });
 
     let gmodel = graph.model;
@@ -1971,6 +1985,8 @@ export default class MxGEditor extends Component<Props, State> {
 
     let left = this.state.contextMenuX + "px";
     let top = this.state.contextMenuY + "px";
+
+    /*
     if (this.currentModel?.type === "Context diagram") {
       items.push(
         <Dropdown.Item
@@ -1986,7 +2002,8 @@ export default class MxGEditor extends Component<Props, State> {
           Generate KAOS model
         </Dropdown.Item>
       );
-    }
+      
+    }*/
 
     return (
       <Dropdown.Menu
@@ -2731,46 +2748,47 @@ convertComplexity(num: number): string {
 
 
 analyzeScopeMetrics(): string[] {
-  const messages: string[] = [];
-  // Se calcula el ratio promedio de funcionalidades avanzadas
-  const avgAdvancedRatio = this.calculateAverageAdvancedRatio();
-  const foundTC_numeric = Math.round(1 + 4 * avgAdvancedRatio);
-  const foundTechnicalComplexity = this.convertComplexity(foundTC_numeric);
-  const foundMarketImpact = Math.round(100 * avgAdvancedRatio); // Escala de 0 a 100
-  let foundRisk = "Low";
-  if (avgAdvancedRatio > 0.7) {
-    foundRisk = "High";
-  } else if (avgAdvancedRatio > 0.3) {
-    foundRisk = "Medium";
-  }
+  // const messages: string[] = [];
+  // // Se calcula el ratio promedio de funcionalidades avanzadas
+  // const avgAdvancedRatio = this.calculateAverageAdvancedRatio();
+  // const foundTC_numeric = Math.round(1 + 4 * avgAdvancedRatio);
+  // const foundTechnicalComplexity = this.convertComplexity(foundTC_numeric);
+  // const foundMarketImpact = Math.round(100 * avgAdvancedRatio); // Escala de 0 a 100
+  // let foundRisk = "Low";
+  // if (avgAdvancedRatio > 0.7) {
+  //   foundRisk = "High";
+  // } else if (avgAdvancedRatio > 0.3) {
+  //   foundRisk = "Medium";
+  // }
 
-  // Se obtiene el scope global (los valores ingresados por el usuario)
-  const currentScope = this.props.projectService.getScope();
-  if (currentScope) {
-    const expectedTechnicalComplexity = currentScope.technicalComplexity || "Low";
-    const expectedMarketImpact = currentScope.marketImpact || 0;
-    const expectedRisk = currentScope.risk || "Medium";
-    const expectedStrategicPriority = currentScope.strategicPriority || "Medium";
+  // // Se obtiene el scope global (los valores ingresados por el usuario)
+  // const currentScope = this.props.projectService.getScope();
+  // if (currentScope) {
+  //   const expectedTechnicalComplexity = currentScope.technicalComplexity || "Low";
+  //   const expectedMarketImpact = currentScope.marketImpact || 0;
+  //   const expectedRisk = currentScope.risk || "Medium";
+  //   const expectedStrategicPriority = currentScope.strategicPriority || "Medium";
 
-    // Mostrar siempre los valores del scope (Expected) y los calculados (Found)
-    messages.push(`Technical Complexity: Expected ≈ ${expectedTechnicalComplexity}, Found ${foundTechnicalComplexity}.`);
-    messages.push(`Market Impact: Expected ≈ ${expectedMarketImpact}, Found ${foundMarketImpact}.`);
-    messages.push(`Risk: Expected "${expectedRisk}", Found "${foundRisk}".`);
+  //   // Mostrar siempre los valores del scope (Expected) y los calculados (Found)
+  //   messages.push(`Technical Complexity: Expected ≈ ${expectedTechnicalComplexity}, Found ${foundTechnicalComplexity}.`);
+  //   messages.push(`Market Impact: Expected ≈ ${expectedMarketImpact}, Found ${foundMarketImpact}.`);
+  //   messages.push(`Risk: Expected "${expectedRisk}", Found "${foundRisk}".`);
 
-    const mapCat = { "Low": 1, "Medium": 2, "High": 3 };
-    if (Math.abs(mapCat[foundTechnicalComplexity] - mapCat[expectedTechnicalComplexity]) >= 1) {
-      messages.push(`Warning: Technical Complexity discrepancy is high.`);
-    }
-    if (Math.abs(foundMarketImpact - expectedMarketImpact) >= 20) {
-      messages.push(`Warning: Market Impact discrepancy is high.`);
-    }
-    if (expectedRisk !== foundRisk) {
-      messages.push(`Warning: Risk level discrepancy detected.`);
-    }
-  } else {
-    messages.push("No scope metrics found in the current product line.");
-  }
-  return messages;
+  //   const mapCat = { "Low": 1, "Medium": 2, "High": 3 };
+  //   if (Math.abs(mapCat[foundTechnicalComplexity] - mapCat[expectedTechnicalComplexity]) >= 1) {
+  //     messages.push(`Warning: Technical Complexity discrepancy is high.`);
+  //   }
+  //   if (Math.abs(foundMarketImpact - expectedMarketImpact) >= 20) {
+  //     messages.push(`Warning: Market Impact discrepancy is high.`);
+  //   }
+  //   if (expectedRisk !== foundRisk) {
+  //     messages.push(`Warning: Risk level discrepancy detected.`);
+  //   }
+  // } else {
+  //   messages.push("No scope metrics found in the current product line.");
+  // }
+  // return messages;
+  return [];
 }
 
 // DENTRO de tu componente, EJEMPLO:
@@ -2886,57 +2904,58 @@ renderScopeMetricsAnalysis(scopeWarnings: string[]) {
  * Retorna un arreglo de objetos con el nombre del producto y los mensajes resultantes.
  */
 analyzeScopeMetricsByProduct(): { productName: string; warnings: string[] }[] {
-  const results: { productName: string; warnings: string[] }[] = [];
-  const coreIds = this.getCoreMaterialIds();
+  // const results: { productName: string; warnings: string[] }[] = [];
+  // const coreIds = this.getCoreMaterialIds();
 
-  this.state.allScopeConfigurations.forEach((config: any) => {
-    const productName = config.name || "Unnamed Product";
-    const materials = this.getMaterialsFromConfig(config);
-    const totalCount = materials.length;
-    const advancedCount = materials.filter((m: any) => !coreIds.has(m.id)).length;
-    const ratio = totalCount > 0 ? advancedCount / totalCount : 0;
+  // this.state.allScopeConfigurations.forEach((config: any) => {
+  //   const productName = config.name || "Unnamed Product";
+  //   const materials = this.getMaterialsFromConfig(config);
+  //   const totalCount = materials.length;
+  //   const advancedCount = materials.filter((m: any) => !coreIds.has(m.id)).length;
+  //   const ratio = totalCount > 0 ? advancedCount / totalCount : 0;
 
-    // Valores esperados basados en el ratio
-    const foundTC_numeric = Math.round(1 + 4 * ratio);
-    const actualTechnicalComplexity = this.convertComplexity(foundTC_numeric);
-    const actualMarketImpact = Math.round(100 * ratio); // Escala 0-100
-    let actualRisk = "Low";
-    if (ratio > 0.7) {
-      actualRisk = "High";
-    } else if (ratio > 0.3) {
-      actualRisk = "Medium";
-    }
+  //   // Valores esperados basados en el ratio
+  //   const foundTC_numeric = Math.round(1 + 4 * ratio);
+  //   const actualTechnicalComplexity = this.convertComplexity(foundTC_numeric);
+  //   const actualMarketImpact = Math.round(100 * ratio); // Escala 0-100
+  //   let actualRisk = "Low";
+  //   if (ratio > 0.7) {
+  //     actualRisk = "High";
+  //   } else if (ratio > 0.3) {
+  //     actualRisk = "Medium";
+  //   }
 
-    // Se extraen los valores reales asignados a la configuración
+  //   // Se extraen los valores reales asignados a la configuración
 
 
-    const currentScope = this.props.projectService.getScope();
-    const expectedTechnicalComplexity = currentScope.technicalComplexity || 1;
-    const expectedMarketImpact = currentScope.marketImpact || 0;
-    const expectedRisk = currentScope.risk || "Medium";
+  //   const currentScope = this.props.projectService.getScope();
+  //   const expectedTechnicalComplexity = currentScope.technicalComplexity || 1;
+  //   const expectedMarketImpact = currentScope.marketImpact || 0;
+  //   const expectedRisk = currentScope.risk || "Medium";
     
 
 
-    const warnings: string[] = [];
-    warnings.push(`Technical Complexity: Expected ≈ ${expectedTechnicalComplexity}, Found ${actualTechnicalComplexity}.`);
-    warnings.push(`Market Impact: Expected ≈ ${expectedMarketImpact}, Found ${actualMarketImpact}.`);
-    warnings.push(`Risk: Expected "${expectedRisk}", Found "${actualRisk}".`);
+  //   const warnings: string[] = [];
+  //   warnings.push(`Technical Complexity: Expected ≈ ${expectedTechnicalComplexity}, Found ${actualTechnicalComplexity}.`);
+  //   warnings.push(`Market Impact: Expected ≈ ${expectedMarketImpact}, Found ${actualMarketImpact}.`);
+  //   warnings.push(`Risk: Expected "${expectedRisk}", Found "${actualRisk}".`);
 
-    const mapCat = { "Low": 1, "Medium": 2, "High": 3 };
-    if (Math.abs(mapCat[expectedTechnicalComplexity] - mapCat[actualTechnicalComplexity]) >= 2) {
-      warnings.push(`Warning: Technical Complexity discrepancy is high.`);
-    }
-    if (Math.abs(expectedMarketImpact - actualMarketImpact) >= 20) {
-      warnings.push(`Warning: Market Impact discrepancy is high.`);
-    }
-    if (actualRisk !== expectedRisk) {
-      warnings.push(`Warning: Risk level discrepancy detected.`);
-    }
+  //   const mapCat = { "Low": 1, "Medium": 2, "High": 3 };
+  //   if (Math.abs(mapCat[expectedTechnicalComplexity] - mapCat[actualTechnicalComplexity]) >= 2) {
+  //     warnings.push(`Warning: Technical Complexity discrepancy is high.`);
+  //   }
+  //   if (Math.abs(expectedMarketImpact - actualMarketImpact) >= 20) {
+  //     warnings.push(`Warning: Market Impact discrepancy is high.`);
+  //   }
+  //   if (actualRisk !== expectedRisk) {
+  //     warnings.push(`Warning: Risk level discrepancy detected.`);
+  //   }
 
-    results.push({ productName, warnings });
-  });
+  //   results.push({ productName, warnings });
+  // });
 
-  return results;
+  // return results;
+  return [];
 }
 
 
