@@ -665,7 +665,8 @@ export default class BillOfMaterialsEditor extends Component<
             {this.renderSearchBar()}
           </div>
           <div style={{ flex: 1 }}>
-            <ProductCatalogManager projectService={this.props.projectService} />
+            <ProductCatalogManager projectService={this.props.projectService} 
+             onCloseAllModals={this.handleCloseAllModals}/>
           </div>
           <div style={{
           // si necesitas exacto 150px, o usa flex:1 también
