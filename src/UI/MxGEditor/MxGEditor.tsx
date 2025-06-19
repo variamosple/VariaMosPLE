@@ -30,6 +30,7 @@ import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGro
 import MxProperties from "../MxProperties/MxProperties";
 import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 import KaosGenerator from "../Scope/KaosGenerator";
+import { onAwarenessChange, destroyProjectAwareness, updateUserCursor } from "../../DataProvider/Services/collaborationAwarnessService";
 
 interface Props {
   projectService: ProjectService;
@@ -65,6 +66,7 @@ interface State {
     showCollaboratorsModal: boolean;
     userRole: string;
     backupObject: any;
+    awarnessStates?: Array<any>;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -76,6 +78,8 @@ export default class MxGEditor extends Component<Props, State> {
   isRemoteChange: boolean;
   isInitialLoad: boolean= false;
   currentModelObserver: (() => void) | null = null;
+  awarenessUnsubscribe: (() => void) | null = null;
+
 
   constructor(props: Props) {
     super(props);
@@ -110,6 +114,7 @@ export default class MxGEditor extends Component<Props, State> {
       userRole: "",
       pendingChanges: false,
       backupObject: null,
+      awarnessStates: []
 
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
@@ -226,6 +231,12 @@ export default class MxGEditor extends Component<Props, State> {
       // Configurar sincronización si el proyecto es colaborativo
         if (projectInfo.is_collaborative && projectInfo.id && model) {
           this.observeModel(projectInfo.id, model);
+
+        this.awarenessUnsubscribe = onAwarenessChange(projectInfo.id, (states) => {
+        this.setState({awarnessStates: Array.from(states.values())});
+
+      })
+        
       }
     }
   
@@ -294,6 +305,13 @@ export default class MxGEditor extends Component<Props, State> {
 
       if (projectInfo.is_collaborative && projectInfo.id && model) {
         this.observeModel(projectInfo.id, model);
+
+        this.awarenessUnsubscribe = onAwarenessChange(projectInfo.id, (states) => {
+        this.setState({awarnessStates: Array.from(states.values())});
+
+      })
+        
+
       }
     }
   }
@@ -3333,6 +3351,10 @@ observeModel(projectId: string, model: Model) {
     this.currentModelObserver();
     this.currentModelObserver = null;
     console.log("Removed previous model observer.");
+  
+    this.awarenessUnsubscribe();
+    this.awarenessUnsubscribe = null;
+  
   }
 
   // Configurar el nuevo observador
@@ -3369,70 +3391,44 @@ observeModel(projectId: string, model: Model) {
     this.setState({ shareRole: role });
   };
 
-
-//   handleSyncWorkspace() {
-// const workspaceID  = this.state.workspaceIDInput.trim();
-// if (!workspaceID) {
-//   alert("Ingresar un ID de espacio de trabajo válido.");
-//   return;
-// }
-
-// try {
-
-//     const wsProvider = this.props.projectService.setupProjectSync(workspaceID);
-//     console.log("Espacio de trabajo sincronizado----------------------------------:", wsProvider);
-//     if (wsProvider) {
-//         alert(`Espacio de trabajo ${workspaceID} sincronizado correctamente.`);
-//     }else{
-//         alert(`No se pudo sincronizar el espacio de trabajo ${workspaceID}.`);
-//     }
-// } catch (error) {
-//     console.log("Error al sincronizar el espacio de trabajo:", error);
-//     alert("Ocurrió un error al sincronizar el espacio de trabajo.");
-// }
-
-//     this.handleSyncModalToggle(); 
-
-//   }
-
-async handleInviteCollaborator() {
-const {userRole} = this.state;
-if (userRole !== RoleEnum.OWNER){
-  alert("Only the owner can invite collaborators.");
-  return;
-}
-
-const toUserEmail  = this.state.shareInput.trim();
-const role = this.state.shareRole.trim();
-const project = this.props.projectService.getProjectInformation();
-if (!toUserEmail || !project || !role) {
-  alert("Please enter a valid user ID.");
-  return;
-}
-try {
-  const projectId = project.id;
-  const share = await this.props.projectService.shareProject(projectId, toUserEmail, role); 
-
-  console.log(`Project shared with ${toUserEmail} as ${role}`);
-  alert(`Project successfully shared with ${toUserEmail} as ${role}.`);
-
-  const newCollaborator = {
-    id: share.id,
-    name: share.name,
-    email: share.email,
-    role: share.role,
-  };
-  this.setState((prevState) => ({
-    collaborators: [...prevState.collaborators, newCollaborator],
-  }));
-} catch (error) {
-  console.error("Error syncing workspace:", error);
-  alert("An error occurred while syncing the workspace. Please try again.");
-}
-
-    this.handleSyncModalToggle(); 
-
+  async handleInviteCollaborator() {
+  const {userRole} = this.state;
+  if (userRole !== RoleEnum.OWNER){
+    alert("Only the owner can invite collaborators.");
+    return;
   }
+
+  const toUserEmail  = this.state.shareInput.trim();
+  const role = this.state.shareRole.trim();
+  const project = this.props.projectService.getProjectInformation();
+  if (!toUserEmail || !project || !role) {
+    alert("Please enter a valid user ID.");
+    return;
+  }
+  try {
+    const projectId = project.id;
+    const share = await this.props.projectService.shareProject(projectId, toUserEmail, role); 
+  
+    console.log(`Project shared with ${toUserEmail} as ${role}`);
+    alert(`Project successfully shared with ${toUserEmail} as ${role}.`);
+  
+    const newCollaborator = {
+      id: share.id,
+      name: share.name,
+      email: share.email,
+      role: share.role,
+    };
+    this.setState((prevState) => ({
+      collaborators: [...prevState.collaborators, newCollaborator],
+    }));
+  } catch (error) {
+    console.error("Error syncing workspace:", error);
+    alert("An error occurred while syncing the workspace. Please try again.");
+  }
+  
+      this.handleSyncModalToggle(); 
+  
+    }
 
   changeProjectCollaborative() { 
     try {
@@ -3451,7 +3447,7 @@ try {
             
             // Manejar la conexión/desconexión del WebSocket
             if (newCollaborativeState) {
-              await this.props.projectService.setupProjectSync(projectId, project);
+              await this.props.projectService.setupProjectSync(projectId);
             } else {
               this.props.projectService.removeProjectDoc(projectId);
             }
@@ -3687,6 +3683,17 @@ try {
     )
   }
 
+
+  handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { projectId, isCollaborative } = this.state;
+    if (isCollaborative && projectId) {
+      const rect = this.graphContainerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      updateUserCursor(projectId, x, y);
+    }
+  };
+
 // END NEW COLABORATIVE FUNCTIONALITY
 
   render() {
@@ -3737,7 +3744,44 @@ try {
   )}
         </div>
         {this.renderContexMenu()}
-        <div ref={this.graphContainerRef} className="GraphContainer"></div>
+
+
+        <div ref={this.graphContainerRef} className="GraphContainer" style={{ position: "relative" }} onMouseMove={this.handleMouseMove}>
+
+        {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => user.user && user.user.cursor)
+      .map((user: any, idx: number) => (
+        <div
+          key={idx}
+          style={{
+            position: "absolute",
+            left: user.user.cursor.x,
+            top: user.user.cursor.y,
+            pointerEvents: "none",
+            zIndex: 10,
+            color: user.user.color,
+            fontWeight: "bold",
+            fontSize: 12,
+            background: "#fff8",
+            borderRadius: 4,
+            padding: "2px 6px",
+            border: `1px solid ${user.user.color}`,
+            transform: "translate(-50%, -50%)"
+          }}
+        >
+          {user.user.name}
+          <span style={{
+            display: "inline-block",
+            width: 8,
+            height: 8,
+            background: user.user.color,
+            borderRadius: "50%",
+            marginLeft: 4,
+            verticalAlign: "middle"
+          }} />
+        </div>
+        ))}
+
+        </div>
         
         {this.renderCollaboratorsModal()}
 

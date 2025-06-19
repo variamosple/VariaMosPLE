@@ -1910,9 +1910,11 @@ export default class ProjectService {
     getUserRole(projectId: string) {
     return this.projectPersistenceUseCases.getUserRole(projectId)
     }
-    async setupProjectSync(projectId: string, projectInfo: ProjectInformation) {
+
+
+    async setupProjectSync(projectId: string) {
       try {
-        await setupProjectSync(projectId, projectInfo);
+        await setupProjectSync(projectId, this.user);
         console.log(`Sincronización iniciada para el proyecto ${projectId}`);
       } catch (error) {
         console.error("Error al iniciar la sincronización:", error);
@@ -1928,14 +1930,6 @@ export default class ProjectService {
       }
     }
 
-    observeProjectCollabState(projectId: string, callback: (state: any) => void) {
-      return observeProjectState(projectId, callback);
-    }
-
-    updateProjectCollabState(projectId: string, updateFn: (state: any) => void) {
-      return updateProjectState(projectId, updateFn);
-    }
-
     getProjectCollabState(projectId: string) {
       return getProjectState(projectId);
     }
@@ -1945,15 +1939,11 @@ export default class ProjectService {
     }
 
     handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation){
-      return handleCollaborativeProject(projectId, projectInfo)
+      return handleCollaborativeProject(projectId, projectInfo, this.user);
     }
 
     observeModelState(projectId:string ,modelId: string, callback: (state: any) => void) {
       return observeModelState(projectId, modelId, callback);
-    }
-
-    manageModelState(projectId: string, modelId: string) {
-      return manageModelState(projectId, modelId);
     }
 
     updateModelState(projectId: string, modelId: string, updateFn: (state: any) => void) {

@@ -1,7 +1,8 @@
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
-import type ProjectService from "../../Application/Project/ProjectService";
 import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
+import { setupProjectAwareness, destroyProjectAwareness } from "./collaborationAwarnessService";
+import { SessionUser } from "@variamosple/variamos-components";
 
 interface ProjectCollaborationData {
   doc: Y.Doc;
@@ -16,6 +17,7 @@ const disconnectCurrentProject = () => {
   if (currentActiveProjectId) {
     const currentData = projectCollaborationData.get(currentActiveProjectId);
     if (currentData) {
+      destroyProjectAwareness(currentActiveProjectId);
       currentData.provider.disconnect();
       currentData.doc.destroy();
       projectCollaborationData.delete(currentActiveProjectId);
@@ -27,7 +29,7 @@ const disconnectCurrentProject = () => {
 
 export const setupProjectSync = async (
   projectId: string,
-  projectInfo: ProjectInformation
+  user: SessionUser
 ): Promise<WebsocketProvider | null> => {
   // Si hay un proyecto activo diferente, desconectarlo
   if (currentActiveProjectId && currentActiveProjectId !== projectId) {
@@ -44,6 +46,11 @@ export const setupProjectSync = async (
     }
 
     const wsProvider = new WebsocketProvider(websocketUrl, projectId, projectDoc);
+
+    setupProjectAwareness(projectId, wsProvider, {
+      name: user.name,
+      color: "#" + Math.floor(Math.random() * 16777215).toString(16)
+    });
 
     projectDoc.getMap("projectState");
     
@@ -82,11 +89,12 @@ export const removeProjectDoc = (projectId: string) => {
 
 export const handleCollaborativeProject = async (
   projectId: string,
-  projectInfo: ProjectInformation
+  projectInfo: ProjectInformation,
+  user: SessionUser
 ): Promise<void> => {
   if (projectInfo?.is_collaborative) {
     console.log(`El proyecto ${projectId} es colaborativo. Configurando Yjs...`);
-    await setupProjectSync(projectId, projectInfo);
+    await setupProjectSync(projectId, user);
   } else {
     console.log(`El proyecto ${projectId} no es colaborativo.`);
     removeProjectDoc(projectId);
