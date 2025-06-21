@@ -45,7 +45,8 @@ import { setupProjectSync,
          sendProjectUpdate,
          observeModelState,
          manageModelState,
-         updateModelState} from "../../DataProvider/Services/collaborationService";
+         updateModelState,
+         getProjectProvider} from "../../DataProvider/Services/collaborationService";
 
 
 export default class ProjectService {
@@ -1914,7 +1915,7 @@ export default class ProjectService {
 
     async setupProjectSync(projectId: string) {
       try {
-        await setupProjectSync(projectId, this.user);
+        await setupProjectSync(projectId);
         console.log(`Sincronización iniciada para el proyecto ${projectId}`);
       } catch (error) {
         console.error("Error al iniciar la sincronización:", error);
@@ -1948,6 +1949,12 @@ export default class ProjectService {
 
     updateModelState(projectId: string, modelId: string, updateFn: (state: any) => void) {
       return updateModelState(projectId, modelId, updateFn);
+    }
+
+    getProjectProvider(projectId: string): any {
+      return getProjectProvider(projectId);
+
+
     }
 
 

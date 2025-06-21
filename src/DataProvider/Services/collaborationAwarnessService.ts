@@ -10,11 +10,13 @@ interface UserAwareness {
 
 const awarenessMap = new Map<string, Awareness>();
 
-export const setupProjectAwareness = (
+export const setupModelAwareness = (
   projectId: string,
+  modelId: string,
   provider: WebsocketProvider,
   initialUser: { name: string; color: string }
 ) => {
+  const key = `${projectId}:${modelId}`;
   const awareness = provider.awareness;
 
   awareness.setLocalStateField("user", {
@@ -23,16 +25,18 @@ export const setupProjectAwareness = (
     cursor: { x: 0, y: 0 }
   });
 
-  awarenessMap.set(projectId, awareness);
-  console.log(`Awareness configurada para el proyecto ${projectId}`);
+  awarenessMap.set(key, awareness);
+  console.log(`Awareness configurada para el modelo ${modelId} en el proyecto ${projectId}`);
 };
 
 export const updateUserCursor = (
   projectId: string,
+  modelId: string,
   x: number,
   y: number
 ) => {
-  const awareness = awarenessMap.get(projectId);
+  const key = `${projectId}:${modelId}`;
+  const awareness = awarenessMap.get(key);
   if (awareness) {
     const current = awareness.getLocalState();
     if (current?.user) {
@@ -44,11 +48,13 @@ export const updateUserCursor = (
   }
 };
 
-export const onAwarenessChange = (
+export const onModelAwarenessChange = (
   projectId: string,
+  modelId: string,
   callback: (states: Map<number, any>) => void
 ) => {
-  const awareness = awarenessMap.get(projectId);
+  const key = `${projectId}:${modelId}`;
+  const awareness = awarenessMap.get(key);
   if (awareness) {
     const handler = () => {
       const states = awareness.getStates();
@@ -63,12 +69,13 @@ export const onAwarenessChange = (
   return () => {};
 };
 
-export const getProjectAwareness = (projectId: string): Awareness | undefined => {
-  return awarenessMap.get(projectId);
+export const getModelAwareness = (projectId: string, modelId: string): Awareness | undefined => {
+  const key = `${projectId}:${modelId}`;
+  return awarenessMap.get(key);
 };
 
-export const destroyProjectAwareness = (projectId: string) => {
-  awarenessMap.delete(projectId);
-console.log(`Awareness eliminado para el proyecto ${projectId}`);
-
+export const destroyModelAwareness = (projectId: string, modelId: string) => {
+const key = `${projectId}:${modelId}`;  
+awarenessMap.delete(key);
+  console.log(`Awareness eliminado para el modelo ${modelId} en el proyecto ${projectId}`);
 };

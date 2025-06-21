@@ -30,7 +30,7 @@ import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGro
 import MxProperties from "../MxProperties/MxProperties";
 import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 import KaosGenerator from "../Scope/KaosGenerator";
-import { onAwarenessChange, destroyProjectAwareness, updateUserCursor } from "../../DataProvider/Services/collaborationAwarnessService";
+import { destroyModelAwareness, getModelAwareness, onModelAwarenessChange, setupModelAwareness, updateUserCursor } from "../../DataProvider/Services/collaborationAwarnessService";
 
 interface Props {
   projectService: ProjectService;
@@ -223,21 +223,20 @@ export default class MxGEditor extends Component<Props, State> {
 
     const projectInfo = this.props.projectService.getProjectInformation();
     if (projectInfo) {
-      me.setState({projectId: projectInfo.id || "",
-      isCollaborative: projectInfo.is_collaborative || false,
-      collaborators: projectInfo.collaborators || [],
-      userRole: projectInfo.role || "",
-      });
-      // Configurar sincronización si el proyecto es colaborativo
-        if (projectInfo.is_collaborative && projectInfo.id && model) {
-          this.observeModel(projectInfo.id, model);
+      // Actualizar estado del proyecto
+      me.setState({
+        projectId: projectInfo.id || "",
+        isCollaborative: projectInfo.is_collaborative || false,
+        collaborators: projectInfo.collaborators || [],
+        userRole: projectInfo.role || "",
+      }, () => {
 
-        this.awarenessUnsubscribe = onAwarenessChange(projectInfo.id, (states) => {
-        this.setState({awarnessStates: Array.from(states.values())});
-
-      })
-        
+      if (projectInfo.is_collaborative && projectInfo.id && model) {
+        this.observeModel(projectInfo.id, model);
       }
+
+      });
+
     }
   
     me.forceUpdate();
@@ -301,18 +300,14 @@ export default class MxGEditor extends Component<Props, State> {
         isCollaborative: projectInfo.is_collaborative || false,
         collaborators: projectInfo.collaborators || [],
         userRole: projectInfo.role || "",
-      });
+      }, () => {
 
       if (projectInfo.is_collaborative && projectInfo.id && model) {
         this.observeModel(projectInfo.id, model);
-
-        this.awarenessUnsubscribe = onAwarenessChange(projectInfo.id, (states) => {
-        this.setState({awarnessStates: Array.from(states.values())});
-
-      })
-        
-
       }
+
+      });
+
     }
   }
 
@@ -3345,17 +3340,17 @@ syncModelChanges() {
   }
 }
 
+// Conjunto
+
 observeModel(projectId: string, model: Model) {
   // Eliminar el observador anterior si existe
   if (this.currentModelObserver) {
     this.currentModelObserver();
     this.currentModelObserver = null;
-    console.log("Removed previous model observer.");
-  
-    this.awarenessUnsubscribe();
-    this.awarenessUnsubscribe = null;
-  
+    console.log("Removed previous model observer.");  
   }
+
+  this.unsuscribeModelAwareness(projectId, model.id);
 
   // Configurar el nuevo observador
   this.currentModelObserver = this.props.projectService.observeModelState(
@@ -3372,12 +3367,47 @@ observeModel(projectId: string, model: Model) {
 
           this.loadModel(model);
         }
-
         this.isRemoteChange = false;
       }
     }
   );
+
+  this.initNewModelAwarness(projectId, model.id);
 }
+
+
+  unsuscribeModelAwareness(projectId : string, modelId: string) {
+    if (this.awarenessUnsubscribe){
+      this.awarenessUnsubscribe();
+      this.awarenessUnsubscribe = null;
+      console.log("Removed previous awareness observer.");
+    }
+
+    if (modelId && projectId){
+      destroyModelAwareness(projectId, modelId);
+      console.log("Destroyed previous model awareness.");
+    }
+  }
+
+
+  initNewModelAwarness(projectId: string, modelId: string) {
+    const provider = this.props.projectService.getProjectProvider(projectId);
+    const user = this.state.collaborators.find((collab) => collab.id === this.props.projectService.getUser());
+    if (provider && user) {
+      setupModelAwareness(projectId, modelId, provider, {
+        name: user.name,
+        color: "#" + Math.floor(Math.random() * 16777215).toString(16)
+      });
+
+      this.awarenessUnsubscribe = onModelAwarenessChange(projectId, modelId , (state) => {
+        this.setState({ awarnessStates: Array.from(state.values()) });
+      })
+
+    } 
+  }
+
+
+  // Conjunto
 
   handleSyncModalToggle = () => {
     this.setState({ showSyncModal: !this.state.showSyncModal });
@@ -3686,11 +3716,13 @@ observeModel(projectId: string, model: Model) {
 
   handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const { projectId, isCollaborative } = this.state;
-    if (isCollaborative && projectId) {
+        console.log(`CurrentModel ${this.currentModel.id}`);
+    const modelId = this.currentModel.id;
+    if (isCollaborative && projectId && modelId) {
       const rect = this.graphContainerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      updateUserCursor(projectId, x, y);
+      updateUserCursor(projectId, modelId, x, y);
     }
   };
 

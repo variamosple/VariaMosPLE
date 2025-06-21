@@ -1,7 +1,6 @@
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
-import { setupProjectAwareness, destroyProjectAwareness } from "./collaborationAwarnessService";
 import { SessionUser } from "@variamosple/variamos-components";
 
 interface ProjectCollaborationData {
@@ -17,7 +16,6 @@ const disconnectCurrentProject = () => {
   if (currentActiveProjectId) {
     const currentData = projectCollaborationData.get(currentActiveProjectId);
     if (currentData) {
-      destroyProjectAwareness(currentActiveProjectId);
       currentData.provider.disconnect();
       currentData.doc.destroy();
       projectCollaborationData.delete(currentActiveProjectId);
@@ -29,7 +27,6 @@ const disconnectCurrentProject = () => {
 
 export const setupProjectSync = async (
   projectId: string,
-  user: SessionUser
 ): Promise<WebsocketProvider | null> => {
   // Si hay un proyecto activo diferente, desconectarlo
   if (currentActiveProjectId && currentActiveProjectId !== projectId) {
@@ -46,11 +43,6 @@ export const setupProjectSync = async (
     }
 
     const wsProvider = new WebsocketProvider(websocketUrl, projectId, projectDoc);
-
-    setupProjectAwareness(projectId, wsProvider, {
-      name: user.name,
-      color: "#" + Math.floor(Math.random() * 16777215).toString(16)
-    });
 
     projectDoc.getMap("projectState");
     
@@ -94,7 +86,7 @@ export const handleCollaborativeProject = async (
 ): Promise<void> => {
   if (projectInfo?.is_collaborative) {
     console.log(`El proyecto ${projectId} es colaborativo. Configurando Yjs...`);
-    await setupProjectSync(projectId, user);
+    await setupProjectSync(projectId);
   } else {
     console.log(`El proyecto ${projectId} no es colaborativo.`);
     removeProjectDoc(projectId);
@@ -200,4 +192,14 @@ export const updateModelState = (projectId: string, modelId: string, updateFn: (
   } else {
     console.log(`No se encontró el estado del proyecto ${projectId}`);
   }
+
+}
+
+  export const getProjectProvider = (projectId: string): WebsocketProvider | null => {
+  const collaborationData = projectCollaborationData.get(projectId);
+  if (collaborationData) {
+    return collaborationData.provider;
+  }
+  console.log(`No se encontró el WebSocketProvider para el proyecto ${projectId}`);
+  return null;
 }
