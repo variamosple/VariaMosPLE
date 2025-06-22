@@ -796,8 +796,8 @@ export default class ProjectService {
         me._projectInformation.template = false;
       }          
       me.raiseEventUpdateProject(me._project, null);
-
-      me.handleCollaborativeProject(projectId, projectInformation)
+      console.log(`Project opened in server: ${me.project.id} and other ${projectInformation.id}`);
+      me.handleCollaborativeProject(me._project.id, projectInformation)
     }
 
     let openProjectInServerErrorCallback = (e) => {
@@ -1940,7 +1940,7 @@ export default class ProjectService {
     }
 
     handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation){
-      return handleCollaborativeProject(projectId, projectInfo, this.user);
+      return handleCollaborativeProject(projectId, projectInfo);
     }
 
     observeModelState(projectId:string ,modelId: string, callback: (state: any) => void) {

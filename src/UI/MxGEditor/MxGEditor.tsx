@@ -30,7 +30,7 @@ import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGro
 import MxProperties from "../MxProperties/MxProperties";
 import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 import KaosGenerator from "../Scope/KaosGenerator";
-import { destroyModelAwareness, getModelAwareness, onModelAwarenessChange, setupModelAwareness, updateUserCursor } from "../../DataProvider/Services/collaborationAwarnessService";
+import { destroyModelAwareness, getModelAwareness, onModelAwarenessChange, setupModelAwareness, updateUserCursor } from "../../DataProvider/Services/collaborationAwarenessService";
 
 interface Props {
   projectService: ProjectService;
@@ -61,7 +61,6 @@ interface State {
     shareInput: string;
     shareRole: string;
     isCollaborative: boolean;
-    projectId: string;
     collaborators: Array<{id: string, name: string,email: string; role: string }>;
     showCollaboratorsModal: boolean;
     userRole: string;
@@ -108,7 +107,6 @@ export default class MxGEditor extends Component<Props, State> {
       shareInput: "",
       shareRole: "",
       isCollaborative: false,
-      projectId: "",
       collaborators: [],
       showCollaboratorsModal: false,
       userRole: "",
@@ -159,9 +157,9 @@ export default class MxGEditor extends Component<Props, State> {
     }
     this.forceUpdate();
 
-    const projectInfo = this.props.projectService.getProjectInformation();
-    if (projectInfo) {
-    this.observeModel(projectInfo.id, e.model);
+    const projectId = this.props.projectService.getProject().id;
+    if (projectId) {
+    this.observeModel(projectId, e.model);
     }
   }
 
@@ -225,14 +223,13 @@ export default class MxGEditor extends Component<Props, State> {
     if (projectInfo) {
       // Actualizar estado del proyecto
       me.setState({
-        projectId: projectInfo.id || "",
         isCollaborative: projectInfo.is_collaborative || false,
         collaborators: projectInfo.collaborators || [],
         userRole: projectInfo.role || "",
       }, () => {
 
-      if (projectInfo.is_collaborative && projectInfo.id && model) {
-        this.observeModel(projectInfo.id, model);
+      if (projectInfo.is_collaborative && projectInfo.project.id && model) {
+        this.observeModel(projectInfo.project.id, model);
       }
 
       });
@@ -296,14 +293,13 @@ export default class MxGEditor extends Component<Props, State> {
     if (projectInfo) {
       // Actualizar estado del proyecto
       me.setState({
-        projectId: projectInfo.id || "",
         isCollaborative: projectInfo.is_collaborative || false,
         collaborators: projectInfo.collaborators || [],
         userRole: projectInfo.role || "",
       }, () => {
 
-      if (projectInfo.is_collaborative && projectInfo.id && model) {
-        this.observeModel(projectInfo.id, model);
+      if (projectInfo.is_collaborative && projectInfo.project.id && model) {
+        this.observeModel(projectInfo.project.id, model);
       }
 
       });
@@ -393,6 +389,8 @@ export default class MxGEditor extends Component<Props, State> {
             }
           }
         });
+
+      console.log(evt)
 
       this.syncModelChanges();
 
@@ -3330,8 +3328,9 @@ renderRequirementsReport() {
 //   NEW COLABORATIVE FUNCTIONALITY
 
 syncModelChanges() {
-  if (this.state.isCollaborative && this.state.projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
-    this.props.projectService.updateModelState(this.state.projectId, this.currentModel.id, (state) => {
+  const projectId = this.props.projectService.getProject().id;
+  if (this.state.isCollaborative && projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
+    this.props.projectService.updateModelState(projectId, this.currentModel.id, (state) => {
       state.set("data", {
         elements: this.currentModel.elements,
         relationships: this.currentModel.relationships,
@@ -3430,13 +3429,12 @@ observeModel(projectId: string, model: Model) {
 
   const toUserEmail  = this.state.shareInput.trim();
   const role = this.state.shareRole.trim();
-  const project = this.props.projectService.getProjectInformation();
-  if (!toUserEmail || !project || !role) {
+  const projectId = this.props.projectService.getProject().id;
+  if (!toUserEmail || !projectId || !role) {
     alert("Please enter a valid user ID.");
     return;
   }
   try {
-    const projectId = project.id;
     const share = await this.props.projectService.shareProject(projectId, toUserEmail, role); 
   
     console.log(`Project shared with ${toUserEmail} as ${role}`);
@@ -3462,12 +3460,11 @@ observeModel(projectId: string, model: Model) {
 
   changeProjectCollaborative() { 
     try {
-      const project = this.props.projectService.getProjectInformation();
-      if (!project) {
+      const projectId = this.props.projectService.getProject().id;
+      if (!projectId) {
         alert("No hay un proyecto seleccionado.");
         return;
       }
-      const projectId = project.id; 
       this.props.projectService.changeProjectCollaborationState(
         projectId,
         async (response) => {
@@ -3499,12 +3496,11 @@ observeModel(projectId: string, model: Model) {
 
   removeCollaborator(collaboratorId: string) {
     try{
-    const project = this.props.projectService.getProjectInformation();
-    if (!project) {
+    const projectId = this.props.projectService.getProject().id;
+    if (!projectId) {
       alert("No hay un proyecto seleccionado.");
       return;
     }
-    const projectId = project.id;
     this.props.projectService.removeCollaborator(projectId, collaboratorId)
     .then((response) => {
       if (response) {
@@ -3528,12 +3524,11 @@ observeModel(projectId: string, model: Model) {
 // TODO Cambiar para que se pase el id del proyecto y así no llamar al getProjectInformationCadaVez, para TODAS LAS FUNCIONES IMPORTANTE!!
   async changeCollaboratorRole(collaboratorId: string, newRole: string) {
     try{
-    const project = this.props.projectService.getProjectInformation();
-    if (!project) {
+    const projectId = this.props.projectService.getProject().id;
+    if (!projectId) {
       alert("No hay un proyecto seleccionado.");
       return;
     }
-    const projectId = project.id;
     await this.props.projectService.changeCollaboratorRole(projectId, collaboratorId, newRole)
     .then((response) => {
       if (response) {
@@ -3715,7 +3710,8 @@ observeModel(projectId: string, model: Model) {
 
 
   handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const { projectId, isCollaborative } = this.state;
+    const isCollaborative  = this.state;
+    const projectId = this.props.projectService.getProject().id;
         console.log(`CurrentModel ${this.currentModel.id}`);
     const modelId = this.currentModel.id;
     if (isCollaborative && projectId && modelId) {

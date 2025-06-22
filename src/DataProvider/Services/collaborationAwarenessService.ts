@@ -27,7 +27,6 @@ export const setupModelAwareness = (
   });
 
   awarenessMap.set(key, awareness);
-  console.log(`Awareness configurada para el modelo ${modelId} en el proyecto ${projectId}`);
 };
 
 export const updateUserCursor = (
@@ -79,5 +78,4 @@ export const getModelAwareness = (projectId: string, modelId: string): Awareness
 export const destroyModelAwareness = (projectId: string, modelId: string) => {
 const key = `${projectId}:${modelId}`;  
 awarenessMap.delete(key);
-console.log(`Awareness eliminado para el modelo ${modelId} en el proyecto ${projectId}`);
 };

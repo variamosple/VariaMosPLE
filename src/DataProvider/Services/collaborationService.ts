@@ -82,7 +82,6 @@ export const removeProjectDoc = (projectId: string) => {
 export const handleCollaborativeProject = async (
   projectId: string,
   projectInfo: ProjectInformation,
-  user: SessionUser
 ): Promise<void> => {
   if (projectInfo?.is_collaborative) {
     console.log(`El proyecto ${projectId} es colaborativo. Configurando Yjs...`);
