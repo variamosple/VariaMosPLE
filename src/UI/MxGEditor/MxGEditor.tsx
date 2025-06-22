@@ -3780,7 +3780,7 @@ observeModel(projectId: string, model: Model) {
 
         <div ref={this.graphContainerRef} className="GraphContainer" style={{ position: "relative" }} onMouseMove={this.handleMouseMove}>
 
-        {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => user.user && user.user.cursor)
+        {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => user.user && user.user.cursor && user.user.modelId === this.currentModel?.id)
       .map((user: any, idx: number) => (
         <div
           key={idx}

@@ -22,7 +22,8 @@ export const setupModelAwareness = (
   awareness.setLocalStateField("user", {
     name: initialUser.name,
     color: initialUser.color,
-    cursor: { x: 0, y: 0 }
+    cursor: { x: 0, y: 0 },
+    modelId
   });
 
   awarenessMap.set(key, awareness);
@@ -42,7 +43,8 @@ export const updateUserCursor = (
     if (current?.user) {
       awareness.setLocalStateField("user", {
         ...current.user,
-        cursor: { x, y }
+        cursor: { x, y },
+        modelId
       });
     }
   }
@@ -77,5 +79,5 @@ export const getModelAwareness = (projectId: string, modelId: string): Awareness
 export const destroyModelAwareness = (projectId: string, modelId: string) => {
 const key = `${projectId}:${modelId}`;  
 awarenessMap.delete(key);
-  console.log(`Awareness eliminado para el modelo ${modelId} en el proyecto ${projectId}`);
+console.log(`Awareness eliminado para el modelo ${modelId} en el proyecto ${projectId}`);
 };
