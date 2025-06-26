@@ -139,7 +139,7 @@ export default class MxGEditor extends Component<Props, State> {
     this.handleSyncModalToggle = this.handleSyncModalToggle.bind(this);
     this.handleShareEmailChange = this.handleShareEmailChange.bind(this);
     this.handleInviteCollaborator = this.handleInviteCollaborator.bind(this);
-    this.changeProjectCollaborative = this.changeProjectCollaborative.bind(this);
+    // this.changeProjectCollaborative = this.changeProjectCollaborative.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -3429,9 +3429,12 @@ observeModel(projectId: string, model: Model) {
 
   const toUserEmail  = this.state.shareInput.trim();
   const role = this.state.shareRole.trim();
-  const projectId = this.props.projectService.getProject().id;
-  if (!toUserEmail || !projectId || !role) {
+  const projectId = this.props.projectService.getProjectInformation().id;
+  if (!toUserEmail) {
     alert("Please enter a valid user ID.");
+    return;
+  } else if (!role) {
+    alert("Please select a role for the collaborator.");
     return;
   }
   try {
@@ -3458,45 +3461,47 @@ observeModel(projectId: string, model: Model) {
   
     }
 
-  changeProjectCollaborative() { 
-    try {
-      const projectId = this.props.projectService.getProject().id;
-      if (!projectId) {
-        alert("No hay un proyecto seleccionado.");
-        return;
-      }
-      this.props.projectService.changeProjectCollaborationState(
-        projectId,
-        async (response) => {
-          if (response) {
-            const newCollaborativeState = response.collaborativeState;
-            this.setState({ isCollaborative: newCollaborativeState }); 
+    
+  // TODO: Ver que hacer con esto
+  // changeProjectCollaborative() { 
+  //   try {
+  //     const projectId = this.props.projectService.getProjectInformation().id;
+  //     if (!projectId) {
+  //       alert("No hay un proyecto seleccionado.");
+  //       return;
+  //     }
+  //     this.props.projectService.changeProjectCollaborationState(
+  //       projectId,
+  //       async (response) => {
+  //         if (response) {
+  //           const newCollaborativeState = response.collaborativeState;
+  //           this.setState({ isCollaborative: newCollaborativeState }); 
             
-            // Manejar la conexión/desconexión del WebSocket
-            if (newCollaborativeState) {
-              await this.props.projectService.setupProjectSync(projectId);
-            } else {
-              this.props.projectService.removeProjectDoc(projectId);
-            }
-            // alert(`El proyecto ahora es ${newCollaborativeState ? "colaborativo" : "no colaborativo"}.`);
-          } else {
-            alert("No se pudo cambiar el estado de colaboración.");
-          }
-        },
-        (error) => {
-          console.error("Error al cambiar el estado de colaboración:", error);
-          alert("Ocurrió un error al intentar cambiar el estado de colaboración.");
-        }
-      );
-    } catch (error) {
-      console.error("Error al cambiar el estado de colaboración:", error);
-      alert("Ocurrió un error al intentar cambiar el estado de colaboración.");
-    }
-  }
+  //           // Manejar la conexión/desconexión del WebSocket
+  //           if (newCollaborativeState) {
+  //             await this.props.projectService.setupProjectSync(projectId);
+  //           } else {
+  //             this.props.projectService.removeProjectDoc(projectId);
+  //           }
+  //           // alert(`El proyecto ahora es ${newCollaborativeState ? "colaborativo" : "no colaborativo"}.`);
+  //         } else {
+  //           alert("No se pudo cambiar el estado de colaboración.");
+  //         }
+  //       },
+  //       (error) => {
+  //         console.error("Error al cambiar el estado de colaboración:", error);
+  //         alert("Ocurrió un error al intentar cambiar el estado de colaboración.");
+  //       }
+  //     );
+  //   } catch (error) {
+  //     console.error("Error al cambiar el estado de colaboración:", error);
+  //     alert("Ocurrió un error al intentar cambiar el estado de colaboración.");
+  //   }
+  // }
 
   removeCollaborator(collaboratorId: string) {
     try{
-    const projectId = this.props.projectService.getProject().id;
+    const projectId = this.props.projectService.getProjectInformation().id;
     if (!projectId) {
       alert("No hay un proyecto seleccionado.");
       return;
@@ -3521,10 +3526,9 @@ observeModel(projectId: string, model: Model) {
       alert("Ocurrió un error al intentar eliminar el colaborador.");
     }
   }
-// TODO Cambiar para que se pase el id del proyecto y así no llamar al getProjectInformationCadaVez, para TODAS LAS FUNCIONES IMPORTANTE!!
   async changeCollaboratorRole(collaboratorId: string, newRole: string) {
     try{
-    const projectId = this.props.projectService.getProject().id;
+    const projectId = this.props.projectService.getProjectInformation().id;
     if (!projectId) {
       alert("No hay un proyecto seleccionado.");
       return;
@@ -3712,8 +3716,9 @@ observeModel(projectId: string, model: Model) {
   handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const isCollaborative  = this.state;
     const projectId = this.props.projectService.getProject().id;
-        console.log(`CurrentModel ${this.currentModel.id}`);
-    const modelId = this.currentModel.id;
+    let modelId = null;
+    modelId = this.currentModel && this.currentModel.id === null ? 'none' : this.currentModel?.id;
+      
     if (isCollaborative && projectId && modelId) {
       const rect = this.graphContainerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -3764,9 +3769,6 @@ observeModel(projectId: string, model: Model) {
       </a>
       <a title="Collaborators" onClick={() => this.setState({ showCollaboratorsModal: true })}>
         <span>Collaborators </span>
-      </a>
-      <a title="Cambiar estado colaborativo" onClick={this.changeProjectCollaborative}>
-        <span>{this.state.isCollaborative ? "Colaborativo: ON" : "Colaborativo: OFF"}</span>
       </a>
     </>
   )}
