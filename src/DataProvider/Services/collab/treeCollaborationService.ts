@@ -10,6 +10,8 @@ class TreeCollaborationService {
   private treeState: Y.Map<any> | null = null;
   private isInitialized: boolean = false;
   private ownOperations: Set<string> = new Set(); // Para trackear operaciones propias
+  private lastProcessedTimestamp: number = 0; // Para procesar solo cambios nuevos
+  private readonly MAX_OPERATIONS_HISTORY = 50; // Límite de operaciones históricas
 
   /**
    * Inicializa la sincronización del tree para un proyecto colaborativo
@@ -114,7 +116,13 @@ class TreeCollaborationService {
 
       // Guardar en YJS
       this.treeState.set('currentState', treeSnapshot);
-      
+
+      // Establecer timestamp inicial para evitar procesar operaciones históricas
+      if (this.lastProcessedTimestamp === 0) {
+        this.lastProcessedTimestamp = Date.now();
+        console.log(`[TreeCollaboration] ⏰ Timestamp inicial establecido para evitar historial: ${this.lastProcessedTimestamp}`);
+      }
+
       console.log(`[TreeCollaboration] ✅ Estado del proyecto sincronizado:`, {
         productLinesCount: treeSnapshot.productLines.length,
         timestamp: new Date(treeSnapshot.timestamp).toISOString()
@@ -142,23 +150,41 @@ class TreeCollaborationService {
       // Obtener todas las operaciones del tree
       const allOperations = this.treeState?.toJSON();
 
-      // Filtrar solo las operaciones remotas (no el currentState ni las operaciones propias)
-      const operations: any = {};
+      // Filtrar solo las operaciones nuevas (posteriores al último timestamp procesado)
+      const newOperations: any = {};
+      let hasNewOperations = false;
+
       if (allOperations) {
         Object.keys(allOperations).forEach(key => {
           if (key !== 'currentState' &&
               allOperations[key].type &&
-              !this.ownOperations.has(key)) {
-            operations[key] = allOperations[key];
+              !this.ownOperations.has(key) &&
+              (allOperations[key].timestamp || 0) > this.lastProcessedTimestamp) {
+            newOperations[key] = allOperations[key];
+            hasNewOperations = true;
           }
         });
       }
 
-      callback({
-        type: 'tree-operations',
-        data: operations,
-        event: event
-      });
+      // Solo procesar si hay operaciones nuevas
+      if (hasNewOperations) {
+        // Actualizar timestamp de última operación procesada
+        const timestamps = Object.values(newOperations).map((op: any) => op.timestamp || 0);
+        this.lastProcessedTimestamp = Math.max(...timestamps);
+
+        console.log(`[TreeCollaboration] 📥 Procesando ${Object.keys(newOperations).length} operaciones nuevas`);
+
+        callback({
+          type: 'tree-operations',
+          data: newOperations,
+          event: event
+        });
+
+        // Limpiar operaciones antiguas periódicamente
+        this.cleanupOldOperations();
+      } else {
+        console.log(`[TreeCollaboration] ⏭️ No hay operaciones nuevas para procesar`);
+      }
     };
 
     this.treeState.observe(observer);
@@ -189,6 +215,35 @@ class TreeCollaborationService {
   }
 
   /**
+   * Limpia operaciones antiguas para mantener el rendimiento
+   */
+  private cleanupOldOperations(): void {
+    if (!this.treeState) return;
+
+    const allOperations = this.treeState.toJSON();
+    const operationKeys = Object.keys(allOperations).filter(key =>
+      key !== 'currentState' && allOperations[key].type
+    );
+
+    // Si hay más operaciones que el límite, eliminar las más antiguas
+    if (operationKeys.length > this.MAX_OPERATIONS_HISTORY) {
+      // Ordenar por timestamp (más antiguas primero)
+      operationKeys.sort((a, b) =>
+        (allOperations[a].timestamp || 0) - (allOperations[b].timestamp || 0)
+      );
+
+      // Eliminar las operaciones más antiguas
+      const toDelete = operationKeys.slice(0, operationKeys.length - this.MAX_OPERATIONS_HISTORY);
+      toDelete.forEach(key => {
+        this.treeState?.delete(key);
+        this.ownOperations.delete(key); // También limpiar del tracking
+      });
+
+      console.log(`[TreeCollaboration] 🧹 Eliminadas ${toDelete.length} operaciones antiguas`);
+    }
+  }
+
+  /**
    * Limpia la colaboración
    */
   cleanup(): void {
@@ -198,6 +253,7 @@ class TreeCollaborationService {
     this.treeState = null;
     this.isInitialized = false;
     this.ownOperations.clear();
+    this.lastProcessedTimestamp = 0;
   }
 
   /**
