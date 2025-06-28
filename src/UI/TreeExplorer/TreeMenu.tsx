@@ -5,6 +5,7 @@ import * as alertify from "alertifyjs";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import treeCollaborationService from "../../DataProvider/Services/collab/treeCollaborationService";
 import { Dropdown, DropdownButton } from 'react-bootstrap';
 import "./TreeMenu.css";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
@@ -297,8 +298,16 @@ class TreeMenu extends Component<Props, State> {
   }
 
   deleteItemProject() {
+    const itemName = this.props.projectService.getItemProjectName();
+    const itemType = this.props.projectService.getTreeItemSelected();
+    const itemId = this.props.projectService.getTreeIdItemSelected();
+
+    console.log(`[TreeMenu] 🗑️ Eliminando elemento: ${itemName} (tipo: ${itemType}, ID: ${itemId})`);
+
     this.hideDeleteModal();
     this.props.projectService.deleteItemProject();
+
+    console.log(`[TreeMenu] ✅ Elemento eliminado y proyecto guardado`);
   }
 
   saveConfiguration() {
@@ -317,7 +326,15 @@ class TreeMenu extends Component<Props, State> {
   }
 
   renameItemProject(newName: string) {
+    const oldName = this.props.projectService.getItemProjectName();
+    const itemType = this.props.projectService.getTreeItemSelected();
+    const itemId = this.props.projectService.getTreeIdItemSelected();
+
+    console.log(`[TreeMenu] ✏️ Renombrando elemento: "${oldName}" -> "${newName}" (tipo: ${itemType}, ID: ${itemId})`);
+
     this.props.projectService.renameItemProject(newName);
+
+    console.log(`[TreeMenu] ✅ Elemento renombrado y proyecto guardado`);
   }
 
   getItemProjectName() {
@@ -653,32 +670,53 @@ class TreeMenu extends Component<Props, State> {
   }
 
   addNewProductLine(productLineName: string, type: string, domain: string) {
+    console.log(`[TreeMenu] 🚀 Agregando Product Line: ${productLineName}, tipo: ${type}, dominio: ${domain}`);
+
     let productLine = this.props.projectService.createLPS(
       this.props.projectService.project,
       productLineName,
       type,
       domain
     );
+
+    console.log(`[TreeMenu] ✅ Product Line creada con ID: ${productLine.id}`);
+
     this.props.projectService.raiseEventNewProductLine(productLine);
     this.props.projectService.saveProject();
+
+    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Product Line`);
   }
 
   addNewApplication(applicationName: string) {
+    console.log(`[TreeMenu] 🚀 Agregando Application: ${applicationName}`);
+
     let application = this.props.projectService.createApplication(
       this.props.projectService.project,
       applicationName
     );
+
+    console.log(`[TreeMenu] ✅ Application creada con ID: ${application.id}`);
+
     this.props.projectService.raiseEventApplication(application);
     this.props.projectService.saveProject();
+
+    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Application`);
   }
 
   addNewAdaptation(adaptationName: string) {
+    console.log(`[TreeMenu] 🚀 Agregando Adaptation: ${adaptationName}`);
+
     let adaptation = this.props.projectService.createAdaptation(
       this.props.projectService.project,
       adaptationName
     );
+
+    console.log(`[TreeMenu] ✅ Adaptation creada con ID: ${adaptation.id}`);
+
     this.props.projectService.raiseEventAdaptation(adaptation);
     this.props.projectService.saveProject();
+
+    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Adaptation`);
   }
 
   addNewEModel(language: Language) {
@@ -736,6 +774,8 @@ class TreeMenu extends Component<Props, State> {
 
 
   addNewScopeModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
+    console.log(`[TreeMenu] 🚀 Agregando Scope Model: ${name} (lenguaje: ${languageName})`);
+
     let model =
       this.props.projectService.createScopeModel(
         this.props.projectService.project,
@@ -747,14 +787,41 @@ class TreeMenu extends Component<Props, State> {
         source
       );
 
+    console.log(`[TreeMenu] ✅ Scope Model creado con ID: ${model.id}`);
+
     this.props.projectService.raiseEventScopeModel(
       model
     );
     this.props.projectService.saveProject();
+
+    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Scope Model`);
+
+    // Sincronizar operación colaborativa
+    if (treeCollaborationService.isCollaborationActive()) {
+      console.log(`[TreeMenu] 🔄 Sincronizando ADD Scope Model colaborativamente...`);
+
+      const modelData = {
+        id: model.id,
+        name: model.name,
+        type: 'scope',
+        languageName: languageName,
+        languageId: languageId,
+        description: description,
+        author: author,
+        source: source,
+        productLineId: this.props.projectService.getIdCurrentProductLine()
+      };
+
+      treeCollaborationService.syncAddModelOperation(modelData);
+    } else {
+      console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza Scope Model`);
+    }
   }
 
 
   addNewDomainEModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
+    console.log(`[TreeMenu] 🚀 Agregando Domain Engineering Model: ${name} (lenguaje: ${languageName})`);
+
     let domainEngineeringModel =
       this.props.projectService.createDomainEngineeringModel(
         this.props.projectService.project,
@@ -766,10 +833,35 @@ class TreeMenu extends Component<Props, State> {
         source
       );
 
+    console.log(`[TreeMenu] ✅ Domain Engineering Model creado con ID: ${domainEngineeringModel.id}`);
+
     this.props.projectService.raiseEventDomainEngineeringModel(
       domainEngineeringModel
     );
     this.props.projectService.saveProject();
+
+    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Domain Engineering Model`);
+
+    // Sincronizar operación colaborativa
+    if (treeCollaborationService.isCollaborationActive()) {
+      console.log(`[TreeMenu] 🔄 Sincronizando ADD Domain Engineering Model colaborativamente...`);
+
+      const modelData = {
+        id: domainEngineeringModel.id,
+        name: domainEngineeringModel.name,
+        type: 'domainEngineering',
+        languageName: languageName,
+        languageId: languageId,
+        description: description,
+        author: author,
+        source: source,
+        productLineId: this.props.projectService.getIdCurrentProductLine()
+      };
+
+      treeCollaborationService.syncAddModelOperation(modelData);
+    } else {
+      console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza Domain Engineering Model`);
+    }
   }
 
   addNewApplicationEModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {

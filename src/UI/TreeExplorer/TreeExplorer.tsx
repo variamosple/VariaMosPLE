@@ -17,6 +17,7 @@ import NavBar from "../WorkSpace/navBar";
 import "./TreeExplorer.css";
 import { TreeItem } from "./TreeItem";
 import TreeMenu from "./TreeMenu";
+import treeCollaborationService from "../../DataProvider/Services/collab/treeCollaborationService";
 
 import { highlight, languages } from "prismjs";
 
@@ -31,6 +32,7 @@ interface State {
   arbitraryConstraints: string,
   showScopeModal: boolean,
   currentProductLineIndex: number,
+  currentProjectId: string | null,
 }
 
 class TreeExplorer extends Component<Props, State> {
@@ -41,6 +43,7 @@ class TreeExplorer extends Component<Props, State> {
     arbitraryConstraints: "",
     showScopeModal: false,
     currentProductLineIndex: 0,
+    currentProjectId: null,
   };
 
   constructor(props: any) {
@@ -222,6 +225,26 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   projectService_addListener(e: any) {
+    // Detectar si cambió el proyecto
+    const projectInfo = this.props.projectService.getProjectInformation();
+    const newProjectId = projectInfo?.project?.id || null;
+
+    if (newProjectId !== this.state.currentProjectId) {
+      console.log(`[TreeExplorer] 🔄 Cambio de proyecto detectado: ${this.state.currentProjectId} -> ${newProjectId}`);
+
+      // Actualizar el estado con el nuevo proyecto
+      this.setState({ currentProjectId: newProjectId });
+
+      // Limpiar colaboración anterior
+      treeCollaborationService.cleanup();
+
+      // Reinicializar colaboración para el nuevo proyecto
+      if (newProjectId) {
+        console.log(`[TreeExplorer] 🚀 Reinicializando colaboración para nuevo proyecto...`);
+        this.initializeTreeCollaboration();
+      }
+    }
+
     this.forceUpdate();
     this.props.projectService.saveProject();
   }
@@ -266,6 +289,9 @@ class TreeExplorer extends Component<Props, State> {
     const constraints = getCurrentConstraints(this.props.projectService);
     this.setArbitraryConstraints(constraints);
 
+    // Inicializar colaboración del tree si el proyecto es colaborativo
+    this.initializeTreeCollaboration();
+
     document.addEventListener("click", function(e:any) {
       if(!(''+e.target.className).includes("dropdown")){
         me.setState({
@@ -277,6 +303,229 @@ class TreeExplorer extends Component<Props, State> {
 
   btnSave_onClick(e: any) {
     this.props.projectService.saveProject();
+  }
+
+  // Inicializar colaboración del TreeExplorer
+  async initializeTreeCollaboration() {
+    console.log(`[TreeExplorer] 🔍 Verificando si el proyecto es colaborativo...`);
+
+    const projectInfo = this.props.projectService.getProjectInformation();
+    if (!projectInfo?.is_collaborative) {
+      console.log(`[TreeExplorer] ⚠️ Proyecto no es colaborativo, saltando inicialización del tree`);
+      return;
+    }
+
+    if (!projectInfo.project?.id) {
+      console.log(`[TreeExplorer] ⚠️ Proyecto no tiene ID, saltando inicialización del tree`);
+      return;
+    }
+
+    // Actualizar el estado del proyecto actual si no está establecido
+    if (this.state.currentProjectId !== projectInfo.project.id) {
+      this.setState({ currentProjectId: projectInfo.project.id });
+    }
+
+    console.log(`[TreeExplorer] 🚀 Proyecto colaborativo detectado (ID: ${projectInfo.project.id}), inicializando tree collaboration...`);
+
+    // Esperar un poco para que YJS se inicialice
+    setTimeout(async () => {
+      try {
+        const success = await treeCollaborationService.initializeTreeSync(projectInfo.project.id);
+
+        if (success) {
+          console.log(`[TreeExplorer] ✅ Tree collaboration inicializado exitosamente`);
+
+          // Sincronizar el estado actual del proyecto
+          treeCollaborationService.syncCurrentProjectState(this.props.projectService);
+
+          // Observar cambios en el tree colaborativo
+          const unsubscribe = treeCollaborationService.observeTreeChanges((changes) => {
+            console.log(`[TreeExplorer] 🔔 Cambios recibidos en el tree:`, changes);
+            this.handleCollaborativeTreeChanges(changes);
+          });
+
+          // Guardar la función de cleanup (podrías guardarla en el state si necesitas limpiar después)
+
+        } else {
+          console.log(`[TreeExplorer] ❌ Falló la inicialización del tree collaboration`);
+        }
+      } catch (error) {
+        console.error(`[TreeExplorer] ❌ Error inicializando tree collaboration:`, error);
+      }
+    }, 3000); // Esperar 3 segundos para que YJS se conecte
+  }
+
+  // Manejar cambios colaborativos en el tree
+  handleCollaborativeTreeChanges(changes: any) {
+    if (!changes || !changes.data) {
+      return;
+    }
+
+    // Procesar las operaciones recibidas
+    const operations = changes.data;
+
+    if (typeof operations === 'object') {
+      Object.values(operations).forEach((operation: any) => {
+        if (this.isValidTreeOperation(operation)) {
+          this.processTreeOperation(operation);
+        }
+      });
+    }
+  }
+
+  // Validar si una operación del tree es válida
+  isValidTreeOperation(operation: any): boolean {
+    return operation &&
+           operation.type &&
+           operation.operationId &&
+           operation.timestamp &&
+           operation.data;
+  }
+
+  // Procesar una operación del tree
+  processTreeOperation(operation: any) {
+    console.log(`[TreeExplorer] 🔄 Procesando operación colaborativa:`, operation);
+
+    switch (operation.type) {
+      case 'ADD_MODEL':
+        this.handleRemoteAddModel(operation.data);
+        break;
+      case 'DELETE_MODEL':
+        this.handleRemoteDeleteModel(operation.data);
+        break;
+      default:
+        console.log(`[TreeExplorer] ⚠️ Tipo de operación no reconocido: ${operation.type}`);
+    }
+  }
+
+  // Manejar agregar modelo remoto
+  handleRemoteAddModel(modelData: any) {
+    console.log(`[TreeExplorer] ➕ Modelo agregado remotamente:`, modelData);
+
+    try {
+      // Verificar si el modelo ya existe para evitar duplicados
+      const existingModel = this.findModelById(modelData.id);
+      if (existingModel) {
+        console.log(`[TreeExplorer] ⚠️ Modelo ya existe localmente, saltando creación: ${modelData.name}`);
+        return;
+      }
+
+      // Agregar el modelo al proyecto local según su tipo
+      let newModel = null;
+
+      if (modelData.type === 'scope') {
+        console.log(`[TreeExplorer] 🔧 Agregando Scope Model al proyecto local...`);
+        newModel = this.props.projectService.createScopeModel(
+          this.props.projectService.project,
+          modelData.languageName,
+          modelData.languageId,
+          modelData.name,
+          modelData.description,
+          modelData.author,
+          modelData.source
+        );
+      } else if (modelData.type === 'domainEngineering') {
+        console.log(`[TreeExplorer] 🔧 Agregando Domain Engineering Model al proyecto local...`);
+        newModel = this.props.projectService.createDomainEngineeringModel(
+          this.props.projectService.project,
+          modelData.languageName,
+          modelData.languageId,
+          modelData.name,
+          modelData.description,
+          modelData.author,
+          modelData.source
+        );
+      } else if (modelData.type === 'applicationEngineering') {
+        console.log(`[TreeExplorer] 🔧 Agregando Application Engineering Model al proyecto local...`);
+        newModel = this.props.projectService.createApplicationEngineeringModel(
+          this.props.projectService.project,
+          modelData.languageName,
+          modelData.languageId,
+          modelData.name,
+          modelData.description,
+          modelData.author,
+          modelData.source
+        );
+      }
+
+      // Actualizar el ID del modelo para que coincida con el remoto
+      if (newModel) {
+        newModel.id = modelData.id;
+        console.log(`[TreeExplorer] 🔧 ID del modelo actualizado a: ${modelData.id}`);
+      }
+
+      // Forzar actualización de la UI para mostrar el nuevo modelo
+      this.forceUpdate();
+
+      console.log(`[TreeExplorer] ✅ ${modelData.type} model agregado localmente y UI actualizada: ${modelData.name}`);
+
+    } catch (error) {
+      console.error(`[TreeExplorer] ❌ Error agregando modelo remoto al proyecto local:`, error);
+    }
+  }
+
+  // Buscar un modelo por ID en todo el proyecto
+  findModelById(modelId: string): any {
+    const project = this.props.projectService.project;
+
+    for (const productLine of project.productLines) {
+      // Buscar en modelos de scope
+      if (productLine.scope?.models) {
+        const found = productLine.scope.models.find((model: any) => model.id === modelId);
+        if (found) return found;
+      }
+
+      // Buscar en modelos de domain engineering
+      if (productLine.domainEngineering?.models) {
+        const found = productLine.domainEngineering.models.find((model: any) => model.id === modelId);
+        if (found) return found;
+      }
+
+      // Buscar en modelos de application engineering
+      if (productLine.applicationEngineering?.models) {
+        const found = productLine.applicationEngineering.models.find((model: any) => model.id === modelId);
+        if (found) return found;
+      }
+
+      // Buscar en applications
+      if (productLine.applicationEngineering?.applications) {
+        for (const application of productLine.applicationEngineering.applications) {
+          if (application.models) {
+            const found = application.models.find((model: any) => model.id === modelId);
+            if (found) return found;
+          }
+
+          // Buscar en adaptations
+          if (application.adaptations) {
+            for (const adaptation of application.adaptations) {
+              if (adaptation.models) {
+                const found = adaptation.models.find((model: any) => model.id === modelId);
+                if (found) return found;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // Manejar eliminar modelo remoto
+  handleRemoteDeleteModel(modelData: any) {
+    console.log(`[TreeExplorer] ➖ Modelo eliminado remotamente:`, modelData);
+
+    // Forzar actualización de la UI para ocultar el modelo eliminado
+    this.forceUpdate();
+
+    // Opcional: Mostrar notificación al usuario
+    console.log(`[TreeExplorer] 🔔 ${modelData.type} model eliminado: ${modelData.name}`);
+  }
+
+  componentWillUnmount() {
+    // Limpiar la colaboración del tree al desmontar el componente
+    console.log(`[TreeExplorer] 🧹 Limpiando tree collaboration...`);
+    treeCollaborationService.cleanup();
   }
 
   renderModelFolders(folders:any[]) {
