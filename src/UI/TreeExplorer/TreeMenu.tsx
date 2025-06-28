@@ -304,10 +304,86 @@ class TreeMenu extends Component<Props, State> {
 
     console.log(`[TreeMenu] 🗑️ Eliminando elemento: ${itemName} (tipo: ${itemType}, ID: ${itemId})`);
 
+    // Sincronizar operación colaborativa antes de eliminar (solo para modelos)
+    if (itemType === 'model' && treeCollaborationService.isCollaborationActive()) {
+      console.log(`[TreeMenu] 🔄 Sincronizando DELETE Model colaborativamente...`);
+
+      // Obtener información del modelo antes de eliminarlo
+      const project = this.props.projectService.project;
+      const model = this.props.projectService.findModelById(project, itemId);
+
+      if (model) {
+        const modelData = {
+          id: model.id,
+          name: model.name,
+          type: this.getModelTypeFromContext(),
+          languageName: model.type,
+          languageId: model.languageId,
+          productLineId: this.props.projectService.getIdCurrentProductLine()
+        };
+
+        treeCollaborationService.syncDeleteModelOperation(modelData);
+      } else {
+        console.log(`[TreeMenu] ⚠️ No se encontró el modelo para sincronizar eliminación`);
+      }
+    } else if (itemType === 'model') {
+      console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza eliminación de modelo`);
+    }
+
     this.hideDeleteModal();
     this.props.projectService.deleteItemProject();
 
     console.log(`[TreeMenu] ✅ Elemento eliminado y proyecto guardado`);
+  }
+
+  /**
+   * Determina el tipo de modelo basado en el contexto del tree
+   */
+  getModelTypeFromContext(): string {
+    const treeItemSelected = this.props.projectService.getTreeItemSelected();
+    const modelId = this.props.projectService.getTreeIdItemSelected();
+    const project = this.props.projectService.project;
+
+    // Buscar el modelo en las diferentes secciones del proyecto para determinar su tipo
+    for (const productLine of project.productLines) {
+      // Verificar en scope
+      if (productLine.scope?.models?.some(model => model.id === modelId)) {
+        return 'scope';
+      }
+
+      // Verificar en domain engineering
+      if (productLine.domainEngineering?.models?.some(model => model.id === modelId)) {
+        return 'domainEngineering';
+      }
+
+      // Verificar en application engineering
+      if (productLine.applicationEngineering?.models?.some(model => model.id === modelId)) {
+        return 'applicationEngineering';
+      }
+
+      // Verificar en applications
+      for (const application of productLine.applicationEngineering?.applications || []) {
+        if (application.models?.some(model => model.id === modelId)) {
+          return 'application';
+        }
+
+        // Verificar en adaptations
+        for (const adaptation of application.adaptations || []) {
+          if (adaptation.models?.some(model => model.id === modelId)) {
+            return 'adaptation';
+          }
+        }
+      }
+    }
+
+    // Fallback: usar el contexto del tree si no se encuentra el modelo
+    if (treeItemSelected === 'scope') return 'scope';
+    if (treeItemSelected === 'domainEngineering') return 'domainEngineering';
+    if (treeItemSelected === 'applicationEngineering') return 'applicationEngineering';
+    if (treeItemSelected === 'application') return 'application';
+    if (treeItemSelected === 'adaptation') return 'adaptation';
+
+    return 'unknown';
   }
 
   saveConfiguration() {

@@ -243,6 +243,9 @@ class TreeCollaborationService {
 
     console.log(`[TreeCollaboration] 📤 Sincronizando operación DELETE_MODEL:`, operation);
 
+    // Marcar como operación propia para no procesarla cuando la recibamos
+    this.ownOperations.add(operation.operationId);
+
     // Agregar la operación a YJS
     this.treeState.set(operation.operationId, operation);
   }

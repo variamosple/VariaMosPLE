@@ -515,11 +515,44 @@ class TreeExplorer extends Component<Props, State> {
   handleRemoteDeleteModel(modelData: any) {
     console.log(`[TreeExplorer] ➖ Modelo eliminado remotamente:`, modelData);
 
-    // Forzar actualización de la UI para ocultar el modelo eliminado
+    try {
+      // Buscar el modelo en el proyecto
+      const project = this.props.projectService.project;
+      const model = this.props.projectService.findModelById(project, modelData.id);
+
+      if (model) {
+        console.log(`[TreeExplorer] 🔍 Modelo encontrado para eliminar: ${model.name}`);
+
+        // Usar la lógica existente de eliminación del ProjectService
+        // Guardar el ID seleccionado actual para restaurarlo después
+        const previousSelectedId = this.props.projectService.getTreeIdItemSelected();
+        const previousSelectedType = this.props.projectService.getTreeItemSelected();
+
+        // Temporalmente establecer el modelo como seleccionado usando el método público
+        this.props.projectService.setTreeItemSelected("model");
+        // Acceder directamente a la propiedad privada temporalmente para la eliminación
+        (this.props.projectService as any).treeIdItemSelected = modelData.id;
+
+        // Usar el método público deleteItemProject que maneja todo internamente
+        this.props.projectService.deleteItemProject();
+
+        // Restaurar la selección anterior
+        this.props.projectService.setTreeItemSelected(previousSelectedType);
+        (this.props.projectService as any).treeIdItemSelected = previousSelectedId;
+
+        console.log(`[TreeExplorer] ✅ Modelo eliminado remotamente y proyecto guardado`);
+      } else {
+        console.log(`[TreeExplorer] ⚠️ Modelo no encontrado para eliminar: ${modelData.id}`);
+      }
+    } catch (error) {
+      console.error(`[TreeExplorer] ❌ Error eliminando modelo remoto:`, error);
+    }
+
+    // Forzar actualización de la UI
     this.forceUpdate();
 
-    // Opcional: Mostrar notificación al usuario
-    console.log(`[TreeExplorer] 🔔 ${modelData.type} model eliminado: ${modelData.name}`);
+    // Mostrar notificación al usuario
+    console.log(`[TreeExplorer] 🔔 ${modelData.type} model eliminado remotamente: ${modelData.name}`);
   }
 
   componentWillUnmount() {
