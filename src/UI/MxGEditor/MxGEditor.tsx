@@ -379,29 +379,43 @@ export default class MxGEditor extends Component<Props, State> {
       evt.consume();
       
       if (evt.properties.cells) {
+        console.log("CELLS_MOVED: Procesando", evt.properties.cells.length, "celdas movidas");
+
         // Procesar todas las celdas movidas
         evt.properties.cells.forEach(cell => {
           if (!cell.value.attributes) {
+            console.log("CELLS_MOVED: Celda sin atributos, saltando");
             return;
           }
           let uid = cell.value.getAttribute("uid");
+          console.log("CELLS_MOVED: Procesando celda con uid:", uid);
+
           if (me.currentModel) {
             for (let i = 0; i < me.currentModel.elements.length; i++) {
               const element: any = me.currentModel.elements[i];
               if (element.id === uid) {
+                const oldPos = { x: element.x, y: element.y, width: element.width, height: element.height };
                 element.x = cell.geometry.x;
                 element.y = cell.geometry.y;
                 element.width = cell.geometry.width;
                 element.height = cell.geometry.height;
+                console.log(`CELLS_MOVED: Elemento ${uid} actualizado:`, {
+                  from: oldPos,
+                  to: { x: element.x, y: element.y, width: element.width, height: element.height }
+                });
+                break;
               }
             }
+          } else {
+            console.log("CELLS_MOVED: No hay currentModel disponible");
           }
         });
 
-      console.log(evt)
+        console.log("CELLS_MOVED: Llamando syncModelChanges()");
+        this.syncModelChanges();
 
-      this.syncModelChanges();
-
+      } else {
+        console.log("CELLS_MOVED: No hay celdas en el evento");
       }
     });
 
@@ -3351,7 +3365,21 @@ renderRequirementsReport() {
 
 syncModelChanges() {
   const projectId = this.props.projectService.getProject().id;
+  console.log("syncModelChanges: Iniciando sincronización", {
+    isCollaborative: this.state.isCollaborative,
+    hasProjectId: !!projectId,
+    hasCurrentModel: !!this.currentModel,
+    isRemoteChange: this.isRemoteChange,
+    isInitialLoad: this.isInitialLoad
+  });
+
   if (this.state.isCollaborative && projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
+    console.log("syncModelChanges: Sincronizando cambios del modelo", {
+      modelId: this.currentModel.id,
+      elementsCount: this.currentModel.elements?.length || 0,
+      relationshipsCount: this.currentModel.relationships?.length || 0
+    });
+
     // Usar la nueva función incremental para mejor rendimiento
     this.props.projectService.updateModelState(projectId, this.currentModel.id, (state) => {
       state.set("data", {
@@ -3366,6 +3394,9 @@ syncModelChanges() {
       elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
       relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
     };
+    console.log("syncModelChanges: Snapshot local actualizado");
+  } else {
+    console.log("syncModelChanges: No se sincronizó debido a condiciones no cumplidas");
   }
 }
 

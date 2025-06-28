@@ -30,7 +30,19 @@ export class IncrementalGraphUpdater {
       getFontColorFromShape?: (shape: string) => string | null;
     }
   ): void {
-    if (!this.graph) return;
+    if (!this.graph) {
+      console.log("IncrementalGraphUpdater: No hay grafo disponible");
+      return;
+    }
+
+    console.log("IncrementalGraphUpdater: Aplicando cambios incrementales", {
+      elementsAdded: diff.elementsAdded.length,
+      elementsUpdated: diff.elementsUpdated.length,
+      elementsRemoved: diff.elementsRemoved.length,
+      relationshipsAdded: diff.relationshipsAdded.length,
+      relationshipsUpdated: diff.relationshipsUpdated.length,
+      relationshipsRemoved: diff.relationshipsRemoved.length
+    });
 
     this.graph.getModel().beginUpdate();
     try {
@@ -38,25 +50,47 @@ export class IncrementalGraphUpdater {
       this.updateVerticesMap();
 
       // Procesar elementos removidos primero
-      this.removeElements(diff.elementsRemoved);
+      if (diff.elementsRemoved.length > 0) {
+        console.log("IncrementalGraphUpdater: Removiendo", diff.elementsRemoved.length, "elementos");
+        this.removeElements(diff.elementsRemoved);
+      }
 
       // Procesar relaciones removidas
-      this.removeRelationships(diff.relationshipsRemoved);
+      if (diff.relationshipsRemoved.length > 0) {
+        console.log("IncrementalGraphUpdater: Removiendo", diff.relationshipsRemoved.length, "relaciones");
+        this.removeRelationships(diff.relationshipsRemoved);
+      }
 
       // Procesar elementos añadidos
-      this.addElements(model, diff.elementsAdded, refreshCallbacks);
+      if (diff.elementsAdded.length > 0) {
+        console.log("IncrementalGraphUpdater: Añadiendo", diff.elementsAdded.length, "elementos");
+        this.addElements(model, diff.elementsAdded, refreshCallbacks);
+      }
 
       // Procesar elementos actualizados
-      this.updateElements(model, diff.elementsUpdated, refreshCallbacks);
+      if (diff.elementsUpdated.length > 0) {
+        console.log("IncrementalGraphUpdater: Actualizando", diff.elementsUpdated.length, "elementos");
+        this.updateElements(model, diff.elementsUpdated, refreshCallbacks);
+      }
 
       // Procesar relaciones añadidas
-      this.addRelationships(model, diff.relationshipsAdded, refreshCallbacks);
+      if (diff.relationshipsAdded.length > 0) {
+        console.log("IncrementalGraphUpdater: Añadiendo", diff.relationshipsAdded.length, "relaciones");
+        this.addRelationships(model, diff.relationshipsAdded, refreshCallbacks);
+      }
 
       // Procesar relaciones actualizadas
-      this.updateRelationships(model, diff.relationshipsUpdated, refreshCallbacks);
+      if (diff.relationshipsUpdated.length > 0) {
+        console.log("IncrementalGraphUpdater: Actualizando", diff.relationshipsUpdated.length, "relaciones");
+        this.updateRelationships(model, diff.relationshipsUpdated, refreshCallbacks);
+      }
 
     } finally {
       this.graph.getModel().endUpdate();
+
+      // Forzar refresco visual del grafo
+      this.graph.refresh();
+      console.log("IncrementalGraphUpdater: Cambios aplicados y grafo refrescado");
     }
   }
 
@@ -137,13 +171,27 @@ export class IncrementalGraphUpdater {
     elements.forEach(element => {
       const vertex = this.vertices[element.id];
       if (vertex) {
-        // Actualizar posición
+        console.log(`IncrementalGraphUpdater: Actualizando elemento ${element.id} (${element.name})`);
+
+        // Actualizar posición y tamaño
         const geometry = this.graph.getModel().getGeometry(vertex);
         if (geometry) {
-          geometry.x = element.x;
-          geometry.y = element.y;
-          geometry.width = element.width;
-          geometry.height = element.height;
+          const oldGeometry = { x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height };
+
+          // Crear nueva geometría para forzar la actualización visual
+          const newGeometry = geometry.clone();
+          newGeometry.x = element.x;
+          newGeometry.y = element.y;
+          newGeometry.width = element.width;
+          newGeometry.height = element.height;
+
+          console.log(`IncrementalGraphUpdater: Geometría ${element.id}:`, {
+            from: oldGeometry,
+            to: { x: newGeometry.x, y: newGeometry.y, width: newGeometry.width, height: newGeometry.height }
+          });
+
+          // Aplicar la nueva geometría usando el modelo de mxGraph
+          this.graph.getModel().setGeometry(vertex, newGeometry);
         }
 
         // Actualizar propiedades del nodo
@@ -151,7 +199,7 @@ export class IncrementalGraphUpdater {
         if (node) {
           node.setAttribute("label", element.name);
           node.setAttribute("Name", element.name);
-          
+
           element.properties.forEach(p => {
             node.setAttribute(p.name, p.value);
           });
@@ -166,6 +214,10 @@ export class IncrementalGraphUpdater {
         if (callbacks?.createOverlays) {
           callbacks.createOverlays(element, vertex);
         }
+
+        console.log(`IncrementalGraphUpdater: Elemento ${element.id} actualizado correctamente`);
+      } else {
+        console.log(`IncrementalGraphUpdater: No se encontró vértice para elemento ${element.id}`);
       }
     });
   }
