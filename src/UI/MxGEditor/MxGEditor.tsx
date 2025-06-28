@@ -12,6 +12,12 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
+import {
+  calculateModelDiff,
+  hasMeaningfulChanges,
+  ModelDiff
+} from "../../DataProvider/Services/incrementalSyncService";
+import { IncrementalGraphUpdater } from "./IncrementalGraphUpdater";
 
 import Button from "react-bootstrap/Button";
 import Dropdown from 'react-bootstrap/Dropdown';
@@ -78,6 +84,8 @@ export default class MxGEditor extends Component<Props, State> {
   isInitialLoad: boolean= false;
   currentModelObserver: (() => void) | null = null;
   awarenessUnsubscribe: (() => void) | null = null;
+  incrementalUpdater?: IncrementalGraphUpdater;
+  lastModelSnapshot?: { elements: any[], relationships: any[] };
 
 
   constructor(props: Props) {
@@ -1150,6 +1158,20 @@ export default class MxGEditor extends Component<Props, State> {
           this.isInitialLoad = false;
           console.log("End InitialLoad", this.isInitialLoad);
           graph.getModel().endUpdate();
+
+          // Inicializar el updater incremental después de cargar el modelo
+          if (!this.incrementalUpdater && this.graph) {
+            this.incrementalUpdater = new IncrementalGraphUpdater(this.graph, this.props.projectService);
+          }
+
+          // Actualizar snapshot después de la carga completa
+          if (model) {
+            this.lastModelSnapshot = {
+              elements: JSON.parse(JSON.stringify(model.elements || [])),
+              relationships: JSON.parse(JSON.stringify(model.relationships || []))
+            };
+            console.log("Snapshot inicializado después de loadModel con", model.elements?.length || 0, "elementos");
+          }
         }
       }
     }, 250);
@@ -3330,12 +3352,20 @@ renderRequirementsReport() {
 syncModelChanges() {
   const projectId = this.props.projectService.getProject().id;
   if (this.state.isCollaborative && projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
+    // Usar la nueva función incremental para mejor rendimiento
     this.props.projectService.updateModelState(projectId, this.currentModel.id, (state) => {
       state.set("data", {
         elements: this.currentModel.elements,
         relationships: this.currentModel.relationships,
+        timestamp: Date.now()
       });
     });
+
+    // Actualizar snapshot local
+    this.lastModelSnapshot = {
+      elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
+      relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
+    };
   }
 }
 
@@ -3346,27 +3376,71 @@ observeModel(projectId: string, model: Model) {
   if (this.currentModelObserver) {
     this.currentModelObserver();
     this.currentModelObserver = null;
-    console.log("Removed previous model observer.");  
+    console.log("Removed previous model observer.");
   }
 
   this.unsuscribeModelAwareness(projectId, model.id);
 
-  // Configurar el nuevo observador
+  // Inicializar el updater incremental si no existe
+  if (!this.incrementalUpdater && this.graph) {
+    this.incrementalUpdater = new IncrementalGraphUpdater(this.graph, this.props.projectService);
+  }
+
+  // Configurar el nuevo observador con sincronización incremental
   this.currentModelObserver = this.props.projectService.observeModelState(
     projectId,
     model.id,
-    (state) => {
-      if (state && this.currentModel) {
+    (state, changes) => {
+      if (state && this.currentModel && !this.isInitialLoad) {
         this.isRemoteChange = true;
 
         const modelData = state.get("data");
         if (modelData) {
-          model.elements = modelData.elements || model.elements;
-          model.relationships = modelData.relationships || model.relationships;
+          // Asegurar que tenemos un snapshot válido antes de calcular diferencias
+          if (!this.lastModelSnapshot) {
+            console.log("Inicializando snapshot desde estado actual del modelo");
+            this.lastModelSnapshot = {
+              elements: JSON.parse(JSON.stringify(this.currentModel.elements || [])),
+              relationships: JSON.parse(JSON.stringify(this.currentModel.relationships || []))
+            };
+          }
 
-          this.loadModel(model);
+          // Calcular diferencias usando el snapshot actual
+          const diff = calculateModelDiff(this.currentModel, modelData);
+
+          if (hasMeaningfulChanges(diff)) {
+            console.log("Aplicando cambios incrementales:", diff);
+            console.log("Snapshot previo tenía:", this.lastModelSnapshot.elements.length, "elementos");
+            console.log("Nuevo estado tiene:", modelData.elements?.length || 0, "elementos");
+
+            // Actualizar el modelo actual
+            this.currentModel.elements = modelData.elements || this.currentModel.elements;
+            this.currentModel.relationships = modelData.relationships || this.currentModel.relationships;
+
+            // Aplicar cambios incrementales al grafo
+            if (this.incrementalUpdater) {
+              this.incrementalUpdater.applyIncrementalChanges(this.currentModel, diff, {
+                refreshVertexLabel: this.refreshVertexLabel.bind(this),
+                refreshEdgeLabel: this.refreshEdgeLabel.bind(this),
+                refreshEdgeStyle: this.refreshEdgeStyle.bind(this),
+                createOverlays: this.createOverlays.bind(this),
+                getFontColorFromShape: this.getFontColorFromShape.bind(this)
+              });
+            }
+
+            // Actualizar snapshot después de aplicar cambios
+            this.lastModelSnapshot = {
+              elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
+              relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
+            };
+          } else {
+            console.log("No hay cambios significativos detectados");
+          }
         }
+
         this.isRemoteChange = false;
+      } else if (state && this.currentModel && this.isInitialLoad) {
+        console.log("Cambio detectado durante carga inicial, ignorando para sincronización incremental");
       }
     }
   );

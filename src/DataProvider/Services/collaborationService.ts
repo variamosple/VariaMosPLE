@@ -126,25 +126,32 @@ export const sendProjectUpdate = (projectId: string, update: any): void => {
   }
 };
 
-export const observeModelState = (projectId: string, modelId: string, callback: (state: any) => void): () => void => {
+export const observeModelState = (projectId: string, modelId: string, callback: (state: any, changes?: any) => void): () => void => {
   const projectState = getProjectState(projectId);
   if (projectState) {
     let modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
-    
+
     if (!modelState) {
       modelState = manageModelState(projectId, modelId);
     }
-    
+
     if (modelState) {
       console.log(`[observeModelState] Observando el estado del modelo ${modelId} para el proyecto ${projectId}`);
       console.log(`[observeModelState] modelState inicial:`, modelState);
       callback(modelState);
 
-      const observer = () => {
-      console.log(`[observeModelState] Cambio detectado en el modelo ${modelId}:`, modelState);
-      callback(modelState);
-      };
+      const observer = (event: any) => {
+        console.log(`[observeModelState] Cambio detectado en el modelo ${modelId}:`, modelState);
 
+        // Extraer información de los cambios específicos
+        const changes = {
+          keys: event.keys,
+          target: event.target,
+          transaction: event.transaction
+        };
+
+        callback(modelState, changes);
+      };
 
       modelState.observe(observer);
       return () => {
@@ -191,7 +198,75 @@ export const updateModelState = (projectId: string, modelId: string, updateFn: (
   } else {
     console.log(`No se encontró el estado del proyecto ${projectId}`);
   }
+}
 
+// Nuevas funciones para sincronización incremental
+export const updateModelElementsIncremental = (
+  projectId: string,
+  modelId: string,
+  elements: any[],
+  relationships: any[]
+): void => {
+  const projectState = getProjectState(projectId);
+  if (projectState) {
+    const modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
+    if (modelState) {
+      // Crear mapas de Yjs para elementos y relaciones si no existen
+      let elementsMap = modelState.get('elements') as Y.Map<any>;
+      let relationshipsMap = modelState.get('relationships') as Y.Map<any>;
+
+      if (!elementsMap) {
+        elementsMap = new Y.Map();
+        modelState.set('elements', elementsMap);
+      }
+
+      if (!relationshipsMap) {
+        relationshipsMap = new Y.Map();
+        modelState.set('relationships', relationshipsMap);
+      }
+
+      // Actualizar elementos
+      elements.forEach(element => {
+        elementsMap.set(element.id, element);
+      });
+
+      // Actualizar relaciones
+      relationships.forEach(relationship => {
+        relationshipsMap.set(relationship.id, relationship);
+      });
+
+      // Mantener compatibilidad con el formato anterior
+      modelState.set("data", {
+        elements: elements,
+        relationships: relationships,
+        timestamp: Date.now()
+      });
+    }
+  }
+}
+
+export const removeModelElements = (
+  projectId: string,
+  modelId: string,
+  elementIds: string[],
+  relationshipIds: string[]
+): void => {
+  const projectState = getProjectState(projectId);
+  if (projectState) {
+    const modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
+    if (modelState) {
+      const elementsMap = modelState.get('elements') as Y.Map<any>;
+      const relationshipsMap = modelState.get('relationships') as Y.Map<any>;
+
+      if (elementsMap) {
+        elementIds.forEach(id => elementsMap.delete(id));
+      }
+
+      if (relationshipsMap) {
+        relationshipIds.forEach(id => relationshipsMap.delete(id));
+      }
+    }
+  }
 }
 
   export const getProjectProvider = (projectId: string): WebsocketProvider | null => {

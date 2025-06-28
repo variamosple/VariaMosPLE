@@ -1943,7 +1943,7 @@ export default class ProjectService {
       return handleCollaborativeProject(projectId, projectInfo);
     }
 
-    observeModelState(projectId:string ,modelId: string, callback: (state: any) => void) {
+    observeModelState(projectId:string ,modelId: string, callback: (state: any, changes?: any) => void) {
       return observeModelState(projectId, modelId, callback);
     }
 
