@@ -46,9 +46,7 @@ import { setupProjectSync,
          observeModelState,
          manageModelState,
          updateModelState,
-         getProjectProvider,
-         updateProjectStructure,
-         observeProjectStructure} from "../../DataProvider/Services/collab/collaborationService";
+         getProjectProvider} from "../../DataProvider/Services/collab/collaborationService";
 
 
 export default class ProjectService {
