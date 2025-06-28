@@ -393,6 +393,9 @@ class TreeExplorer extends Component<Props, State> {
       case 'DELETE_MODEL':
         this.handleRemoteDeleteModel(operation.data);
         break;
+      case 'EDIT_ITEM':
+        this.handleRemoteEditItem(operation.data);
+        break;
       default:
         console.log(`[TreeExplorer] ⚠️ Tipo de operación no reconocido: ${operation.type}`);
     }
@@ -553,6 +556,92 @@ class TreeExplorer extends Component<Props, State> {
 
     // Mostrar notificación al usuario
     console.log(`[TreeExplorer] 🔔 ${modelData.type} model eliminado remotamente: ${modelData.name}`);
+  }
+
+  // Manejar editar elemento remoto
+  handleRemoteEditItem(itemData: any) {
+    console.log(`[TreeExplorer] ✏️ Elemento editado remotamente:`, itemData);
+
+    try {
+      const project = this.props.projectService.project;
+
+      if (itemData.itemType === 'model') {
+        const model = this.props.projectService.findModelById(project, itemData.id);
+
+        if (model) {
+          // Verificar si es una operación de renombrado simple o cambio de propiedades múltiples
+          if (itemData.newName && itemData.oldName) {
+            // Operación de renombrado simple (desde menú contextual)
+            console.log(`[TreeExplorer] 🔍 Modelo encontrado para renombrar: ${model.name} -> ${itemData.newName}`);
+
+            const previousSelectedId = this.props.projectService.getTreeIdItemSelected();
+            const previousSelectedType = this.props.projectService.getTreeItemSelected();
+
+            this.props.projectService.setTreeItemSelected("model");
+            (this.props.projectService as any).treeIdItemSelected = itemData.id;
+
+            this.props.projectService.renameItemProject(itemData.newName);
+
+            this.props.projectService.setTreeItemSelected(previousSelectedType);
+            (this.props.projectService as any).treeIdItemSelected = previousSelectedId;
+
+            console.log(`[TreeExplorer] ✅ Modelo renombrado remotamente`);
+          } else if (itemData.newValues && itemData.oldValues) {
+            // Operación de cambio de propiedades múltiples (desde modal de propiedades)
+            console.log(`[TreeExplorer] 🔍 Modelo encontrado para actualizar propiedades:`, itemData.newValues);
+
+            // Aplicar cambios de propiedades, pero omitir el nombre si ya fue sincronizado
+            if (itemData.newValues.name !== undefined && !itemData.nameAlreadySynced) {
+              model.name = itemData.newValues.name;
+            }
+            if (itemData.newValues.description !== undefined) model.description = itemData.newValues.description;
+            if (itemData.newValues.author !== undefined) model.author = itemData.newValues.author;
+            if (itemData.newValues.source !== undefined) model.source = itemData.newValues.source;
+
+            // Guardar proyecto y disparar eventos
+            this.props.projectService.saveProject();
+            this.props.projectService.raiseEventUpdateProject(project, itemData.id);
+
+            console.log(`[TreeExplorer] ✅ Propiedades de modelo actualizadas remotamente`);
+          }
+        } else {
+          console.log(`[TreeExplorer] ⚠️ Modelo no encontrado para editar: ${itemData.id}`);
+        }
+      } else if (itemData.itemType === 'productLine') {
+        // Manejar edición de ProductLine
+        const productLine = project.productLines.find((pl: any) => pl.id === itemData.id);
+
+        if (productLine && itemData.newValues && itemData.oldValues) {
+          console.log(`[TreeExplorer] 🔍 ProductLine encontrada para actualizar propiedades:`, itemData.newValues);
+
+          // Aplicar cambios de propiedades
+          if (itemData.newValues.name !== undefined) productLine.name = itemData.newValues.name;
+          if (itemData.newValues.domain !== undefined) productLine.domain = itemData.newValues.domain;
+          if (itemData.newValues.type !== undefined) productLine.type = itemData.newValues.type;
+
+          // Guardar proyecto y disparar eventos
+          this.props.projectService.saveProject();
+          this.props.projectService.raiseEventUpdateProject(project, null);
+
+          console.log(`[TreeExplorer] ✅ Propiedades de ProductLine actualizadas remotamente`);
+        } else {
+          console.log(`[TreeExplorer] ⚠️ ProductLine no encontrada para editar: ${itemData.id}`);
+        }
+      } else {
+        console.log(`[TreeExplorer] ⚠️ Tipo de elemento no soportado para edición remota: ${itemData.itemType}`);
+      }
+    } catch (error) {
+      console.error(`[TreeExplorer] ❌ Error editando elemento remoto:`, error);
+    }
+
+    // Forzar actualización de la UI
+    this.forceUpdate();
+
+    // Mostrar notificación al usuario
+    const notificationText = itemData.newName
+      ? `${itemData.itemType} renombrado: ${itemData.oldName} -> ${itemData.newName}`
+      : `${itemData.itemType} propiedades actualizadas`;
+    console.log(`[TreeExplorer] 🔔 ${notificationText}`);
   }
 
   componentWillUnmount() {

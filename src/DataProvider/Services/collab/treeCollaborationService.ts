@@ -251,6 +251,31 @@ class TreeCollaborationService {
   }
 
   /**
+   * Sincroniza una operación de editar/renombrar elemento
+   */
+  syncEditItemOperation(itemData: any): void {
+    if (!this.isInitialized || !this.treeState) {
+      console.log(`[TreeCollaboration] ⚠️ Tree collaboration no inicializado, no se puede sincronizar operación`);
+      return;
+    }
+
+    const operation = {
+      type: 'EDIT_ITEM',
+      timestamp: Date.now(),
+      operationId: `edit_item_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      data: itemData
+    };
+
+    console.log(`[TreeCollaboration] 📤 Sincronizando operación EDIT_ITEM:`, operation);
+
+    // Marcar como operación propia para no procesarla cuando la recibamos
+    this.ownOperations.add(operation.operationId);
+
+    // Agregar la operación a YJS
+    this.treeState.set(operation.operationId, operation);
+  }
+
+  /**
    * Log del estado actual para debugging
    */
   logCurrentState(): void {
