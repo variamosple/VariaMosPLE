@@ -36,7 +36,7 @@ import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGro
 import MxProperties from "../MxProperties/MxProperties";
 import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 import KaosGenerator from "../Scope/KaosGenerator";
-import { destroyModelAwareness, getModelAwareness, onModelAwarenessChange, setupModelAwareness, updateUserCursor } from "../../DataProvider/Services/collaborationAwarenessService";
+import { destroyModelAwareness, getModelAwareness, onModelAwarenessChange, setupModelAwareness, updateUserCursor } from "../../DataProvider/Services/collab/collaborationAwarenessService";
 
 interface Props {
   projectService: ProjectService;

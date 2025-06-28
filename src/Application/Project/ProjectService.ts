@@ -37,16 +37,18 @@ import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
 import { setupProjectSync,
-         removeProjectDoc, 
-         handleCollaborativeProject, 
-         observeProjectState, 
-         updateProjectState, 
-         getProjectState, 
+         removeProjectDoc,
+         handleCollaborativeProject,
+         observeProjectState,
+         updateProjectState,
+         getProjectState,
          sendProjectUpdate,
          observeModelState,
          manageModelState,
          updateModelState,
-         getProjectProvider} from "../../DataProvider/Services/collaborationService";
+         getProjectProvider,
+         updateProjectStructure,
+         observeProjectStructure} from "../../DataProvider/Services/collab/collaborationService";
 
 
 export default class ProjectService {

@@ -1,6 +1,6 @@
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
-import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
+import { ProjectInformation } from "../../../Domain/ProductLineEngineering/Entities/ProjectInformation";
 import { SessionUser } from "@variamosple/variamos-components";
 
 interface ProjectCollaborationData {
@@ -124,6 +124,99 @@ export const sendProjectUpdate = (projectId: string, update: any): void => {
       ...update
     });
   }
+};
+
+// ===== NUEVAS FUNCIONES PARA SINCRONIZACIÓN DE ESTRUCTURA =====
+
+/**
+ * Actualiza la estructura completa del proyecto (ProductLines, Applications, etc.)
+ */
+export const updateProjectStructure = (
+  projectId: string,
+  projectData: any,
+  userId?: string
+): void => {
+  console.log(`[updateProjectStructure] 📤 Iniciando actualización de estructura:`, {
+    projectId: projectId,
+    hasProjectData: !!projectData,
+    userId: userId,
+    productLinesCount: projectData?.productLines?.length || 0
+  });
+
+  const state = getProjectState(projectId);
+  if (state) {
+    console.log(`[updateProjectStructure] ✅ Estado YJS encontrado, actualizando...`);
+    const structureData = {
+      data: projectData,
+      lastModified: Date.now(),
+      modifiedBy: userId || 'unknown'
+    };
+
+    state.set("projectStructure", structureData);
+    console.log(`[updateProjectStructure] ✅ Estructura actualizada en YJS:`, structureData);
+  } else {
+    console.log(`[updateProjectStructure] ❌ No se encontró estado YJS para proyecto ${projectId}`);
+  }
+};
+
+/**
+ * Observa cambios en la estructura del proyecto
+ */
+export const observeProjectStructure = (
+  projectId: string,
+  callback: (structureData: any, metadata?: any) => void
+): () => void => {
+  console.log(`[observeProjectStructure] 👀 Configurando observador para proyecto ${projectId}`);
+
+  const state = getProjectState(projectId);
+  if (state) {
+    console.log(`[observeProjectStructure] ✅ Estado YJS encontrado, configurando observador...`);
+
+    // Callback inicial con datos actuales
+    const currentStructure = state.get("projectStructure");
+    console.log(`[observeProjectStructure] Estructura actual:`, {
+      hasCurrentStructure: !!currentStructure,
+      currentStructure: currentStructure
+    });
+
+    if (currentStructure) {
+      console.log(`[observeProjectStructure] 📥 Ejecutando callback inicial`);
+      callback(currentStructure.data, {
+        lastModified: currentStructure.lastModified,
+        modifiedBy: currentStructure.modifiedBy
+      });
+    }
+
+    const observer = () => {
+      console.log(`[observeProjectStructure] 🔔 Cambio detectado en estructura del proyecto ${projectId}`);
+
+      const structureData = state.get("projectStructure");
+      console.log(`[observeProjectStructure] Datos de estructura:`, {
+        hasStructureData: !!structureData,
+        structureData: structureData
+      });
+
+      if (structureData) {
+        console.log(`[observeProjectStructure] 📥 Ejecutando callback con nuevos datos`);
+        callback(structureData.data, {
+          lastModified: structureData.lastModified,
+          modifiedBy: structureData.modifiedBy
+        });
+      }
+    };
+
+    state.observe(observer);
+    console.log(`[observeProjectStructure] ✅ Observador configurado correctamente`);
+
+    return () => {
+      state.unobserve(observer);
+      console.log(`[observeProjectStructure] 🔇 Desobservando estructura del proyecto ${projectId}`);
+    };
+  } else {
+    console.log(`[observeProjectStructure] ❌ No se encontró estado YJS para proyecto ${projectId}`);
+  }
+
+  return () => {};
 };
 
 export const observeModelState = (projectId: string, modelId: string, callback: (state: any, changes?: any) => void): () => void => {

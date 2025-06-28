@@ -2,11 +2,11 @@ import {
   calculateModelDiff, 
   hasMeaningfulChanges,
   applyModelDiffIncremental 
-} from './incrementalSyncService';
-import { Model } from '../../Domain/ProductLineEngineering/Entities/Model';
-import { Element } from '../../Domain/ProductLineEngineering/Entities/Element';
-import { Relationship } from '../../Domain/ProductLineEngineering/Entities/Relationship';
-import { Property } from '../../Domain/ProductLineEngineering/Entities/Property';
+} from '../incrementalSyncService';
+import { Model } from '../../../Domain/ProductLineEngineering/Entities/Model';
+import { Element } from '../../../Domain/ProductLineEngineering/Entities/Element';
+import { Relationship } from '../../../Domain/ProductLineEngineering/Entities/Relationship';
+import { Property } from '../../../Domain/ProductLineEngineering/Entities/Property';
 
 describe('IncrementalSyncService', () => {
   let baseModel: Model;
