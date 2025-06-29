@@ -17,10 +17,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface NewProductManagerProps {
   projectService: ProjectService;
+   onCloseAllModals?: () => void;
   //onClose: () => void;
 }
 
-const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService }) => {
+const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService, onCloseAllModals }) => {
   // Estado para mostrar/ocultar el modal de edición de configuración (nuevo producto)
   const [showProductModal, setShowProductModal] = useState(false);
   const [productName, setProductName] = useState('');
@@ -321,64 +322,117 @@ useEffect(() => {
     setSelectedParentId(parentId);
     setShowAddSubModal(true);
   };
-  const handleUploadProductImage = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (event: ProgressEvent<FileReader>) => {
-      const result = event.target?.result as string;
-      // Extraer solo la parte base64 (sin el prefijo "data:image/jpeg;base64,")
-      const base64Data = result.includes(',') ? result.split(',')[1] : result;
+const handleUploadProductImage = (file: File) => {
+  const MAX_INPUT_SIZE = 1024 * 1024;    // 1 MB
+  const TARGET_SIZE = 500 * 1024;        // 500 KB
 
-      // Generar nuevos UUIDs para el producto y para la propiedad
-      const newProductId = projectService.generateId();
-      const propertyId = projectService.generateId();
+  // Helper: load a File into an HTMLImageElement
+  const loadImage = (blob: Blob): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = URL.createObjectURL(blob);
+    });
 
-      // Crear la propiedad "Product_image"
-      const productImageProp = new Property(
-        "Product_image",   // name
-        base64Data,        // value
-        "Image",           // type
-        undefined,         // options
-        undefined,         // linked_property
-        undefined,         // linked_value
-        false,             // custom
-        true,              // display
-        "",                // comment
-        "",                // possibleValues
-        undefined,         // possibleValuesLinks
-        0,                 // minCardinality
-        0,                 // maxCardinality
-        "",                // constraint
-        base64Data         // defaultValue
-      );
+  // Helper: draw the image at given width/height into a canvas and return dataURL at quality 0.9
+  const drawToCanvas = (img: HTMLImageElement, width: number, height: number) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas;
+  };
 
-      // Crear el nuevo elemento "Product"
-      const newProduct: Element = {
-        id: newProductId,
-        name: "product image",
-        type: "Product",
-        x: 350,
-        y: 200,
-        width: 200,
-        height: 150,
-        parentId: null,
-        properties: [productImageProp],
-        sourceModelElements: [],
-        instanceOfId: null
-      };
+  // Helper: given an Image, repeatedly scale down by half until the dataURL length is below TARGET_SIZE
+  const compressUntilOkay = async (img: HTMLImageElement): Promise<string> => {
+    let width = img.width;
+    let height = img.height;
+    let dataURL: string;
 
-      // Agregar el nuevo producto al currentModel
-      currentModel.elements.push(newProduct);
+    // initial draw at full size & quality=0.9
+    let canvas = drawToCanvas(img, width, height);
+    dataURL = canvas.toDataURL("image/jpeg", 0.9);
+    while (dataURL.length > TARGET_SIZE * 1.37) {
+      // length ≈ base64 string size in bytes × 1.37 → rough conversion
+      width = Math.floor(width * 0.75);
+      height = Math.floor(height * 0.75);
+      canvas = drawToCanvas(img, width, height);
+      // you can also decrease quality if needed. try quality=0.8
+      dataURL = canvas.toDataURL("image/jpeg", 0.8);
+      // loop until small enough
+    }
+    return dataURL.split(",")[1]; // strip "data:image/jpeg;base64," prefix
+  };
 
-      // Disparar eventos para notificar la creación y actualización del elemento
-      projectService.raiseEventCreatedElement(currentModel, newProduct);
-      projectService.raiseEventUpdatedElement(currentModel, newProduct);
+  const processFile = async () => {
+    try {
+      // If already smaller than 1 MB, skip compress step:
+      if (file.size <= MAX_INPUT_SIZE) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          const base64Data = result.includes(",") ? result.split(",")[1] : result;
+          finalizeUpload(base64Data);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // Otherwise, load image, compress, then continue:
+        const img = await loadImage(file);
+        const compressedBase64 = await compressUntilOkay(img);
+        finalizeUpload(compressedBase64);
+      }
+    } catch (err) {
+      alert("Failed to process image. Please try a smaller file.");
+      console.error(err);
+    }
+  };
 
-      // Forzar un re-render (por ejemplo, actualizando un estado)
-      forceUpdateModel();
+  // After obtaining a base64 string < 500 KB, create element + Property
+  const finalizeUpload = (base64Data: string) => {
+    const newProductId = projectService.generateId();
+    const productImageProp = new Property(
+      "Product_image",   // name
+      base64Data,        // value
+      "Image",           // type
+      undefined,
+      undefined,
+      undefined,
+      false,
+      true,
+      "",
+      "",
+      undefined,
+      0,
+      0,
+      "",
+      base64Data
+    );
+
+    const newProduct: Element = {
+      id: newProductId,
+      name: "product image",
+      type: "Product",
+      x: 350,
+      y: 200,
+      width: 200,
+      height: 150,
+      parentId: null,
+      properties: [productImageProp],
+      sourceModelElements: [],
+      instanceOfId: null
     };
 
-    reader.readAsDataURL(file);
+    currentModel.elements.push(newProduct);
+    projectService.raiseEventCreatedElement(currentModel, newProduct);
+    projectService.raiseEventUpdatedElement(currentModel, newProduct);
+    forceUpdateModel();
   };
+
+  processFile();
+};
+
 
 
   const handleDeleteFunctionality = (featureId: string) => {
@@ -568,14 +622,20 @@ useEffect(() => {
       alert("Configuración guardada.");
       // Forzamos la actualización del modelo (por ejemplo, refrescando la lista de configuraciones)
       forceUpdateModel();
+      onCloseAllModals();
     };
 
     const errorCallback = (e: any) => {
       alert("No se pudo guardar la configuración.");
+      onCloseAllModals();
     };
 
     // Llamamos a la función de guardado en el projectService
     projectService.saveConfigurationInServer(configurationInformation, successCallback, errorCallback);
+    setShowProductModal(false)
+    if (onCloseAllModals) {
+      onCloseAllModals();
+    }
     forceUpdateModel();
   };
 
@@ -592,7 +652,10 @@ useEffect(() => {
 
       <Modal
         show={showProductModal}
-        onHide={() => setShowProductModal(false)}
+        onHide={() => {
+          setShowProductModal(false);
+          if (onCloseAllModals) onCloseAllModals();
+        }}
         size="lg"
         centered
       >
@@ -631,7 +694,11 @@ useEffect(() => {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowProductModal(false)}>Cancel</Button>
+          <Button variant="secondary" onClick={() => {
+              setShowProductModal(false);
+              if (onCloseAllModals) onCloseAllModals();
+            }}
+>Cancel</Button>
           <Button variant="primary" onClick={handleSaveProduct}>Save potential product</Button>
         </Modal.Footer>
       </Modal>
