@@ -45,7 +45,7 @@ import {
   setUserMovingCell,
   setUserEditingCell,
   setUserResizingCell,
-  setUserSelectingCell,
+
   setUserIdle
 } from "../../DataProvider/Services/collab/collaborationAwarenessService";
 import CollaborativeIndicators from "./CollaborativeIndicators";
@@ -96,6 +96,8 @@ interface State {
     };
     modelId?: string;
   }>;
+  isMovingCell: boolean;
+  movingCellId: string | null;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -145,7 +147,9 @@ export default class MxGEditor extends Component<Props, State> {
       pendingChanges: false,
       backupObject: null,
       awarnessStates: [],
-      collaborativeUsers: []
+      collaborativeUsers: [],
+      isMovingCell: false,
+      movingCellId: null
 
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
@@ -426,6 +430,9 @@ export default class MxGEditor extends Component<Props, State> {
                 if (projectId && modelId) {
                   setUserIdle(projectId, modelId);
                 }
+
+                // Limpiar estado de movimiento
+                me.setState({ isMovingCell: false, movingCellId: null });
                 break;
               }
             }
@@ -515,20 +522,7 @@ export default class MxGEditor extends Component<Props, State> {
   );
 
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
-      if (evt.properties.cells && evt.properties.cells.length > 0) {
-        evt.properties.cells.forEach(cell => {
-          if (cell.value && cell.value.attributes) {
-            const uid = cell.value.getAttribute("uid");
-
-            // Awareness colaborativo: Marcar que el usuario seleccionó una celda
-            const projectId = me.props.projectService.getProject().id;
-            const modelId = me.currentModel?.id;
-            if (projectId && modelId) {
-              setUserSelectingCell(projectId, modelId, uid);
-            }
-          }
-        });
-      }
+      // Solo consumir el evento, sin awareness colaborativo para selección simple
       evt.consume();
     });
 
@@ -792,45 +786,32 @@ export default class MxGEditor extends Component<Props, State> {
         if (cell && cell.value && cell.value.attributes) {
           const uid = cell.value.getAttribute("uid");
 
-          // Awareness colaborativo: Marcar que el usuario comenzó a interactuar con una celda
-          const projectId = me.props.projectService.getProject().id;
-          const modelId = me.currentModel?.id;
-          if (projectId && modelId) {
-            setUserSelectingCell(projectId, modelId, uid);
-          }
+          // Marcar que potencialmente vamos a mover esta celda
+          me.setState({ movingCellId: uid });
         }
       },
       mouseMove: function(sender, me_evt) {
-        // Solo si hay una celda siendo arrastrada
-        if (graph.isMouseDown && me_evt.getCell()) {
-          const cell = me_evt.getCell();
-          if (cell && cell.value && cell.value.attributes) {
-            const uid = cell.value.getAttribute("uid");
+        // Solo si hay una celda siendo arrastrada y tenemos una celda marcada para mover
+        if (graph.isMouseDown && me.state.movingCellId) {
+          // Si no hemos marcado que estamos moviendo, hacerlo ahora
+          if (!me.state.isMovingCell) {
+            me.setState({ isMovingCell: true });
+          }
 
-            // Awareness colaborativo: Marcar que el usuario está moviendo una celda
-            const projectId = me.props.projectService.getProject().id;
-            const modelId = me.currentModel?.id;
-            if (projectId && modelId) {
-              setUserMovingCell(projectId, modelId, uid, {
-                x: me_evt.getGraphX(),
-                y: me_evt.getGraphY()
-              });
-            }
+          // Awareness colaborativo: Marcar que el usuario está moviendo la celda original
+          const projectId = me.props.projectService.getProject().id;
+          const modelId = me.currentModel?.id;
+          if (projectId && modelId) {
+            setUserMovingCell(projectId, modelId, me.state.movingCellId, {
+              x: me_evt.getGraphX(),
+              y: me_evt.getGraphY()
+            });
           }
         }
       },
       mouseUp: function(sender, me_evt) {
-        const cell = me_evt.getCell();
-        if (cell && cell.value && cell.value.attributes) {
-          const uid = cell.value.getAttribute("uid");
-
-          // Awareness colaborativo: Marcar que el usuario terminó la interacción
-          const projectId = me.props.projectService.getProject().id;
-          const modelId = me.currentModel?.id;
-          if (projectId && modelId) {
-            setUserIdle(projectId, modelId);
-          }
-        }
+        // Limpiar el ID de la celda que estábamos preparando para mover
+        me.setState({ movingCellId: null });
       }
     });
 
@@ -4030,7 +4011,17 @@ observeModel(projectId: string, model: Model) {
 
         <div ref={this.graphContainerRef} className="GraphContainer" style={{ position: "relative" }} onMouseMove={this.handleMouseMove}>
 
-        {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => user.user && user.user.cursor && user.user.modelId === this.currentModel?.id)
+        {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => {
+          // Filtrar usuarios que tengan cursor, estén en el modelo actual y no sean el usuario actual
+          if (!user.user || !user.user.cursor || user.user.modelId !== this.currentModel?.id) {
+            return false;
+          }
+
+          // Excluir el usuario actual por nombre
+          const currentUserId = this.props.projectService.getUser();
+          const currentUserName = this.state.collaborators.find(c => c.id === currentUserId)?.name;
+          return user.user.name !== currentUserName;
+        })
       .map((user: any, idx: number) => (
         <div
           key={idx}
