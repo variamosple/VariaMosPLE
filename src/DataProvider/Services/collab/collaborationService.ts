@@ -222,7 +222,13 @@ export const observeModelState = (projectId: string, modelId: string, callback: 
     if (modelState) {
       console.log(`[observeModelState] Observando el estado del modelo ${modelId} para el proyecto ${projectId}`);
       console.log(`[observeModelState] modelState inicial:`, modelState);
-      callback(modelState);
+
+      // Solo llamar al callback inicial si hay datos en el estado
+      const initialData = modelState.get("data");
+      if (initialData) {
+        console.log(`[observeModelState] Enviando estado inicial del modelo ${modelId}`);
+        callback(modelState);
+      }
 
       const observer = (event: any) => {
         console.log(`[observeModelState] Cambio detectado en el modelo ${modelId}:`, modelState);

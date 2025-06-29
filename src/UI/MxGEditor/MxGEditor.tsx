@@ -110,8 +110,8 @@ export default class MxGEditor extends Component<Props, State> {
   isInitialLoad: boolean= false;
   currentModelObserver: (() => void) | null = null;
   awarenessUnsubscribe: (() => void) | null = null;
-  incrementalUpdater?: IncrementalGraphUpdater;
-  lastModelSnapshot?: { elements: any[], relationships: any[] };
+  incrementalUpdaters: Map<string, IncrementalGraphUpdater> = new Map();
+  modelSnapshots: Map<string, { elements: any[], relationships: any[] }> = new Map();
 
 
   constructor(props: Props) {
@@ -184,6 +184,8 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   projectService_addSelectedModelListener(e: any) {
+    console.log(`[projectService_addSelectedModelListener] Cambiando a modelo ${e.model?.id} (${e.model?.type})`);
+
     this.loadModel(e.model);
     console.log("Model Type:", e.model?.type);
     // Verificar si el modelo es "Bill of Materials"
@@ -195,8 +197,11 @@ export default class MxGEditor extends Component<Props, State> {
     this.forceUpdate();
 
     const projectId = this.props.projectService.getProject().id;
-    if (projectId) {
-    this.observeModel(projectId, e.model);
+    if (projectId && e.model) {
+      // Agregar un pequeño delay para asegurar que el modelo se haya cargado completamente
+      setTimeout(() => {
+        this.observeModel(projectId, e.model);
+      }, 300);
     }
   }
 
@@ -1153,6 +1158,12 @@ export default class MxGEditor extends Component<Props, State> {
             for (let i = 0; i < orden.length; i++) {
               let element: any = this.props.projectService.findModelElementById(model, orden[i]);
 
+              // Validar que el tipo de elemento existe en la definición del lenguaje
+              if (!languageDefinition.concreteSyntax.elements[element.type]) {
+                console.warn(`loadModel: Tipo de elemento '${element.type}' no encontrado en la definición del lenguaje '${languageDefinition.name}'. Saltando elemento ${element.id}.`);
+                continue;
+              }
+
               let shape = null;
               if (languageDefinition.concreteSyntax.elements[element.type].styles) {
                 let styles = languageDefinition.concreteSyntax.elements[element.type].styles;
@@ -1257,18 +1268,20 @@ export default class MxGEditor extends Component<Props, State> {
           console.log("End InitialLoad", this.isInitialLoad);
           graph.getModel().endUpdate();
 
-          // Inicializar el updater incremental después de cargar el modelo
-          if (!this.incrementalUpdater && this.graph) {
-            this.incrementalUpdater = new IncrementalGraphUpdater(this.graph, this.props.projectService);
-          }
+          // Inicializar el updater incremental específico para este modelo
+          if (model && this.graph) {
+            const modelKey = `${model.type}_${model.id}`;
+            if (!this.incrementalUpdaters.has(modelKey)) {
+              this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
+              console.log(`Creado nuevo IncrementalGraphUpdater para modelo ${modelKey}`);
+            }
 
-          // Actualizar snapshot después de la carga completa
-          if (model) {
-            this.lastModelSnapshot = {
+            // Actualizar snapshot específico para este modelo
+            this.modelSnapshots.set(modelKey, {
               elements: JSON.parse(JSON.stringify(model.elements || [])),
               relationships: JSON.parse(JSON.stringify(model.relationships || []))
-            };
-            console.log("Snapshot inicializado después de loadModel con", model.elements?.length || 0, "elementos");
+            });
+            console.log(`Snapshot inicializado para modelo ${modelKey} con`, model.elements?.length || 0, "elementos");
           }
         }
       }
@@ -3502,11 +3515,14 @@ syncModelChanges() {
       });
     });
 
-    // Actualizar snapshot local
-    this.lastModelSnapshot = {
-      elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
-      relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
-    };
+    // Actualizar snapshot local específico para este modelo
+    if (this.currentModel) {
+      const modelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+      this.modelSnapshots.set(modelKey, {
+        elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
+        relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
+      });
+    }
     console.log("syncModelChanges: Snapshot local actualizado");
   } else {
     console.log("syncModelChanges: No se sincronizó debido a condiciones no cumplidas");
@@ -3516,6 +3532,8 @@ syncModelChanges() {
 // Conjunto
 
 observeModel(projectId: string, model: Model) {
+  console.log(`[observeModel] Iniciando observación para modelo ${model.id} (${model.type})`);
+
   // Eliminar el observador anterior si existe
   if (this.currentModelObserver) {
     this.currentModelObserver();
@@ -3525,45 +3543,71 @@ observeModel(projectId: string, model: Model) {
 
   this.unsuscribeModelAwareness(projectId, model.id);
 
-  // Inicializar el updater incremental si no existe
-  if (!this.incrementalUpdater && this.graph) {
-    this.incrementalUpdater = new IncrementalGraphUpdater(this.graph, this.props.projectService);
+  // Limpiar recursos de modelos anteriores
+  this.cleanupUnusedModelResources();
+
+  // Obtener o crear el updater específico para este modelo
+  const modelKey = `${model.type}_${model.id}`;
+  if (!this.incrementalUpdaters.has(modelKey) && this.graph) {
+    this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
+    console.log(`Creado nuevo IncrementalGraphUpdater para modelo ${modelKey} en observeModel`);
   }
+
+  // Asegurar que el modelo actual esté actualizado
+  this.currentModel = model;
 
   // Configurar el nuevo observador con sincronización incremental
   this.currentModelObserver = this.props.projectService.observeModelState(
     projectId,
     model.id,
     (state, changes) => {
-      if (state && this.currentModel && !this.isInitialLoad) {
+      console.log(`[observeModel] Cambio detectado en modelo ${model.id}`, {
+        hasState: !!state,
+        hasCurrentModel: !!this.currentModel,
+        isInitialLoad: this.isInitialLoad,
+        currentModelId: this.currentModel?.id,
+        targetModelId: model.id
+      });
+
+      // Solo procesar si el modelo actual coincide con el modelo observado
+      if (state && this.currentModel && this.currentModel.id === model.id && !this.isInitialLoad) {
         this.isRemoteChange = true;
 
         const modelData = state.get("data");
-        if (modelData) {
+        if (modelData && this.currentModel) {
+          console.log(`[observeModel] Procesando datos del modelo ${model.id}:`, {
+            elementsCount: modelData.elements?.length || 0,
+            relationshipsCount: modelData.relationships?.length || 0,
+            timestamp: modelData.timestamp
+          });
+          const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+
           // Asegurar que tenemos un snapshot válido antes de calcular diferencias
-          if (!this.lastModelSnapshot) {
-            console.log("Inicializando snapshot desde estado actual del modelo");
-            this.lastModelSnapshot = {
+          if (!this.modelSnapshots.has(currentModelKey)) {
+            console.log(`Inicializando snapshot para modelo ${currentModelKey}`);
+            this.modelSnapshots.set(currentModelKey, {
               elements: JSON.parse(JSON.stringify(this.currentModel.elements || [])),
               relationships: JSON.parse(JSON.stringify(this.currentModel.relationships || []))
-            };
+            });
           }
 
-          // Calcular diferencias usando el snapshot actual
+          // Calcular diferencias usando el snapshot específico del modelo
           const diff = calculateModelDiff(this.currentModel, modelData);
 
           if (hasMeaningfulChanges(diff)) {
             console.log("Aplicando cambios incrementales:", diff);
-            console.log("Snapshot previo tenía:", this.lastModelSnapshot.elements.length, "elementos");
+            const currentSnapshot = this.modelSnapshots.get(currentModelKey);
+            console.log("Snapshot previo tenía:", currentSnapshot?.elements.length || 0, "elementos");
             console.log("Nuevo estado tiene:", modelData.elements?.length || 0, "elementos");
 
             // Actualizar el modelo actual
             this.currentModel.elements = modelData.elements || this.currentModel.elements;
             this.currentModel.relationships = modelData.relationships || this.currentModel.relationships;
 
-            // Aplicar cambios incrementales al grafo
-            if (this.incrementalUpdater) {
-              this.incrementalUpdater.applyIncrementalChanges(this.currentModel, diff, {
+            // Aplicar cambios incrementales al grafo usando el updater específico
+            const updater = this.incrementalUpdaters.get(currentModelKey);
+            if (updater) {
+              updater.applyIncrementalChanges(this.currentModel, diff, {
                 refreshVertexLabel: this.refreshVertexLabel.bind(this),
                 refreshEdgeLabel: this.refreshEdgeLabel.bind(this),
                 refreshEdgeStyle: this.refreshEdgeStyle.bind(this),
@@ -3572,11 +3616,11 @@ observeModel(projectId: string, model: Model) {
               });
             }
 
-            // Actualizar snapshot después de aplicar cambios
-            this.lastModelSnapshot = {
+            // Actualizar snapshot específico después de aplicar cambios
+            this.modelSnapshots.set(currentModelKey, {
               elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
               relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
-            };
+            });
           } else {
             console.log("No hay cambios significativos detectados");
           }
@@ -3592,8 +3636,36 @@ observeModel(projectId: string, model: Model) {
   this.initNewModelAwarness(projectId, model.id);
 }
 
+/**
+ * Limpia los updaters y snapshots de modelos que ya no se están usando
+ */
+private cleanupUnusedModelResources() {
+  // Mantener solo los recursos del modelo actual
+  if (this.currentModel) {
+    const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+
+    // Limpiar updaters no utilizados
+    for (const key of this.incrementalUpdaters.keys()) {
+      if (key !== currentModelKey) {
+        console.log(`Limpiando IncrementalGraphUpdater no utilizado: ${key}`);
+        this.incrementalUpdaters.delete(key);
+      }
+    }
+
+    // Limpiar snapshots no utilizados
+    for (const key of this.modelSnapshots.keys()) {
+      if (key !== currentModelKey) {
+        console.log(`Limpiando snapshot no utilizado: ${key}`);
+        this.modelSnapshots.delete(key);
+      }
+    }
+  }
+}
+
 
   unsuscribeModelAwareness(projectId : string, modelId: string) {
+    console.log(`[unsuscribeModelAwareness] Limpiando awareness para modelo ${modelId}`);
+
     if (this.awarenessUnsubscribe){
       this.awarenessUnsubscribe();
       this.awarenessUnsubscribe = null;
@@ -3608,8 +3680,13 @@ observeModel(projectId: string, model: Model) {
 
 
   initNewModelAwarness(projectId: string, modelId: string) {
+    console.log(`[initNewModelAwarness] Configurando awareness para modelo ${modelId}`);
+
     const provider = this.props.projectService.getProjectProvider(projectId);
     const user = this.state.collaborators.find((collab) => collab.id === this.props.projectService.getUser());
+
+    console.log(`[initNewModelAwarness] Provider:`, !!provider, `User:`, !!user);
+
     if (provider && user) {
       setupModelAwareness(projectId, modelId, provider, {
         name: user.name,
@@ -3617,6 +3694,7 @@ observeModel(projectId: string, model: Model) {
       });
 
       this.awarenessUnsubscribe = onModelAwarenessChange(projectId, modelId , (state) => {
+        console.log(`[initNewModelAwarness] Awareness change detected for model ${modelId}:`, state.size);
         const awarenessStates = Array.from(state.values());
 
         // Procesar usuarios colaborativos para los indicadores visuales

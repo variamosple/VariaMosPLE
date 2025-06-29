@@ -132,6 +132,7 @@ class navBar extends Component<Props, State> {
           <a title="Settings" onClick={() =>
             document.getElementById("projectManagement").click()
           }><span><img src="/images/menuIcons/settings.png"></img></span></a>{" "}
+
           <button
             type="button"
             data-bs-toggle="modal"

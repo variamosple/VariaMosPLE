@@ -14,6 +14,7 @@ import {
 } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
 import QueryModal from "../Queries/queryModal";
 import NavBar from "../WorkSpace/navBar";
+import { CollaborationPanel } from "../Collaboration";
 import "./TreeExplorer.css";
 import { TreeItem } from "./TreeItem";
 import TreeMenu from "./TreeMenu";
@@ -1179,6 +1180,10 @@ class TreeExplorer extends Component<Props, State> {
             </Tab.Content>
           </Tab.Container>
         </div>
+
+        {/* Panel de colaboración - al final del TreeExplorer */}
+        <CollaborationPanel projectService={this.props.projectService} />
+
         {/* {this.state.showScopeModal && (
           <ScopeModal
           show={this.state.showScopeModal}

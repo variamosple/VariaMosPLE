@@ -322,9 +322,15 @@ export class IncrementalGraphUpdater {
    * Crea un vértice individual
    */
   private createVertex(element: Element, languageDefinition: any, callbacks?: any): void {
+    // Validar que el tipo de elemento existe en la definición del lenguaje
+    if (!languageDefinition.concreteSyntax.elements[element.type]) {
+      console.warn(`IncrementalGraphUpdater: Tipo de elemento '${element.type}' no encontrado en la definición del lenguaje '${languageDefinition.name}'. Saltando elemento ${element.id}.`);
+      return;
+    }
+
     // Lógica similar a la del loadModel original pero para un solo elemento
     let shape = null;
-    
+
     if (languageDefinition.concreteSyntax.elements[element.type].styles) {
       const styles = languageDefinition.concreteSyntax.elements[element.type].styles;
       for (let s = 0; s < styles.length; s++) {

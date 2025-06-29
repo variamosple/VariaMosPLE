@@ -1,0 +1,195 @@
+.project-awareness {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 8px;
+  margin: 8px 12px;
+  max-width: none;
+  min-width: 150px;
+}
+
+.project-awareness.compact {
+  max-width: none;
+  min-width: 180px;
+}
+
+.awareness-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.connection-status {
+  font-size: 10px;
+}
+
+.connection-status.connected {
+  color: #28a745;
+}
+
+.connection-status.disconnected {
+  color: #dc3545;
+}
+
+.awareness-title {
+  flex: 1;
+}
+
+.connected-users {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.connected-users.horizontal {
+  flex-direction: row;
+  gap: 6px;
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: wrap;
+}
+
+.connected-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  background-color: white;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.connected-user.in-model {
+  border-left: 3px solid #28a745;
+  background-color: #f8fff9;
+}
+
+.connected-user.in-project {
+  border-left: 3px solid #6c757d;
+  background-color: #f8f9fa;
+}
+
+.connected-users.horizontal .connected-user {
+  gap: 0;
+  padding: 2px;
+  min-width: auto;
+  justify-content: center;
+}
+
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.model-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: 8px;
+  background: white;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #495057;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-activity {
+  font-size: 9px;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-badge {
+  font-size: 8px;
+  background-color: #28a745;
+  color: white;
+  padding: 1px 4px;
+  border-radius: 8px;
+  margin-left: 4px;
+  font-weight: bold;
+}
+
+.no-users,
+.no-connection {
+  text-align: center;
+  padding: 8px;
+  font-size: 11px;
+}
+
+.no-users .text-muted,
+.no-connection .text-muted {
+  color: #6c757d !important;
+}
+
+/* Scrollbar personalizado para la lista de usuarios */
+.connected-users::-webkit-scrollbar {
+  width: 4px;
+}
+
+.connected-users::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.connected-users::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.connected-users::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .project-awareness {
+    max-width: 200px;
+    padding: 6px;
+  }
+  
+  .awareness-header {
+    font-size: 11px;
+  }
+  
+  .user-name {
+    font-size: 10px;
+  }
+  
+  .user-activity {
+    font-size: 8px;
+  }
+}
