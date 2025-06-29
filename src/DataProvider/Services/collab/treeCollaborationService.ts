@@ -12,6 +12,7 @@ class TreeCollaborationService {
   private ownOperations: Set<string> = new Set(); // Para trackear operaciones propias
   private lastProcessedTimestamp: number = 0; // Para procesar solo cambios nuevos
   private readonly MAX_OPERATIONS_HISTORY = 50; // Límite de operaciones históricas
+  private cleanupTimer: NodeJS.Timeout | null = null; // Timer para limpieza automática
 
   /**
    * Inicializa la sincronización del tree para un proyecto colaborativo
@@ -60,6 +61,9 @@ class TreeCollaborationService {
 
       this.treeState = treeState;
       this.isInitialized = true;
+
+      // Iniciar limpieza automática
+      this.scheduleAutoCleanup();
 
       // Log del estado actual
       console.log(`[TreeCollaboration] 📊 Estado actual del tree:`, this.treeState.toJSON());
@@ -244,10 +248,37 @@ class TreeCollaborationService {
   }
 
   /**
+   * Programa limpieza automática del tree si no hay actividad
+   */
+  private scheduleAutoCleanup(): void {
+    // Cancelar timer anterior si existe
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+    }
+
+    // Programar limpieza en 10 minutos
+    this.cleanupTimer = setTimeout(() => {
+      console.log(`[TreeCollaboration] 🧹 Ejecutando limpieza automática por inactividad`);
+      this.cleanupOldOperations();
+
+      // Reprogramar para la próxima limpieza
+      this.scheduleAutoCleanup();
+    }, 10 * 60 * 1000); // 10 minutos
+
+    console.log(`[TreeCollaboration] ⏰ Limpieza automática programada en 10 minutos`);
+  }
+
+  /**
    * Limpia la colaboración
    */
   cleanup(): void {
     console.log(`[TreeCollaboration] 🧹 Limpiando colaboración del tree`);
+
+    // Cancelar timer de limpieza automática
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
 
     this.projectId = null;
     this.treeState = null;

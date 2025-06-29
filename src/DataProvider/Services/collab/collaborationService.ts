@@ -6,16 +6,88 @@ import { SessionUser } from "@variamosple/variamos-components";
 interface ProjectCollaborationData {
   doc: Y.Doc;
   provider: WebsocketProvider;
+  lastActivity: number;
+  userCount: number;
+  cleanupTimer?: NodeJS.Timeout;
 }
 
 const projectCollaborationData = new Map<string, ProjectCollaborationData>();
 let currentActiveProjectId: string | null = null;
+
+// Configuración simple para limpieza automática
+const CLEANUP_TIMEOUT = 10 * 60 * 1000; // 10 minutos sin usuarios
+
+// Función para limpiar un proyecto automáticamente
+const cleanupProject = (projectId: string) => {
+  const data = projectCollaborationData.get(projectId);
+  if (data) {
+    console.log(`[AutoCleanup] 🧹 Limpiando proyecto ${projectId} por inactividad`);
+
+    // Limpiar timer si existe
+    if (data.cleanupTimer) {
+      clearTimeout(data.cleanupTimer);
+    }
+
+    // Desconectar y limpiar
+    data.provider.disconnect();
+    data.doc.destroy();
+    projectCollaborationData.delete(projectId);
+
+    if (currentActiveProjectId === projectId) {
+      currentActiveProjectId = null;
+    }
+  }
+};
+
+// Función para programar limpieza automática
+const scheduleCleanup = (projectId: string) => {
+  const data = projectCollaborationData.get(projectId);
+  if (data) {
+    // Cancelar timer anterior si existe
+    if (data.cleanupTimer) {
+      clearTimeout(data.cleanupTimer);
+    }
+
+    // Programar nueva limpieza
+    data.cleanupTimer = setTimeout(() => {
+      const currentData = projectCollaborationData.get(projectId);
+      if (currentData && currentData.userCount === 0) {
+        cleanupProject(projectId);
+      }
+    }, CLEANUP_TIMEOUT);
+
+    console.log(`[AutoCleanup] ⏰ Limpieza programada para proyecto ${projectId} en ${CLEANUP_TIMEOUT / 60000} minutos`);
+  }
+};
+
+// Función para actualizar conteo de usuarios
+const updateUserCount = (projectId: string, count: number) => {
+  const data = projectCollaborationData.get(projectId);
+  if (data) {
+    data.userCount = count;
+    data.lastActivity = Date.now();
+
+    if (count === 0) {
+      console.log(`[AutoCleanup] 👥 No hay usuarios en proyecto ${projectId}, programando limpieza...`);
+      scheduleCleanup(projectId);
+    } else {
+      console.log(`[AutoCleanup] 👥 ${count} usuarios en proyecto ${projectId}, cancelando limpieza`);
+      if (data.cleanupTimer) {
+        clearTimeout(data.cleanupTimer);
+        data.cleanupTimer = undefined;
+      }
+    }
+  }
+};
 
 // Función para desconectar el proyecto actual si existe
 const disconnectCurrentProject = () => {
   if (currentActiveProjectId) {
     const currentData = projectCollaborationData.get(currentActiveProjectId);
     if (currentData) {
+      if (currentData.cleanupTimer) {
+        clearTimeout(currentData.cleanupTimer);
+      }
       currentData.provider.disconnect();
       currentData.doc.destroy();
       projectCollaborationData.delete(currentActiveProjectId);
@@ -52,15 +124,27 @@ export const setupProjectSync = async (
 
     wsProvider.on("sync", () => {
       console.log(`Un nuevo usuario se ha conectado al proyecto ${projectId}.`);
+      // Actualizar conteo de usuarios cuando alguien se conecta
+      setTimeout(() => {
+        const userCount = wsProvider.awareness?.getStates().size || 0;
+        updateUserCount(projectId, userCount);
+      }, 1000);
     });
 
     wsProvider.on("connection-close", () => {
       console.log(`Un usuario se ha desconectado del proyecto ${projectId}.`);
+      // Actualizar conteo de usuarios cuando alguien se desconecta
+      setTimeout(() => {
+        const userCount = wsProvider.awareness?.getStates().size || 0;
+        updateUserCount(projectId, userCount);
+      }, 1000);
     });
 
     collaborationData = {
       doc: projectDoc,
-      provider: wsProvider
+      provider: wsProvider,
+      lastActivity: Date.now(),
+      userCount: 0
     };
 
     projectCollaborationData.set(projectId, collaborationData);
@@ -269,11 +353,59 @@ export const removeModelElements = (
   }
 }
 
-  export const getProjectProvider = (projectId: string): WebsocketProvider | null => {
+export const getProjectProvider = (projectId: string): WebsocketProvider | null => {
   const collaborationData = projectCollaborationData.get(projectId);
   if (collaborationData) {
     return collaborationData.provider;
   }
   console.log(`No se encontró el WebSocketProvider para el proyecto ${projectId}`);
   return null;
-}
+};
+
+// Función para actualizar manualmente el conteo de usuarios (exportada para uso externo)
+export const updateProjectUserCount = (projectId: string, count: number): void => {
+  updateUserCount(projectId, count);
+};
+
+// Función para forzar limpieza manual de un proyecto
+export const forceCleanupProject = (projectId: string): void => {
+  console.log(`[AutoCleanup] 🧹 Forzando limpieza manual del proyecto ${projectId}`);
+  cleanupProject(projectId);
+};
+
+// Función para obtener estadísticas simples de los proyectos
+export const getProjectStats = () => {
+  const stats = {
+    totalProjects: projectCollaborationData.size,
+    projects: [] as any[]
+  };
+
+  projectCollaborationData.forEach((data, projectId) => {
+    stats.projects.push({
+      projectId,
+      userCount: data.userCount,
+      lastActivity: new Date(data.lastActivity).toISOString(),
+      hasCleanupScheduled: !!data.cleanupTimer
+    });
+  });
+
+  return stats;
+};
+
+// Función para limpiar todos los proyectos (para usar al cerrar la aplicación)
+export const cleanupAllProjects = (): void => {
+  console.log(`[AutoCleanup] 🧹 Limpiando todos los proyectos...`);
+
+  projectCollaborationData.forEach((data) => {
+    if (data.cleanupTimer) {
+      clearTimeout(data.cleanupTimer);
+    }
+    data.provider.disconnect();
+    data.doc.destroy();
+  });
+
+  projectCollaborationData.clear();
+  currentActiveProjectId = null;
+
+  console.log(`[AutoCleanup] ✅ Todos los proyectos limpiados`);
+};

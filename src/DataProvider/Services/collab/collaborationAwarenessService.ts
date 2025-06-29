@@ -21,6 +21,28 @@ interface UserAction {
 }
 
 const awarenessMap = new Map<string, Awareness>();
+const awarenessTimers = new Map<string, NodeJS.Timeout>();
+
+// Configuración simple para limpieza de awareness
+const AWARENESS_CLEANUP_TIMEOUT = 5 * 60 * 1000; // 5 minutos sin actividad
+
+// Función para programar limpieza automática de awareness
+const scheduleAwarenessCleanup = (key: string) => {
+  // Cancelar timer anterior si existe
+  const existingTimer = awarenessTimers.get(key);
+  if (existingTimer) {
+    clearTimeout(existingTimer);
+  }
+
+  // Programar nueva limpieza
+  const timer = setTimeout(() => {
+    console.log(`[AwarenessCleanup] 🧹 Limpiando awareness inactivo: ${key}`);
+    awarenessMap.delete(key);
+    awarenessTimers.delete(key);
+  }, AWARENESS_CLEANUP_TIMEOUT);
+
+  awarenessTimers.set(key, timer);
+};
 
 export const setupModelAwareness = (
   projectId: string,
@@ -43,6 +65,11 @@ export const setupModelAwareness = (
   });
 
   awarenessMap.set(key, awareness);
+
+  // Programar limpieza automática
+  scheduleAwarenessCleanup(key);
+
+  console.log(`[AwarenessCleanup] ✅ Awareness configurado para ${key}`);
 };
 
 export const updateUserCursor = (
@@ -61,6 +88,8 @@ export const updateUserCursor = (
         cursor: { x, y },
         modelId
       });
+      // Reprogramar limpieza por actividad
+      scheduleAwarenessCleanup(key);
     }
   }
 };
@@ -80,6 +109,8 @@ export const updateUserAction = (
         action,
         modelId
       });
+      // Reprogramar limpieza por actividad
+      scheduleAwarenessCleanup(key);
     }
   }
 };
@@ -132,8 +163,17 @@ export const getModelAwareness = (projectId: string, modelId: string): Awareness
 };
 
 export const destroyModelAwareness = (projectId: string, modelId: string) => {
-const key = `${projectId}:${modelId}`;
-awarenessMap.delete(key);
+  const key = `${projectId}:${modelId}`;
+
+  // Cancelar timer de limpieza si existe
+  const timer = awarenessTimers.get(key);
+  if (timer) {
+    clearTimeout(timer);
+    awarenessTimers.delete(key);
+  }
+
+  awarenessMap.delete(key);
+  console.log(`[AwarenessCleanup] 🧹 Awareness destruido manualmente para ${key}`);
 };
 
 // Funciones de conveniencia para acciones específicas
@@ -196,4 +236,28 @@ export const setUserIdle = (
   modelId: string
 ) => {
   clearUserAction(projectId, modelId);
+};
+
+// Función para limpiar todos los awareness (para usar al cerrar la aplicación)
+export const cleanupAllAwareness = (): void => {
+  console.log(`[AwarenessCleanup] 🧹 Limpiando todos los awareness...`);
+
+  // Cancelar todos los timers
+  awarenessTimers.forEach((timer) => {
+    clearTimeout(timer);
+  });
+
+  // Limpiar mapas
+  awarenessMap.clear();
+  awarenessTimers.clear();
+
+  console.log(`[AwarenessCleanup] ✅ Todos los awareness limpiados`);
+};
+
+// Función para obtener estadísticas simples de awareness
+export const getAwarenessStats = () => {
+  return {
+    totalAwareness: awarenessMap.size,
+    scheduledCleanups: awarenessTimers.size
+  };
 };
