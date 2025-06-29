@@ -219,6 +219,42 @@ class TreeCollaborationService {
   }
 
   /**
+   * Verifica si la conexión WebSocket está activa
+   */
+  isWebSocketConnected(): boolean {
+    if (!this.projectId) return false;
+
+    try {
+      const provider = getProjectProvider(this.projectId);
+      return provider?.wsconnected || false;
+    } catch (error) {
+      console.error(`[TreeCollaboration] Error verificando conexión WebSocket:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Obtiene información detallada del estado de conexión
+   */
+  getConnectionStatus(): { connected: boolean, synced: boolean, userCount: number } {
+    if (!this.projectId) {
+      return { connected: false, synced: false, userCount: 0 };
+    }
+
+    try {
+      const provider = getProjectProvider(this.projectId);
+      const connected = provider?.wsconnected || false;
+      const synced = provider?.synced || false;
+      const userCount = provider?.awareness?.getStates().size || 0;
+
+      return { connected, synced, userCount };
+    } catch (error) {
+      console.error(`[TreeCollaboration] Error obteniendo estado de conexión:`, error);
+      return { connected: false, synced: false, userCount: 0 };
+    }
+  }
+
+  /**
    * Limpia operaciones antiguas para mantener el rendimiento
    */
   private cleanupOldOperations(): void {

@@ -33,6 +33,8 @@ interface State {
   showScopeModal: boolean,
   currentProductLineIndex: number,
   currentProjectId: string | null,
+  treeSyncStatus: 'idle' | 'connecting' | 'syncing' | 'ready' | 'error',
+  treeSyncMessage: string,
 }
 
 class TreeExplorer extends Component<Props, State> {
@@ -44,6 +46,8 @@ class TreeExplorer extends Component<Props, State> {
     showScopeModal: false,
     currentProductLineIndex: 0,
     currentProjectId: null,
+    treeSyncStatus: 'idle' as const,
+    treeSyncMessage: '',
   };
 
   constructor(props: any) {
@@ -238,6 +242,12 @@ class TreeExplorer extends Component<Props, State> {
       // Limpiar colaboración anterior
       treeCollaborationService.cleanup();
 
+      // Limpiar estado de sincronización
+      this.setState({
+        treeSyncStatus: 'idle',
+        treeSyncMessage: ''
+      });
+
       // Reinicializar colaboración para el nuevo proyecto
       if (newProjectId) {
         console.log(`[TreeExplorer] 🚀 Reinicializando colaboración para nuevo proyecto...`);
@@ -312,11 +322,19 @@ class TreeExplorer extends Component<Props, State> {
     const projectInfo = this.props.projectService.getProjectInformation();
     if (!projectInfo?.is_collaborative) {
       console.log(`[TreeExplorer] ⚠️ Proyecto no es colaborativo, saltando inicialización del tree`);
+      this.setState({
+        treeSyncStatus: 'idle',
+        treeSyncMessage: ''
+      });
       return;
     }
 
     if (!projectInfo.project?.id) {
       console.log(`[TreeExplorer] ⚠️ Proyecto no tiene ID, saltando inicialización del tree`);
+      this.setState({
+        treeSyncStatus: 'error',
+        treeSyncMessage: 'Proyecto sin ID válido'
+      });
       return;
     }
 
@@ -327,13 +345,29 @@ class TreeExplorer extends Component<Props, State> {
 
     console.log(`[TreeExplorer] 🚀 Proyecto colaborativo detectado (ID: ${projectInfo.project.id}), inicializando tree collaboration...`);
 
+    // Indicar que se está conectando
+    this.setState({
+      treeSyncStatus: 'connecting',
+      treeSyncMessage: 'Conectando con el servidor colaborativo...'
+    });
+
     // Esperar un poco para que YJS se inicialice
     setTimeout(async () => {
       try {
+        // Indicar que se está sincronizando
+        this.setState({
+          treeSyncStatus: 'syncing',
+          treeSyncMessage: 'Sincronizando estado del árbol...'
+        });
+
         const success = await treeCollaborationService.initializeTreeSync(projectInfo.project.id);
 
         if (success) {
           console.log(`[TreeExplorer] ✅ Tree collaboration inicializado exitosamente`);
+
+          // Verificar el estado de la conexión
+          const connectionStatus = treeCollaborationService.getConnectionStatus();
+          console.log(`[TreeExplorer] 📊 Estado de conexión:`, connectionStatus);
 
           // Sincronizar el estado actual del proyecto
           treeCollaborationService.syncCurrentProjectState(this.props.projectService);
@@ -344,13 +378,90 @@ class TreeExplorer extends Component<Props, State> {
             this.handleCollaborativeTreeChanges(changes);
           });
 
+          // Verificar si la conexión está completamente sincronizada
+          if (connectionStatus.connected && connectionStatus.synced) {
+            // Mostrar mensaje de éxito por 5 segundos y luego ocultar
+            this.setState({
+              treeSyncStatus: 'ready',
+              treeSyncMessage: `Sincronización completada. Es seguro usar los diagramas. (${connectionStatus.userCount} usuario${connectionStatus.userCount !== 1 ? 's' : ''} conectado${connectionStatus.userCount !== 1 ? 's' : ''})`
+            });
+
+            // Ocultar el indicador después de 5 segundos
+            setTimeout(() => {
+              this.setState({
+                treeSyncStatus: 'ready', // Esto hará que el indicador desaparezca
+                treeSyncMessage: ''
+              });
+            }, 5000);
+          } else {
+            // Si no está completamente sincronizado, mostrar estado de espera
+            this.setState({
+              treeSyncStatus: 'syncing',
+              treeSyncMessage: 'Esperando sincronización completa...'
+            });
+
+            // Verificar periódicamente hasta que esté sincronizado
+            const checkSyncInterval = setInterval(() => {
+              const currentStatus = treeCollaborationService.getConnectionStatus();
+              if (currentStatus.connected && currentStatus.synced) {
+                clearInterval(checkSyncInterval);
+                this.setState({
+                  treeSyncStatus: 'ready',
+                  treeSyncMessage: `Sincronización completada. Es seguro usar los diagramas.`
+                });
+
+                // Ocultar después de 5 segundos
+                setTimeout(() => {
+                  this.setState({
+                    treeSyncStatus: 'ready',
+                    treeSyncMessage: ''
+                  });
+                }, 5000);
+              }
+            }, 1000); // Verificar cada segundo
+
+            // Timeout de seguridad para evitar verificación infinita
+            setTimeout(() => {
+              clearInterval(checkSyncInterval);
+              // Forzar el estado a ready después del timeout
+              this.setState({
+                treeSyncStatus: 'ready',
+                treeSyncMessage: ''
+              });
+            }, 10000); // Máximo 10 segundos de verificación
+          }
+
           // Guardar la función de cleanup (podrías guardarla en el state si necesitas limpiar después)
 
         } else {
           console.log(`[TreeExplorer] ❌ Falló la inicialización del tree collaboration`);
+          this.setState({
+            treeSyncStatus: 'error',
+            treeSyncMessage: 'Error al inicializar la colaboración'
+          });
+
+          // Los errores se mantienen visibles por más tiempo
+          setTimeout(() => {
+            this.setState({
+              treeSyncStatus: 'idle',
+              treeSyncMessage: ''
+            });
+          }, 10000); // 10 segundos para errores
         }
       } catch (error) {
         console.error(`[TreeExplorer] ❌ Error inicializando tree collaboration:`, error);
+        this.setState({
+          treeSyncStatus: 'error',
+          treeSyncMessage: 'Error de conexión con el servidor colaborativo'
+        });
+
+        // Los errores se mantienen visibles por más tiempo
+        setTimeout(() => {
+          this.setState({
+            treeSyncStatus: 'idle',
+            treeSyncMessage: ''
+          });
+        }, 10000); // 10 segundos para errores
       }
     }, 3000); // Esperar 3 segundos para que YJS se conecte
   }
@@ -913,6 +1024,81 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderProject();
   }
 
+  // Renderizar el indicador de estado de sincronización
+  renderSyncStatusIndicator() {
+    const { treeSyncStatus, treeSyncMessage } = this.state;
+
+    // Solo mostrar cuando hay un mensaje que mostrar
+    // No mostrar cuando está idle o cuando el mensaje está vacío
+    if (treeSyncStatus === 'idle' || !treeSyncMessage) {
+      return null;
+    }
+
+    const getStatusConfig = () => {
+      switch (treeSyncStatus) {
+        case 'connecting':
+          return {
+            icon: '🔄',
+            color: '#ffc107',
+            bgColor: '#fff3cd',
+            borderColor: '#ffeaa7'
+          };
+        case 'syncing':
+          return {
+            icon: '⏳',
+            color: '#17a2b8',
+            bgColor: '#d1ecf1',
+            borderColor: '#bee5eb'
+          };
+        case 'ready':
+          return {
+            icon: '✅',
+            color: '#28a745',
+            bgColor: '#d4edda',
+            borderColor: '#c3e6cb'
+          };
+        case 'error':
+          return {
+            icon: '❌',
+            color: '#dc3545',
+            bgColor: '#f8d7da',
+            borderColor: '#f5c6cb'
+          };
+        default:
+          return {
+            icon: '❓',
+            color: '#6c757d',
+            bgColor: '#e2e3e5',
+            borderColor: '#d6d8db'
+          };
+      }
+    };
+
+    const config = getStatusConfig();
+
+    return (
+      <div
+        style={{
+          padding: '8px 12px',
+          margin: '8px 12px',
+          borderRadius: '6px',
+          border: `1px solid ${config.borderColor}`,
+          backgroundColor: config.bgColor,
+          color: config.color,
+          fontSize: '12px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: treeSyncStatus === 'connecting' || treeSyncStatus === 'syncing' ? 'pulse 1.5s infinite' : 'none'
+        }}
+      >
+        <span style={{ fontSize: '14px' }}>{config.icon}</span>
+        <span>{treeSyncMessage}</span>
+      </div>
+    );
+  }
+
   render() {
     return (
       <div
@@ -924,6 +1110,9 @@ class TreeExplorer extends Component<Props, State> {
         }}
       >
         <NavBar projectService={this.props.projectService} />
+
+        {/* Indicador de estado de sincronización */}
+        {this.renderSyncStatusIndicator()}
 
         <div
           className="flex-grow-1 d-grid overflow-hidden"
