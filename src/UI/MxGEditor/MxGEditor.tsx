@@ -678,15 +678,26 @@ export default class MxGEditor extends Component<Props, State> {
         }
 
         this.syncModelChanges();
-        
+
         me.refreshEdgeLabel(edge);
         me.refreshEdgeStyle(edge);
+
+        // Awareness colaborativo: Limpiar estado después de conectar celdas
+        const projectId = me.props.projectService.getProject().id;
+        const modelId = me.currentModel?.id;
+        if (projectId && modelId) {
+          setUserIdle(projectId, modelId);
+        }
+
+        // Limpiar estado de movimiento local
+        me.setState({ isMovingCell: false, movingCellId: null });
+
       } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         let m = error;
         console.error("something went wrong: ", error)
       }
-      
+
     }
     
   );
