@@ -36,7 +36,19 @@ import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGro
 import MxProperties from "../MxProperties/MxProperties";
 import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 import KaosGenerator from "../Scope/KaosGenerator";
-import { destroyModelAwareness, getModelAwareness, onModelAwarenessChange, setupModelAwareness, updateUserCursor } from "../../DataProvider/Services/collab/collaborationAwarenessService";
+import {
+  destroyModelAwareness,
+  getModelAwareness,
+  onModelAwarenessChange,
+  setupModelAwareness,
+  updateUserCursor,
+  setUserMovingCell,
+  setUserEditingCell,
+  setUserResizingCell,
+  setUserSelectingCell,
+  setUserIdle
+} from "../../DataProvider/Services/collab/collaborationAwarenessService";
+import CollaborativeIndicators from "./CollaborativeIndicators";
 
 interface Props {
   projectService: ProjectService;
@@ -72,6 +84,18 @@ interface State {
     userRole: string;
     backupObject: any;
     awarnessStates?: Array<any>;
+  collaborativeUsers: Array<{
+    name: string;
+    color: string;
+    cursor?: { x: number; y: number };
+    action?: {
+      type: 'moving' | 'editing' | 'resizing' | 'selecting' | 'idle';
+      cellId?: string;
+      timestamp: string;
+      details?: any;
+    };
+    modelId?: string;
+  }>;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -120,7 +144,8 @@ export default class MxGEditor extends Component<Props, State> {
       userRole: "",
       pendingChanges: false,
       backupObject: null,
-      awarnessStates: []
+      awarnessStates: [],
+      collaborativeUsers: []
 
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
@@ -379,43 +404,35 @@ export default class MxGEditor extends Component<Props, State> {
       evt.consume();
       
       if (evt.properties.cells) {
-        console.log("CELLS_MOVED: Procesando", evt.properties.cells.length, "celdas movidas");
-
         // Procesar todas las celdas movidas
         evt.properties.cells.forEach(cell => {
           if (!cell.value.attributes) {
-            console.log("CELLS_MOVED: Celda sin atributos, saltando");
             return;
           }
           let uid = cell.value.getAttribute("uid");
-          console.log("CELLS_MOVED: Procesando celda con uid:", uid);
 
           if (me.currentModel) {
             for (let i = 0; i < me.currentModel.elements.length; i++) {
               const element: any = me.currentModel.elements[i];
               if (element.id === uid) {
-                const oldPos = { x: element.x, y: element.y, width: element.width, height: element.height };
                 element.x = cell.geometry.x;
                 element.y = cell.geometry.y;
                 element.width = cell.geometry.width;
                 element.height = cell.geometry.height;
-                console.log(`CELLS_MOVED: Elemento ${uid} actualizado:`, {
-                  from: oldPos,
-                  to: { x: element.x, y: element.y, width: element.width, height: element.height }
-                });
+
+                // Awareness colaborativo: Marcar que el usuario terminó de mover
+                const projectId = me.props.projectService.getProject().id;
+                const modelId = me.currentModel?.id;
+                if (projectId && modelId) {
+                  setUserIdle(projectId, modelId);
+                }
                 break;
               }
             }
-          } else {
-            console.log("CELLS_MOVED: No hay currentModel disponible");
           }
         });
 
-        console.log("CELLS_MOVED: Llamando syncModelChanges()");
         this.syncModelChanges();
-
-      } else {
-        console.log("CELLS_MOVED: No hay celdas en el evento");
       }
     });
 
@@ -459,15 +476,16 @@ export default class MxGEditor extends Component<Props, State> {
 
     graph.addListener(mx.mxEvent.CELLS_RESIZED, (sender, evt) => {
       evt.consume();
-    
+
       if (evt.properties.cells) {
         const resizedCells = evt.properties.cells;
-    
+
         resizedCells.forEach((cell) => {
           if (!cell.value.attributes) {
             return;
           }
           const uid = cell.value.getAttribute("uid");
+
           if (me.currentModel) {
             for (let i = 0; i < me.currentModel.elements.length; i++) {
               const element: any = me.currentModel.elements[i];
@@ -477,27 +495,52 @@ export default class MxGEditor extends Component<Props, State> {
                 element.y = cell.geometry.y;
                 element.width = cell.geometry.width;
                 element.height = cell.geometry.height;
+
+                // Awareness colaborativo: Marcar que el usuario terminó de redimensionar
+                const projectId = me.props.projectService.getProject().id;
+                const modelId = me.currentModel?.id;
+                if (projectId && modelId) {
+                  setUserIdle(projectId, modelId);
+                }
               }
             }
           }
         });
-    
+
         this.syncModelChanges();
       }
       me.forceUpdate();
     }
-    
+
   );
 
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
-      console.log("Listener activated SELECT");
+      if (evt.properties.cells && evt.properties.cells.length > 0) {
+        evt.properties.cells.forEach(cell => {
+          if (cell.value && cell.value.attributes) {
+            const uid = cell.value.getAttribute("uid");
+
+            // Awareness colaborativo: Marcar que el usuario seleccionó una celda
+            const projectId = me.props.projectService.getProject().id;
+            const modelId = me.currentModel?.id;
+            if (projectId && modelId) {
+              setUserSelectingCell(projectId, modelId, uid);
+            }
+          }
+        });
+      }
       evt.consume();
     });
 
     graph.addListener(mx.mxEvent.DOUBLE_CLICK, function (sender, evt) {
-      console.log("Listener activated DOUBLE_CLICK");
       evt.consume();
       if (me.state.selectedObject) {
+        // Awareness colaborativo: Marcar que el usuario comenzó a editar propiedades
+        const projectId = me.props.projectService.getProject().id;
+        const modelId = me.currentModel?.id;
+        if (projectId && modelId) {
+          setUserEditingCell(projectId, modelId, me.state.selectedObject.id, 'properties');
+        }
         me.showPropertiesModal();
       }
     });
@@ -741,6 +784,55 @@ export default class MxGEditor extends Component<Props, State> {
 
     graph.getView().setAllowEval(true);
 
+
+    // Agregar eventos de mouse para detectar inicio de drag
+    graph.addMouseListener({
+      mouseDown: function(sender, me_evt) {
+        const cell = me_evt.getCell();
+        if (cell && cell.value && cell.value.attributes) {
+          const uid = cell.value.getAttribute("uid");
+
+          // Awareness colaborativo: Marcar que el usuario comenzó a interactuar con una celda
+          const projectId = me.props.projectService.getProject().id;
+          const modelId = me.currentModel?.id;
+          if (projectId && modelId) {
+            setUserSelectingCell(projectId, modelId, uid);
+          }
+        }
+      },
+      mouseMove: function(sender, me_evt) {
+        // Solo si hay una celda siendo arrastrada
+        if (graph.isMouseDown && me_evt.getCell()) {
+          const cell = me_evt.getCell();
+          if (cell && cell.value && cell.value.attributes) {
+            const uid = cell.value.getAttribute("uid");
+
+            // Awareness colaborativo: Marcar que el usuario está moviendo una celda
+            const projectId = me.props.projectService.getProject().id;
+            const modelId = me.currentModel?.id;
+            if (projectId && modelId) {
+              setUserMovingCell(projectId, modelId, uid, {
+                x: me_evt.getGraphX(),
+                y: me_evt.getGraphY()
+              });
+            }
+          }
+        }
+      },
+      mouseUp: function(sender, me_evt) {
+        const cell = me_evt.getCell();
+        if (cell && cell.value && cell.value.attributes) {
+          const uid = cell.value.getAttribute("uid");
+
+          // Awareness colaborativo: Marcar que el usuario terminó la interacción
+          const projectId = me.props.projectService.getProject().id;
+          const modelId = me.currentModel?.id;
+          if (projectId && modelId) {
+            setUserIdle(projectId, modelId);
+          }
+        }
+      }
+    });
 
     let keyHandler = new mx.mxKeyHandler(graph);
     keyHandler.bindKey(46, function (evt) {
@@ -1770,16 +1862,17 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   showPropertiesModal() {
-    // if (this.currentModel) {
-    //   if (this.currentModel.constraints !== "") {
-    //     this.setState({ currentModelConstraints: this.currentModel.constraints })
-    //   }
-    //   this.setState({ showConstraintModal: true })
-    // } else {
-    //   alertify.error("You have not opened a model")
-    // }
+    if (this.state.selectedObject) {
+      // Awareness colaborativo: Marcar que el usuario está editando propiedades
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserEditingCell(projectId, modelId, this.state.selectedObject.id, 'properties');
+      }
+    }
+
     const backup = JSON.parse(JSON.stringify(this.state.selectedObject));
-    this.setState({ 
+    this.setState({
       showPropertiesModal: true,
       backupObject: backup,
       pendingChanges: false
@@ -1788,6 +1881,13 @@ export default class MxGEditor extends Component<Props, State> {
 
   hidePropertiesModal() {
     if (this.state.pendingChanges) {
+      // Awareness colaborativo: Marcar que el usuario canceló la edición
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
+
       const originalObject = this.state.backupObject;
       if (originalObject) {
         // Restaurar el objeto en el modelo
@@ -1808,9 +1908,16 @@ export default class MxGEditor extends Component<Props, State> {
           originalObject
         );
       }
+    } else {
+      // Awareness colaborativo: Marcar que el usuario terminó la edición sin cambios
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
     }
-    
-    this.setState({ 
+
+    this.setState({
       showPropertiesModal: false,
       pendingChanges: false,
       backupObject: null
@@ -1977,9 +2084,23 @@ export default class MxGEditor extends Component<Props, State> {
 
   savePropertiesModal() {
     if (this.state.pendingChanges) {
+      // Awareness colaborativo: Marcar que el usuario guardó los cambios
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
       this.syncModelChanges();
+    } else {
+      // Awareness colaborativo: Marcar que el usuario terminó sin cambios
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
     }
-    this.setState({ 
+
+    this.setState({
       showPropertiesModal: false,
       pendingChanges: false,
       backupObject: null
@@ -3504,7 +3625,33 @@ observeModel(projectId: string, model: Model) {
       });
 
       this.awarenessUnsubscribe = onModelAwarenessChange(projectId, modelId , (state) => {
-        this.setState({ awarnessStates: Array.from(state.values()) });
+        const awarenessStates = Array.from(state.values());
+
+        // Procesar usuarios colaborativos para los indicadores visuales
+        const currentUserId = this.props.projectService.getUser();
+        const collaborativeUsers = awarenessStates
+          .filter((userState: any) => {
+            // Filtrar usuarios que no sean el usuario actual
+            if (!userState.user) return false;
+
+            // Buscar el colaborador correspondiente por nombre para obtener su ID
+            const collaborator = this.state.collaborators.find(c => c.name === userState.user.name);
+            return collaborator && collaborator.id !== currentUserId;
+          })
+          .map((userState: any) => ({
+            name: userState.user.name,
+            color: userState.user.color,
+            cursor: userState.user.cursor,
+            action: userState.user.action,
+            modelId: userState.user.modelId
+          }));
+
+
+
+        this.setState({
+          awarnessStates: awarenessStates,
+          collaborativeUsers: collaborativeUsers
+        });
       })
 
     } 
@@ -3915,6 +4062,14 @@ observeModel(projectId: string, model: Model) {
           }} />
         </div>
         ))}
+
+        {/* Indicadores colaborativos para acciones de usuario */}
+        <CollaborativeIndicators
+          users={this.state.collaborativeUsers}
+          currentUserId={this.props.projectService.getUser()}
+          currentUserName={this.state.collaborators.find(c => c.id === this.props.projectService.getUser())?.name || ''}
+          graph={this.graph}
+        />
 
         </div>
         
