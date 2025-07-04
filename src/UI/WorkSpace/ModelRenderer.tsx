@@ -5,6 +5,7 @@ import DiagramEditor from "../DiagramEditor/DiagramEditor";
 import ElementsPannel from "../DiagramEditor/ElementsPannel";
 import BillOfMaterialsEditor from "../Scope/BillOfMaterialsEditor";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
+import Chatbot from "../Scope/Chatbot";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 
 interface ModelRendererProps {
@@ -87,6 +88,9 @@ render() {
                             <TreeExplorer projectService={this.props.projectService} />
                         </td>
                         {this.renderEditor()}
+                        <td className="td-chatbot">
+                            <Chatbot />
+                        </td>
                     </tr>
                     </tbody>
                 </table>
