@@ -10,7 +10,7 @@
 
 .project-awareness.compact {
   max-width: none;
-  min-width: 180px;
+  min-width: 220px;
 }
 
 .awareness-header {
@@ -77,10 +77,18 @@
 }
 
 .connected-users.horizontal .connected-user {
-  gap: 0;
-  padding: 2px;
+  gap: 4px;
+  padding: 4px;
   min-width: auto;
   justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.connected-users.horizontal .user-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
 }
 
 .user-avatar {
@@ -141,6 +149,108 @@
   border-radius: 8px;
   margin-left: 4px;
   font-weight: bold;
+}
+
+/* Nuevos estilos para mostrar modelo directamente */
+.user-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.user-model {
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.model-info {
+  color: #28a745;
+  font-weight: 600;
+  background-color: #e8f5e8;
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: inline-block;
+}
+
+.browsing-info {
+  color: #6c757d;
+  font-weight: 500;
+  background-color: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: inline-block;
+}
+
+/* Estilos para vista compacta - MEJORADO: Más grande y legible */
+.compact-model-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+  padding: 2px;
+}
+
+.user-name-compact {
+  font-size: 11px;
+  font-weight: 600;
+  color: #495057;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.model-compact {
+  font-size: 10px;
+  color: #28a745;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+  margin-top: 2px;
+  background-color: #e8f5e8;
+  padding: 1px 4px;
+  border-radius: 8px;
+}
+
+.browsing-compact {
+  font-size: 10px;
+  color: #6c757d;
+  font-weight: 500;
+  text-align: center;
+  margin-top: 2px;
+  background-color: #f8f9fa;
+  padding: 1px 4px;
+  border-radius: 8px;
+}
+
+/* Estilos para elementos clickeables */
+.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable:hover {
+  transform: scale(1.05);
+  opacity: 0.8;
+}
+
+.user-avatar.clickable:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.model-info.clickable:hover {
+  background-color: #d4edda !important;
+  box-shadow: 0 1px 4px rgba(40, 167, 69, 0.3);
+}
+
+.model-compact.clickable:hover {
+  background-color: #d4edda !important;
+  box-shadow: 0 1px 4px rgba(40, 167, 69, 0.3);
 }
 
 .no-users,
