@@ -1127,7 +1127,6 @@ export default class MxGEditor extends Component<Props, State> {
         graph.getModel().beginUpdate();
         try {
         // ---------------------------------------------------------
-        // TODO Cambio de el como se limpia el modelo, anteriormente, se limpiaba y se llamaba al listener, lo que ocasionaba problemas en collaborativo
           const graphModel = graph.getModel();
           const parent = graph.getDefaultParent();
           const childCount = graphModel.getChildCount(parent);
@@ -1135,7 +1134,6 @@ export default class MxGEditor extends Component<Props, State> {
           for (let i = childCount - 1; i >= 0; i--) {
             graphModel.remove(graphModel.getChildAt(parent, i));
           } 
-          
           // ---------------------------------------------------------
           if (model) {
             let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
@@ -3491,20 +3489,10 @@ renderRequirementsReport() {
 
 syncModelChanges() {
   const projectId = this.props.projectService.getProject().id;
-  console.log("syncModelChanges: Iniciando sincronización", {
-    isCollaborative: this.state.isCollaborative,
-    hasProjectId: !!projectId,
-    hasCurrentModel: !!this.currentModel,
-    isRemoteChange: this.isRemoteChange,
-    isInitialLoad: this.isInitialLoad
-  });
 
   if (this.state.isCollaborative && projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
-    console.log("syncModelChanges: Sincronizando cambios del modelo", {
-      modelId: this.currentModel.id,
-      elementsCount: this.currentModel.elements?.length || 0,
-      relationshipsCount: this.currentModel.relationships?.length || 0
-    });
+
+
 
     // Usar la nueva función incremental para mejor rendimiento
     this.props.projectService.updateModelState(projectId, this.currentModel.id, (state) => {
@@ -3523,22 +3511,16 @@ syncModelChanges() {
         relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
       });
     }
-    console.log("syncModelChanges: Snapshot local actualizado");
-  } else {
-    console.log("syncModelChanges: No se sincronizó debido a condiciones no cumplidas");
   }
 }
 
 // Conjunto
 
 observeModel(projectId: string, model: Model) {
-  console.log(`[observeModel] Iniciando observación para modelo ${model.id} (${model.type})`);
-
   // Eliminar el observador anterior si existe
   if (this.currentModelObserver) {
     this.currentModelObserver();
     this.currentModelObserver = null;
-    console.log("Removed previous model observer.");
   }
 
   this.unsuscribeModelAwareness(projectId, model.id);
@@ -3550,7 +3532,6 @@ observeModel(projectId: string, model: Model) {
   const modelKey = `${model.type}_${model.id}`;
   if (!this.incrementalUpdaters.has(modelKey) && this.graph) {
     this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
-    console.log(`Creado nuevo IncrementalGraphUpdater para modelo ${modelKey} en observeModel`);
   }
 
   // Asegurar que el modelo actual esté actualizado
@@ -3560,14 +3541,7 @@ observeModel(projectId: string, model: Model) {
   this.currentModelObserver = this.props.projectService.observeModelState(
     projectId,
     model.id,
-    (state, changes) => {
-      console.log(`[observeModel] Cambio detectado en modelo ${model.id}`, {
-        hasState: !!state,
-        hasCurrentModel: !!this.currentModel,
-        isInitialLoad: this.isInitialLoad,
-        currentModelId: this.currentModel?.id,
-        targetModelId: model.id
-      });
+    (state) => {
 
       // Solo procesar si el modelo actual coincide con el modelo observado
       if (state && this.currentModel && this.currentModel.id === model.id && !this.isInitialLoad) {
@@ -3575,16 +3549,10 @@ observeModel(projectId: string, model: Model) {
 
         const modelData = state.get("data");
         if (modelData && this.currentModel) {
-          console.log(`[observeModel] Procesando datos del modelo ${model.id}:`, {
-            elementsCount: modelData.elements?.length || 0,
-            relationshipsCount: modelData.relationships?.length || 0,
-            timestamp: modelData.timestamp
-          });
           const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
 
           // Asegurar que tenemos un snapshot válido antes de calcular diferencias
           if (!this.modelSnapshots.has(currentModelKey)) {
-            console.log(`Inicializando snapshot para modelo ${currentModelKey}`);
             this.modelSnapshots.set(currentModelKey, {
               elements: JSON.parse(JSON.stringify(this.currentModel.elements || [])),
               relationships: JSON.parse(JSON.stringify(this.currentModel.relationships || []))
@@ -3595,10 +3563,6 @@ observeModel(projectId: string, model: Model) {
           const diff = calculateModelDiff(this.currentModel, modelData);
 
           if (hasMeaningfulChanges(diff)) {
-            console.log("Aplicando cambios incrementales:", diff);
-            const currentSnapshot = this.modelSnapshots.get(currentModelKey);
-            console.log("Snapshot previo tenía:", currentSnapshot?.elements.length || 0, "elementos");
-            console.log("Nuevo estado tiene:", modelData.elements?.length || 0, "elementos");
 
             // Actualizar el modelo actual
             this.currentModel.elements = modelData.elements || this.currentModel.elements;
@@ -3621,14 +3585,10 @@ observeModel(projectId: string, model: Model) {
               elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
               relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
             });
-          } else {
-            console.log("No hay cambios significativos detectados");
           }
         }
 
         this.isRemoteChange = false;
-      } else if (state && this.currentModel && this.isInitialLoad) {
-        console.log("Cambio detectado durante carga inicial, ignorando para sincronización incremental");
       }
     }
   );
@@ -3647,7 +3607,6 @@ private cleanupUnusedModelResources() {
     // Limpiar updaters no utilizados
     for (const key of this.incrementalUpdaters.keys()) {
       if (key !== currentModelKey) {
-        console.log(`Limpiando IncrementalGraphUpdater no utilizado: ${key}`);
         this.incrementalUpdaters.delete(key);
       }
     }
@@ -3655,7 +3614,6 @@ private cleanupUnusedModelResources() {
     // Limpiar snapshots no utilizados
     for (const key of this.modelSnapshots.keys()) {
       if (key !== currentModelKey) {
-        console.log(`Limpiando snapshot no utilizado: ${key}`);
         this.modelSnapshots.delete(key);
       }
     }
@@ -3664,7 +3622,6 @@ private cleanupUnusedModelResources() {
 
 
   unsuscribeModelAwareness(projectId : string, modelId: string) {
-    console.log(`[unsuscribeModelAwareness] Limpiando awareness para modelo ${modelId}`);
 
     if (this.awarenessUnsubscribe){
       this.awarenessUnsubscribe();

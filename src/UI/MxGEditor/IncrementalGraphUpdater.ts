@@ -100,15 +100,27 @@ export class IncrementalGraphUpdater {
   private updateVerticesMap(): void {
     this.vertices = {};
     const parent = this.graph.getDefaultParent();
+
+    // Buscar vértices recursivamente para incluir elementos anidados
+    this.findVerticesRecursively(parent);
+  }
+
+   // Busca vértices recursivamente en todos los niveles del grafo
+  private findVerticesRecursively(parent: any): void {
     const childCount = this.graph.getModel().getChildCount(parent);
 
     for (let i = 0; i < childCount; i++) {
       const cell = this.graph.getModel().getChildAt(parent, i);
+
       if (this.graph.getModel().isVertex(cell)) {
         const uid = cell.value?.getAttribute?.('uid');
         if (uid) {
           this.vertices[uid] = cell;
         }
+
+        // Buscar recursivamente en los hijos de este vértice
+        // para encontrar elementos anidados
+        this.findVerticesRecursively(cell);
       }
     }
   }
@@ -126,20 +138,30 @@ export class IncrementalGraphUpdater {
     });
   }
 
-  /**
-   * Remueve relaciones del grafo
-   */
+  // Remueve relaciones del grafo
+
   private removeRelationships(relationshipIds: string[]): void {
     const parent = this.graph.getDefaultParent();
+
+    // Buscar y remover relaciones recursivamente
+    this.removeRelationshipsRecursively(parent, relationshipIds);
+  }
+  
+   // Busca y remueve relaciones recursivamente en todos los niveles
+  private removeRelationshipsRecursively(parent: any, relationshipIds: string[]): void {
     const childCount = this.graph.getModel().getChildCount(parent);
 
     for (let i = childCount - 1; i >= 0; i--) {
       const cell = this.graph.getModel().getChildAt(parent, i);
+
       if (this.graph.getModel().isEdge(cell)) {
         const uid = cell.value?.getAttribute?.('uid');
         if (uid && relationshipIds.includes(uid)) {
           this.graph.getModel().remove(cell);
         }
+      } else if (this.graph.getModel().isVertex(cell)) {
+        // Buscar recursivamente en los hijos de este vértice
+        this.removeRelationshipsRecursively(cell, relationshipIds);
       }
     }
   }
@@ -171,24 +193,15 @@ export class IncrementalGraphUpdater {
     elements.forEach(element => {
       const vertex = this.vertices[element.id];
       if (vertex) {
-        console.log(`IncrementalGraphUpdater: Actualizando elemento ${element.id} (${element.name})`);
-
         // Actualizar posición y tamaño
         const geometry = this.graph.getModel().getGeometry(vertex);
         if (geometry) {
-          const oldGeometry = { x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height };
-
           // Crear nueva geometría para forzar la actualización visual
           const newGeometry = geometry.clone();
           newGeometry.x = element.x;
           newGeometry.y = element.y;
           newGeometry.width = element.width;
           newGeometry.height = element.height;
-
-          console.log(`IncrementalGraphUpdater: Geometría ${element.id}:`, {
-            from: oldGeometry,
-            to: { x: newGeometry.x, y: newGeometry.y, width: newGeometry.width, height: newGeometry.height }
-          });
 
           // Aplicar la nueva geometría usando el modelo de mxGraph
           this.graph.getModel().setGeometry(vertex, newGeometry);
@@ -214,10 +227,6 @@ export class IncrementalGraphUpdater {
         if (callbacks?.createOverlays) {
           callbacks.createOverlays(element, vertex);
         }
-
-        console.log(`IncrementalGraphUpdater: Elemento ${element.id} actualizado correctamente`);
-      } else {
-        console.log(`IncrementalGraphUpdater: No se encontró vértice para elemento ${element.id}`);
       }
     });
   }
@@ -280,42 +289,62 @@ export class IncrementalGraphUpdater {
     callbacks?: any
   ): void {
     const parent = this.graph.getDefaultParent();
-    const childCount = this.graph.getModel().getChildCount(parent);
 
     relationships.forEach(relationship => {
-      // Buscar la relación existente
-      for (let i = 0; i < childCount; i++) {
-        const cell = this.graph.getModel().getChildAt(parent, i);
-        if (this.graph.getModel().isEdge(cell)) {
-          const uid = cell.value?.getAttribute?.('uid');
-          if (uid === relationship.id) {
-            // Actualizar propiedades
-            const node = cell.value;
-            if (node) {
-              node.setAttribute("label", relationship.name);
-              node.setAttribute("type", relationship.type);
-            }
+      // Buscar la relación existente recursivamente
+      const foundCell = this.findRelationshipRecursively(parent, relationship.id);
 
-            // Actualizar puntos si es necesario
-            if (relationship.points && cell.geometry) {
-              cell.geometry.points = [];
-              relationship.points.forEach(p => {
-                cell.geometry.points.push(new mx.mxPoint(p.x, p.y));
-              });
-            }
+      if (foundCell) {
+        // Actualizar propiedades
+        const node = foundCell.value;
+        if (node) {
+          node.setAttribute("label", relationship.name);
+          node.setAttribute("type", relationship.type);
+        }
 
-            // Refrescar callbacks
-            if (callbacks?.refreshEdgeLabel) {
-              callbacks.refreshEdgeLabel(cell);
-            }
-            if (callbacks?.refreshEdgeStyle) {
-              callbacks.refreshEdgeStyle(cell);
-            }
-            break;
-          }
+        // Actualizar puntos si es necesario
+        if (relationship.points && foundCell.geometry) {
+          foundCell.geometry.points = [];
+          relationship.points.forEach(p => {
+            foundCell.geometry.points.push(new mx.mxPoint(p.x, p.y));
+          });
+        }
+
+        // Refrescar callbacks
+        if (callbacks?.refreshEdgeLabel) {
+          callbacks.refreshEdgeLabel(foundCell);
+        }
+        if (callbacks?.refreshEdgeStyle) {
+          callbacks.refreshEdgeStyle(foundCell);
         }
       }
     });
+  }
+
+  /**
+   * Busca una relación específica recursivamente en todos los niveles
+   */
+  private findRelationshipRecursively(parent: any, relationshipId: string): any {
+    const childCount = this.graph.getModel().getChildCount(parent);
+
+    for (let i = 0; i < childCount; i++) {
+      const cell = this.graph.getModel().getChildAt(parent, i);
+
+      if (this.graph.getModel().isEdge(cell)) {
+        const uid = cell.value?.getAttribute?.('uid');
+        if (uid === relationshipId) {
+          return cell;
+        }
+      } else if (this.graph.getModel().isVertex(cell)) {
+        // Buscar recursivamente en los hijos de este vértice
+        const found = this.findRelationshipRecursively(cell, relationshipId);
+        if (found) {
+          return found;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**
