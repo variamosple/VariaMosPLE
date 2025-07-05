@@ -342,16 +342,14 @@ class TreeMenu extends Component<Props, State> {
 
     console.log(`[TreeMenu] 🗑️ Eliminando elemento: ${itemName} (tipo: ${itemType}, ID: ${itemId})`);
 
-    // Sincronizar operación colaborativa antes de eliminar (solo para modelos)
+    // Obtener información del modelo ANTES de eliminarlo (para sincronización)
+    let modelDataForSync = null;
     if (itemType === 'model' && treeCollaborationService.isCollaborationActive()) {
-      console.log(`[TreeMenu] 🔄 Sincronizando DELETE Model colaborativamente...`);
-
-      // Obtener información del modelo antes de eliminarlo
       const project = this.props.projectService.project;
       const model = this.props.projectService.findModelById(project, itemId);
 
       if (model) {
-        const modelData = {
+        modelDataForSync = {
           id: model.id,
           name: model.name,
           type: this.getModelTypeFromContext(),
@@ -359,19 +357,26 @@ class TreeMenu extends Component<Props, State> {
           languageId: model.languageId,
           productLineId: this.props.projectService.getIdCurrentProductLine()
         };
-
-        treeCollaborationService.syncDeleteModelOperation(modelData, this.props.projectService);
+        console.log(`[TreeMenu] 📋 Información del modelo capturada para sincronización:`, modelDataForSync);
       } else {
         console.log(`[TreeMenu] ⚠️ No se encontró el modelo para sincronizar eliminación`);
       }
+    }
+
+    // PASO 1: Eliminar localmente PRIMERO
+    this.hideDeleteModal();
+    this.props.projectService.deleteItemProject();
+    console.log(`[TreeMenu] ✅ Elemento eliminado localmente`);
+
+    // PASO 2: Sincronizar operación colaborativa DESPUÉS de eliminar localmente
+    if (modelDataForSync && treeCollaborationService.isCollaborationActive()) {
+      console.log(`[TreeMenu] 🔄 Sincronizando DELETE Model colaborativamente DESPUÉS de eliminación local...`);
+      treeCollaborationService.syncDeleteModelOperation(modelDataForSync, this.props.projectService);
     } else if (itemType === 'model') {
       console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza eliminación de modelo`);
     }
 
-    this.hideDeleteModal();
-    this.props.projectService.deleteItemProject();
-
-    console.log(`[TreeMenu] ✅ Elemento eliminado y proyecto guardado`);
+    console.log(`[TreeMenu] ✅ Elemento eliminado y sincronizado completamente`);
   }
 
   /**
