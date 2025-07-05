@@ -370,19 +370,33 @@ class TreeExplorer extends Component<Props, State> {
           const connectionStatus = treeCollaborationService.getConnectionStatus();
           console.log(`[TreeExplorer] 📊 Estado de conexión:`, connectionStatus);
 
-          // PASO 1: Verificar si existe un estado previo del tree y aplicarlo
+          // PASO 1: Determinar fuente de verdad inteligentemente
           const existingTreeState = treeCollaborationService.getExistingTreeState();
-          if (existingTreeState) {
-            console.log(`[TreeExplorer] 🔄 Aplicando estado existente del tree para nuevo usuario...`);
+          const localModelsCount = this.countAllModels(this.props.projectService.getProject());
+
+          console.log(`[TreeExplorer] 🧠 Analizando fuente de verdad:`, {
+            estadoColaborativo: existingTreeState ? `${existingTreeState.productLines?.length || 0} ProductLines` : 'vacío',
+            estadoLocal: `${localModelsCount} modelos locales`,
+            timestamp: existingTreeState ? new Date(existingTreeState.timestamp).toISOString() : 'N/A'
+          });
+
+          if (existingTreeState && existingTreeState.productLines && existingTreeState.productLines.length > 0) {
+            // CASO 1: Hay estado colaborativo activo - usarlo como fuente de verdad
+            console.log(`[TreeExplorer] 🔄 Estado colaborativo activo detectado, aplicando como fuente de verdad...`);
             this.applyFullTreeState(existingTreeState);
 
-            // Después de aplicar el estado existente, sincronizar el estado actual
-            // para asegurar que cualquier cambio local también se refleje
-            console.log(`[TreeExplorer] 🔄 Sincronizando estado actual después de aplicar estado existente...`);
+            // Sincronizar estado actual después de aplicar
+            console.log(`[TreeExplorer] 🔄 Sincronizando estado actual después de aplicar estado colaborativo...`);
             treeCollaborationService.syncCurrentProjectState(this.props.projectService);
+
+          } else if (localModelsCount > 0) {
+            // CASO 2: No hay estado colaborativo pero sí modelos locales (DB) - usar DB como fuente de verdad
+            console.log(`[TreeExplorer] 📊 No hay estado colaborativo, pero hay ${localModelsCount} modelos locales. Usando DB como fuente de verdad...`);
+            treeCollaborationService.syncCurrentProjectState(this.props.projectService);
+
           } else {
-            console.log(`[TreeExplorer] ℹ️ No hay estado previo del tree, sincronizando estado actual...`);
-            // Solo sincronizar el estado actual si no hay estado previo
+            // CASO 3: Ambos vacíos - proyecto nuevo
+            console.log(`[TreeExplorer] 🆕 Proyecto nuevo detectado (sin estado colaborativo ni modelos locales)`);
             treeCollaborationService.syncCurrentProjectState(this.props.projectService);
           }
 
@@ -534,7 +548,53 @@ class TreeExplorer extends Component<Props, State> {
     return totalModels;
   }
 
-  // Aplicar estado completo del tree (para nuevos usuarios)
+  // Buscar un modelo por ID en todo el proyecto
+  findModelById(modelId: string): any {
+    const project = this.props.projectService.project;
+
+    for (const productLine of project.productLines) {
+      // Buscar en modelos de scope
+      if (productLine.scope?.models) {
+        const found = productLine.scope.models.find((model: any) => model.id === modelId);
+        if (found) return found;
+      }
+
+      // Buscar en modelos de domain engineering
+      if (productLine.domainEngineering?.models) {
+        const found = productLine.domainEngineering.models.find((model: any) => model.id === modelId);
+        if (found) return found;
+      }
+
+      // Buscar en modelos de application engineering
+      if (productLine.applicationEngineering?.models) {
+        const found = productLine.applicationEngineering.models.find((model: any) => model.id === modelId);
+        if (found) return found;
+      }
+
+      // Buscar en applications
+      if (productLine.applicationEngineering?.applications) {
+        for (const application of productLine.applicationEngineering.applications) {
+          if (application.models) {
+            const found = application.models.find((model: any) => model.id === modelId);
+            if (found) return found;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // Validar si una operación del tree es válida
+  isValidTreeOperation(operation: any): boolean {
+    return operation &&
+           operation.type &&
+           operation.operationId &&
+           operation.timestamp &&
+           operation.data;
+  }
+
+  // Aplicar estado completo del tree (sincronización inteligente como fuente de verdad)
   applyFullTreeState(treeState: any) {
     if (!treeState || !treeState.productLines) {
       console.log(`[TreeExplorer] ⚠️ Estado del tree inválido o vacío`);
@@ -544,7 +604,7 @@ class TreeExplorer extends Component<Props, State> {
     const totalModels = treeState.productLines.reduce((total: number, pl: any) => total + (pl.models?.length || 0), 0);
     const totalApplications = treeState.productLines.reduce((total: number, pl: any) => total + (pl.applications?.length || 0), 0);
 
-    console.log(`[TreeExplorer] 🔄 Aplicando estado completo del tree:`, {
+    console.log(`[TreeExplorer] 🔄 Aplicando estado colaborativo como fuente de verdad:`, {
       timestamp: new Date(treeState.timestamp).toISOString(),
       productLinesCount: treeState.productLines.length,
       totalModels: totalModels,
@@ -553,7 +613,7 @@ class TreeExplorer extends Component<Props, State> {
 
     // Log detallado de lo que se va a aplicar
     treeState.productLines.forEach((pl: any, index: number) => {
-      console.log(`[TreeExplorer] 📋 Aplicando ProductLine ${index + 1}: ${pl.name}`, {
+      console.log(`[TreeExplorer] 📋 Estado colaborativo - ProductLine ${index + 1}: ${pl.name}`, {
         id: pl.id,
         modelsCount: pl.models?.length || 0,
         applicationsCount: pl.applications?.length || 0,
@@ -579,140 +639,125 @@ class TreeExplorer extends Component<Props, State> {
         totalModels: beforeModelsCount
       });
 
-      // Aplicar el estado del tree al proyecto local
-      project.productLines = treeState.productLines.map((plState: any) => {
-        // Buscar si ya existe la línea de producto
-        let existingPL = project.productLines?.find((pl: any) => pl.id === plState.id);
+      // PASO 1: Limpiar completamente el proyecto local para sincronización completa
+      console.log(`[TreeExplorer] 🧹 Limpiando proyecto local para sincronización completa...`);
 
-        if (!existingPL) {
-          // Crear nueva línea de producto usando el servicio
-          existingPL = this.props.projectService.createLPS(
-            project,
-            plState.name,
-            plState.type,
-            plState.domain
-          );
-          // Actualizar el ID para que coincida con el estado colaborativo
-          existingPL.id = plState.id;
-        } else {
-          // Actualizar propiedades básicas
-          existingPL.name = plState.name;
-          existingPL.type = plState.type;
-          existingPL.domain = plState.domain;
-        }
+      // Limpiar todas las líneas de producto existentes
+      project.productLines = [];
+
+      // PASO 2: Recrear el proyecto desde el estado colaborativo (fuente de verdad)
+      console.log(`[TreeExplorer] 🔄 Recreando proyecto desde estado colaborativo...`);
+
+      project.productLines = treeState.productLines.map((plState: any) => {
+        console.log(`[TreeExplorer] 🏗️ Creando ProductLine: ${plState.name}`);
+
+        // Crear nueva línea de producto usando el servicio
+        const newPL = this.props.projectService.createLPS(
+          project,
+          plState.name,
+          plState.type,
+          plState.domain
+        );
+
+        // Actualizar el ID para que coincida con el estado colaborativo
+        newPL.id = plState.id;
+
+        console.log(`[TreeExplorer] ✅ ProductLine creada: ${plState.name} con ID: ${plState.id}`);
 
         // Sincronizar applications en applicationEngineering
-        if (plState.applications && existingPL.applicationEngineering) {
-          existingPL.applicationEngineering.applications = plState.applications.map((appState: any) => {
-            let existingApp = existingPL.applicationEngineering.applications?.find((app: any) => app.id === appState.id);
+        if (plState.applications && newPL.applicationEngineering) {
+          console.log(`[TreeExplorer] 🔧 Sincronizando ${plState.applications.length} aplicaciones...`);
+          newPL.applicationEngineering.applications = plState.applications.map((appState: any) => {
+            console.log(`[TreeExplorer] 📱 Creando aplicación: ${appState.name}`);
 
-            if (!existingApp) {
-              existingApp = {
-                id: appState.id,
-                name: appState.name,
-                models: [],
-                adaptations: []
-              };
-            }
-
-            existingApp.name = appState.name;
+            const newApp = {
+              id: appState.id,
+              name: appState.name,
+              models: [],
+              adaptations: []
+            };
 
             // Sincronizar adaptations
             if (appState.adaptations) {
-              existingApp.adaptations = appState.adaptations.map((adaptState: any) => ({
+              newApp.adaptations = appState.adaptations.map((adaptState: any) => ({
                 id: adaptState.id,
                 name: adaptState.name,
                 models: []
               }));
             }
 
-            return existingApp;
+            return newApp;
           });
         }
 
         // Sincronizar models en las diferentes secciones
         if (plState.models) {
-          console.log(`[TreeExplorer] 🔧 Procesando ${plState.models.length} modelos para ProductLine: ${plState.name}`);
+          console.log(`[TreeExplorer] 🔧 Creando ${plState.models.length} modelos para ProductLine: ${plState.name}`);
 
           plState.models.forEach((modelState: any, modelIndex: number) => {
-            console.log(`[TreeExplorer] 🔧 Procesando modelo ${modelIndex + 1}: ${modelState.name} (tipo: ${modelState.type})`);
+            console.log(`[TreeExplorer] 🔧 Creando modelo ${modelIndex + 1}: ${modelState.name} (tipo: ${modelState.type}, ID: ${modelState.id})`);
 
-            // Determinar dónde colocar el modelo según su tipo y verificar si ya existe
-            if (modelState.type === 'scope' && existingPL.scope) {
-              const existingModel = existingPL.scope.models.find((m: any) => m.id === modelState.id);
-              if (!existingModel) {
-                console.log(`[TreeExplorer] ➕ Creando scope model: ${modelState.name}`);
-                try {
-                  const languageName = modelState.languageName || 'default';
-                  const languageId = modelState.languageId || 'default';
+            // Determinar dónde colocar el modelo según su tipo
+            if (modelState.type === 'scope' && newPL.scope) {
+              console.log(`[TreeExplorer] ➕ Creando scope model: ${modelState.name}`);
+              try {
+                const languageName = modelState.languageName || 'default';
+                const languageId = modelState.languageId || 'default';
 
-                  const newModel = this.props.projectService.createScopeModel(
-                    project,
-                    languageName,
-                    languageId,
-                    modelState.name,
-                    '',
-                    '',
-                    ''
-                  );
-                  // Actualizar el ID para que coincida con el estado colaborativo
-                  newModel.id = modelState.id;
-                  console.log(`[TreeExplorer] ✅ Scope model creado exitosamente: ${modelState.name} con ID: ${modelState.id} y lenguaje: ${languageName}`);
-                } catch (error) {
-                  console.error(`[TreeExplorer] ❌ Error creando scope model:`, error);
-                }
-              } else {
-                console.log(`[TreeExplorer] ⚠️ Scope model ya existe: ${modelState.name}`);
+                const newModel = this.props.projectService.createScopeModel(
+                  project,
+                  languageName,
+                  languageId,
+                  modelState.name,
+                  '',
+                  '',
+                  ''
+                );
+                // Actualizar el ID para que coincida con el estado colaborativo
+                newModel.id = modelState.id;
+                console.log(`[TreeExplorer] ✅ Scope model creado exitosamente: ${modelState.name} con ID: ${modelState.id} y lenguaje: ${languageName}`);
+              } catch (error) {
+                console.error(`[TreeExplorer] ❌ Error creando scope model:`, error);
               }
-            } else if (modelState.type === 'domainEngineering' && existingPL.domainEngineering) {
-              const existingModel = existingPL.domainEngineering.models.find((m: any) => m.id === modelState.id);
-              if (!existingModel) {
-                console.log(`[TreeExplorer] ➕ Creando domain engineering model: ${modelState.name}`);
-                try {
-                  const languageName = modelState.languageName || 'default';
-                  const languageId = modelState.languageId || 'default';
+            } else if (modelState.type === 'domainEngineering' && newPL.domainEngineering) {
+              console.log(`[TreeExplorer] ➕ Creando domain engineering model: ${modelState.name}`);
+              try {
+                const languageName = modelState.languageName || 'default';
+                const languageId = modelState.languageId || 'default';
 
-                  const newModel = this.props.projectService.createDomainEngineeringModel(
-                    project,
-                    languageName,
-                    languageId,
-                    modelState.name,
-                    '',
-                    '',
-                    ''
-                  );
-                  newModel.id = modelState.id;
-                  console.log(`[TreeExplorer] ✅ Domain engineering model creado exitosamente: ${modelState.name} con ID: ${modelState.id} y lenguaje: ${languageName}`);
-                } catch (error) {
-                  console.error(`[TreeExplorer] ❌ Error creando domain engineering model:`, error);
-                }
-              } else {
-                console.log(`[TreeExplorer] ⚠️ Domain engineering model ya existe: ${modelState.name}`);
+                const newModel = this.props.projectService.createDomainEngineeringModel(
+                  project,
+                  languageName,
+                  languageId,
+                  modelState.name,
+                  '',
+                  '',
+                  ''
+                );
+                newModel.id = modelState.id;
+                console.log(`[TreeExplorer] ✅ Domain engineering model creado exitosamente: ${modelState.name} con ID: ${modelState.id} y lenguaje: ${languageName}`);
+              } catch (error) {
+                console.error(`[TreeExplorer] ❌ Error creando domain engineering model:`, error);
               }
-            } else if (modelState.type === 'applicationEngineering' && existingPL.applicationEngineering) {
-              const existingModel = existingPL.applicationEngineering.models.find((m: any) => m.id === modelState.id);
-              if (!existingModel) {
-                console.log(`[TreeExplorer] ➕ Creando application engineering model: ${modelState.name}`);
-                try {
-                  const languageName = modelState.languageName || 'default';
-                  const languageId = modelState.languageId || 'default';
+            } else if (modelState.type === 'applicationEngineering' && newPL.applicationEngineering) {
+              console.log(`[TreeExplorer] ➕ Creando application engineering model: ${modelState.name}`);
+              try {
+                const languageName = modelState.languageName || 'default';
+                const languageId = modelState.languageId || 'default';
 
-                  const newModel = this.props.projectService.createApplicationEngineeringModel(
-                    project,
-                    languageName,
-                    languageId,
-                    modelState.name,
-                    '',
-                    '',
-                    ''
-                  );
-                  newModel.id = modelState.id;
-                  console.log(`[TreeExplorer] ✅ Application engineering model creado exitosamente: ${modelState.name} con ID: ${modelState.id} y lenguaje: ${languageName}`);
-                } catch (error) {
-                  console.error(`[TreeExplorer] ❌ Error creando application engineering model:`, error);
-                }
-              } else {
-                console.log(`[TreeExplorer] ⚠️ Application engineering model ya existe: ${modelState.name}`);
+                const newModel = this.props.projectService.createApplicationEngineeringModel(
+                  project,
+                  languageName,
+                  languageId,
+                  modelState.name,
+                  '',
+                  '',
+                  ''
+                );
+                newModel.id = modelState.id;
+                console.log(`[TreeExplorer] ✅ Application engineering model creado exitosamente: ${modelState.name} con ID: ${modelState.id} y lenguaje: ${languageName}`);
+              } catch (error) {
+                console.error(`[TreeExplorer] ❌ Error creando application engineering model:`, error);
               }
             } else {
               console.log(`[TreeExplorer] ⚠️ Tipo de modelo no reconocido o sección no disponible: ${modelState.type}`);
@@ -720,7 +765,7 @@ class TreeExplorer extends Component<Props, State> {
           });
         }
 
-        return existingPL;
+        return newPL;
       });
 
       // Contar elementos después de la sincronización
@@ -743,14 +788,7 @@ class TreeExplorer extends Component<Props, State> {
     }
   }
 
-  // Validar si una operación del tree es válida
-  isValidTreeOperation(operation: any): boolean {
-    return operation &&
-           operation.type &&
-           operation.operationId &&
-           operation.timestamp &&
-           operation.data;
-  }
+
 
   // Procesar una operación del tree
   processTreeOperation(operation: any) {
@@ -771,12 +809,12 @@ class TreeExplorer extends Component<Props, State> {
     }
   }
 
-  // Manejar agregar modelo remoto
+  // Manejar agregar modelo remoto (mejorado con validación robusta)
   handleRemoteAddModel(modelData: any) {
     console.log(`[TreeExplorer] ➕ Modelo agregado remotamente:`, modelData);
 
     try {
-      // Verificar si el modelo ya existe para evitar duplicados
+      // Verificar si el modelo ya existe para evitar duplicados (usando función mejorada)
       const existingModel = this.findModelById(modelData.id);
       if (existingModel) {
         console.log(`[TreeExplorer] ⚠️ Modelo ya existe localmente, saltando creación: ${modelData.name}`);
@@ -837,61 +875,15 @@ class TreeExplorer extends Component<Props, State> {
     }
   }
 
-  // Buscar un modelo por ID en todo el proyecto
-  findModelById(modelId: string): any {
-    const project = this.props.projectService.project;
 
-    for (const productLine of project.productLines) {
-      // Buscar en modelos de scope
-      if (productLine.scope?.models) {
-        const found = productLine.scope.models.find((model: any) => model.id === modelId);
-        if (found) return found;
-      }
-
-      // Buscar en modelos de domain engineering
-      if (productLine.domainEngineering?.models) {
-        const found = productLine.domainEngineering.models.find((model: any) => model.id === modelId);
-        if (found) return found;
-      }
-
-      // Buscar en modelos de application engineering
-      if (productLine.applicationEngineering?.models) {
-        const found = productLine.applicationEngineering.models.find((model: any) => model.id === modelId);
-        if (found) return found;
-      }
-
-      // Buscar en applications
-      if (productLine.applicationEngineering?.applications) {
-        for (const application of productLine.applicationEngineering.applications) {
-          if (application.models) {
-            const found = application.models.find((model: any) => model.id === modelId);
-            if (found) return found;
-          }
-
-          // Buscar en adaptations
-          if (application.adaptations) {
-            for (const adaptation of application.adaptations) {
-              if (adaptation.models) {
-                const found = adaptation.models.find((model: any) => model.id === modelId);
-                if (found) return found;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return null;
-  }
 
   // Manejar eliminar modelo remoto
   handleRemoteDeleteModel(modelData: any) {
     console.log(`[TreeExplorer] ➖ Modelo eliminado remotamente:`, modelData);
 
     try {
-      // Buscar el modelo en el proyecto
-      const project = this.props.projectService.project;
-      const model = this.props.projectService.findModelById(project, modelData.id);
+      // Usar la función mejorada de búsqueda
+      const model = this.findModelById(modelData.id);
 
       if (model) {
         console.log(`[TreeExplorer] 🔍 Modelo encontrado para eliminar: ${model.name}`);
@@ -936,7 +928,8 @@ class TreeExplorer extends Component<Props, State> {
       const project = this.props.projectService.project;
 
       if (itemData.itemType === 'model') {
-        const model = this.props.projectService.findModelById(project, itemData.id);
+        // Usar la función mejorada de búsqueda
+        const model = this.findModelById(itemData.id);
 
         if (model) {
           // Verificar si es una operación de renombrado simple o cambio de propiedades múltiples
