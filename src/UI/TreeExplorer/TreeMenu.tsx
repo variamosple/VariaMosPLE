@@ -360,7 +360,7 @@ class TreeMenu extends Component<Props, State> {
           productLineId: this.props.projectService.getIdCurrentProductLine()
         };
 
-        treeCollaborationService.syncDeleteModelOperation(modelData);
+        treeCollaborationService.syncDeleteModelOperation(modelData, this.props.projectService);
       } else {
         console.log(`[TreeMenu] ⚠️ No se encontró el modelo para sincronizar eliminación`);
       }
@@ -1030,7 +1030,7 @@ class TreeMenu extends Component<Props, State> {
         productLineId: this.props.projectService.getIdCurrentProductLine()
       };
 
-      treeCollaborationService.syncAddModelOperation(modelData);
+      treeCollaborationService.syncAddModelOperation(modelData, this.props.projectService);
     } else {
       console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza Scope Model`);
     }
@@ -1076,7 +1076,7 @@ class TreeMenu extends Component<Props, State> {
         productLineId: this.props.projectService.getIdCurrentProductLine()
       };
 
-      treeCollaborationService.syncAddModelOperation(modelData);
+      treeCollaborationService.syncAddModelOperation(modelData, this.props.projectService);
     } else {
       console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza Domain Engineering Model`);
     }

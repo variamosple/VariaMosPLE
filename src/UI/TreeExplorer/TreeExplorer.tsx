@@ -370,10 +370,23 @@ class TreeExplorer extends Component<Props, State> {
           const connectionStatus = treeCollaborationService.getConnectionStatus();
           console.log(`[TreeExplorer] 📊 Estado de conexión:`, connectionStatus);
 
-          // Sincronizar el estado actual del proyecto
-          treeCollaborationService.syncCurrentProjectState(this.props.projectService);
+          // PASO 1: Verificar si existe un estado previo del tree y aplicarlo
+          const existingTreeState = treeCollaborationService.getExistingTreeState();
+          if (existingTreeState) {
+            console.log(`[TreeExplorer] 🔄 Aplicando estado existente del tree para nuevo usuario...`);
+            this.applyFullTreeState(existingTreeState);
 
-          // Observar cambios en el tree colaborativo
+            // Después de aplicar el estado existente, sincronizar el estado actual
+            // para asegurar que cualquier cambio local también se refleje
+            console.log(`[TreeExplorer] 🔄 Sincronizando estado actual después de aplicar estado existente...`);
+            treeCollaborationService.syncCurrentProjectState(this.props.projectService);
+          } else {
+            console.log(`[TreeExplorer] ℹ️ No hay estado previo del tree, sincronizando estado actual...`);
+            // Solo sincronizar el estado actual si no hay estado previo
+            treeCollaborationService.syncCurrentProjectState(this.props.projectService);
+          }
+
+          // PASO 2: Observar cambios en el tree colaborativo
           const unsubscribe = treeCollaborationService.observeTreeChanges((changes) => {
             console.log(`[TreeExplorer] 🔔 Cambios recibidos en el tree:`, changes);
             this.handleCollaborativeTreeChanges(changes);
@@ -473,15 +486,260 @@ class TreeExplorer extends Component<Props, State> {
       return;
     }
 
-    // Procesar las operaciones recibidas
-    const operations = changes.data;
+    console.log(`[TreeExplorer] 🔄 Manejando cambios colaborativos:`, changes.type);
 
-    if (typeof operations === 'object') {
-      Object.values(operations).forEach((operation: any) => {
-        if (this.isValidTreeOperation(operation)) {
-          this.processTreeOperation(operation);
+    // Manejar estado completo del tree (para nuevos usuarios)
+    if (changes.type === 'tree-full-state') {
+      this.applyFullTreeState(changes.data);
+      return;
+    }
+
+    // Manejar operaciones incrementales
+    if (changes.type === 'tree-operations') {
+      const operations = changes.data;
+
+      if (typeof operations === 'object') {
+        Object.values(operations).forEach((operation: any) => {
+          if (this.isValidTreeOperation(operation)) {
+            this.processTreeOperation(operation);
+          }
+        });
+      }
+    }
+  }
+
+  // Función auxiliar para contar todos los modelos en un proyecto
+  countAllModels(project: any): number {
+    let totalModels = 0;
+
+    if (project.productLines) {
+      project.productLines.forEach((pl: any) => {
+        // Contar modelos de scope
+        if (pl.scope?.models) {
+          totalModels += pl.scope.models.length;
+        }
+
+        // Contar modelos de domain engineering
+        if (pl.domainEngineering?.models) {
+          totalModels += pl.domainEngineering.models.length;
+        }
+
+        // Contar modelos de application engineering
+        if (pl.applicationEngineering?.models) {
+          totalModels += pl.applicationEngineering.models.length;
         }
       });
+    }
+
+    return totalModels;
+  }
+
+  // Aplicar estado completo del tree (para nuevos usuarios)
+  applyFullTreeState(treeState: any) {
+    if (!treeState || !treeState.productLines) {
+      console.log(`[TreeExplorer] ⚠️ Estado del tree inválido o vacío`);
+      return;
+    }
+
+    const totalModels = treeState.productLines.reduce((total: number, pl: any) => total + (pl.models?.length || 0), 0);
+    const totalApplications = treeState.productLines.reduce((total: number, pl: any) => total + (pl.applications?.length || 0), 0);
+
+    console.log(`[TreeExplorer] 🔄 Aplicando estado completo del tree:`, {
+      timestamp: new Date(treeState.timestamp).toISOString(),
+      productLinesCount: treeState.productLines.length,
+      totalModels: totalModels,
+      totalApplications: totalApplications
+    });
+
+    // Log detallado de lo que se va a aplicar
+    treeState.productLines.forEach((pl: any, index: number) => {
+      console.log(`[TreeExplorer] 📋 Aplicando ProductLine ${index + 1}: ${pl.name}`, {
+        id: pl.id,
+        modelsCount: pl.models?.length || 0,
+        applicationsCount: pl.applications?.length || 0,
+        models: pl.models?.map((m: any) => `${m.name} (${m.type})`) || [],
+        applications: pl.applications?.map((a: any) => a.name) || []
+      });
+    });
+
+    try {
+      // Obtener el proyecto actual
+      const project = this.props.projectService.getProject();
+      if (!project) {
+        console.log(`[TreeExplorer] ⚠️ No hay proyecto actual para aplicar estado`);
+        return;
+      }
+
+      // Contar elementos antes de la sincronización
+      const beforeCount = project.productLines?.length || 0;
+      const beforeModelsCount = this.countAllModels(project);
+
+      console.log(`[TreeExplorer] 📊 Estado antes de aplicar:`, {
+        productLines: beforeCount,
+        totalModels: beforeModelsCount
+      });
+
+      // Aplicar el estado del tree al proyecto local
+      project.productLines = treeState.productLines.map((plState: any) => {
+        // Buscar si ya existe la línea de producto
+        let existingPL = project.productLines?.find((pl: any) => pl.id === plState.id);
+
+        if (!existingPL) {
+          // Crear nueva línea de producto usando el servicio
+          existingPL = this.props.projectService.createLPS(
+            project,
+            plState.name,
+            plState.type,
+            plState.domain
+          );
+          // Actualizar el ID para que coincida con el estado colaborativo
+          existingPL.id = plState.id;
+        } else {
+          // Actualizar propiedades básicas
+          existingPL.name = plState.name;
+          existingPL.type = plState.type;
+          existingPL.domain = plState.domain;
+        }
+
+        // Sincronizar applications en applicationEngineering
+        if (plState.applications && existingPL.applicationEngineering) {
+          existingPL.applicationEngineering.applications = plState.applications.map((appState: any) => {
+            let existingApp = existingPL.applicationEngineering.applications?.find((app: any) => app.id === appState.id);
+
+            if (!existingApp) {
+              existingApp = {
+                id: appState.id,
+                name: appState.name,
+                models: [],
+                adaptations: []
+              };
+            }
+
+            existingApp.name = appState.name;
+
+            // Sincronizar adaptations
+            if (appState.adaptations) {
+              existingApp.adaptations = appState.adaptations.map((adaptState: any) => ({
+                id: adaptState.id,
+                name: adaptState.name,
+                models: []
+              }));
+            }
+
+            return existingApp;
+          });
+        }
+
+        // Sincronizar models en las diferentes secciones
+        if (plState.models) {
+          console.log(`[TreeExplorer] 🔧 Procesando ${plState.models.length} modelos para ProductLine: ${plState.name}`);
+
+          plState.models.forEach((modelState: any, modelIndex: number) => {
+            console.log(`[TreeExplorer] 🔧 Procesando modelo ${modelIndex + 1}: ${modelState.name} (tipo: ${modelState.type})`);
+
+            // Determinar dónde colocar el modelo según su tipo y verificar si ya existe
+            if (modelState.type === 'scope' && existingPL.scope) {
+              const existingModel = existingPL.scope.models.find((m: any) => m.id === modelState.id);
+              if (!existingModel) {
+                console.log(`[TreeExplorer] ➕ Creando scope model: ${modelState.name}`);
+                try {
+                  const languageName = modelState.languageName || 'default';
+                  const languageId = modelState.languageId || 'default';
+
+                  const newModel = this.props.projectService.createScopeModel(
+                    project,
+                    languageName,
+                    languageId,
+                    modelState.name,
+                    '',
+                    '',
+                    ''
+                  );
+                  // Actualizar el ID para que coincida con el estado colaborativo
+                  newModel.id = modelState.id;
+                  console.log(`[TreeExplorer] ✅ Scope model creado exitosamente: ${modelState.name} con ID: ${modelState.id} y lenguaje: ${languageName}`);
+                } catch (error) {
+                  console.error(`[TreeExplorer] ❌ Error creando scope model:`, error);
+                }
+              } else {
+                console.log(`[TreeExplorer] ⚠️ Scope model ya existe: ${modelState.name}`);
+              }
+            } else if (modelState.type === 'domainEngineering' && existingPL.domainEngineering) {
+              const existingModel = existingPL.domainEngineering.models.find((m: any) => m.id === modelState.id);
+              if (!existingModel) {
+                console.log(`[TreeExplorer] ➕ Creando domain engineering model: ${modelState.name}`);
+                try {
+                  const languageName = modelState.languageName || 'default';
+                  const languageId = modelState.languageId || 'default';
+
+                  const newModel = this.props.projectService.createDomainEngineeringModel(
+                    project,
+                    languageName,
+                    languageId,
+                    modelState.name,
+                    '',
+                    '',
+                    ''
+                  );
+                  newModel.id = modelState.id;
+                  console.log(`[TreeExplorer] ✅ Domain engineering model creado exitosamente: ${modelState.name} con ID: ${modelState.id} y lenguaje: ${languageName}`);
+                } catch (error) {
+                  console.error(`[TreeExplorer] ❌ Error creando domain engineering model:`, error);
+                }
+              } else {
+                console.log(`[TreeExplorer] ⚠️ Domain engineering model ya existe: ${modelState.name}`);
+              }
+            } else if (modelState.type === 'applicationEngineering' && existingPL.applicationEngineering) {
+              const existingModel = existingPL.applicationEngineering.models.find((m: any) => m.id === modelState.id);
+              if (!existingModel) {
+                console.log(`[TreeExplorer] ➕ Creando application engineering model: ${modelState.name}`);
+                try {
+                  const languageName = modelState.languageName || 'default';
+                  const languageId = modelState.languageId || 'default';
+
+                  const newModel = this.props.projectService.createApplicationEngineeringModel(
+                    project,
+                    languageName,
+                    languageId,
+                    modelState.name,
+                    '',
+                    '',
+                    ''
+                  );
+                  newModel.id = modelState.id;
+                  console.log(`[TreeExplorer] ✅ Application engineering model creado exitosamente: ${modelState.name} con ID: ${modelState.id} y lenguaje: ${languageName}`);
+                } catch (error) {
+                  console.error(`[TreeExplorer] ❌ Error creando application engineering model:`, error);
+                }
+              } else {
+                console.log(`[TreeExplorer] ⚠️ Application engineering model ya existe: ${modelState.name}`);
+              }
+            } else {
+              console.log(`[TreeExplorer] ⚠️ Tipo de modelo no reconocido o sección no disponible: ${modelState.type}`);
+            }
+          });
+        }
+
+        return existingPL;
+      });
+
+      // Contar elementos después de la sincronización
+      const afterCount = project.productLines?.length || 0;
+      const afterModelsCount = this.countAllModels(project);
+
+      // Forzar actualización de la UI
+      this.forceUpdate();
+
+      console.log(`[TreeExplorer] ✅ Estado completo aplicado exitosamente:`, {
+        productLines: { antes: beforeCount, después: afterCount, diferencia: afterCount - beforeCount },
+        modelos: { antes: beforeModelsCount, después: afterModelsCount, diferencia: afterModelsCount - beforeModelsCount }
+      });
+
+      // Mostrar notificación al usuario
+      console.log(`[TreeExplorer] 🔔 Tree sincronizado con estado colaborativo (${afterCount} líneas de producto, ${afterModelsCount} modelos)`);
+
+    } catch (error) {
+      console.error(`[TreeExplorer] ❌ Error aplicando estado completo del tree:`, error);
     }
   }
 

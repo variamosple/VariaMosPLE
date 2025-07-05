@@ -76,6 +76,29 @@ class TreeCollaborationService {
   }
 
   /**
+   * Verifica si existe un estado previo del tree y lo retorna para aplicar
+   * Esto es crucial para que nuevos usuarios vean el estado existente
+   */
+  getExistingTreeState(): any {
+    if (!this.isInitialized || !this.treeState) {
+      console.log(`[TreeCollaboration] ⚠️ Tree collaboration no inicializado para obtener estado existente`);
+      return null;
+    }
+
+    const currentState = this.treeState.get('currentState');
+    if (currentState && currentState.productLines && currentState.productLines.length > 0) {
+      console.log(`[TreeCollaboration] 📥 Estado existente encontrado:`, {
+        timestamp: new Date(currentState.timestamp).toISOString(),
+        productLinesCount: currentState.productLines.length
+      });
+      return currentState;
+    }
+
+    console.log(`[TreeCollaboration] ℹ️ No hay estado previo del tree o está vacío`);
+    return null;
+  }
+
+  /**
    * Sincroniza el estado actual del proyecto al tree colaborativo
    */
   syncCurrentProjectState(projectService: any): void {
@@ -96,26 +119,65 @@ class TreeCollaborationService {
       // Crear snapshot del estado actual del tree
       const treeSnapshot = {
         timestamp: Date.now(),
-        productLines: project.productLines?.map((pl: any) => ({
-          id: pl.id,
-          name: pl.name,
-          type: pl.type,
-          domain: pl.domain,
-          applications: pl.applications?.map((app: any) => ({
-            id: app.id,
-            name: app.name,
-            adaptations: app.adaptations?.map((adapt: any) => ({
-              id: adapt.id,
-              name: adapt.name
-            })) || []
-          })) || [],
-          models: pl.models?.map((model: any) => ({
-            id: model.id,
-            name: model.name,
-            type: model.type,
-            languageId: model.languageId
-          })) || []
-        })) || []
+        productLines: project.productLines?.map((pl: any) => {
+          // Recopilar todos los modelos de las diferentes secciones
+          const allModels: any[] = [];
+
+          // Modelos de scope
+          if (pl.scope?.models) {
+            pl.scope.models.forEach((model: any) => {
+              allModels.push({
+                id: model.id,
+                name: model.name,
+                type: 'scope',
+                languageId: model.languageId,
+                languageName: model.type // El nombre del lenguaje está en model.type
+              });
+            });
+          }
+
+          // Modelos de domain engineering
+          if (pl.domainEngineering?.models) {
+            pl.domainEngineering.models.forEach((model: any) => {
+              allModels.push({
+                id: model.id,
+                name: model.name,
+                type: 'domainEngineering',
+                languageId: model.languageId,
+                languageName: model.type // El nombre del lenguaje está en model.type
+              });
+            });
+          }
+
+          // Modelos de application engineering
+          if (pl.applicationEngineering?.models) {
+            pl.applicationEngineering.models.forEach((model: any) => {
+              allModels.push({
+                id: model.id,
+                name: model.name,
+                type: 'applicationEngineering',
+                languageId: model.languageId,
+                languageName: model.type // El nombre del lenguaje está en model.type
+              });
+            });
+          }
+
+          return {
+            id: pl.id,
+            name: pl.name,
+            type: pl.type,
+            domain: pl.domain,
+            applications: pl.applicationEngineering?.applications?.map((app: any) => ({
+              id: app.id,
+              name: app.name,
+              adaptations: app.adaptations?.map((adapt: any) => ({
+                id: adapt.id,
+                name: adapt.name
+              })) || []
+            })) || [],
+            models: allModels
+          };
+        }) || []
       };
 
       // Guardar en YJS
@@ -127,9 +189,26 @@ class TreeCollaborationService {
         console.log(`[TreeCollaboration] ⏰ Timestamp inicial establecido para evitar historial: ${this.lastProcessedTimestamp}`);
       }
 
+      // Log detallado del estado sincronizado
+      const totalModels = treeSnapshot.productLines.reduce((total: number, pl: any) => total + pl.models.length, 0);
+      const totalApplications = treeSnapshot.productLines.reduce((total: number, pl: any) => total + pl.applications.length, 0);
+
       console.log(`[TreeCollaboration] ✅ Estado del proyecto sincronizado:`, {
         productLinesCount: treeSnapshot.productLines.length,
+        totalModels: totalModels,
+        totalApplications: totalApplications,
         timestamp: new Date(treeSnapshot.timestamp).toISOString()
+      });
+
+      // Log detallado de cada línea de producto
+      treeSnapshot.productLines.forEach((pl: any, index: number) => {
+        console.log(`[TreeCollaboration] 📋 ProductLine ${index + 1}: ${pl.name}`, {
+          id: pl.id,
+          modelsCount: pl.models.length,
+          applicationsCount: pl.applications.length,
+          models: pl.models.map((m: any) => `${m.name} (${m.type})`),
+          applications: pl.applications.map((a: any) => a.name)
+        });
       });
 
     } catch (error) {
@@ -326,7 +405,7 @@ class TreeCollaborationService {
   /**
    * Sincroniza una operación de agregar modelo
    */
-  syncAddModelOperation(modelData: any): void {
+  syncAddModelOperation(modelData: any, projectService?: any): void {
     if (!this.isInitialized || !this.treeState) {
       console.log(`[TreeCollaboration] ⚠️ Tree collaboration no inicializado, no se puede sincronizar operación`);
       return;
@@ -346,12 +425,17 @@ class TreeCollaborationService {
 
     // Agregar la operación a YJS
     this.treeState.set(operation.operationId, operation);
+
+    // IMPORTANTE: Actualizar el currentState después de la operación
+    if (projectService) {
+      this.updateCurrentStateAfterOperation(projectService);
+    }
   }
 
   /**
    * Sincroniza una operación de eliminar modelo
    */
-  syncDeleteModelOperation(modelData: any): void {
+  syncDeleteModelOperation(modelData: any, projectService?: any): void {
     if (!this.isInitialized || !this.treeState) {
       console.log(`[TreeCollaboration] ⚠️ Tree collaboration no inicializado, no se puede sincronizar operación`);
       return;
@@ -371,6 +455,26 @@ class TreeCollaborationService {
 
     // Agregar la operación a YJS
     this.treeState.set(operation.operationId, operation);
+
+    // IMPORTANTE: Actualizar el currentState después de la operación
+    if (projectService) {
+      this.updateCurrentStateAfterOperation(projectService);
+    }
+  }
+
+  /**
+   * Actualiza el currentState después de una operación para mantener sincronizado el estado
+   */
+  private updateCurrentStateAfterOperation(projectService: any): void {
+    if (!this.isInitialized || !this.treeState) {
+      console.log(`[TreeCollaboration] ⚠️ No se puede actualizar currentState, tree collaboration no inicializado`);
+      return;
+    }
+
+    console.log(`[TreeCollaboration] 🔄 Actualizando currentState después de operación...`);
+
+    // Usar la función existente para sincronizar el estado actual
+    this.syncCurrentProjectState(projectService);
   }
 
   /**
