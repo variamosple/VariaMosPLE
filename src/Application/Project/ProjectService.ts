@@ -942,12 +942,28 @@ export default class ProjectService {
     this.utils.downloadFile(this._project.name + ".json", this._project);
   }
 
+  /**
+   * Obtiene el ID del modelo actualmente abierto en el editor
+   */
+  getCurrentlyOpenModelId(): string | null {
+    // El modelo actualmente abierto es el que está en _currentModel
+    return this._currentModel?.id || null;
+  }
+
   deleteItemProject() {
+    const deletedItemId = this.treeIdItemSelected;
+    const currentlyOpenModelId = this.getCurrentlyOpenModelId();
+
     this._project = this.projectManager.deleteItemProject(
       this._project,
-      this.treeIdItemSelected
+      deletedItemId
     );
-    this.raiseEventUpdateProject(this._project, null);
+    // Solo cerrar el editor si el modelo eliminado es el que está actualmente abierto
+    if (deletedItemId === currentlyOpenModelId) {
+      this.raiseEventUpdateProject(this._project, null);
+    } else {
+      this.raiseEventUpdateProject(this._project, currentlyOpenModelId);
+    }
   }
 
   refreshLanguageList() {
