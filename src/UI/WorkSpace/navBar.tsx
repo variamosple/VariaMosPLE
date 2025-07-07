@@ -36,34 +36,39 @@ class navBar extends Component<Props, State> {
   componentDidMount() {
   }
 
-  // TODO Recordatorio propio de cambios
   saveProject() {
-    let me = this;
     if (this.props.projectService.isGuessUser()) {
-      this.exportProject(); 
-    }else{
-      let pf=this.props.projectService.getProjectInformation();
-      const currentUser = this.props.projectService.getUser();
+      this.exportProject();
+      return;
+    }
+    const projectInfo = this.props.projectService.getProjectInformation();
+    const currentUser = this.props.projectService.getUser();
 
-      if (!pf || !pf.id ) {
-        this.handleShowSaveModal();
-      } else if (pf.owner_id === currentUser) {
-        this.props.projectService.saveProjectInServer(pf, null, null);
-      }else if (
-        pf.is_collaborative &&
-        pf.collaborators &&
-        pf.collaborators.some(
-          (collaborator: any) => collaborator.user_id === currentUser) 
-      ) {
-        this.props.projectService.saveProjectInServer(pf, null, null);
-      }else if (pf.template){
-        alert("This project is a template, Saving a Copy");
-        this.handleShowSaveModal();        
-      }else{
-        alert("The project in this moment is not collaborative, saving a copy");
-        this.handleShowSaveModal();
-      }
-    } 
+    if (!projectInfo || !projectInfo.id || !currentUser) {
+      this.handleShowSaveModal();
+      return;
+    }
+    if (projectInfo.owner_id === currentUser) {
+      this.props.projectService.saveProjectInServer(projectInfo, null, null);
+      return;
+    }
+    if (
+      projectInfo.is_collaborative &&
+      projectInfo.collaborators &&
+      projectInfo.collaborators.some(
+        (collaborator: any) => collaborator.user_id === currentUser
+      )
+    ) {
+      this.props.projectService.saveProjectInServer(projectInfo, null, null);
+      return;
+    }
+    if (projectInfo.template) {
+      alert("This project is a template. Saving a copy instead.");
+      this.handleShowSaveModal();
+      return;
+    }
+    alert("You don't have permission to save this project. Saving a copy instead.");
+    this.handleShowSaveModal();
   }
 
   saveProjectAs() {
