@@ -303,8 +303,6 @@ class TreeMenu extends Component<Props, State> {
 
     // Sincronizar la operación de edición si es colaborativo
     if (treeCollaborationService.isCollaborationActive()) {
-      console.log(`[TreeMenu] ✏️ Sincronizando cambios en propiedades de ProductLine...`);
-
       const itemData = {
         id: pl.id,
         itemType: 'productLine',
@@ -314,17 +312,13 @@ class TreeMenu extends Component<Props, State> {
       };
 
       treeCollaborationService.syncEditItemOperation(itemData);
-    } else {
-      console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza edición de ProductLine`);
-    }
+    } 
 
     // Guardar proyecto
     this.props.projectService.saveProject();
 
     me.hidePropertiesModal();
     me.forceUpdate();
-
-    console.log(`[TreeMenu] ✅ Propiedades de ProductLine guardadas y sincronizadas`);
   }
 
   callExternalFuntion(efunction: ExternalFuntion, query: any = null): void {
@@ -339,8 +333,6 @@ class TreeMenu extends Component<Props, State> {
     const itemName = this.props.projectService.getItemProjectName();
     const itemType = this.props.projectService.getTreeItemSelected();
     const itemId = this.props.projectService.getTreeIdItemSelected();
-
-    console.log(`[TreeMenu] 🗑️ Eliminando elemento: ${itemName} (tipo: ${itemType}, ID: ${itemId})`);
 
     // Obtener información del modelo ANTES de eliminarlo (para sincronización)
     let modelDataForSync = null;
@@ -357,26 +349,16 @@ class TreeMenu extends Component<Props, State> {
           languageId: model.languageId,
           productLineId: this.props.projectService.getIdCurrentProductLine()
         };
-        console.log(`[TreeMenu] 📋 Información del modelo capturada para sincronización:`, modelDataForSync);
-      } else {
-        console.log(`[TreeMenu] ⚠️ No se encontró el modelo para sincronizar eliminación`);
-      }
+      } 
     }
 
     // PASO 1: Eliminar localmente PRIMERO
     this.hideDeleteModal();
     this.props.projectService.deleteItemProject();
-    console.log(`[TreeMenu] ✅ Elemento eliminado localmente`);
-
     // PASO 2: Sincronizar operación colaborativa DESPUÉS de eliminar localmente
     if (modelDataForSync && treeCollaborationService.isCollaborationActive()) {
-      console.log(`[TreeMenu] 🔄 Sincronizando DELETE Model colaborativamente DESPUÉS de eliminación local...`);
       treeCollaborationService.syncDeleteModelOperation(modelDataForSync, this.props.projectService);
-    } else if (itemType === 'model') {
-      console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza eliminación de modelo`);
-    }
-
-    console.log(`[TreeMenu] ✅ Elemento eliminado y sincronizado completamente`);
+    } 
   }
 
   /**
@@ -449,8 +431,6 @@ class TreeMenu extends Component<Props, State> {
     const itemType = this.props.projectService.getTreeItemSelected();
     const itemId = this.props.projectService.getTreeIdItemSelected();
 
-    console.log(`[TreeMenu] ✏️ Renombrando elemento: "${oldName}" -> "${newName}" (tipo: ${itemType}, ID: ${itemId})`);
-
     // Sincronizar la operación de edición si es colaborativo y es un modelo
     if (treeCollaborationService.isCollaborationActive() && itemType === 'model') {
       const project = this.props.projectService.project;
@@ -469,16 +449,10 @@ class TreeMenu extends Component<Props, State> {
         };
 
         treeCollaborationService.syncEditItemOperation(itemData);
-      } else {
-        console.log(`[TreeMenu] ⚠️ No se encontró el modelo para sincronizar edición`);
-      }
-    } else if (itemType === 'model') {
-      console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza edición de modelo`);
-    }
+      } 
+    } 
 
     this.props.projectService.renameItemProject(newName);
-
-    console.log(`[TreeMenu] ✅ Elemento renombrado y proyecto guardado`);
   }
 
   getItemProjectName() {
@@ -780,8 +754,6 @@ class TreeMenu extends Component<Props, State> {
       const existingModel = this.props.projectService.findModelById(project, this.state.model.id);
 
       if (existingModel && treeCollaborationService.isCollaborationActive()) {
-        console.log(`[TreeMenu] ✏️ Sincronizando cambios en propiedades de modelo...`);
-
         // Capturar valores anteriores y nuevos
         const oldValues = {
           name: existingModel.name,
@@ -841,10 +813,7 @@ class TreeMenu extends Component<Props, State> {
           treeCollaborationService.syncEditItemOperation(itemData);
         }
 
-        console.log(`[TreeMenu] ✅ Propiedades de modelo sincronizadas colaborativamente`);
       } else if (existingModel) {
-        console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza edición de modelo`);
-
         // Aplicar cambios localmente sin sincronización
         existingModel.name = this.state.model.name;
         existingModel.description = this.state.model.description;
@@ -893,8 +862,6 @@ class TreeMenu extends Component<Props, State> {
   }
 
   addNewProductLine(productLineName: string, type: string, domain: string) {
-    console.log(`[TreeMenu] 🚀 Agregando Product Line: ${productLineName}, tipo: ${type}, dominio: ${domain}`);
-
     let productLine = this.props.projectService.createLPS(
       this.props.projectService.project,
       productLineName,
@@ -902,44 +869,29 @@ class TreeMenu extends Component<Props, State> {
       domain
     );
 
-    console.log(`[TreeMenu] ✅ Product Line creada con ID: ${productLine.id}`);
-
     this.props.projectService.raiseEventNewProductLine(productLine);
     this.props.projectService.saveProject();
-
-    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Product Line`);
   }
 
   addNewApplication(applicationName: string) {
-    console.log(`[TreeMenu] 🚀 Agregando Application: ${applicationName}`);
-
     let application = this.props.projectService.createApplication(
       this.props.projectService.project,
       applicationName
     );
 
-    console.log(`[TreeMenu] ✅ Application creada con ID: ${application.id}`);
-
     this.props.projectService.raiseEventApplication(application);
     this.props.projectService.saveProject();
-
-    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Application`);
   }
 
   addNewAdaptation(adaptationName: string) {
-    console.log(`[TreeMenu] 🚀 Agregando Adaptation: ${adaptationName}`);
 
     let adaptation = this.props.projectService.createAdaptation(
       this.props.projectService.project,
       adaptationName
     );
 
-    console.log(`[TreeMenu] ✅ Adaptation creada con ID: ${adaptation.id}`);
-
     this.props.projectService.raiseEventAdaptation(adaptation);
     this.props.projectService.saveProject();
-
-    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Adaptation`);
   }
 
   addNewEModel(language: Language) {
@@ -997,8 +949,6 @@ class TreeMenu extends Component<Props, State> {
 
 
   addNewScopeModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
-    console.log(`[TreeMenu] 🚀 Agregando Scope Model: ${name} (lenguaje: ${languageName})`);
-
     let model =
       this.props.projectService.createScopeModel(
         this.props.projectService.project,
@@ -1010,18 +960,13 @@ class TreeMenu extends Component<Props, State> {
         source
       );
 
-    console.log(`[TreeMenu] ✅ Scope Model creado con ID: ${model.id}`);
-
     this.props.projectService.raiseEventScopeModel(
       model
     );
     this.props.projectService.saveProject();
 
-    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Scope Model`);
-
     // Sincronizar operación colaborativa
     if (treeCollaborationService.isCollaborationActive()) {
-      console.log(`[TreeMenu] 🔄 Sincronizando ADD Scope Model colaborativamente...`);
 
       const modelData = {
         id: model.id,
@@ -1036,15 +981,11 @@ class TreeMenu extends Component<Props, State> {
       };
 
       treeCollaborationService.syncAddModelOperation(modelData, this.props.projectService);
-    } else {
-      console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza Scope Model`);
-    }
+    } 
   }
 
 
   addNewDomainEModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
-    console.log(`[TreeMenu] 🚀 Agregando Domain Engineering Model: ${name} (lenguaje: ${languageName})`);
-
     let domainEngineeringModel =
       this.props.projectService.createDomainEngineeringModel(
         this.props.projectService.project,
@@ -1056,19 +997,13 @@ class TreeMenu extends Component<Props, State> {
         source
       );
 
-    console.log(`[TreeMenu] ✅ Domain Engineering Model creado con ID: ${domainEngineeringModel.id}`);
-
     this.props.projectService.raiseEventDomainEngineeringModel(
       domainEngineeringModel
     );
     this.props.projectService.saveProject();
 
-    console.log(`[TreeMenu] 💾 Proyecto guardado después de agregar Domain Engineering Model`);
-
     // Sincronizar operación colaborativa
     if (treeCollaborationService.isCollaborationActive()) {
-      console.log(`[TreeMenu] 🔄 Sincronizando ADD Domain Engineering Model colaborativamente...`);
-
       const modelData = {
         id: domainEngineeringModel.id,
         name: domainEngineeringModel.name,
@@ -1082,9 +1017,7 @@ class TreeMenu extends Component<Props, State> {
       };
 
       treeCollaborationService.syncAddModelOperation(modelData, this.props.projectService);
-    } else {
-      console.log(`[TreeMenu] ⚠️ Colaboración no activa, no se sincroniza Domain Engineering Model`);
-    }
+    } 
   }
 
   addNewApplicationEModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
@@ -1154,8 +1087,6 @@ class TreeMenu extends Component<Props, State> {
       console.error("No scope model found for the selected product line.");
       return;
     }
-
-    console.log("Forcing Scope Management with ID:", selectedScopeModel.id);
 
     // Actualiza el Tree ID seleccionado y lanza el evento
     this.props.projectService.updateScopeSelectedOri(selectedScopeModel.id);

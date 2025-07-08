@@ -34,8 +34,9 @@ const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService, o
 
   // Obtenemos el modelo actual (se asume que es el "Catalog of potential products")
   const currentModel: Model = projectService.currentModel;
-  // Obtenemos la estructura (elementos y relaciones) a través del projectService
-  const { elements = [], relationships = [] } = projectService.getStructureAndRelationships();
+  // 🔧 [FIX] Usar currentModel como fuente única para evitar inconsistencias
+  const elements = currentModel.elements || [];
+  const relationships = currentModel.relationships || [];
   const [showAddSubModal, setShowAddSubModal] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const [newSubName, setNewSubName] = useState("");

@@ -150,7 +150,8 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
   // Renderizado recursivo de las funcionalidades disponibles
   // ----------------------------------------------------------
   const getChildElements = (parentId: string): Element[] => {
-    const { elements, relationships } = projectService.getStructureAndRelationships();
+    const elements = currentModel.elements || [];
+    const relationships = currentModel.relationships || [];
     return elements.filter((el: Element) =>
       relationships.some((rel: Relationship) => rel.sourceId === parentId && rel.targetId === el.id)
     );
@@ -309,7 +310,8 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
     forceUpdateModel();
   };
   const renderAvailableFunctionalities = () => {
-    const { elements, relationships } = projectService.getStructureAndRelationships();
+    const elements = currentModel.elements || [];
+    const relationships = currentModel.relationships || [];
     const rootElements = elements.filter((el: Element) =>
       !relationships.some((rel: Relationship) => rel.targetId === el.id)
     );
