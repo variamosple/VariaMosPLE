@@ -63,24 +63,57 @@ const CollaborativeIndicators: React.FC<CollaborativeIndicatorsProps> = ({
     }
   };
 
+  const findCellRecursively = (parent: any, targetCellId: string): any => {
+    if (!parent || !graph) return null;
+
+    const childCount = graph.getModel().getChildCount(parent);
+
+    for (let i = 0; i < childCount; i++) {
+      const cell = graph.getModel().getChildAt(parent, i);
+
+      if (graph.getModel().isVertex(cell)) {
+        if (cell.value && cell.value.attributes) {
+          const uid = cell.value.getAttribute('uid');
+          if (uid === targetCellId) {
+            return cell;
+          }
+        }
+
+        const found = findCellRecursively(cell, targetCellId);
+        if (found) {
+          return found;
+        }
+      }
+    }
+
+    return null;
+  };
+
   const getCellPosition = (cellId: string) => {
     if (!graph || !cellId) return null;
-    
+
     try {
-      // Buscar la celda en el grafo
-      const cells = graph.getChildVertices(graph.getDefaultParent());
-      const cell = cells.find((c: any) => {
-        if (c.value && c.value.attributes) {
-          const uid = c.value.getAttribute('uid');
-          return uid === cellId;
-        }
-        return false;
-      });
+      // Buscar la celda recursivamente en todos los niveles
+      const cell = findCellRecursively(graph.getDefaultParent(), cellId);
 
       if (cell && cell.geometry) {
+        // Para celdas anidadas, necesitamos calcular la posición absoluta
+        let absoluteX = cell.geometry.x;
+        let absoluteY = cell.geometry.y;
+
+        // Obtener la posición absoluta considerando el padre
+        let parent = cell.getParent();
+        while (parent && parent !== graph.getDefaultParent()) {
+          if (parent.geometry) {
+            absoluteX += parent.geometry.x;
+            absoluteY += parent.geometry.y;
+          }
+          parent = parent.getParent();
+        }
+
         return {
-          x: cell.geometry.x,
-          y: cell.geometry.y,
+          x: absoluteX,
+          y: absoluteY,
           width: cell.geometry.width,
           height: cell.geometry.height
         };
@@ -88,7 +121,7 @@ const CollaborativeIndicators: React.FC<CollaborativeIndicatorsProps> = ({
     } catch (error) {
       console.warn('Error getting cell position:', error);
     }
-    
+
     return null;
   };
 
