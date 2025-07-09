@@ -903,30 +903,35 @@ export default class ProjectService {
     this.projectPersistenceUseCases.applyConfiguration(user, projectInformation, configurationInformation, successCallback, errorCallback);
   }
 
-  deleteConfigurationInServer(configurationId: string,): void {
+  deleteConfigurationInServer(configurationId: string, successCallback?: any, errorCallback?: any): void {
     let me = this;
     let user = this.getUser();
     let projectInformation = this.getProjectInformation();
     if (!projectInformation) {
+      if (errorCallback) {
+        errorCallback(new Error("No se encontró información del proyecto"));
+      }
       return;
     }
     let modelId = this.treeIdItemSelected;
     let configurationInformation = new ConfigurationInformation(configurationId, null, modelId, null);
 
-    let successCallback = (project: Project) => {
-      let x = 0;
-      // let configuredModel: Model = this.findModelById(project, modelId);
-      // let targetModel: Model = this.findModelById(me._project, modelId);
-      // targetModel.elements = configuredModel.elements;
-      // targetModel.relationships = configuredModel.relationships;
-      // me.raiseEventUpdateProject(this._project, modelId);
+    let internalSuccessCallback = (response: any) => {
+      if (successCallback) {
+        successCallback(response);
+      }
     }
 
-    let errorCallback = (e) => {
-      alert(JSON.stringify(e));
+    let internalErrorCallback = (error: any) => {
+      console.error(`Error eliminando configuración del servidor:`, error);
+      if (errorCallback) {
+        errorCallback(error);
+      } else {
+        alert(JSON.stringify(error));
+      }
     }
 
-    this.projectPersistenceUseCases.deleteConfiguration(user, projectInformation, configurationInformation, successCallback, errorCallback);
+    this.projectPersistenceUseCases.deleteConfiguration(user, projectInformation, configurationInformation, internalSuccessCallback, internalErrorCallback);
   }
 
   saveProject(): void {

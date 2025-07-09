@@ -15,6 +15,7 @@ import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reacts
 import ProductCatalogManager from "./ProductCatalogManager";
 import ProjectService from "../../Application/Project/ProjectService";
 import EditProductManager from "./EditProductManager";
+import configurationsCollaborationService from "../../DataProvider/Services/collab/configurationsCollaborationService";
 import './scope.css';
 
 
@@ -55,7 +56,7 @@ interface BillOfMaterialsEditorState {
   contextMenuPosition: { x: number; y: number };
   compareSelection: string[];
   showCompareModal: boolean;
-
+  isCollaborationInitialized: boolean;
 }
 
 export default class BillOfMaterialsEditor extends Component<
@@ -79,6 +80,7 @@ export default class BillOfMaterialsEditor extends Component<
       contextMenuPosition: { x: 0, y: 0 },
       compareSelection: [],
       showCompareModal: false,
+      isCollaborationInitialized: false,
     };
   }
 
@@ -95,6 +97,20 @@ export default class BillOfMaterialsEditor extends Component<
         console.error("Error fetching configurations:", error);
       }
     );
+
+    let projectInfo;
+    try {
+      projectInfo = this.props.projectService.getProjectInformation();
+    } catch (error) {
+      projectInfo = null;
+    }
+
+    if (projectInfo?.is_collaborative) {
+      // Usar el ID del proyecto real, no el ProjectInformation ID
+      const realProjectId = projectInfo.project?.id || projectInfo.id;
+
+      this.initializeCollaboration(realProjectId);
+    } 
   }
   // Dentro de BillOfMaterialsEditor (en la clase)
   handleCloseAllModals = () => {
@@ -117,6 +133,149 @@ export default class BillOfMaterialsEditor extends Component<
       }
     );
   };
+
+  // Inicializar colaboración
+  private async initializeCollaboration(projectId: string): Promise<void> {
+    try {
+      const success = await configurationsCollaborationService.initializeConfigurationsSync(projectId);
+      if (success) {
+        this.setState({ isCollaborationInitialized: true }, () => {
+        });
+
+        // Observar cambios colaborativos
+        this.observeConfigurationsChanges();
+      } 
+    } catch (error) {
+      console.error(`Error inicializando colaboración:`, error);
+    }
+  }
+
+  // Observar cambios colaborativos
+  private observeConfigurationsChanges(): void {
+    const unsubscribe = configurationsCollaborationService.observeConfigurationsChanges(
+      (changes: any) => {
+        if (changes.type === 'configurations-operations') {
+          this.processCollaborativeOperations(changes.data);
+        }
+      }
+    );
+  }
+
+  // Procesar operaciones colaborativas
+  private processCollaborativeOperations(operations: any): void {
+    Object.entries(operations).forEach(([operationId, operation]: [string, any]) => {
+      switch (operation.type) {
+        case 'CREATE_PRODUCT':
+          // Recargar configuraciones para mostrar el nuevo producto
+          setTimeout(() => {
+            this.loadConfigurations(() => {
+            });
+          }, 1000);
+          break;
+
+        case 'DELETE_PRODUCT':
+          // Recargar configuraciones para reflejar la eliminación
+          setTimeout(() => {
+            this.loadConfigurations(() => {
+            });
+          }, 1000);
+          break;
+
+        case 'DELETE_CONFIGURATION':
+          // Recargar configuraciones para reflejar la eliminación de la configuración completa
+          setTimeout(() => {
+            this.loadConfigurations(() => {
+            });
+          }, 1000);
+          break;
+
+        case 'EDIT_PRODUCT':
+          // Aplicar los cambios directamente al modelo actual
+          try {
+            const { elements } = this.props.projectService.getStructureAndRelationships();
+            const elementIndex = elements.findIndex((elem: any) => elem.id === operation.data.elementId);
+
+            if (elementIndex > -1) {
+              // Actualizar el elemento con los datos colaborativos
+              elements[elementIndex] = { ...elements[elementIndex], ...operation.data.updatedFeature };
+              // Forzar actualización del modelo
+              this.props.projectService.raiseEventUpdatedElement(
+                this.props.projectService.currentModel,
+                elements[elementIndex]
+              );
+
+              // Recargar configuraciones para reflejar los cambios
+              setTimeout(() => {
+                this.loadConfigurations(() => {
+                });
+              }, 500);
+            } 
+          } catch (error) {
+            console.error(`Error aplicando edición colaborativa:`, error);
+          }
+          break;
+
+        default:
+          console.log(`Tipo de operación no reconocido:`, operation.type);
+      }
+    });
+  }
+
+  // Callback para manejar cuando se crean productos
+  handleProductCreated = (productData: any) => {
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncCreateProductOperation(productData);
+      } catch (error) {
+        console.error(`Error enviando operación CREATE_PRODUCT:`, error);
+      }
+    } 
+  };
+
+  // Callback para manejar cuando se eliminan productos/funcionalidades
+  handleProductDeleted = (deletionData: any) => {
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncDeleteProductOperation(deletionData);
+      } catch (error) {
+      }
+    }
+  };
+
+  // Callback para manejar cuando se editan productos/funcionalidades
+  handleProductEdited = (editData: any) => {
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncEditProductOperation(editData);
+      } catch (error) {
+        console.error(`Error enviando operación EDIT_PRODUCT:`, error);
+      }
+    } 
+  };
+
+  // Callback para manejar cuando se editan configuraciones completas
+  handleConfigurationEdited = (editData: any) => {
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncEditConfigurationOperation(editData);
+      } catch (error) {
+        console.error(`Error enviando operación EDIT_CONFIGURATION:`, error);
+      }
+    }
+  };
+
+  // Cargar configuraciones desde el servidor
+  private loadConfigurations(callback?: () => void): void {
+    this.props.projectService.getAllConfigurations(
+      (configs: any[]) => {
+        this.setState({ allScopeConfigurations: configs }, callback);
+      },
+      (error: any) => {
+        console.error("Error fetching configurations:", error);
+        if (callback) callback();
+      }
+    );
+  }
 
 
 
@@ -510,21 +669,56 @@ export default class BillOfMaterialsEditor extends Component<
   handleDeleteContextConfig = () => {
     const { contextMenuConfig } = this.state;
     if (contextMenuConfig) {
-      // Llamamos a eliminar la configuración (sólo se requiere la id)
-      this.props.projectService.deleteConfigurationInServer(contextMenuConfig.id);
-      alert("Potential product successfully removed.");
-      // Actualizamos el listado de configuraciones
-      this.props.projectService.getAllConfigurations(
-        (configs: any[]) => {
-          this.setState({ allScopeConfigurations: configs });
-        },
-        (error: any) => {
-          console.error("Error fetching updated product:", error);
+      const projectInfo = this.props.projectService.getProjectInformation();
+      // Llamamos a eliminar la configuración con callbacks mejorados
+      const successCallback = () => {
+        alert("Potential product successfully removed.");
+
+        // Notificar eliminación colaborativa
+        if (this.state.isCollaborationInitialized) {
+          const deletionData = {
+            type: 'CONFIGURATION_DELETED',
+            configurationId: contextMenuConfig.id,
+            configurationName: contextMenuConfig.name,
+            timestamp: Date.now()
+          };
+
+          try {
+            configurationsCollaborationService.syncDeleteConfigurationOperation(deletionData);
+          } catch (error) {
+            console.error(`Error enviando operación DELETE_CONFIGURATION:`, error);
+          }
         }
+
+        // Actualizamos el listado de configuraciones
+        this.props.projectService.getAllConfigurations(
+          (configs: any[]) => {
+            this.setState({ allScopeConfigurations: configs });
+          },
+          (error: any) => {
+            console.error("Error fetching updated configurations:", error);
+          }
+        );
+
+        // Ocultamos el menú contextual y forzamos actualización del modelo
+        this.setState({ showContextMenu: false, contextMenuConfig: null });
+        this.handleCloseAllModals();
+      };
+
+      const errorCallback = (error: any) => {
+        console.error(`[BillOfMaterialsEditor] ❌ Error eliminando configuración:`, error);
+        alert(`Error eliminando el producto: ${error.message || 'Error desconocido'}`);
+
+        // Aún ocultamos el menú contextual
+        this.setState({ showContextMenu: false, contextMenuConfig: null });
+      };
+
+      // Llamamos al método con callbacks
+      this.props.projectService.deleteConfigurationInServer(
+        contextMenuConfig.id,
+        successCallback,
+        errorCallback
       );
-      // Ocultamos el menú contextual y forzamos actualización del modelo
-      this.setState({ showContextMenu: false, contextMenuConfig: null });
-      this.handleCloseAllModals()
     }
   };
 
@@ -665,8 +859,13 @@ export default class BillOfMaterialsEditor extends Component<
             {this.renderSearchBar()}
           </div>
           <div style={{ flex: 1 }}>
-            <ProductCatalogManager projectService={this.props.projectService} 
-             onCloseAllModals={this.handleCloseAllModals}/>
+            <ProductCatalogManager
+              projectService={this.props.projectService}
+              onCloseAllModals={this.handleCloseAllModals}
+              onProductCreated={this.handleProductCreated}
+              onProductDeleted={this.handleProductDeleted}
+              onProductEdited={this.handleProductEdited}
+            />
           </div>
           <div style={{
           // si necesitas exacto 150px, o usa flex:1 también
@@ -695,6 +894,7 @@ export default class BillOfMaterialsEditor extends Component<
             projectService={this.props.projectService}
             selectedConfig={this.state.selectedConfig}
             onClose={this.handleCloseAllModals}
+            onConfigurationEdited={this.handleConfigurationEdited}
           />
         )}
         {this.state.showContextMenu && (
