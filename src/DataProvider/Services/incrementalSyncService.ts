@@ -173,8 +173,29 @@ const areRelationshipsEqual = (rel1: Relationship, rel2: Relationship): boolean 
 
   if (rel1.points && rel2.points) {
     for (let i = 0; i < rel1.points.length; i++) {
-      if (rel1.points[i].x !== rel2.points[i].x || 
+      if (rel1.points[i].x !== rel2.points[i].x ||
           rel1.points[i].y !== rel2.points[i].y) {
+        return false;
+      }
+    }
+  }
+  // Comparar propiedades de la relación
+  if (rel1.properties?.length !== rel2.properties?.length) {
+    return false;
+  }
+
+  if (rel1.properties && rel2.properties) {
+    for (let i = 0; i < rel1.properties.length; i++) {
+      const prop1 = rel1.properties[i];
+      const prop2 = rel2.properties.find(p => p.name === prop1.name);
+
+      if (!prop2) {
+        return false;
+      }
+
+      if (prop1.value !== prop2.value ||
+          prop1.type !== prop2.type ||
+          prop1.comment !== prop2.comment) {
         return false;
       }
     }
