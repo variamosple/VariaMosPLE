@@ -431,26 +431,55 @@ class TreeMenu extends Component<Props, State> {
     const itemType = this.props.projectService.getTreeItemSelected();
     const itemId = this.props.projectService.getTreeIdItemSelected();
 
-    // Sincronizar la operación de edición si es colaborativo y es un modelo
-    if (treeCollaborationService.isCollaborationActive() && itemType === 'model') {
-      const project = this.props.projectService.project;
-      const model = this.props.projectService.findModelById(project, itemId);
+    // Sincronizar la operación de edición si es colaborativo
+    if (treeCollaborationService.isCollaborationActive()) {
 
-      if (model) {
-        const itemData = {
-          id: model.id,
-          oldName: oldName,
-          newName: newName,
-          type: this.getModelTypeFromContext(),
-          languageName: model.type,
-          languageId: model.languageId,
-          productLineId: this.props.projectService.getIdCurrentProductLine(),
-          itemType: itemType
-        };
+      if (itemType === 'model') {
+        // Sincronización para modelos
+        const project = this.props.projectService.project;
+        const model = this.props.projectService.findModelById(project, itemId);
 
-        treeCollaborationService.syncEditItemOperation(itemData);
-      } 
-    } 
+        if (model) {
+          const itemData = {
+            id: model.id,
+            oldName: oldName,
+            newName: newName,
+            type: this.getModelTypeFromContext(),
+            languageName: model.type,
+            languageId: model.languageId,
+            productLineId: this.props.projectService.getIdCurrentProductLine(),
+            itemType: itemType
+          };
+
+          treeCollaborationService.syncEditItemOperation(itemData);
+        }
+
+      } else if (itemType === 'productLine') {
+        // Sincronización para ProductLines
+        const project = this.props.projectService.project;
+        const productLine = project.productLines.find((pl: any) => pl.id === itemId);
+
+        if (productLine) {
+          const itemData = {
+            id: productLine.id,
+            itemType: 'productLine',
+            oldValues: {
+              name: oldName,
+              domain: productLine.domain,
+              type: productLine.type
+            },
+            newValues: {
+              name: newName,
+              domain: productLine.domain,
+              type: productLine.type
+            },
+            productLineId: productLine.id
+          };
+
+          treeCollaborationService.syncEditItemOperation(itemData);
+        }
+      }
+    }
 
     this.props.projectService.renameItemProject(newName);
   }
@@ -1647,7 +1676,29 @@ class TreeMenu extends Component<Props, State> {
           }
           onHide={() => this.setState({ showScopeModal: false })}
           onSave={(updatedScope: ScopeSPL) => {
-            this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].scope = updatedScope;
+            const currentProductLineIndex = this.props.projectService.getIdCurrentProductLine();
+            const currentProductLine = this.props.projectService.project.productLines[currentProductLineIndex];
+
+            // Capturar valores anteriores para sincronización colaborativa
+            const oldValues = { ...currentProductLine.scope };
+            const newValues = { ...updatedScope };
+
+            // Aplicar cambios localmente
+            this.props.projectService.project.productLines[currentProductLineIndex].scope = updatedScope;
+
+            // Sincronizar la operación de actualización de scope si es colaborativo
+            if (treeCollaborationService.isCollaborationActive()) {
+              const scopeData = {
+                productLineId: currentProductLine.id,
+                productLineName: currentProductLine.name,
+                oldValues: oldValues,
+                newValues: newValues,
+                timestamp: Date.now()
+              };
+              treeCollaborationService.syncUpdateScopeOperation(scopeData, this.props.projectService);
+            }
+
+            // Guardar proyecto
             const projectInfo = this.props.projectService.getProjectInformation();
             this.props.projectService.saveProjectInServer(
               projectInfo,

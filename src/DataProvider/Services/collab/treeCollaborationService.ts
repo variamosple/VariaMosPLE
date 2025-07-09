@@ -362,9 +362,7 @@ class TreeCollaborationService {
     }
   }
 
-  /**
-   * Programa limpieza automática del tree si no hay actividad
-   */
+   // Programa limpieza automática del tree si no hay actividad
   private scheduleAutoCleanup(): void {
     // Cancelar timer anterior si existe
     if (this.cleanupTimer) {
@@ -502,17 +500,29 @@ class TreeCollaborationService {
     this.treeState.set(operation.operationId, operation);
   }
 
-  /**
-   * Log del estado actual para debugging
-   */
-  logCurrentState(): void {
+   // Sincroniza una operación de actualizar scope (Technical Metrics)
+  syncUpdateScopeOperation(scopeData: any, projectService?: any): void {
     if (!this.isInitialized || !this.treeState) {
-      console.log(`[TreeCollaboration] ⚠️ No hay estado para mostrar`);
       return;
     }
 
-    const state = this.getCurrentTreeState();
-    console.log(`[TreeCollaboration] 📊 Estado actual del tree:`, state);
+    const operation = {
+      type: 'UPDATE_SCOPE',
+      timestamp: Date.now(),
+      operationId: `update_scope_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      data: scopeData
+    };
+
+    // Marcar como operación propia para no procesarla cuando la recibamos
+    this.ownOperations.add(operation.operationId);
+
+    // Agregar la operación a YJS
+    this.treeState.set(operation.operationId, operation);
+
+    // IMPORTANTE: Actualizar el currentState después de la operación
+    if (projectService) {
+      this.updateCurrentStateAfterOperation(projectService);
+    }
   }
 }
 

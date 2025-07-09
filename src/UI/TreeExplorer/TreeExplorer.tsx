@@ -769,6 +769,9 @@ class TreeExplorer extends Component<Props, State> {
       case 'EDIT_ITEM':
         this.handleRemoteEditItem(operation.data);
         break;
+      case 'UPDATE_SCOPE':
+        this.handleRemoteUpdateScope(operation.data);
+        break;
       default:
         console.log(`Tipo de operación no reconocido: ${operation.type}`);
     }
@@ -930,6 +933,37 @@ class TreeExplorer extends Component<Props, State> {
     const notificationText = itemData.newName
       ? `${itemData.itemType} renombrado: ${itemData.oldName} -> ${itemData.newName}`
       : `${itemData.itemType} propiedades actualizadas`;
+  }
+
+  // Manejar actualización remota de scope (Technical Metrics)
+  handleRemoteUpdateScope(scopeData: any) {
+    try {
+      const project = this.props.projectService.project;
+
+      // Buscar la product line correspondiente
+      const productLine = project.productLines.find((pl: any) => pl.id === scopeData.productLineId);
+
+      if (productLine && productLine.scope) {
+        // Aplicar los cambios del scope remoto
+        if (scopeData.newValues) {
+          // Actualizar las propiedades del scope
+          Object.keys(scopeData.newValues).forEach(key => {
+            if (productLine.scope.hasOwnProperty(key)) {
+              productLine.scope[key] = scopeData.newValues[key];
+            }
+          });
+
+          // Guardar proyecto y disparar eventos
+          this.props.projectService.saveProject();
+          this.props.projectService.raiseEventUpdateProject(project, null);
+        }
+      } 
+    } catch (error) {
+      console.error(`Error aplicando actualización remota de scope:`, error);
+    }
+
+    // Forzar actualización de la UI
+    this.forceUpdate();
   }
 
   componentWillUnmount() {
