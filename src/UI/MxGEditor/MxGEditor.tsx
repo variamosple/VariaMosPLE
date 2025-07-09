@@ -619,15 +619,16 @@ export default class MxGEditor extends Component<Props, State> {
         if (languageDefinition.abstractSyntax.relationships) {
           for (let key in languageDefinition.abstractSyntax.relationships) {
             const rel = languageDefinition.abstractSyntax.relationships[key];
-            if (rel.source == source.value.tagName) {
-              for (let t = 0; t < rel.target.length; t++) {
-                if (rel.target[t] == target.value.tagName) {
-                  relationshipType = key;
-                  break;
-                }
-              }
-            }
-            if (relationshipType) {
+            // Verificar dirección normal: source -> target
+            const normalDirection = rel.source == source.value.tagName && rel.target.includes(target.value.tagName);
+            // Verificar dirección inversa: target -> source (solo para tipos diferentes)
+            // Esto evita problemas con relaciones que no deberían ser bidireccionales
+            const reverseDirection = rel.target.includes(source.value.tagName) &&
+                                   rel.source == target.value.tagName &&
+                                   source.value.tagName !== target.value.tagName;
+
+            if (normalDirection || reverseDirection) {
+              relationshipType = key;
               break;
             }
           }
