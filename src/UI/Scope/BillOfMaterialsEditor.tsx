@@ -215,6 +215,74 @@ export default class BillOfMaterialsEditor extends Component<
           }
           break;
 
+        case 'MODEL_MODIFIED':
+          // Aplicar los cambios directamente al modelo base
+          try {
+            const currentModel = this.props.projectService.currentModel;
+
+            // Verificar que el elemento no existe ya (evitar duplicados)
+            const existingElement = currentModel.elements.find((elem: any) => elem.id === operation.data.newElement.id);
+            const existingRelationship = currentModel.relationships.find((rel: any) =>
+              rel.sourceId === operation.data.newElement.id || rel.targetId === operation.data.newElement.id
+            );
+
+            if (!existingElement) {
+              // Agregar el nuevo elemento al modelo
+              currentModel.elements.push(operation.data.newElement);
+            }
+
+            if (!existingRelationship && operation.data.newRelationship) {
+              // Agregar la nueva relación al modelo
+              currentModel.relationships.push(operation.data.newRelationship);
+            }
+
+            // Forzar actualización del modelo
+            this.props.projectService.raiseEventUpdatedElement(currentModel, operation.data.newElement);
+
+            // Recargar configuraciones para reflejar los cambios en el modelo base
+            setTimeout(() => {
+              this.loadConfigurations(() => {
+              });
+            }, 500);
+
+          } catch (error) {
+            console.error(`Error aplicando modificación colaborativa del modelo:`, error);
+          }
+          break;
+
+        case 'MODEL_DELETED':
+          // Aplicar las eliminaciones directamente al modelo base
+          try {
+            const currentModel = this.props.projectService.currentModel;
+
+            // Eliminar elementos del modelo
+            const originalElementsCount = currentModel.elements.length;
+            currentModel.elements = currentModel.elements.filter((elem: any) =>
+              !operation.data.deletedIds.includes(elem.id)
+            );
+            const deletedElementsCount = originalElementsCount - currentModel.elements.length;
+
+            // Eliminar relaciones del modelo
+            const originalRelationshipsCount = currentModel.relationships.length;
+            currentModel.relationships = currentModel.relationships.filter((rel: any) =>
+              !operation.data.deletedIds.includes(rel.sourceId) && !operation.data.deletedIds.includes(rel.targetId)
+            );
+            const deletedRelationshipsCount = originalRelationshipsCount - currentModel.relationships.length;
+
+            // Forzar actualización del modelo
+            this.props.projectService.raiseEventUpdatedElement(currentModel, null);
+
+            // Recargar configuraciones para reflejar los cambios en el modelo base
+            setTimeout(() => {
+              this.loadConfigurations(() => {
+              });
+            }, 500);
+
+          } catch (error) {
+            console.error(`Error aplicando eliminación colaborativa del modelo:`, error);
+          }
+          break;
+
         default:
           console.log(`Tipo de operación no reconocido:`, operation.type);
       }
@@ -262,6 +330,30 @@ export default class BillOfMaterialsEditor extends Component<
         console.error(`Error enviando operación EDIT_CONFIGURATION:`, error);
       }
     }
+  };
+
+  // Callback para manejar cuando se modifica el modelo base (agregar funcionalidades)
+  handleModelModified = (modelData: any) => {
+
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncModelModificationOperation(modelData);
+      } catch (error) {
+        console.error(`Error enviando operación MODEL_MODIFIED:`, error);
+      }
+    } 
+  };
+
+  // Callback para manejar cuando se elimina del modelo base (eliminar funcionalidades)
+  handleModelDeleted = (deletionData: any) => {
+
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncModelDeletionOperation(deletionData);
+      } catch (error) {
+        console.error(`Error enviando operación MODEL_DELETED:`, error);
+      }
+    } 
   };
 
   // Cargar configuraciones desde el servidor
@@ -706,7 +798,7 @@ export default class BillOfMaterialsEditor extends Component<
       };
 
       const errorCallback = (error: any) => {
-        console.error(`[BillOfMaterialsEditor] ❌ Error eliminando configuración:`, error);
+        console.error(`Error eliminando configuración:`, error);
         alert(`Error eliminando el producto: ${error.message || 'Error desconocido'}`);
 
         // Aún ocultamos el menú contextual
@@ -865,6 +957,8 @@ export default class BillOfMaterialsEditor extends Component<
               onProductCreated={this.handleProductCreated}
               onProductDeleted={this.handleProductDeleted}
               onProductEdited={this.handleProductEdited}
+              onModelModified={this.handleModelModified}
+              onModelDeleted={this.handleModelDeleted}
             />
           </div>
           <div style={{

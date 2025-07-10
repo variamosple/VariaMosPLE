@@ -135,6 +135,95 @@ class ConfigurationsCollaborationService {
   }
 
   /**
+   * Sincroniza una operación de eliminar del modelo base (eliminar funcionalidades)
+   */
+  syncModelDeletionOperation(deletionData: any): void {
+
+    if (!this.isInitialized || !this.configurationsState) {
+      console.log(`[ConfigurationsCollaboration] ⚠️ Configurations collaboration no inicializado, no se puede sincronizar eliminación del modelo`);
+      console.log(`[ConfigurationsCollaboration] 🔍 Detalles del error:`, {
+        isInitialized: this.isInitialized,
+        configurationsState: !!this.configurationsState
+      });
+      return;
+    }
+
+    const operation = {
+      type: 'MODEL_DELETED',
+      timestamp: Date.now(),
+      operationId: `model_del_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      data: deletionData
+    };
+
+    // Marcar como operación propia para no procesarla cuando la recibamos
+    this.ownOperations.add(operation.operationId);
+
+    // Agregar la operación a YJS usando la misma lógica que otras operaciones
+    try {
+      // Obtener la referencia fresca del projectState para asegurar consistencia
+      const projectState = getProjectState(this.projectId!);
+      const freshConfigurationsMap = projectState?.get('productConfigurations') as Y.Map<any>;
+
+      // Usar la referencia fresca para asegurar que estamos escribiendo en el mapa correcto
+      const targetMap = freshConfigurationsMap || this.configurationsState;
+      if (!targetMap) {
+        throw new Error('No se encontró mapa de configuraciones válido para eliminación del modelo');
+      }
+
+      targetMap.set(operation.operationId, operation);
+
+      // Verificar que se agregó correctamente
+      const verificacionFresh = freshConfigurationsMap?.get(operation.operationId);
+      const verificacionStored = this.configurationsState?.get(operation.operationId);
+
+    } catch (error) {
+      console.error(`Error agregando operación de eliminación del modelo a YJS:`, error);
+    }
+  }
+
+  /**
+   * Sincroniza una operación de modificar el modelo base (agregar funcionalidades)
+   */
+  syncModelModificationOperation(modelData: any): void {
+
+    if (!this.isInitialized || !this.configurationsState) {
+      console.log(`[ConfigurationsCollaboration] ⚠️ Configurations collaboration no inicializado, no se puede sincronizar modificación del modelo`);
+      console.log(`[ConfigurationsCollaboration] 🔍 Detalles del error:`, {
+        isInitialized: this.isInitialized,
+        configurationsState: !!this.configurationsState
+      });
+      return;
+    }
+
+    const operation = {
+      type: 'MODEL_MODIFIED',
+      timestamp: Date.now(),
+      operationId: `model_mod_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      data: modelData
+    };
+
+    // Marcar como operación propia para no procesarla cuando la recibamos
+    this.ownOperations.add(operation.operationId);
+    // Agregar la operación a YJS usando la misma lógica que otras operaciones
+    try {
+      // Obtener la referencia fresca del projectState para asegurar consistencia
+      const projectState = getProjectState(this.projectId!);
+      const freshConfigurationsMap = projectState?.get('productConfigurations') as Y.Map<any>;
+      // Usar la referencia fresca para asegurar que estamos escribiendo en el mapa correcto
+      const targetMap = freshConfigurationsMap || this.configurationsState;
+      if (!targetMap) {
+        throw new Error('No se encontró mapa de configuraciones válido para modificación del modelo');
+      }
+
+      targetMap.set(operation.operationId, operation);
+      console.log(`[ConfigurationsCollaboration] ✅ Operación de modificación del modelo agregada a YJS exitosamente`);
+
+    } catch (error) {
+      console.error(`Error agregando operación de modificación del modelo a YJS:`, error);
+    }
+  }
+
+  /**
    * Sincroniza una operación de editar configuración completa (crear nueva + eliminar anterior)
    */
   syncEditConfigurationOperation(editData: any): void {

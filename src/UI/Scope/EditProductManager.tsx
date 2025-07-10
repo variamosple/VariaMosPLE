@@ -2,13 +2,9 @@ import React, { useState, useEffect, ChangeEvent } from 'react';
 import { Modal, Button, Form } from "react-bootstrap";
 import { IoIosAddCircle } from "react-icons/io";
 import { TiDelete } from "react-icons/ti";
-import { MdEdit } from "react-icons/md";
-import { MdLibraryAdd } from "react-icons/md";  // Si deseas usar otro ícono para agregar subfuncionalidad
-import { FaTrashAlt } from "react-icons/fa";
 import ProjectService from '../../Application/Project/ProjectService';
 import { Element } from '../../Domain/ProductLineEngineering/Entities/Element';
 import { Property } from '../../Domain/ProductLineEngineering/Entities/Property';
-import EditFeatureModal from './EditFeatureModal';
 import { Relationship } from '../../Domain/ProductLineEngineering/Entities/Relationship';
 import { Model } from '../../Domain/ProductLineEngineering/Entities/Model';
 import { ConfigurationInformation } from '../../Domain/ProductLineEngineering/Entities/ConfigurationInformation';
@@ -138,14 +134,7 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
     setSelectedFeatureIds(selectedFeatureIds.filter(fid => fid !== id));
   };
 
-  const handleEditFeature = (id: string) => {
-    // Para la edición, abrimos el modal pasando el elemento encontrado en currentModel
-    setEditingFeatureId(id);
-    setShowEditFeatureModal(true);
-  };
 
-  const [showEditFeatureModal, setShowEditFeatureModal] = useState(false);
-  const [editingFeatureId, setEditingFeatureId] = useState<string | null>(null);
 
   // ----------------------------------------------------------
   // Renderizado recursivo de las funcionalidades disponibles
@@ -196,21 +185,7 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
               )}
               {isSelected && (
                 <>
-                  <button
-                    style={{
-                      marginLeft: "5px",
-                      border: "none",
-                      backgroundColor: "transparent",
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleEditFeature(elem.id);
-                    }}
-                    title="Edit properties"
-                  >
-                    <MdEdit size={25} />
-                  </button>
+
                   <button
                     style={{
                       marginLeft: "5px",
@@ -228,35 +203,7 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
                   </button>
                 </>
               )}
-              <button
-                style={{
-                  marginLeft: "5px",
-                  border: "none",
-                  backgroundColor: "transparent",
-                }}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddSubFunctionality(elem.id);
-                }}
-                title="Add subfunctionality"
-              >
-                <MdLibraryAdd size={25} />
-              </button>
-              <button
-                style={{
-                  marginLeft: "5px",
-                  border: "none",
-                  backgroundColor: "transparent",
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteFunctionality(elem.id);
-                }}
-                title="Delete functionality of potential products"
-              >
-                <FaTrashAlt />
-              </button>
+
             </div>
           )}
         </div>
@@ -270,46 +217,7 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
     );
   };
 
-  const handleDeleteFunctionality = (featureId: string) => {
-    // Array para almacenar los IDs del elemento a eliminar y todos sus descendientes.
-    const idsToDelete: string[] = [];
 
-    // Función recursiva para recolectar los IDs de todos los descendientes.
-    const collectDescendantIds = (id: string) => {
-      idsToDelete.push(id);
-      // Buscar relaciones cuyo source sea este id (los hijos directos)
-      const childRels = currentModel.relationships.filter(
-        (rel: Relationship) => rel.sourceId === id
-      );
-      childRels.forEach((rel) => {
-        collectDescendantIds(rel.targetId);
-      });
-    };
-
-    // Inicia la recolección desde el featureId a eliminar.
-    collectDescendantIds(featureId);
-
-    // Elimina del modelo todos los elementos cuyos IDs estén en idsToDelete.
-    currentModel.elements = currentModel.elements.filter(
-      (elem: Element) => !idsToDelete.includes(elem.id)
-    );
-
-    // Elimina las relaciones que involucren alguno de esos elementos (como source o target).
-    currentModel.relationships = currentModel.relationships.filter(
-      (rel: Relationship) =>
-        !idsToDelete.includes(rel.sourceId) && !idsToDelete.includes(rel.targetId)
-    );
-
-    // Actualiza la lista de funcionalidades seleccionadas (selectedFeatureIds)
-    setSelectedFeatureIds(selectedFeatureIds.filter((id: string) => !idsToDelete.includes(id)));
-
-    // Dispara algún evento para notificar la actualización del modelo (puedes adaptar según tus necesidades)
-    projectService.raiseEventUpdatedElement(currentModel, null);
-    projectService.saveProjectInServer(projectService.getProjectInformation(), null, null);
-
-    // Forzamos el re-render para que se reflejen los cambios
-    forceUpdateModel();
-  };
   const renderAvailableFunctionalities = () => {
     const elements = currentModel.elements || [];
     const relationships = currentModel.relationships || [];
@@ -323,118 +231,9 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
     );
   };
 
-  // ----------------------------------------------------------
-  // Función para agregar sub-funcionalidad (igual que en NewProductManager)
-  // ----------------------------------------------------------
-  const handleAddSubFunctionality = (parentId: string) => {
-    // Creamos un nuevo elemento "Material" a partir de la definición del lenguaje.
-    const newElement = createMaterialElement(parentId, "New Material", projectService, currentModel);
-    // Insertamos en el modelo actual.
-    currentModel.elements.push(newElement);
-    // Creamos la relación "Contains" entre el padre y el nuevo elemento.
-    const newRel = createRelationshipContains(parentId, newElement.id, projectService);
-    currentModel.relationships.push(newRel);
-    // Marcamos la nueva funcionalidad como seleccionada (Quantity = "1")
-    setSelectedFeatureIds([...selectedFeatureIds, newElement.id]);
-    projectService.raiseEventCreatedElement(currentModel, newElement);
-    projectService.raiseEventUpdatedElement(currentModel, newElement);
-    forceUpdateModel();
-  };
 
-  // Funciones auxiliares para crear el nuevo "Material" y su relación
-  function createMaterialElement(
-    parentId: string,
-    defaultName: string,
-    projectService: ProjectService,
-    currentModel: Model
-  ): Element {
-    let languageDef = projectService.getLanguageDefinition("" + currentModel.type);
-    let abstractSyntax: any = languageDef.abstractSyntax;
-    if (typeof abstractSyntax === "string") {
-      abstractSyntax = JSON.parse(abstractSyntax);
-    }
-    const matDef = abstractSyntax?.elements?.Material;
-    const newId = projectService.generateId();
-    const newProps: Property[] = (matDef?.properties || []).map((p: any) => {
-      let defaultVal = p.defaultValue || "";
-      if (p.name === "Quantity") {
-        defaultVal = "1"; // Al crear una sub-funcionalidad se marca como presente.
-      }
-      return new Property(
-        p.name,
-        defaultVal,
-        p.type,
-        p.options,
-        p.linked_property,
-        p.linked_value,
-        false,
-        true,
-        p.comment,
-        p.possibleValues,
-        p.possibleValuesLinks,
-        p.minCardinality,
-        p.maxCardinality,
-        p.constraint,
-        defaultVal
-      );
-    });
-    const newElement: Element = {
-      id: newId,
-      name: defaultName,
-      type: "Material",
-      x: 0,
-      y: 0,
-      width: 120,
-      height: 50,
-      parentId: parentId,
-      properties: newProps,
-      sourceModelElements: [],
-      instanceOfId: null
-    };
-    return newElement;
-  }
 
-  function createRelationshipContains(
-    sourceId: string,
-    targetId: string,
-    projectService: ProjectService
-  ): Relationship {
-    const relId = projectService.generateId();
-    return {
-      id: relId,
-      name: "_",
-      type: "Extends",
-      sourceId: sourceId,
-      targetId: targetId,
-      points: [],
-      min: 0,
-      max: 999999,
-      properties: [
-        new Property(
-          "Type",
-          "Contains",
-          "String",
-          undefined,
-          undefined,
-          undefined,
-          false,
-          true,
-          "",
-          "Contains",
-          undefined,
-          0,
-          0,
-          "",
-          "Contains"
-        )
-      ]
-    };
-  }
 
-  // Función para buscar una funcionalidad por id en currentModel.elements
-  const getFeatureById = (id: string): Element | undefined => {
-    return currentModel.elements.find((elem: Element) => elem.id === id);
-  };
 
   // ----------------------------------------------------------
   // Función para guardar la configuración del producto
@@ -465,7 +264,7 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
     );
 
     // Define callbacks para el guardado
-    const successCallback = (e: any) => {
+    const successCallback = () => {
       // AHORA eliminamos la configuración anterior (solo después del éxito del guardado)
       const deleteSuccessCallback = () => {
         // Notificar al componente padre sobre la edición colaborativa (crear nueva + eliminar anterior)
@@ -544,6 +343,10 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
           </Form.Group>
           <hr />
           <h5>Available functionalities</h5>
+          <div className="alert alert-info" style={{ fontSize: '14px', padding: '8px 12px', marginBottom: '10px' }}>
+            <strong>ℹ️ Edit Mode:</strong> You can only select/deselect existing functionalities.
+            To add new functionalities or modify existing ones, use the "New potential product" option.
+          </div>
           <div style={{ maxHeight: '600px', overflowY: 'auto', border: '1px solid #ccc', padding: '10px' }}>
             {renderAvailableFunctionalities()}
           </div>
@@ -553,23 +356,7 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
         <Button variant="secondary" onClick={onClose}>Cancel</Button>
         <Button variant="primary" onClick={handleSaveConfiguration}>Save product</Button>
       </Modal.Footer>
-      {showEditFeatureModal && editingFeatureId && getFeatureById(editingFeatureId) && (
-        <EditFeatureModal
-          show={showEditFeatureModal}
-          feature={getFeatureById(editingFeatureId)!}
-          onClose={() => { setShowEditFeatureModal(false); setEditingFeatureId(null); }}
-          onSave={(updatedFeature: Element) => {
-            const index = currentModel.elements.findIndex((e: Element) => e.id === updatedFeature.id);
-            if (index > -1) {
-              currentModel.elements[index] = updatedFeature;
-              projectService.raiseEventUpdatedElement(currentModel, updatedFeature);
-              forceUpdateModel();
-            }
-            setShowEditFeatureModal(false);
-            setEditingFeatureId(null);
-          }}
-        />
-      )}
+
     </Modal>
   );
 };

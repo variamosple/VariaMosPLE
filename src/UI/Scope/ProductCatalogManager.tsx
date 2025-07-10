@@ -21,10 +21,12 @@ interface NewProductManagerProps {
    onProductCreated?: (productData: any) => void;
    onProductDeleted?: (deletionData: any) => void;
    onProductEdited?: (editData: any) => void;
+   onModelModified?: (modelData: any) => void;
+   onModelDeleted?: (deletionData: any) => void;
   //onClose: () => void;
 }
 
-const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService, onCloseAllModals, onProductCreated, onProductDeleted, onProductEdited }) => {
+const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService, onCloseAllModals, onProductCreated, onProductDeleted, onProductEdited, onModelModified, onModelDeleted }) => {
   // Estado para mostrar/ocultar el modal de edición de configuración (nuevo producto)
   const [showProductModal, setShowProductModal] = useState(false);
   const [productName, setProductName] = useState('');
@@ -273,6 +275,19 @@ useEffect(() => {
     projectService.raiseEventUpdatedElement(currentModel, newElement);
     projectService.saveProjectInServer(projectService.getProjectInformation(), null, null);
 
+    // Notificar al componente padre sobre la modificación del modelo base
+    if (onModelModified) {
+      const modelData = {
+        type: 'FUNCTIONALITY_ADDED',
+        newElement: newElement,
+        newRelationship: newRel,
+        parentId: selectedParentId,
+        modelId: currentModel.id,
+        timestamp: Date.now()
+      };
+      onModelModified(modelData);
+    } 
+
     forceUpdateModel();
     setShowAddSubModal(false);
     setNewSubName("");
@@ -476,16 +491,16 @@ const handleUploadProductImage = (file: File) => {
     projectService.raiseEventUpdatedElement(currentModel, null);
     projectService.saveProjectInServer(projectService.getProjectInformation(), null, null);
 
-    // Notificar al componente padre sobre la eliminación colaborativa
-    if (onProductDeleted) {
+    // Notificar al componente padre sobre la eliminación colaborativa del modelo base
+    if (onModelDeleted) {
       const deletionData = {
-        type: 'FUNCTIONALITY_DELETED',
+        type: 'FUNCTIONALITY_DELETED_FROM_MODEL',
         deletedIds: idsToDelete,
         rootFeatureId: featureId,
         modelId: currentModel.id,
         timestamp: Date.now()
       };
-      onProductDeleted(deletionData);
+      onModelDeleted(deletionData);
     }
 
     // Forzamos el re-render para que se reflejen los cambios
