@@ -1,7 +1,7 @@
 import { getProjectProvider } from './collaborationService';
 
 interface CatalogUserAction {
-  type: 'viewing' | 'editing' | 'idle';
+  type: 'viewing' | 'idle';
   productId?: string;
   productName?: string;
   timestamp: string;
@@ -30,7 +30,6 @@ class CatalogAwarenessService {
     modelId: string, 
     user: { name: string; color: string }
   ): void {
-    console.log(`[CatalogAwareness] 🚀 Inicializando awareness para catálogo:`, { projectId, modelId, user });
     
     this.currentProjectId = projectId;
     this.currentModelId = modelId;
@@ -53,33 +52,7 @@ class CatalogAwarenessService {
   }
 
   /**
-   * Actualiza la acción del usuario cuando está editando un producto
-   */
-  setUserEditingProduct(productId: string, productName: string): void {
-    if (!this.currentProjectId || !this.currentModelId || !this.currentUser) {
-      console.warn(`[CatalogAwareness] ⚠️ Awareness no inicializado`);
-      return;
-    }
-
-    const provider = getProjectProvider(this.currentProjectId);
-    if (provider && provider.awareness) {
-      const current = provider.awareness.getLocalState();
-      if (current?.user) {
-        provider.awareness.setLocalStateField("user", {
-          ...current.user,
-          action: {
-            type: 'editing',
-            productId,
-            productName,
-            timestamp: new Date().toISOString()
-          }
-        });
-      }
-    }
-  }
-
-  /**
-   * Actualiza la acción del usuario cuando deja de hacer hover
+   * Actualiza la acción del usuario cuando está inactivo
    */
   setUserIdle(): void {
     if (!this.currentProjectId || !this.currentModelId || !this.currentUser) {
@@ -102,7 +75,7 @@ class CatalogAwarenessService {
   }
 
   /**
-   * Actualiza la acción del usuario cuando está viendo un producto específico
+   * Actualiza la acción del usuario cuando está viendo un producto específico (en modal)
    */
   setUserViewingProduct(productId: string, productName: string): void {
     if (!this.currentProjectId || !this.currentModelId || !this.currentUser) {
@@ -146,7 +119,7 @@ class CatalogAwarenessService {
       const currentUserId = this.currentUser?.name;
 
       const users: CatalogUserAwareness[] = Array.from(awarenessStates.entries())
-        .map(([clientId, state]: [number, any]) => {
+        .map(([, state]: [number, any]) => {
           if (!state.user || !state.user.name) return null;
           
           // Filtrar el usuario actual
@@ -212,7 +185,7 @@ class CatalogAwarenessService {
     const currentUserId = this.currentUser?.name;
 
     return Array.from(awarenessStates.entries())
-      .map(([clientId, state]: [number, any]) => {
+      .map(([, state]: [number, any]) => {
         if (!state.user || !state.user.name) return null;
         
         // Filtrar el usuario actual

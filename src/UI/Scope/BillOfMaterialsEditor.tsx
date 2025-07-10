@@ -117,7 +117,16 @@ export default class BillOfMaterialsEditor extends Component<
       const realProjectId = projectInfo.project?.id || projectInfo.id;
 
       this.initializeCollaboration(realProjectId);
-    } 
+    }
+  }
+
+  componentWillUnmount() {
+    // Limpiar awareness cuando se desmonta el componente
+    if (this.currentAwarenessObserver) {
+      this.currentAwarenessObserver();
+      this.currentAwarenessObserver = null;
+    }
+    catalogAwarenessService.cleanup();
   }
   // Dentro de BillOfMaterialsEditor (en la clase)
   handleCloseAllModals = () => {
@@ -129,6 +138,11 @@ export default class BillOfMaterialsEditor extends Component<
       // Una vez cerrados los modals, actualizamos modelVersion para forzar el re-render
       this.setState(prevState => ({ modelVersion: prevState.modelVersion + 1 }));
     });
+
+    // Awareness: notificar que el usuario ya no está viendo/editando ningún producto
+    if (this.state.isCollaborationInitialized) {
+      catalogAwarenessService.setUserIdle();
+    }
 
     // También actualizamos la lista de configuraciones
     this.props.projectService.getAllConfigurations(
@@ -435,6 +449,11 @@ private initializeCatalogAwareness(projectId: string): void {
       openAccordion: [],
       allAccordionIds: [],
     });
+
+    // Awareness: notificar que el usuario está viendo un producto en el modal
+    if (this.state.isCollaborationInitialized) {
+      catalogAwarenessService.setUserViewingProduct(config.id, config.name || config.config_name || "Producto");
+    }
   }
 
   handleCloseModal = () => {
@@ -444,6 +463,11 @@ private initializeCatalogAwareness(projectId: string): void {
       openAccordion: [],
       allAccordionIds: [],
     });
+
+    // Awareness: notificar que el usuario ya no está viendo ningún producto
+    if (this.state.isCollaborationInitialized) {
+      catalogAwarenessService.setUserIdle();
+    }
   };
 
   /** Manejo de accordion individual */
@@ -587,7 +611,13 @@ private initializeCatalogAwareness(projectId: string): void {
     return (
       <Modal
         show={true}
-        onHide={() => this.setState({ showCompareModal: false })}
+        onHide={() => {
+          this.setState({ showCompareModal: false });
+          // Awareness: notificar que el usuario ya no está comparando productos
+          if (this.state.isCollaborationInitialized) {
+            catalogAwarenessService.setUserIdle();
+          }
+        }}
         size="xl"
         centered
         scrollable
@@ -717,7 +747,6 @@ private initializeCatalogAwareness(projectId: string): void {
                   productId={cfg.id}
                   productName={cfg.name || "Producto"}
                   users={this.state.catalogAwarenessUsers || []}
-                  onClick={() => this.handleProductClick(cfg.id, cfg.name || "Producto")}
                 >
                   <Card
                     style={{ position: 'relative', cursor: "pointer" }}
@@ -793,18 +822,11 @@ private initializeCatalogAwareness(projectId: string): void {
       </div>
     );
   }
-  // Awareness: notificar cuando el usuario ve o edita un producto
-  handleProductClick = (productId: string, productName: string) => {
-    if (this.state.isCollaborationInitialized) {
-      catalogAwarenessService.setUserViewingProduct(productId, productName);
-    }
-  };
 
-  handleProductEdit = (productId: string, productName: string) => {
-    if (this.state.isCollaborationInitialized) {
-      catalogAwarenessService.setUserEditingProduct(productId, productName);
-    }
-  };
+
+
+
+
   
   
 

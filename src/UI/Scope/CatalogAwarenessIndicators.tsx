@@ -30,7 +30,7 @@ const CatalogAwarenessIndicator: React.FC<CatalogAwarenessIndicatorProps> = ({
   // Encontrar usuarios que están interactuando con este producto
   const usersOnThisProduct = users.filter(user =>
     user.action?.productId === productId &&
-    (user.action?.type === 'viewing' || user.action?.type === 'editing')
+    (user.action?.type === 'viewing')
   );
 
   // Determinar el color del borde basado en los usuarios presentes
