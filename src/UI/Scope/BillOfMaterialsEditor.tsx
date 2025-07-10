@@ -15,6 +15,8 @@ import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reacts
 import ProductCatalogManager from "./ProductCatalogManager";
 import ProjectService from "../../Application/Project/ProjectService";
 import EditProductManager from "./EditProductManager";
+import catalogAwarenessService, { CatalogUserAwareness } from "../../DataProvider/Services/collab/catalogAwarenessService";
+import CatalogAwarenessIndicator from "./CatalogAwarenessIndicators";
 import configurationsCollaborationService from "../../DataProvider/Services/collab/configurationsCollaborationService";
 import './scope.css';
 
@@ -57,12 +59,15 @@ interface BillOfMaterialsEditorState {
   compareSelection: string[];
   showCompareModal: boolean;
   isCollaborationInitialized: boolean;
+  catalogAwarenessUsers?: CatalogUserAwareness[]
 }
 
 export default class BillOfMaterialsEditor extends Component<
   BillOfMaterialsEditorProps,
   BillOfMaterialsEditorState
 > {
+  private currentAwarenessObserver: (() => void) | null = null;
+  
   constructor(props: BillOfMaterialsEditorProps) {
     super(props);
     this.state = {
@@ -81,6 +86,8 @@ export default class BillOfMaterialsEditor extends Component<
       compareSelection: [],
       showCompareModal: false,
       isCollaborationInitialized: false,
+      catalogAwarenessUsers: [],
+
     };
   }
 
@@ -140,6 +147,7 @@ export default class BillOfMaterialsEditor extends Component<
       const success = await configurationsCollaborationService.initializeConfigurationsSync(projectId);
       if (success) {
         this.setState({ isCollaborationInitialized: true }, () => {
+        this.initializeCatalogAwareness(projectId);
         });
 
         // Observar cambios colaborativos
@@ -149,6 +157,38 @@ export default class BillOfMaterialsEditor extends Component<
       console.error(`Error inicializando colaboración:`, error);
     }
   }
+
+private initializeCatalogAwareness(projectId: string): void {
+  try {
+    const currentModel = this.props.projectService.currentModel;
+    if (!currentModel) return;
+
+    const projectInfo = this.props.projectService.getProjectInformation();
+    const currentUserId = this.props.projectService.getUser();
+    const currentUser = projectInfo?.collaborators?.find((c: any) => c.id === currentUserId);
+
+    if (!currentUser) return;
+
+    catalogAwarenessService.initializeCatalogAwareness(
+      projectId,
+      currentModel.id,
+      {
+        name: currentUser.name,
+        color: "#" + Math.floor(Math.random() * 16777215).toString(16)
+      }
+    );
+
+    // Observa awareness de otros usuarios
+      this.currentAwarenessObserver = catalogAwarenessService.observeCatalogAwareness(
+      (users: CatalogUserAwareness[]) => {
+        this.setState({ catalogAwarenessUsers: users });
+      }
+    );
+  } catch (error) {
+    console.error(`[BillOfMaterialsEditor] Error inicializando awareness del catálogo:`, error);
+  }
+}
+
 
   // Observar cambios colaborativos
   private observeConfigurationsChanges(): void {
@@ -649,7 +689,7 @@ export default class BillOfMaterialsEditor extends Component<
     if (filtered.length === 0) {
       return <p>No products were found with that filter.</p>;
     }
-  
+
     return (
       <div style={{
         height: "80vh",
@@ -670,75 +710,82 @@ export default class BillOfMaterialsEditor extends Component<
                 }
               }
             }
-  
+
             return (
               <Col md={4} key={cfg.id} style={{ marginBottom: "15px" }}>
-                <Card
-                  style={{ position: 'relative', cursor: "pointer" }}
-                  onClick={() => this.handleSelectProduct(cfg)}
-                  onContextMenu={(e) =>
-                    this.handleRightClickOnConfig(cfg, e as React.MouseEvent<HTMLDivElement, MouseEvent>)
-                  }
+                <CatalogAwarenessIndicator
+                  productId={cfg.id}
+                  productName={cfg.name || "Producto"}
+                  users={this.state.catalogAwarenessUsers || []}
+                  onClick={() => this.handleProductClick(cfg.id, cfg.name || "Producto")}
                 >
-                  {/* —– Checkbox Comparar —– */}
-                  <Form.Check
-                    type="checkbox"
-                    label="Compare"
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      left: 18,
-                      background: 'rgba(255,255,255,0.8)',
-                      padding: '2px 4px',
-                      borderRadius: '4px',
-                      zIndex: 10
-                    }}
-                    onClick={e => e.stopPropagation()}           // evita que abra el detalle
-                    checked={this.state.compareSelection.includes(cfg.id)}
-                    onChange={e => {
-                      e.stopPropagation();
-                      const sel = [...this.state.compareSelection];
-                      if (e.target.checked) {
-                        sel.push(cfg.id);
-                      } else {
-                        sel.splice(sel.indexOf(cfg.id), 1);
-                      }
-                      this.setState({ compareSelection: sel });
-                    }}
-                  />
-  
-                  {/* —– Tu código original de la imagen —– */}
-                  {imageSrc ? (
-                    <div style={{ height: "180px", width: "100%" }}>
-                      <img
-                        src={imageSrc}
-                        alt={cfg.name}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: "100%",
-                          objectFit: "contain",
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div
+                  <Card
+                    style={{ position: 'relative', cursor: "pointer" }}
+                    onClick={() => this.handleSelectProduct(cfg)}
+                    onContextMenu={(e) =>
+                      this.handleRightClickOnConfig(cfg, e as React.MouseEvent<HTMLDivElement, MouseEvent>)
+                    }
+                  >
+                    {/* —– Checkbox Comparar —– */}
+                    <Form.Check
+                      type="checkbox"
+                      label="Compare"
                       style={{
-                        height: "180px",
-                        backgroundColor: "#eee",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#999",
+                        position: 'absolute',
+                        top: 8,
+                        left: 18,
+                        background: 'rgba(255,255,255,0.8)',
+                        padding: '2px 4px',
+                        borderRadius: '4px',
+                        zIndex: 10
                       }}
-                    >
-                      No image
-                    </div>
-                  )}
-  
-                  <Card.Body>
-                    <Card.Title>{cfg.name || "Producto"}</Card.Title>
-                  </Card.Body>
-                </Card>
+                      onClick={e => e.stopPropagation()}           // evita que abra el detalle
+                      checked={this.state.compareSelection.includes(cfg.id)}
+                      onChange={e => {
+                        e.stopPropagation();
+                        const sel = [...this.state.compareSelection];
+                        if (e.target.checked) {
+                          sel.push(cfg.id);
+                        } else {
+                          sel.splice(sel.indexOf(cfg.id), 1);
+                        }
+                        this.setState({ compareSelection: sel });
+                      }}
+                    />
+
+                    {/* —– Tu código original de la imagen —– */}
+                    {imageSrc ? (
+                      <div style={{ height: "180px", width: "100%" }}>
+                        <img
+                          src={imageSrc}
+                          alt={cfg.name}
+                          style={{
+                            maxWidth: "100%",
+                            maxHeight: "100%",
+                            objectFit: "contain",
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          height: "180px",
+                          backgroundColor: "#eee",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#999",
+                        }}
+                      >
+                        No image
+                      </div>
+                    )}
+
+                    <Card.Body>
+                      <Card.Title>{cfg.name || "Producto"}</Card.Title>
+                    </Card.Body>
+                  </Card>
+                </CatalogAwarenessIndicator>
               </Col>
             );
           })}
@@ -746,6 +793,18 @@ export default class BillOfMaterialsEditor extends Component<
       </div>
     );
   }
+  // Awareness: notificar cuando el usuario ve o edita un producto
+  handleProductClick = (productId: string, productName: string) => {
+    if (this.state.isCollaborationInitialized) {
+      catalogAwarenessService.setUserViewingProduct(productId, productName);
+    }
+  };
+
+  handleProductEdit = (productId: string, productName: string) => {
+    if (this.state.isCollaborationInitialized) {
+      catalogAwarenessService.setUserEditingProduct(productId, productName);
+    }
+  };
   
   
 
