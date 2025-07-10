@@ -140,11 +140,6 @@ class ConfigurationsCollaborationService {
   syncModelDeletionOperation(deletionData: any): void {
 
     if (!this.isInitialized || !this.configurationsState) {
-      console.log(`[ConfigurationsCollaboration] ⚠️ Configurations collaboration no inicializado, no se puede sincronizar eliminación del modelo`);
-      console.log(`[ConfigurationsCollaboration] 🔍 Detalles del error:`, {
-        isInitialized: this.isInitialized,
-        configurationsState: !!this.configurationsState
-      });
       return;
     }
 
@@ -187,11 +182,6 @@ class ConfigurationsCollaborationService {
   syncModelModificationOperation(modelData: any): void {
 
     if (!this.isInitialized || !this.configurationsState) {
-      console.log(`[ConfigurationsCollaboration] ⚠️ Configurations collaboration no inicializado, no se puede sincronizar modificación del modelo`);
-      console.log(`[ConfigurationsCollaboration] 🔍 Detalles del error:`, {
-        isInitialized: this.isInitialized,
-        configurationsState: !!this.configurationsState
-      });
       return;
     }
 
@@ -216,8 +206,6 @@ class ConfigurationsCollaborationService {
       }
 
       targetMap.set(operation.operationId, operation);
-      console.log(`[ConfigurationsCollaboration] ✅ Operación de modificación del modelo agregada a YJS exitosamente`);
-
     } catch (error) {
       console.error(`Error agregando operación de modificación del modelo a YJS:`, error);
     }

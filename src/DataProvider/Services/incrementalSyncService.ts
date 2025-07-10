@@ -37,16 +37,9 @@ export const calculateModelDiff = (
   };
 
   if (!currentModel || !newModelData) {
-    console.log("calculateModelDiff: Modelo actual o datos nuevos son null");
     return diff;
   }
 
-  console.log("calculateModelDiff: Comparando modelos", {
-    currentElements: currentModel.elements?.length || 0,
-    newElements: newModelData.elements?.length || 0,
-    currentRelationships: currentModel.relationships?.length || 0,
-    newRelationships: newModelData.relationships?.length || 0
-  });
 
   const currentElements = new Map(currentModel.elements.map(e => [e.id, e]));
   const currentRelationships = new Map(currentModel.relationships.map(r => [r.id, r]));
@@ -61,10 +54,8 @@ export const calculateModelDiff = (
   newElements.forEach((element: Element) => {
     const currentElement = currentElements.get(element.id);
     if (!currentElement) {
-      console.log(`Elemento añadido: ${element.id} (${element.name})`);
       diff.elementsAdded.push(element);
     } else if (!areElementsEqual(currentElement, element)) {
-      console.log(`Elemento actualizado: ${element.id} (${element.name})`);
       diff.elementsUpdated.push(element);
     }
   });
@@ -72,7 +63,6 @@ export const calculateModelDiff = (
   // Detectar elementos removidos
   currentElements.forEach((element, id) => {
     if (!newElementsMap.has(id)) {
-      console.log(`Elemento removido: ${id} (${element.name})`);
       diff.elementsRemoved.push(id);
     }
   });
@@ -81,10 +71,8 @@ export const calculateModelDiff = (
   newRelationships.forEach((relationship: Relationship) => {
     const currentRelationship = currentRelationships.get(relationship.id);
     if (!currentRelationship) {
-      console.log(`Relación añadida: ${relationship.id} (${relationship.name})`);
       diff.relationshipsAdded.push(relationship);
     } else if (!areRelationshipsEqual(currentRelationship, relationship)) {
-      console.log(`Relación actualizada: ${relationship.id} (${relationship.name})`);
       diff.relationshipsUpdated.push(relationship);
     }
   });
@@ -92,18 +80,8 @@ export const calculateModelDiff = (
   // Detectar relaciones removidas
   currentRelationships.forEach((relationship, id) => {
     if (!newRelationshipsMap.has(id)) {
-      console.log(`Relación removida: ${id} (${relationship.name})`);
       diff.relationshipsRemoved.push(id);
     }
-  });
-
-  console.log("calculateModelDiff resultado:", {
-    elementsAdded: diff.elementsAdded.length,
-    elementsUpdated: diff.elementsUpdated.length,
-    elementsRemoved: diff.elementsRemoved.length,
-    relationshipsAdded: diff.relationshipsAdded.length,
-    relationshipsUpdated: diff.relationshipsUpdated.length,
-    relationshipsRemoved: diff.relationshipsRemoved.length
   });
 
   return diff;
@@ -121,21 +99,11 @@ const areElementsEqual = (element1: Element, element2: Element): boolean => {
       element1.width !== element2.width ||
       element1.height !== element2.height ||
       element1.parentId !== element2.parentId) {
-    console.log(`Elemento ${element1.id} cambió:`, {
-      name: element1.name !== element2.name ? `${element1.name} -> ${element2.name}` : 'sin cambio',
-      type: element1.type !== element2.type ? `${element1.type} -> ${element2.type}` : 'sin cambio',
-      position: (element1.x !== element2.x || element1.y !== element2.y) ?
-        `(${element1.x},${element1.y}) -> (${element2.x},${element2.y})` : 'sin cambio',
-      size: (element1.width !== element2.width || element1.height !== element2.height) ?
-        `${element1.width}x${element1.height} -> ${element2.width}x${element2.height}` : 'sin cambio',
-      parentId: element1.parentId !== element2.parentId ? `${element1.parentId} -> ${element2.parentId}` : 'sin cambio'
-    });
     return false;
   }
 
   // Comparar propiedades
   if (element1.properties.length !== element2.properties.length) {
-    console.log(`Elemento ${element1.id} cambió número de propiedades: ${element1.properties.length} -> ${element2.properties.length}`);
     return false;
   }
 
@@ -143,11 +111,9 @@ const areElementsEqual = (element1: Element, element2: Element): boolean => {
     const prop1 = element1.properties[i];
     const prop2 = element2.properties.find(p => p.id === prop1.id);
     if (!prop2) {
-      console.log(`Elemento ${element1.id} perdió propiedad: ${prop1.name}`);
       return false;
     }
     if (prop1.value !== prop2.value || prop1.name !== prop2.name) {
-      console.log(`Elemento ${element1.id} cambió propiedad ${prop1.name}: ${prop1.value} -> ${prop2.value}`);
       return false;
     }
   }

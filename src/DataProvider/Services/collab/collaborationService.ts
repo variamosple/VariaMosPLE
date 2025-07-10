@@ -21,8 +21,6 @@ const CLEANUP_TIMEOUT = 10 * 60 * 1000; // 10 minutos sin usuarios
 const cleanupProject = (projectId: string) => {
   const data = projectCollaborationData.get(projectId);
   if (data) {
-    console.log(`[AutoCleanup] 🧹 Limpiando proyecto ${projectId} por inactividad`);
-
     // Limpiar timer si existe
     if (data.cleanupTimer) {
       clearTimeout(data.cleanupTimer);
@@ -56,7 +54,6 @@ const scheduleCleanup = (projectId: string) => {
       }
     }, CLEANUP_TIMEOUT);
 
-    console.log(`[AutoCleanup] ⏰ Limpieza programada para proyecto ${projectId} en ${CLEANUP_TIMEOUT / 60000} minutos`);
   }
 };
 
@@ -68,10 +65,8 @@ const updateUserCount = (projectId: string, count: number) => {
     data.lastActivity = Date.now();
 
     if (count === 0) {
-      console.log(`[AutoCleanup] 👥 No hay usuarios en proyecto ${projectId}, programando limpieza...`);
       scheduleCleanup(projectId);
     } else {
-      console.log(`[AutoCleanup] 👥 ${count} usuarios en proyecto ${projectId}, cancelando limpieza`);
       if (data.cleanupTimer) {
         clearTimeout(data.cleanupTimer);
         data.cleanupTimer = undefined;
@@ -91,7 +86,6 @@ const disconnectCurrentProject = () => {
       currentData.provider.disconnect();
       currentData.doc.destroy();
       projectCollaborationData.delete(currentActiveProjectId);
-      console.log(`Proyecto ${currentActiveProjectId} desconectado`);
     }
     currentActiveProjectId = null;
   }
@@ -119,11 +113,9 @@ export const setupProjectSync = async (
     projectDoc.getMap("projectState");
     
     wsProvider.on("status", (event) => {
-      console.log(`Status WebSocket para proyecto ${projectId}:`, event.status);
     });
 
     wsProvider.on("sync", () => {
-      console.log(`Un nuevo usuario se ha conectado al proyecto ${projectId}.`);
       // Actualizar conteo de usuarios cuando alguien se conecta
       setTimeout(() => {
         const userCount = wsProvider.awareness?.getStates().size || 0;
@@ -132,7 +124,6 @@ export const setupProjectSync = async (
     });
 
     wsProvider.on("connection-close", () => {
-      console.log(`Un usuario se ha desconectado del proyecto ${projectId}.`);
       // Actualizar conteo de usuarios cuando alguien se desconecta
       setTimeout(() => {
         const userCount = wsProvider.awareness?.getStates().size || 0;
@@ -149,10 +140,7 @@ export const setupProjectSync = async (
 
     projectCollaborationData.set(projectId, collaborationData);
     currentActiveProjectId = projectId;
-    console.log(`Nuevo Y.Doc y WebSocketProvider creados para el proyecto ${projectId}`);
-  } else {
-    console.log(`Un usuario se unió al proyecto ${projectId}`);
-  }
+  } 
 
   return collaborationData.provider;
 };
@@ -168,10 +156,8 @@ export const handleCollaborativeProject = async (
   projectInfo: ProjectInformation,
 ): Promise<void> => {
   if (projectInfo?.is_collaborative) {
-    console.log(`El proyecto ${projectId} es colaborativo. Configurando Yjs...`);
     await setupProjectSync(projectId);
   } else {
-    console.log(`El proyecto ${projectId} no es colaborativo.`);
     removeProjectDoc(projectId);
   }
 };
@@ -220,19 +206,13 @@ export const observeModelState = (projectId: string, modelId: string, callback: 
     }
 
     if (modelState) {
-      console.log(`[observeModelState] Observando el estado del modelo ${modelId} para el proyecto ${projectId}`);
-      console.log(`[observeModelState] modelState inicial:`, modelState);
-
       // Solo llamar al callback inicial si hay datos en el estado
       const initialData = modelState.get("data");
       if (initialData) {
-        console.log(`[observeModelState] Enviando estado inicial del modelo ${modelId}`);
         callback(modelState);
       }
 
       const observer = (event: any) => {
-        console.log(`[observeModelState] Cambio detectado en el modelo ${modelId}:`, modelState);
-
         // Extraer información de los cambios específicos
         const changes = {
           keys: event.keys,
@@ -246,14 +226,9 @@ export const observeModelState = (projectId: string, modelId: string, callback: 
       modelState.observe(observer);
       return () => {
         modelState.unobserve(observer);
-        console.log(`[observeModelState] Desobservando el estado del modelo ${modelId} para el proyecto ${projectId}`);
       };
-    } else {
-      console.log(`No se pudo inicializar el estado del modelo ${modelId} para el proyecto ${projectId}`);
-    }
-  } else {
-    console.log(`No se encontró el estado del proyecto ${projectId}`);
-  }
+    } 
+  } 
 }
 
 export const manageModelState = (projectId: string, modelId: string): Y.Map<any> | null => {
@@ -264,15 +239,11 @@ export const manageModelState = (projectId: string, modelId: string): Y.Map<any>
     if (!modelState) {
       modelState = new Y.Map<any>();
       projectState.set(`model_${modelId}`, modelState);
-      console.log(`Estado del modelo ${modelId} creado e inicializado para el proyecto ${projectId}`);
-    } else {
-      console.log(`Estado del modelo ${modelId} ya existe para el proyecto ${projectId}`);
-    }
+    } 
     
     return modelState;
   }
 
-  console.log(`No se encontró el estado del proyecto ${projectId}`);
   return null;
 }
 
@@ -282,12 +253,8 @@ export const updateModelState = (projectId: string, modelId: string, updateFn: (
     const modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
     if (modelState) {
       updateFn(modelState);
-    } else {
-      console.log(`No se encontró el estado del modelo ${modelId} para el proyecto ${projectId}`);
     }
-  } else {
-    console.log(`No se encontró el estado del proyecto ${projectId}`);
-  }
+  } 
 }
 
 // Nuevas funciones para sincronización incremental
@@ -364,7 +331,6 @@ export const getProjectProvider = (projectId: string): WebsocketProvider | null 
   if (collaborationData) {
     return collaborationData.provider;
   }
-  console.log(`No se encontró el WebSocketProvider para el proyecto ${projectId}`);
   return null;
 };
 
@@ -375,7 +341,6 @@ export const updateProjectUserCount = (projectId: string, count: number): void =
 
 // Función para forzar limpieza manual de un proyecto
 export const forceCleanupProject = (projectId: string): void => {
-  console.log(`[AutoCleanup] 🧹 Forzando limpieza manual del proyecto ${projectId}`);
   cleanupProject(projectId);
 };
 
@@ -400,8 +365,6 @@ export const getProjectStats = () => {
 
 // Función para limpiar todos los proyectos (para usar al cerrar la aplicación)
 export const cleanupAllProjects = (): void => {
-  console.log(`[AutoCleanup] 🧹 Limpiando todos los proyectos...`);
-
   projectCollaborationData.forEach((data) => {
     if (data.cleanupTimer) {
       clearTimeout(data.cleanupTimer);
@@ -413,5 +376,4 @@ export const cleanupAllProjects = (): void => {
   projectCollaborationData.clear();
   currentActiveProjectId = null;
 
-  console.log(`[AutoCleanup] ✅ Todos los proyectos limpiados`);
 };

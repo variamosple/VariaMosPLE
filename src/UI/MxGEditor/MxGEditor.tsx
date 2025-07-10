@@ -75,9 +75,6 @@ interface State {
   pendingChanges: boolean;  // Nuevo estado para cambios pendientes
 
   //   Collab
-    showSyncModal: boolean;
-    shareInput: string;
-    shareRole: string;
     isCollaborative: boolean;
     collaborators: Array<{id: string, name: string,email: string; role: string }>;
     showCollaboratorsModal: boolean;
@@ -137,9 +134,6 @@ export default class MxGEditor extends Component<Props, State> {
       openAccordion: [],
       showRequirementsReportModal: false,
 // Collab
-      showSyncModal: false,
-      shareInput: "",
-      shareRole: "",
       isCollaborative: false,
       collaborators: [],
       showCollaboratorsModal: false,
@@ -173,9 +167,6 @@ export default class MxGEditor extends Component<Props, State> {
     this.hideMessageModal = this.hideMessageModal.bind(this);
 
     // Collabcondition
-    this.handleSyncModalToggle = this.handleSyncModalToggle.bind(this);
-    this.handleShareEmailChange = this.handleShareEmailChange.bind(this);
-    this.handleInviteCollaborator = this.handleInviteCollaborator.bind(this);
     // this.changeProjectCollaborative = this.changeProjectCollaborative.bind(this);
   }
 
@@ -184,8 +175,6 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   projectService_addSelectedModelListener(e: any) {
-    console.log(`[projectService_addSelectedModelListener] Cambiando a modelo ${e.model?.id} (${e.model?.type})`);
-
     this.loadModel(e.model);
     console.log("Model Type:", e.model?.type);
     // Verificar si el modelo es "Bill of Materials"
@@ -545,7 +534,6 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
     graph.addListener(mx.mxEvent.CLICK, function (sender, evt) {
-      console.log("Listener activated CLICK");
       try {
         evt.consume();
         if (!me.currentModel) {
@@ -597,7 +585,6 @@ export default class MxGEditor extends Component<Props, State> {
 
 
     graph.addListener(mx.mxEvent.CELL_CONNECTED,  (sender, evt) => {
-      console.log("Listener activated CELL_CONNECTED");
       try {
         evt.consume();
         let edge = evt.getProperty("edge");
@@ -740,7 +727,6 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
     graph.addListener(mx.mxEvent.LABEL_CHANGED, (sender, evt) => {
-      console.log("Listener activated LABEL_CHANGED");
       let t = 0;
       let name = evt.properties.value;
       evt.properties.value = evt.properties.old;
@@ -772,7 +758,6 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
     graph.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
-      console.log("Listener activated CHANGE");
       try {
         evt.consume();
         var changes = evt.getProperty('edit').changes;
@@ -1122,7 +1107,6 @@ export default class MxGEditor extends Component<Props, State> {
 
 
       this.isInitialLoad = true;
-      console.log("FirstInitialLoad", this.isInitialLoad);
       let graph: mxGraph | undefined = this.graph;
       if (graph) {
         graph.getModel().beginUpdate();
@@ -1264,7 +1248,6 @@ export default class MxGEditor extends Component<Props, State> {
           }
         } finally {
           this.isInitialLoad = false;
-          console.log("End InitialLoad", this.isInitialLoad);
           graph.getModel().endUpdate();
 
           // Inicializar el updater incremental específico para este modelo
@@ -1272,7 +1255,6 @@ export default class MxGEditor extends Component<Props, State> {
             const modelKey = `${model.type}_${model.id}`;
             if (!this.incrementalUpdaters.has(modelKey)) {
               this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
-              console.log(`Creado nuevo IncrementalGraphUpdater para modelo ${modelKey}`);
             }
 
             // Actualizar snapshot específico para este modelo
@@ -1280,7 +1262,6 @@ export default class MxGEditor extends Component<Props, State> {
               elements: JSON.parse(JSON.stringify(model.elements || [])),
               relationships: JSON.parse(JSON.stringify(model.relationships || []))
             });
-            console.log(`Snapshot inicializado para modelo ${modelKey} con`, model.elements?.length || 0, "elementos");
           }
         }
       }
@@ -3627,23 +3608,17 @@ private cleanupUnusedModelResources() {
     if (this.awarenessUnsubscribe){
       this.awarenessUnsubscribe();
       this.awarenessUnsubscribe = null;
-      console.log("Removed previous awareness observer.");
     }
 
     if (modelId && projectId){
       destroyModelAwareness(projectId, modelId);
-      console.log("Destroyed previous model awareness.");
     }
   }
 
 
   initNewModelAwarness(projectId: string, modelId: string) {
-    console.log(`[initNewModelAwarness] Configurando awareness para modelo ${modelId}`);
-
     const provider = this.props.projectService.getProjectProvider(projectId);
     const user = this.state.collaborators.find((collab) => collab.id === this.props.projectService.getUser());
-
-    console.log(`[initNewModelAwarness] Provider:`, !!provider, `User:`, !!user);
 
     if (provider && user) {
       setupModelAwareness(projectId, modelId, provider, {
@@ -3652,7 +3627,6 @@ private cleanupUnusedModelResources() {
       });
 
       this.awarenessUnsubscribe = onModelAwarenessChange(projectId, modelId , (state) => {
-        console.log(`[initNewModelAwarness] Awareness change detected for model ${modelId}:`, state.size);
         const awarenessStates = Array.from(state.values());
 
         // Procesar usuarios colaborativos para los indicadores visuales
@@ -3684,62 +3658,7 @@ private cleanupUnusedModelResources() {
 
     } 
   }
-
-
   // Conjunto
-
-  handleSyncModalToggle = () => {
-    this.setState({ showSyncModal: !this.state.showSyncModal });
-  }
-
-  handleShareEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ shareInput: event.target.value });
-  }
-
-  handleRoleChange = (role: string) => {
-    this.setState({ shareRole: role });
-  };
-
-  async handleInviteCollaborator() {
-  const {userRole} = this.state;
-  if (userRole !== RoleEnum.OWNER){
-    alert("Only the owner can invite collaborators.");
-    return;
-  }
-
-  const toUserEmail  = this.state.shareInput.trim();
-  const role = this.state.shareRole.trim();
-  const projectId = this.props.projectService.getProjectInformation().id;
-  if (!toUserEmail) {
-    alert("Please enter a valid user ID.");
-    return;
-  } else if (!role) {
-    alert("Please select a role for the collaborator.");
-    return;
-  }
-  try {
-    const share = await this.props.projectService.shareProject(projectId, toUserEmail, role); 
-  
-    console.log(`Project shared with ${toUserEmail} as ${role}`);
-    alert(`Project successfully shared with ${toUserEmail} as ${role}.`);
-  
-    const newCollaborator = {
-      id: share.id,
-      name: share.name,
-      email: share.email,
-      role: share.role,
-    };
-    this.setState((prevState) => ({
-      collaborators: [...prevState.collaborators, newCollaborator],
-    }));
-  } catch (error) {
-    console.error("Error syncing workspace:", error);
-    alert("An error occurred while syncing the workspace. Please try again.");
-  }
-  
-      this.handleSyncModalToggle(); 
-  
-    }
 
     
   // TODO: Ver que hacer con esto
@@ -3778,220 +3697,6 @@ private cleanupUnusedModelResources() {
   //     alert("Ocurrió un error al intentar cambiar el estado de colaboración.");
   //   }
   // }
-
-  removeCollaborator(collaboratorId: string) {
-    try{
-    const projectId = this.props.projectService.getProjectInformation().id;
-    if (!projectId) {
-      alert("No hay un proyecto seleccionado.");
-      return;
-    }
-    this.props.projectService.removeCollaborator(projectId, collaboratorId)
-    .then((response) => {
-      if (response) {
-        alert(`Colaborador ${collaboratorId} eliminado.`);
-        this.setState((prevState) => ({
-          collaborators: prevState.collaborators.filter(
-            (collab) => collab.id !== collaboratorId
-          ),
-        }));
-      } else {
-        alert("No se pudo eliminar el colaborador.");
-      }
-    })
-    
-  
-  }catch (error){
-      console.error("Error al eliminar colaborador:", error);
-      alert("Ocurrió un error al intentar eliminar el colaborador.");
-    }
-  }
-  async changeCollaboratorRole(collaboratorId: string, newRole: string) {
-    try{
-    const projectId = this.props.projectService.getProjectInformation().id;
-    if (!projectId) {
-      alert("No hay un proyecto seleccionado.");
-      return;
-    }
-    await this.props.projectService.changeCollaboratorRole(projectId, collaboratorId, newRole)
-    .then((response) => {
-      if (response) {
-        alert(`Rol del colaborador ${collaboratorId} cambiado a ${newRole}.`);
-        this.setState((prevState) => ({
-          collaborators: prevState.collaborators.map((collab) =>
-            collab.id === collaboratorId ? { ...collab, role: newRole } : collab
-          ),
-        }));
-      } else {
-        alert("No se pudo cambiar el rol del colaborador.");
-      }
-    })
-    }catch (error){
-      console.error("Error al cambiar el rol del colaborador:", error);
-      alert("Ocurrió un error al intentar cambiar el rol del colaborador.");
-    }
-  }
-
-
-  renderCollaboratorsModal() {
-    const { userRole, collaborators} = this.state; 
-    const isCurrentUserOwner = userRole === RoleEnum.OWNER; 
-    return (
-      <Modal
-        show={this.state.showCollaboratorsModal}
-        onHide={() => this.setState({ showCollaboratorsModal: false })}
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Colaboradores del Proyecto</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {collaborators.length > 0 ? (
-            <ul className="list-group">
-              {collaborators.map((collaborator) => {
-                const isCollaboratorOwner = collaborator.role === RoleEnum.OWNER; 
-                const isCurrentUser = collaborator.id === this.props.projectService.getUser();
-                return (
-                  <li
-                    key={collaborator.id}
-                    className="list-group-item d-flex justify-content-between align-items-center"
-                  >
-                    <div>
-                      <span>
-                        {collaborator.name} ({collaborator.email})
-                      </span>
-                      <br />
-                      <span style={{ fontSize: "0.9em", color: "#666" }}>
-                        Rol actual: {collaborator.role}
-                      </span>
-                    </div>
-                    <div className="d-flex align-items-center">
-                      {/* Dropdown para cambiar el rol */}
-                      <Dropdown>
-                        <Dropdown.Toggle
-                          variant="secondary"
-                          size="sm"
-                          id={`dropdown-role-${collaborator.id}`}
-                          disabled={
-                            !isCurrentUserOwner || // Deshabilitar si el usuario actual no es owner
-                            isCollaboratorOwner || // Deshabilitar si el colaborador es owner
-                            isCurrentUser // Deshabilitar si el colaborador es el usuario actual
-                          }
-                        >
-                          Cambiar Rol
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                          <Dropdown.Item
-                            onClick={() =>
-                              this.changeCollaboratorRole(collaborator.id, RoleEnum.EDIOR)
-                            }
-                            disabled={isCollaboratorOwner || isCurrentUser}
-                          >
-                            Editor
-                          </Dropdown.Item>
-                          <Dropdown.Item
-                            onClick={() =>
-                              this.changeCollaboratorRole(collaborator.id, RoleEnum.VIEWER)
-                            }
-                            disabled={isCollaboratorOwner || isCurrentUser}
-                          >
-                            Viewer
-                          </Dropdown.Item>
-                        </Dropdown.Menu>
-                      </Dropdown>
-                      {/* Botón para eliminar colaborador */}
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        className="ms-2"
-                        onClick={() => this.removeCollaborator(collaborator.id)}
-                        disabled={
-                          !isCurrentUserOwner || // Deshabilitar si el usuario actual no es owner
-                          isCollaboratorOwner // Deshabilitar si el colaborador es owner
-                        }
-                      >
-                        Eliminar
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p>No hay colaboradores en este proyecto.</p>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => this.setState({ showCollaboratorsModal: false })}
-          >
-            Cerrar
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    );
-  }
-
-  renderAddCollaboratorModal() {
-    const { userRole } = this.state;
-    const isCurrentUserOwner = userRole === RoleEnum.OWNER; 
-    return(
-        <Modal
-          show={this.state.showSyncModal}
-          onHide={this.handleSyncModalToggle}
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Share with User</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form>
-              <FormGroup controlId="shareInput">
-                <label>User Email</label>
-                <FormGroup>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter User Email"
-                    value={this.state.shareInput}
-                    onChange={this.handleShareEmailChange}
-                    disabled={!isCurrentUserOwner}
-                  />
-                </FormGroup>
-              </FormGroup>
-              <FormGroup controlId="shareRole">
-                <label>User Role</label>
-                <FormGroup>
-                  <Dropdown>
-                    <Dropdown.Toggle variant="secondary" id="dropdown-basic" disabled={!isCurrentUserOwner}>
-                      {this.state.shareRole || "Select Role"}
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                      <Dropdown.Item onClick={() => this.handleRoleChange(RoleEnum.EDIOR)}>
-                        Editor
-                      </Dropdown.Item>
-                      <Dropdown.Item onClick={() => this.handleRoleChange(RoleEnum.VIEWER)}>
-                        Viewer
-                      </Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown>
-                </FormGroup>
-              </FormGroup>
-            </Form>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={this.handleSyncModalToggle}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={this.handleInviteCollaborator} disabled={!isCurrentUserOwner}>
-              Share
-            </Button>
-          </Modal.Footer>
-        </Modal>
-    )
-  }
-
 
   handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const isCollaborative  = this.state;
@@ -4042,16 +3747,6 @@ private cleanupUnusedModelResources() {
           <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
           <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
           <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
-          {this.state.userRole === RoleEnum.OWNER && (
-    <>
-      <a title="Share with users" onClick={this.handleSyncModalToggle.bind(this)}>
-        <span> Invite </span>
-      </a>
-      <a title="Collaborators" onClick={() => this.setState({ showCollaboratorsModal: true })}>
-        <span>Collaborators </span>
-      </a>
-    </>
-  )}
         </div>
         {this.renderContexMenu()}
 
@@ -4110,10 +3805,6 @@ private cleanupUnusedModelResources() {
         />
 
         </div>
-        
-        {this.renderCollaboratorsModal()}
-
-        {this.renderAddCollaboratorModal()}
         
         <div>
           <Modal

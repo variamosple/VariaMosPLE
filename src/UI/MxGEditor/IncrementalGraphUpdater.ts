@@ -31,18 +31,8 @@ export class IncrementalGraphUpdater {
     }
   ): void {
     if (!this.graph) {
-      console.log("IncrementalGraphUpdater: No hay grafo disponible");
       return;
     }
-
-    console.log("IncrementalGraphUpdater: Aplicando cambios incrementales", {
-      elementsAdded: diff.elementsAdded.length,
-      elementsUpdated: diff.elementsUpdated.length,
-      elementsRemoved: diff.elementsRemoved.length,
-      relationshipsAdded: diff.relationshipsAdded.length,
-      relationshipsUpdated: diff.relationshipsUpdated.length,
-      relationshipsRemoved: diff.relationshipsRemoved.length
-    });
 
     this.graph.getModel().beginUpdate();
     try {
@@ -51,37 +41,31 @@ export class IncrementalGraphUpdater {
 
       // Procesar elementos removidos primero
       if (diff.elementsRemoved.length > 0) {
-        console.log("IncrementalGraphUpdater: Removiendo", diff.elementsRemoved.length, "elementos");
         this.removeElements(diff.elementsRemoved);
       }
 
       // Procesar relaciones removidas
       if (diff.relationshipsRemoved.length > 0) {
-        console.log("IncrementalGraphUpdater: Removiendo", diff.relationshipsRemoved.length, "relaciones");
         this.removeRelationships(diff.relationshipsRemoved);
       }
 
       // Procesar elementos añadidos
       if (diff.elementsAdded.length > 0) {
-        console.log("IncrementalGraphUpdater: Añadiendo", diff.elementsAdded.length, "elementos");
         this.addElements(model, diff.elementsAdded, refreshCallbacks);
       }
 
       // Procesar elementos actualizados
       if (diff.elementsUpdated.length > 0) {
-        console.log("IncrementalGraphUpdater: Actualizando", diff.elementsUpdated.length, "elementos");
         this.updateElements(model, diff.elementsUpdated, refreshCallbacks);
       }
 
       // Procesar relaciones añadidas
       if (diff.relationshipsAdded.length > 0) {
-        console.log("IncrementalGraphUpdater: Añadiendo", diff.relationshipsAdded.length, "relaciones");
         this.addRelationships(model, diff.relationshipsAdded, refreshCallbacks);
       }
 
       // Procesar relaciones actualizadas
       if (diff.relationshipsUpdated.length > 0) {
-        console.log("IncrementalGraphUpdater: Actualizando", diff.relationshipsUpdated.length, "relaciones");
         this.updateRelationships(model, diff.relationshipsUpdated, refreshCallbacks);
       }
 
@@ -90,7 +74,6 @@ export class IncrementalGraphUpdater {
 
       // Forzar refresco visual del grafo
       this.graph.refresh();
-      console.log("IncrementalGraphUpdater: Cambios aplicados y grafo refrescado");
     }
   }
 

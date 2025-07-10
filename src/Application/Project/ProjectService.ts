@@ -796,7 +796,6 @@ export default class ProjectService {
         me._projectInformation.template = false;
       }          
       me.raiseEventUpdateProject(me._project, null);
-      console.log(`Project opened in server: ${me.project.id} and other ${projectInformation.id}`);
       me.handleCollaborativeProject(me._project.id, projectInformation)
     }
 
@@ -1923,7 +1922,6 @@ export default class ProjectService {
         try{
         const user = await this.projectPersistenceUseCases.initUser();
         this.user = user;
-        console.log("User initialized:", user);
       }catch (error) {
         console.error("Error initializing user:", error);
       }

@@ -41,7 +41,6 @@ class ProjectAwareness extends Component<Props, State> {
   }
 
   componentDidMount() {
-    console.log('[ProjectAwareness] 🚀 ComponentDidMount - Inicializando...');
     this.updateProjectInfo();
     this.props.projectService.addUpdateProjectListener(this.handleProjectChange.bind(this));
   }
@@ -58,7 +57,6 @@ class ProjectAwareness extends Component<Props, State> {
   };
 
   handleProjectChange = (e: any) => {
-    console.log('[ProjectAwareness] 🔄 handleProjectChange triggered');
     this.updateProjectInfo();
   };
 
@@ -72,7 +70,6 @@ class ProjectAwareness extends Component<Props, State> {
       this.currentProjectId = newProjectId;
 
       if (projectInfo?.is_collaborative && newProjectId) {
-        console.log('[ProjectAwareness] Inicializando proyecto colaborativo:', newProjectId);
         this.setState({
           isCollaborative: true,
           isConnected: false,
@@ -173,7 +170,7 @@ class ProjectAwareness extends Component<Props, State> {
       });
 
     } catch (error) {
-      console.error('[ProjectAwareness] Error updating awareness state:', error);
+      console.error('Error updating awareness state:', error);
       this.setState({
         isConnected: false,
         connectedUsers: []
@@ -211,11 +208,8 @@ class ProjectAwareness extends Component<Props, State> {
 
   openUserModel = (user: any) => {
     if (!user.isInSpecificModel || !user.currentModel) {
-      console.log(`[ProjectAwareness] ⚠️ Usuario ${user.name} no está en un modelo específico`);
       return;
     }
-
-    console.log(`[ProjectAwareness] 🚀 Abriendo modelo de ${user.name}: ${user.currentModelName} (ID: ${user.currentModel})`);
 
     try {
       // Buscar el modelo en el proyecto y determinar su ubicación
@@ -250,18 +244,15 @@ class ProjectAwareness extends Component<Props, State> {
             );
             break;
           default:
-            console.log(`[ProjectAwareness] ❌ Tipo de modelo no soportado: ${modelLocation.type}`);
             return;
         }
 
         this.props.projectService.saveProject();
-        console.log(`[ProjectAwareness] ✅ Modelo abierto exitosamente: ${user.currentModelName}`);
       } else {
-        console.log(`[ProjectAwareness] ❌ No se encontró el modelo: ${user.currentModel}`);
         alert(`Model "${user.currentModelName}" not found in the project.`);
       }
     } catch (error) {
-      console.error(`[ProjectAwareness] ❌ Error abriendo modelo:`, error);
+      console.error(`Error abriendo modelo:`, error);
       alert(`Error opening model "${user.currentModelName}"`);
     }
   };
