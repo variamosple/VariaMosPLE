@@ -1070,6 +1070,7 @@ private initializeCatalogAwareness(projectId: string): void {
             selectedConfig={this.state.selectedConfig}
             onClose={this.handleCloseAllModals}
             onConfigurationEdited={this.handleConfigurationEdited}
+            onProductEdited={this.handleProductEdited}
           />
         )}
         {this.state.showContextMenu && (

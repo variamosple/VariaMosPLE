@@ -19,9 +19,10 @@ interface EditProductManagerProps {
   selectedConfig: any; // Configuración del producto seleccionada (contiene name, features, etc.)
   onClose: () => void;
   onConfigurationEdited?: (editData: any) => void;
+  onProductEdited?: (editData: any) => void; // Agregar callback para edición de funcionalidades
 }
 
-const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService, selectedConfig, onClose, onConfigurationEdited }) => {
+const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService, selectedConfig, onClose, onConfigurationEdited, onProductEdited }) => {
   // Inicializamos los estados con los valores del producto seleccionado
   const [productName, setProductName] = useState(selectedConfig.name || '');
   const [productImage, setProductImage] = useState<string | null>(null); // Base64 sin prefijo
@@ -559,10 +560,27 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
           feature={getFeatureById(editingFeatureId)!}
           onClose={() => { setShowEditFeatureModal(false); setEditingFeatureId(null); }}
           onSave={(updatedFeature: Element) => {
+            const originalFeature = currentModel.elements.find((e: Element) => e.id === updatedFeature.id);
             const index = currentModel.elements.findIndex((e: Element) => e.id === updatedFeature.id);
+
             if (index > -1) {
               currentModel.elements[index] = updatedFeature;
               projectService.raiseEventUpdatedElement(currentModel, updatedFeature);
+
+              // 🔥 AGREGAR: Notificar al componente padre sobre la edición colaborativa
+              if (onProductEdited) {
+                const editData = {
+                  type: 'FUNCTIONALITY_EDITED',
+                  elementId: updatedFeature.id,
+                  originalFeature: originalFeature,
+                  updatedFeature: updatedFeature,
+                  modelId: currentModel.id,
+                  timestamp: Date.now(),
+                  source: 'EDIT_PRODUCT_MODAL' // Para identificar que viene del modal de edición de producto
+                };
+                onProductEdited(editData);
+              }
+
               forceUpdateModel();
             }
             setShowEditFeatureModal(false);
