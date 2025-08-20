@@ -1,8 +1,9 @@
 
-import  {domainRequirementsSuggest, getAllDomainsList, domainFunctionalRequirementsSuggest}    from "./autocompleteServiceV2";
+import AutocompleteService from "./autocompleteServiceV3";
 
 export default class SuggestionInputHelper  {
     domains: string[]; 
+    autocompleteService: AutocompleteService;
   
     constructor() { 
         this.domains=[];
@@ -11,12 +12,13 @@ export default class SuggestionInputHelper  {
 
     async initialize(){
         let me=this;
-        me.domains= await getAllDomainsList() ;
+        me.autocompleteService=new AutocompleteService();
+        me.domains= await me.autocompleteService.getAllDomainsList() ;
     }
 
     getOptions(request) {
       let me=this;
-      let data = domainFunctionalRequirementsSuggest(request); 
+      let data = me.autocompleteService.domainFunctionalRequirementsSuggest(request); 
       return data;
     }
 

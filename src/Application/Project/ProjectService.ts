@@ -566,13 +566,20 @@ export default class ProjectService {
   }
 
   getUser() {
-    return this.user?.id;
+    if(this.user){
+      return this.user?.id;
+    }else{
+      return '21cd2d82-1bbc-43e9-898a-d5a45abdeced'; //todo: comentariar al publicar
+    }
   }
 
   isGuessUser() {
-    const roles = this.user?.roles || []
-
-    return !!roles.find((role) => role.toLowerCase() === "guest");
+    if(this.user){
+      const roles = this.user?.roles || [] 
+      return !!roles.find((role) => role.toLowerCase() === "guest");
+    }else{ 
+      return false; //todo: comentariar al publicar
+    }
   }
 
   getLanguagesByUser(): Language[] {
