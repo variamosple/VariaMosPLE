@@ -28,6 +28,7 @@ import { LuSheet } from "react-icons/lu";
 import { RiSave3Fill } from "react-icons/ri";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reactstrap";
 import MxProperties from "../MxProperties/MxProperties";
+import KaosGenerator from "../Scope/KaosGenerator";
 
 interface Props {
   projectService: ProjectService;
@@ -142,6 +143,7 @@ export default class MxGEditor extends Component<Props, State> {
         // this.refreshEdgeStyle(edge);
       }
     }
+    this.forceUpdate();
   }
 
   projectService_addUpdatedElementListener(e: any) {
@@ -158,9 +160,13 @@ export default class MxGEditor extends Component<Props, State> {
         }
       }
       this.graph.refresh();
+      let model = this.currentModel;
+      this.loadModel(model);
+      this.forceUpdate();
     } catch (error) {
       let m = error;
     }
+    
   }
 
   projectService_addUpdateProjectListener(e: any) {
@@ -332,6 +338,7 @@ export default class MxGEditor extends Component<Props, State> {
       } catch (error) {
         me.processException(error);
       }
+      me.forceUpdate();
     });
 
 
@@ -355,7 +362,10 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
       }
-    });
+      me.forceUpdate();
+    }
+    
+  );
 
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
       evt.consume();
@@ -510,7 +520,10 @@ export default class MxGEditor extends Component<Props, State> {
         let m = error;
         console.error("something went wrong: ", error)
       }
-    });
+      
+    }
+    
+  );
 
     // graph.connectionHandler.addListener(mx.mxEvent.CONNECT, function(sender, evt)
     // {
@@ -555,6 +568,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
       }
+      me.forceUpdate();
     });
 
     graph.addListener(mx.mxEvent.CHANGE, function (sender, evt) {
@@ -569,6 +583,7 @@ export default class MxGEditor extends Component<Props, State> {
       } catch (error) {
         alert(error);
       }
+      me.forceUpdate();
     });
 
     let gmodel = graph.model;
@@ -1809,6 +1824,25 @@ export default class MxGEditor extends Component<Props, State> {
 
     let left = this.state.contextMenuX + "px";
     let top = this.state.contextMenuY + "px";
+
+    /*
+    if (this.currentModel?.type === "Context diagram") {
+      items.push(
+        <Dropdown.Item
+          key="genKAOS"
+          href="#"
+          onClick={() => {
+            const kaosModel = KaosGenerator.generateFromContext(this.currentModel!, this.props.projectService);
+            this.props.projectService.getProductLineSelected().scope.models.push(kaosModel)
+            // lo añadimos al proyecto y lo abrimos
+            this.props.projectService.raiseEventSelectedModel(kaosModel);
+          }}
+        >
+          Generate KAOS model
+        </Dropdown.Item>
+      );
+      
+    }*/
 
     return (
       <Dropdown.Menu

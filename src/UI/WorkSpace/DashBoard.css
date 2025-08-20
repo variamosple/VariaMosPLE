@@ -38,3 +38,9 @@ td {
   max-height: 35vh;
   overflow: auto;
 }
+
+.td-treexplorer{
+width: 20rem;
+max-width: 20rem;
+min-width: 20rem;
+}
