@@ -458,6 +458,13 @@ class TreeMenu extends Component<Props, State> {
   }
 
   componentDidMount() {
+    (window as any).projectService = this.props.projectService;
+
+  // 2) Notificar al resto de componentes que el service está listo
+  window.dispatchEvent(new CustomEvent("projectservice:ready"));
+
+  // 3) Forzar la carga de lenguajes (dispara listeners)
+  try { this.props.projectService.refreshLanguageList?.(); } catch {}
     let me = this;
     me.props.projectService.addLanguagesDetailListener(
       this.projectService_addListener
