@@ -238,7 +238,7 @@ export default class AutocompleteService {
                 }
                 t++;
             } else {
-                if (token.startsWith('<')) {
+                if (token.startsWith('[')) {
                     if (!candidateParts['_' + index]) {
                         let item = {
                             word: word,

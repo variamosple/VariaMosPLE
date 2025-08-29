@@ -140,6 +140,7 @@ export default class SuggestionInput extends Component<Props, State> {
 
   inputText_onKeyDown(e) {
     if (e.keyCode == 32) {
+      e.preventDefault();
       this.loadSuggestions();
     }
   }
@@ -168,7 +169,7 @@ export default class SuggestionInput extends Component<Props, State> {
     this.state.data = null;
     let value = e.target.attributes["data-value"].value;
     let text = this.state.text
-    if (!value.startsWith("<")) {
+    if (!value.startsWith("[")) {
       text += value + " ";
     }
     this.state.text = text;

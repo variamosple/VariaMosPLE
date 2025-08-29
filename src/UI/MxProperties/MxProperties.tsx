@@ -675,12 +675,12 @@ export default class MxProperties extends Component<Props, State> {
 
     let titleToolTip =
       "Name: " +
-      property.name +
-      "\n Domain: " +
+      property.name.replace(/_/g, " ") +
+      "\nDomain: " +
       property.type +
-      "\n PossibleValues: " +
+      "\nPossibleValues: " +
       property.possibleValues +
-      "\n Comment: " +
+      "\nComment: " +
       property.comment;
 
     let possibleValues;
@@ -775,6 +775,9 @@ export default class MxProperties extends Component<Props, State> {
         );
         break;
       case "Integer":
+      case "Float":
+      case "Double":
+      case "Real":
         if (possibleValues && possibleValues != "") {
           if (!(possibleValues.includes('..'))) { 
             let options = [];
@@ -957,10 +960,12 @@ export default class MxProperties extends Component<Props, State> {
       )
     }
 
+    let labelControl=property.name.replace(/_/g, " ");
+
     return (
       <div className="row" style={style}>
         <div className="col-md-3">
-          <label title={titleToolTip}>{property.name}</label>   {" "}
+          <label title={titleToolTip}>{labelControl}</label>   {" "}
           {editionControl}
         </div>
         <div className="col-md-9">
@@ -1112,10 +1117,13 @@ export default class MxProperties extends Component<Props, State> {
                     >
                       <option value="String" selected>String</option>
                       <option value="Text" selected>Text</option>
-                      <option value="Integer">Integer</option>
                       <option value="Boolean">Boolean</option>
-                      <option value="Date" selected>Date</option>
-                      <option value="Image">Image</option>
+                      <option value="Integer">Integer</option>
+                      <option value="Float">Float</option>
+                      <option value="Real">Real</option>
+                      <option value="Double">Double</option>
+                      {/* <option value="Date" selected>Date</option>
+                      <option value="Image">Image</option> */}
                     </select>
                   </div>
                 </div>
