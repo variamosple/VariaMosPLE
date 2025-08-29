@@ -25,7 +25,8 @@ export default class SuggestionInput extends Component<Props, State> {
   state = {
     text: null,
     showModal: false,
-    data: null
+    data: null,
+    highlightedIndex: -1
   };
 
   inputTextRef = null;
@@ -38,7 +39,8 @@ export default class SuggestionInput extends Component<Props, State> {
     this.state = {
       text: props["value"],
       showModal: false,
-      data: null
+      data: null,
+      highlightedIndex: -1
     }
 
     this.modalDialogRef = React.createRef();
@@ -57,7 +59,7 @@ export default class SuggestionInput extends Component<Props, State> {
   }
 
   loadSuggestions() {
-    let me = this; 
+    let me = this;
     let input = this.state.text;
     if (!input) {
       input = "";
@@ -69,7 +71,7 @@ export default class SuggestionInput extends Component<Props, State> {
       input: input,
       domain: productLine.domain,
       type: productLine.type
-    }; 
+    };
 
     let data = me.suggestionInputHelper.getOptions(request);
     me.state.data = data;
@@ -81,6 +83,7 @@ export default class SuggestionInput extends Component<Props, State> {
     }
 
     me.state.showModal = true;
+    me.state.highlightedIndex = data.options && data.options.length > 0 ? 0 : -1;
     me.modalDialogRef.current.classList.add("show");
     me.forceUpdate();
     if (me.props.onSuggestionReceived) {
@@ -89,59 +92,34 @@ export default class SuggestionInput extends Component<Props, State> {
         data: data
       })
     }
-
-
-
-
-
-
-
-
-    // try {
-    //   axios(config).then((res) => {
-    //     let data = res.data;
-    //     this.state.data = data;
-    //     this.state.text = data.input;
-    //     if (data.input.length > 0) {
-    //       if (!this.state.text.endsWith(" ")) {
-    //         this.state.text += " ";
-    //       }
-    //     }
-    //     this.state.showModal = true;
-    //     this.modalDialogRef.current.classList.add("show");
-    //     this.forceUpdate();
-    //     if (me.props.onSuggestionReceived) {
-    //       me.props.onSuggestionReceived({
-    //         target: this,
-    //         data: data
-    //       })
-    //     }
-    //   }).catch(function (error) {
-    //     let x = 0;
-    //     if (error.response) {
-    //       // Request made and server responded
-    //       console.log(error.response.data);
-    //       console.log(error.response.status);
-    //       console.log(error.response.headers);
-    //     } else if (error.request) {
-    //       // The request was made but no response was received
-    //       console.log(error.request);
-    //     } else {
-    //       // Something happened in setting up the request that triggered an Error
-    //       console.log('Error', error.message);
-    //     }
-
-    //   });
-    // } catch (error) {
-    //   console.log("Something wrong in getExternalFunctions Service: " + error);
-    // }
   }
-
 
   inputText_onKeyDown(e) {
     if (e.keyCode == 32) {
       e.preventDefault();
       this.loadSuggestions();
+    }
+
+    if (this.state.showModal && this.state.data) {
+      const options = this.state.data.options || [];
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        this.setState((prev: any) => ({
+          highlightedIndex: (prev.highlightedIndex + 1) % options.length
+        }));
+      }
+      else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        this.setState((prev: any) => ({
+          highlightedIndex: (prev.highlightedIndex - 1 + options.length) % options.length
+        }));
+      }
+      else if (e.key === "Enter" || e.key === "Tab") {
+        if (this.state.highlightedIndex >= 0 && this.state.highlightedIndex < options.length) {
+          e.preventDefault();
+          this.selectOption(options[this.state.highlightedIndex]);
+        }
+      }
     }
   }
 
@@ -159,26 +137,35 @@ export default class SuggestionInput extends Component<Props, State> {
   }
 
   inputText_onFocus(e) {
-    let me = this;
-    // if (!this.state.text) {
     this.loadSuggestions();
-    // }
   }
 
   inputOption_onClick(e) {
-    this.state.data = null;
     let value = e.target.attributes["data-value"].value;
-    let text = this.state.text
+    this.selectOption(value);
+  }
+
+  selectOption(value) {
+    this.state.data = null;
+    let text = this.state.text;
     if (!value.startsWith("[")) {
       text += value + " ";
     }
-    this.state.text = text;
-    this.setState({
-      text: text
-    })
-    this.raiseOnChange(text);
-    this.inputTextRef.current.focus();
+
+    this.setState(
+      {
+        text: text,
+        showModal: false,
+        highlightedIndex: -1
+      },
+      () => {
+        this.raiseOnChange(text);
+        this.inputTextRef.current.focus();
+        this.loadSuggestions(); // 👈 recargar sugerencias después de seleccionar
+      }
+    );
   }
+
 
   componentDidMount() { }
 
@@ -189,8 +176,16 @@ export default class SuggestionInput extends Component<Props, State> {
     let items = [];
     for (let i = 0; i < this.state.data.options.length; i++) {
       const option = this.state.data.options[i];
+      let className = "div-item";
+      if (i === this.state.highlightedIndex) {
+        className += " highlighted";
+      }
       items.push(
-        <div className="div-item" data-value={option} onClick={this.inputOption_onClick.bind(this)}>
+        <div
+          key={i}
+          className={className}
+          data-value={option}
+          onClick={this.inputOption_onClick.bind(this)}>
           {option}
         </div>
       )
@@ -206,7 +201,14 @@ export default class SuggestionInput extends Component<Props, State> {
     return (
       <span>
         <div className="autocomplete">
-          <textarea className="form-control" ref={this.inputTextRef} onKeyDown={this.inputText_onKeyDown.bind(this)} onChange={this.inputText_onChange.bind(this)} onFocus={this.inputText_onFocus.bind(this)} value={this.state.text} />
+          <textarea
+            className="form-control"
+            ref={this.inputTextRef}
+            onKeyDown={this.inputText_onKeyDown.bind(this)}
+            onChange={this.inputText_onChange.bind(this)}
+            onFocus={this.inputText_onFocus.bind(this)}
+            value={this.state.text}
+          />
           <div ref={this.modalDialogRef} className="autocomplete-items" >
             {this.renderOptions()}
           </div>
@@ -214,4 +216,4 @@ export default class SuggestionInput extends Component<Props, State> {
       </span>
     );
   }
-} 
+}

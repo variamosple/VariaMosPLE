@@ -51,6 +51,11 @@ input[type=submit] {
   color: #ffffff;
 }
 
+.autocomplete-items .div-item.highlighted {
+ background-color: #1967D2; 
+  color: #ffffff;
+}
+
 /*when navigating through the items using the arrow keys:*/
 .autocomplete-active {
   background-color: DodgerBlue !important; 
