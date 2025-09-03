@@ -586,7 +586,7 @@ class TreeExplorer extends Component<Props, State> {
               <Tab.Pane className="px-2" eventKey="constraints">
                 <p className="text-muted small w-100">
                   Specify any relationships or constraints that cannot be
-                  graphically represented in your language using the CLIF
+                  graphically represented in your model using the CLIF
                   language.
                 </p>
 
