@@ -2,12 +2,13 @@
     // Use IntelliSense to learn about possible attributes.
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    // no ejecutar visual studio como administrador por que no se puede depurar con chrome o edge
     "version": "0.2.0",
     "configurations": [  
         {
             "name": "Launch Edge",
             "request": "launch",
-            "type": "msedge",
+            "type": "chrome",
             "url": "http://localhost:3000",
             "webRoot": "${workspaceFolder}"
         }

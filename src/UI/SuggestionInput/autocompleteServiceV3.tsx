@@ -92,7 +92,8 @@ export default class AutocompleteService {
             let node = secretGraph.nodes[index];
             if(node.name!="//"){
                 nodes.push(node.name);
-            }else{
+            }
+            else{
                let childIndexes = me.graph.findNextNodes(index);
                me.generateNodes(nodes, childIndexes);
             }
