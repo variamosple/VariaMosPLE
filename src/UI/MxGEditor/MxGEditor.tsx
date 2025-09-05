@@ -3309,7 +3309,7 @@ export default class MxGEditor extends Component<Props, State> {
               <Button variant="primary" onClick={this.acceptPropertiesModal}>
                 Accept
               </Button>
-              <Button variant="primary" onClick={this.cancelPropertiesModal}>
+              <Button variant="secondary" onClick={this.cancelPropertiesModal}>
                 Cancel
               </Button>
             </Modal.Footer>
