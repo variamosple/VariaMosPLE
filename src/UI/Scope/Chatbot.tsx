@@ -629,52 +629,87 @@ const Chatbot: React.FC = () => {
   };
 
   /** 8) Enviar mensaje */
-  const send = async (userText: string) => {
-    if (!ps || !currentLanguage) { addLog("ps/language no disponible"); return; }
-    const abs = getAbstract();
-    if (!Object.keys(abs.elements).length) { return; }
+ /** 8) Enviar mensaje */
+const send = async (userText: string) => {
+  if (!ps || !currentLanguage) { addLog("ps/language no disponible"); return; }
+  const abs = getAbstract();
+  if (!Object.keys(abs.elements).length) { return; }
 
-    const systemPrompt = buildSystemPrompt(abs);
-    const messages: Message[] = [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userText }
-    ];
+  const systemPrompt = buildSystemPrompt(abs);
+  const messages: Message[] = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userText }
+  ];
 
-    let url = process.env.REACT_APP_CHATBOT_URL || "/v1/chat/completions";
-    if (url.startsWith("http://localhost:8080") || url.startsWith("https://localhost:8080")) {
-      url = url.replace(/^https?:\/\/localhost:8080/, "");
+  // URL y modelo (pueden venir del .env)
+  let url = process.env.REACT_APP_CHATBOT_URL || "/v1/chat/completions";
+  if (url.startsWith("http://localhost:8080") || url.startsWith("https://localhost:8080")) {
+    url = url.replace(/^https?:\/\/localhost:8080/, "");
+  }
+  const model =
+    process.env.REACT_APP_CHATBOT_MODEL ||
+    "deepseek/deepseek-chat-v3.1:free"; // <- usa un slug válido en OpenRouter
+
+  // Headers (con OpenRouter)
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (url.includes("openrouter.ai")) {
+    const apiKey = process.env.REACT_APP_OPENROUTER_API_KEY || "";
+    if (!apiKey) {
+      addLog("[auth] Falta REACT_APP_OPENROUTER_API_KEY");
+    } else {
+      headers["Authorization"] = `Bearer ${apiKey}`;
     }
-    const model = process.env.REACT_APP_CHATBOT_MODEL || "ai/llama3.3";
+    headers["HTTP-Referer"] =
+      process.env.REACT_APP_OPENROUTER_REFERER ||
+      (typeof window !== "undefined" ? window.location.origin : "");
+    headers["X-Title"] =
+      process.env.REACT_APP_OPENROUTER_TITLE ||
+      (typeof document !== "undefined" ? document.title : "Variamos");
+  }
 
-    setBusy(true);
-    setThread(prev => [...prev, { role: "user", content: userText }]);
-    try {
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model, messages })
-      });
-      const data = await resp.json();
-      addLog(`[http] ${resp.status}`);
+  setBusy(true);
+  setThread(prev => [...prev, { role: "user", content: userText }]);
 
-      const raw = data?.choices?.[0]?.message?.content ?? "";
-      setThread(prev => [...prev, { role: "assistant", content: raw || "(sin contenido)" }]);
-      if (!raw) { setBusy(false); return; }
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers, // <<<<<<<<<<<<<< ¡AHORA SÍ usamos los headers con Authorization!
+      body: JSON.stringify({ model, messages })
+    });
 
-      const parsed0 = safeParseJSON(stripCodeFences(raw));
-      if (!parsed0) { addLog("[parse] JSON inválido"); setBusy(false); return; }
+    let data: any = null;
+    const text = await resp.text();
+    try { data = JSON.parse(text); } catch { /* deja text crudo */ }
 
-      const plan = validateAndNormalizePlan(parsed0, abs, userText);
-      if (!plan.elements.length) { addLog("[plan] sin elementos válidos tras validación"); setBusy(false); return; }
+    addLog(`[http] ${resp.status}`);
 
-      injectIntoProject(plan, currentLanguage, phase, abs);
-    } catch (e: any) {
-      addLog(`[error] ${e?.message || e}`);
-      setThread(prev => [...prev, { role: "assistant", content: "Error: " + (e?.message || e) }]);
-    } finally {
+    if (!resp.ok) {
+      const msg = data?.error?.message || text || `HTTP ${resp.status}`;
+      addLog(`[http error] ${msg}`);
+      setThread(prev => [...prev, { role: "assistant", content: `Error del modelo: ${msg}` }]);
       setBusy(false);
+      return;
     }
-  };
+
+    const raw = data?.choices?.[0]?.message?.content ?? "";
+    setThread(prev => [...prev, { role: "assistant", content: raw || "(sin contenido)" }]);
+    if (!raw) { setBusy(false); return; }
+
+    const parsed0 = safeParseJSON(stripCodeFences(raw));
+    if (!parsed0) { addLog("[parse] JSON inválido"); setBusy(false); return; }
+
+    const plan = validateAndNormalizePlan(parsed0, abs, userText);
+    if (!plan.elements.length) { addLog("[plan] sin elementos válidos tras validación"); setBusy(false); return; }
+
+    injectIntoProject(plan, currentLanguage, phase, abs);
+  } catch (e: any) {
+    addLog(`[error] ${e?.message || e}`);
+    setThread(prev => [...prev, { role: "assistant", content: "Error: " + (e?.message || e) }]);
+  } finally {
+    setBusy(false);
+  }
+};
+
 
   /** 9) UI mínima: Enter = generar e inyectar */
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
