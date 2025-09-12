@@ -31,6 +31,18 @@ type PlanRelationship = { type: string; source: string; target: string; props?: 
 
 type PlanLLM = { name: string; elements: PlanElement[]; relationships: PlanRelationship[] };
 
+type ModelOption = { id: string; label: string; free?: boolean };
+
+const OPENROUTER_URL =  process.env.REACT_APP_CHATBOT_URL;
+
+const MODEL_OPTIONS: ModelOption[] = [
+  { id: "deepseek/deepseek-chat-v3.1:free", label: "DeepSeek V3.1", free: true },
+  { id: "qwen/qwen3-coder:free", label: "Qwen: Qwen3 Coder 480B", free: true },
+  { id: "google/gemini-2.0-flash-exp:free", label: "Gemini 2.0 Flash Experimental", free: true },
+  { id: "openai/gpt-oss-20b:free", label: "OpenAI: gpt-oss-20b", free: true }
+ 
+];
+
 /** ===== Util ===== */
 const uuid = () =>
   "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
@@ -91,6 +103,9 @@ const Chatbot: React.FC = () => {
   const [allLanguages, setAllLanguages] = useState<Language[]>([]);
   const [phase, setPhase] = useState<Phase>("DOMAIN");
   const [languageId, setLanguageId] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState<string>(MODEL_OPTIONS[0].id);
+const [apiKey, setApiKey] = useState<string>(() =>  process.env.REACT_APP_OPENROUTER_API_KEY || "");
+useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey]);
 
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -628,12 +643,20 @@ const Chatbot: React.FC = () => {
     }
   };
 
-  /** 8) Enviar mensaje */
- /** 8) Enviar mensaje */
+/** 8) Enviar mensaje */
 const send = async (userText: string) => {
   if (!ps || !currentLanguage) { addLog("ps/language no disponible"); return; }
   const abs = getAbstract();
-  if (!Object.keys(abs.elements).length) { return; }
+  if (!Object.keys(abs.elements).length) return;
+
+  // Validación: necesitamos API key si usamos OpenRouter
+  if (!apiKey) {
+    setThread(prev => [...prev, {
+      role: "assistant",
+      content: "Falta tu OpenRouter API Key. Ingresa la key en el campo del encabezado."
+    }]);
+    return;
+  }
 
   const systemPrompt = buildSystemPrompt(abs);
   const messages: Message[] = [
@@ -641,31 +664,17 @@ const send = async (userText: string) => {
     { role: "user", content: userText }
   ];
 
-  // URL y modelo (pueden venir del .env)
-  let url = process.env.REACT_APP_CHATBOT_URL || "/v1/chat/completions";
-  if (url.startsWith("http://localhost:8080") || url.startsWith("https://localhost:8080")) {
-    url = url.replace(/^https?:\/\/localhost:8080/, "");
-  }
-  const model =
-    process.env.REACT_APP_CHATBOT_MODEL ||
-    "deepseek/deepseek-chat-v3.1:free"; // <- usa un slug válido en OpenRouter
+  // Siempre OpenRouter (sin .env)
+  const url = OPENROUTER_URL;
+  const model = selectedModel;
 
-  // Headers (con OpenRouter)
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (url.includes("openrouter.ai")) {
-    const apiKey = process.env.REACT_APP_OPENROUTER_API_KEY || "";
-    if (!apiKey) {
-      addLog("[auth] Falta REACT_APP_OPENROUTER_API_KEY");
-    } else {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
-    headers["HTTP-Referer"] =
-      process.env.REACT_APP_OPENROUTER_REFERER ||
-      (typeof window !== "undefined" ? window.location.origin : "");
-    headers["X-Title"] =
-      process.env.REACT_APP_OPENROUTER_TITLE ||
-      (typeof document !== "undefined" ? document.title : "Variamos");
-  }
+  // Headers obligatorios para OpenRouter
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${apiKey}`,
+    "HTTP-Referer": (typeof window !== "undefined" ? window.location.origin : ""),
+    "X-Title": (typeof document !== "undefined" ? (document.title || "Variamos") : "Variamos")
+  };
 
   setBusy(true);
   setThread(prev => [...prev, { role: "user", content: userText }]);
@@ -673,20 +682,32 @@ const send = async (userText: string) => {
   try {
     const resp = await fetch(url, {
       method: "POST",
-      headers, // <<<<<<<<<<<<<< ¡AHORA SÍ usamos los headers con Authorization!
+      headers,
       body: JSON.stringify({ model, messages })
     });
 
+    const txt = await resp.text();
     let data: any = null;
-    const text = await resp.text();
-    try { data = JSON.parse(text); } catch { /* deja text crudo */ }
+    try { data = JSON.parse(txt); } catch {}
 
     addLog(`[http] ${resp.status}`);
 
     if (!resp.ok) {
-      const msg = data?.error?.message || text || `HTTP ${resp.status}`;
+      const msg = data?.error?.message || txt || `HTTP ${resp.status}`;
       addLog(`[http error] ${msg}`);
       setThread(prev => [...prev, { role: "assistant", content: `Error del modelo: ${msg}` }]);
+      setBusy(false);
+      return;
+    }
+
+    // Guard: si pedimos :free, no permitir fallback pagado
+    const requestedIsFree = MODEL_OPTIONS.find(m => m.id === model)?.free === true;
+    const usedModel = data?.model || data?.choices?.[0]?.model || data?.choices?.[0]?.provider;
+    addLog(`[llm] requested=${model} used=${usedModel || "(n/a)"} usage=${JSON.stringify(data?.usage || {})}`);
+    if (requestedIsFree && usedModel && !/:free(\b|$)/i.test(String(usedModel))) {
+      const msg = `El pool gratuito no está disponible (usado: ${usedModel}). Cancelado para evitar cobros.`;
+      addLog(`[guard] ${msg}`);
+      setThread(prev => [...prev, { role: "assistant", content: msg }]);
       setBusy(false);
       return;
     }
@@ -711,6 +732,7 @@ const send = async (userText: string) => {
 };
 
 
+
   /** 9) UI mínima: Enter = generar e inyectar */
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !busy) {
@@ -728,25 +750,52 @@ const send = async (userText: string) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 8 }}>
       {/* Phase + Language */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8 }}>
-        <div>
-          <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>Phase</label>
-          <select value={phase} onChange={e => setPhase(e.target.value as Phase)} style={{ width: "100%" }}>
-            <option value="SCOPE">Scope</option>
-            <option value="DOMAIN">Domain</option>
-            <option value="APPLICATION">Application</option>
-          </select>
-        </div>
-        <div>
-          <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>Language</label>
-          <select value={languageId} onChange={e => setLanguageId(e.target.value)} style={{ width: "100%" }}>
-            <option value="">— Select language —</option>
-            {phaseLanguagesMemo.map(l => (
-              <option key={String(l.id)} value={String(l.id)}>{l.name} ({l.type})</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      {/* Encabezado: Phase, Language, Model */}
+<div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 2fr", gap: 8 }}>
+  <div>
+    <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>Phase</label>
+    <select value={phase} onChange={e => setPhase(e.target.value as Phase)} style={{ width: "100%" }}>
+      <option value="SCOPE">Scope</option>
+      <option value="DOMAIN">Domain</option>
+      <option value="APPLICATION">Application</option>
+    </select>
+  </div>
+
+  <div>
+    <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>Language</label>
+    <select value={languageId} onChange={e => setLanguageId(e.target.value)} style={{ width: "100%" }}>
+      <option value="">— Select language —</option>
+      {phaseLanguages.map(l => (
+        <option key={String(l.id)} value={String(l.id)}>{l.name} ({l.type})</option>
+      ))}
+    </select>
+  </div>
+
+  <div>
+    <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>Model (OpenRouter)</label>
+    <select value={selectedModel} onChange={e => setSelectedModel(e.target.value)} style={{ width: "100%" }}>
+      {MODEL_OPTIONS.map(m => (
+        <option key={m.id} value={m.id}>{m.label}</option>
+      ))}
+    </select>
+  </div>
+</div>
+
+{/* API key (se almacena en localStorage) */}
+<div style={{ marginTop: 6 }}>
+  <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>OpenRouter API Key</label>
+  <input
+    type="password"
+    placeholder="sk-or-********************************"
+    value={apiKey}
+    onChange={e => setApiKey(e.target.value)}
+    style={{ width: "100%", padding: 6 }}
+  />
+  <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>
+    La key se guarda localmente en tu navegador. Para producción, usa un proxy de servidor.
+  </div>
+</div>
+
 
       {/* Conversación */}
       <div style={{ flex: 1, overflow: "auto", border: "1px solid #eee", padding: 8 }}>
