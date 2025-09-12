@@ -19,7 +19,8 @@ export default class SuggestionInput extends Component<Props, State> {
     value: null,
     endPoint: null,
     projectService: null,
-    onSuggestionReceived: null
+    onSuggestionReceived: null,
+    textGraph: null
   };
 
   state = {
@@ -46,7 +47,6 @@ export default class SuggestionInput extends Component<Props, State> {
     this.modalDialogRef = React.createRef();
     this.inputTextRef = React.createRef();
 
-    this.suggestionInputHelper = new SuggestionInputHelper();
   }
 
   raiseOnChange(value) {
@@ -217,7 +217,9 @@ export default class SuggestionInput extends Component<Props, State> {
   }
 
 
-  componentDidMount() { }
+  componentDidMount() { 
+    this.suggestionInputHelper = new SuggestionInputHelper(this.props.textGraph);
+  }
 
   renderOptions() {
     if (!this.state.data) {

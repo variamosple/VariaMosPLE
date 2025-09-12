@@ -24,6 +24,9 @@ import { MdEdit } from "react-icons/md";
 import { FaTrashAlt } from "react-icons/fa";
 import { MdAddCircle } from "react-icons/md";
 
+import secretGraph from '../SuggestionInput/secretGraph.json';
+import secretGraphNFR from '../SuggestionInput/SecretGraphNFR.json';
+
 interface Props {
   projectService: ProjectService;
   model: any;
@@ -937,9 +940,14 @@ export default class MxProperties extends Component<Props, State> {
         }
         break;
       case "Autocomplete":
+        let textGraph:any=secretGraph;
+        if (this.currentObject.type=="NonFunctionalRequirement") {
+          textGraph=secretGraphNFR;
+        } 
         control = (
           <SuggestionInput
             className="form-control form-control-sm"
+            textGraph={textGraph}
             data-name={property.name}
             onChange={this.input_onChange}
             value={this.state.values[property.name]}
