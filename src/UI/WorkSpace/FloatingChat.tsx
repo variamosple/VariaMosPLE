@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import Chatbot from "../Scope/Chatbot";
+import { ReactComponent as ChatIcon } from "./support_agent.svg";
+import "../Scope/Chatbot.css";
 
 const FloatingChat: React.FC = () => {
   const [visible, setVisible] = useState(false);   // mostrar/ocultar panel
@@ -11,36 +13,15 @@ const FloatingChat: React.FC = () => {
     <>
       {/* Botón flotante (aparece cuando el panel está oculto) */}
       {!visible && (
-        <button
-          aria-label="Abrir asistente"
-          onClick={openFull}
-          style={{
-            position: "fixed",
-            right: 24,
-            bottom: 24,
-            width: 64,
-            height: 64,
-            borderRadius: "9999px",
-            border: "none",
-            cursor: "pointer",
-            background: "#2563eb",
-            color: "#fff",
-            boxShadow: "0 12px 32px rgba(0,0,0,.25)",
-            zIndex: 9999,
-          }}
-          title="Asistente de modelado"
-        >
-          <svg
-            width="26"
-            height="26"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            style={{ pointerEvents: "none" }}
-          >
-            <path d="M20 2H4a2 2 0 0 0-2 2v16l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
-          </svg>
-        </button>
-      )}
+  <button
+    aria-label="Open assistant"
+    onClick={openFull}
+    className="chat-fab"
+    title="Modeling Assistant"
+  >
+    <ChatIcon className="chat-fab__icon" />
+  </button>
+)}
 
       {/* Panel flotante: SIEMPRE montado (no se pierde el estado), solo cambia visibilidad/tamaño */}
       <div
@@ -84,7 +65,7 @@ const FloatingChat: React.FC = () => {
           // Permite restaurar a expandido al hacer click en el header cuando está minimizado
           onClick={() => minimized && setMinimized(false)}
         >
-          <strong>Asistente de modelado</strong>
+          <strong>Modeling Assistant</strong>
 
           <div style={{ display: "flex", gap: 6 }}>
             {/* Minimizar / Restaurar */}
@@ -123,7 +104,6 @@ const FloatingChat: React.FC = () => {
           </div>
         </div>
 
-        {/* Cuerpo del chat: se oculta visualmente cuando está minimizado, pero sigue montado */}
         <div style={{ flex: 1, minHeight: 0, display: minimized ? "none" : "block" }}>
           <Chatbot />
         </div>

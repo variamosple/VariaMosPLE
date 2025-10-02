@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import "./Chatbot.css";
 
 /** ===== Tipos ===== */
 type Phase = "SCOPE" | "DOMAIN" | "APPLICATION";
@@ -12,7 +13,7 @@ interface Language {
   abstractSyntax?: any; // string u objeto
 }
 
-type MetaProp = { name: string; type: string; defaultValue?: any; possibleValues?: string; comment?: string; linked_property?: string; linked_value?: string; [k: string]: any };
+type MetaProp = { name: string; type: string; defaultValue?: any; possibleValues?: string; comment?: string; linked_property?: string; linked_value?: string;[k: string]: any };
 type MetaElementDef = { properties?: MetaProp[] };
 type MetaRelDef = { min: number; max: number; source: string; target: string[]; properties?: MetaProp[] };
 type AbstractSyntax = {
@@ -26,6 +27,23 @@ type AbstractSyntax = {
   };
 };
 
+type PLKnowledge = {
+  productLineName: string;
+  languages: string[];
+  models: Array<{ phase: string; type: string; name: string }>;
+  knownElementNames: string[];           // top N nombres (global)
+  knownElementTypes: string[];           // top N tipos (global)
+  relationshipPatterns: Array<{ type: string; sourceType: string; targetType: string }>; // global
+  rootNames: string[];                   // top N nombres de RootFeature
+  // Filtros por lenguaje actual
+  sameLang: {
+    knownElementNames: string[];
+    knownElementTypes: string[];
+    relationshipPatterns: Array<{ type: string; sourceType: string; targetType: string }>;
+    rootNames: string[];
+  };
+};
+
 type PlanElement = { name: string; type: string; props?: Record<string, any> };
 type PlanRelationship = { type: string; source: string; target: string; props?: Record<string, any> };
 
@@ -33,14 +51,16 @@ type PlanLLM = { name: string; elements: PlanElement[]; relationships: PlanRelat
 
 type ModelOption = { id: string; label: string; free?: boolean };
 
-const OPENROUTER_URL =  process.env.REACT_APP_CHATBOT_URL;
+const OPENROUTER_URL = process.env.REACT_APP_CHATBOT_URL;
 
 const MODEL_OPTIONS: ModelOption[] = [
   { id: "deepseek/deepseek-chat-v3.1:free", label: "DeepSeek V3.1", free: true },
   { id: "qwen/qwen3-coder:free", label: "Qwen: Qwen3 Coder 480B", free: true },
-  { id: "google/gemini-2.0-flash-exp:free", label: "Gemini 2.0 Flash Experimental", free: true },
+  { id: "x-ai/grok-4-fast:free", label: "xAI: Grok 4 Fast", free: true },
+  { id: "mistralai/mistral-small-3.2-24b-instruct:free", label: "Mistral: Mistral Small 3.2", free: true },
+  { id: "openai/gpt-oss-120b:free", label: "OpenAI: gpt-oss-120b", free: true },
   { id: "openai/gpt-oss-20b:free", label: "OpenAI: gpt-oss-20b", free: true }
- 
+
 ];
 
 /** ===== Util ===== */
@@ -66,10 +86,38 @@ const softJsonRepair = (raw: string) => {
 };
 
 const safeParseJSON = (raw: string) => {
-  try { return JSON.parse(raw); } catch {}
-  try { return JSON.parse(softJsonRepair(raw)); } catch {}
+  try { return JSON.parse(raw); } catch { }
+  try { return JSON.parse(softJsonRepair(raw)); } catch { }
   return null;
 };
+const getLangPhase = (l: any): Phase | null => {
+  // 1) Primero intenta por nombre (último paréntesis, p.ej. "... (Domain)")
+  const byName = phaseFromName(l?.name);
+  if (byName) return byName;
+
+  // 2) Si no hay pista en el nombre, intenta por tipo (tolerante a variantes)
+  const raw = String(l?.type ?? "").trim().toUpperCase().replace(/\s+/g, "-");
+  if (raw.includes("SCOPE")) return "SCOPE";
+  if (raw.startsWith("DOMAIN")) return "DOMAIN";
+  if (raw.startsWith("APPLICATION")) return "APPLICATION";
+
+  return null; // no clasifica → que no aparezca en ninguna fase
+};
+const phaseFromName = (n?: string): Phase | null => {
+  const txt = String(n ?? "").toUpperCase();
+  // toma el ÚLTIMO paréntesis por si hay otros en el nombre
+  const matches = txt.match(/\(([^()]*)\)/g) || [];
+  const last = matches.length ? matches[matches.length - 1] : "";
+  const token = last.replace(/[()]/g, "").trim();
+  if (token.includes("SCOPE")) return "SCOPE";
+  if (token.includes("DOMAIN")) return "DOMAIN";
+  if (token.includes("APPLICATION")) return "APPLICATION";
+  return null;
+};
+
+const Typing = ({ text = "thinking..." }: { text?: string }) => (
+  <div className="typing"><span>{text}</span><span className="dots"><i /><i /><i /></span></div>
+);
 
 const titleCase = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
@@ -82,7 +130,7 @@ const nodesEdgesToPlan = (input: any): PlanLLM | null => {
   const name = typeof input.name === "string" ? input.name : "Generated Model";
 
   const elements: PlanElement[] = nodes ? nodes.map((n: any, i: number) => ({
-    name: String(n?.name ?? `Element${i+1}`),
+    name: String(n?.name ?? `Element${i + 1}`),
     type: String(n?.type ?? ""),
     ...(n?.props && typeof n.props === "object" ? { props: n.props } : {})
   })) : [];
@@ -97,15 +145,119 @@ const nodesEdgesToPlan = (input: any): PlanLLM | null => {
   return { name, elements, relationships };
 };
 
+const harvestProductLineKnowledge = (ps: any, currentLanguage?: Language, maxItems = 20): PLKnowledge | null => {
+  try {
+    const project = ps?.getProject?.() ?? ps?.project ?? null;
+    if (!project?.productLines?.length) return null;
+
+    let plIdx = 0;
+    try {
+      const idx = ps.getIdCurrentProductLine?.();
+      if (Number.isInteger(idx) && idx >= 0 && idx < project.productLines.length) plIdx = idx;
+    } catch { }
+
+    const pl = project.productLines[plIdx];
+    if (!pl) return null;
+
+    // Recolectar todos los modelos de la LP
+    const allModels: any[] = [];
+    const pushWithPhase = (arr: any[], phase: string) => {
+      if (Array.isArray(arr)) for (const m of arr) allModels.push({ ...m, __phase: phase });
+    };
+    pushWithPhase(pl?.scope?.models || [], "SCOPE");
+    pushWithPhase(pl?.domainEngineering?.models || [], "DOMAIN");
+    pushWithPhase(pl?.applicationEngineering?.models || [], "APPLICATION-ENG");
+    const apps = pl?.applicationEngineering?.applications || [];
+    for (const app of apps) {
+      pushWithPhase(app?.models || [], "APPLICATION");
+      const adaps = app?.adaptations || [];
+      for (const ad of adaps) pushWithPhase(ad?.models || [], "ADAPTATION");
+    }
+
+    // Contadores
+    const nameCount = new Map<string, number>();
+    const typeCount = new Map<string, number>();
+    const rootNameCount = new Map<string, number>();
+    const relPatternCount = new Map<string, { type: string; sourceType: string; targetType: string; n: number }>();
+
+    // Mismo lenguaje (por nombre)
+    const langName = currentLanguage?.name || currentLanguage?.id || null;
+    const sameLangNames = new Map<string, number>();
+    const sameLangTypes = new Map<string, number>();
+    const sameLangRootNames = new Map<string, number>();
+    const sameLangPatterns = new Map<string, { type: string; sourceType: string; targetType: string; n: number }>();
+
+    const add = (map: Map<string, number>, k: string, inc = 1) => map.set(k, (map.get(k) || 0) + inc);
+    const addPattern = (map: Map<string, any>, p: { type: string; sourceType: string; targetType: string }) => {
+      const key = `${p.type}::${p.sourceType}->${p.targetType}`;
+      const cur = map.get(key) || { ...p, n: 0 };
+      cur.n += 1;
+      map.set(key, cur);
+    };
+
+    for (const m of allModels) {
+      const isSame = langName && (String(m?.type) === String(langName));
+
+      const elemById: Record<string, any> = {};
+      for (const e of (m?.elements || [])) {
+        if (!e?.name || !e?.type) continue;
+        elemById[e.id] = e;
+        add(nameCount, String(e.name));
+        add(typeCount, String(e.type));
+        if (String(e.type) === "RootFeature") add(rootNameCount, String(e.name));
+
+        if (isSame) {
+          add(sameLangNames, String(e.name));
+          add(sameLangTypes, String(e.type));
+          if (String(e.type) === "RootFeature") add(sameLangRootNames, String(e.name));
+        }
+      }
+
+      for (const r of (m?.relationships || [])) {
+        const s = elemById[r.sourceId];
+        const t = elemById[r.targetId];
+        if (!s?.type || !t?.type || !r?.type) continue;
+        const patt = { type: String(r.type), sourceType: String(s.type), targetType: String(t.type) };
+        addPattern(relPatternCount, patt);
+        if (isSame) addPattern(sameLangPatterns, patt);
+      }
+    }
+
+    const topKeys = (map: Map<string, number>, n = maxItems) =>
+      [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([k]) => k);
+    const topPatterns = (map: Map<string, any>, n = maxItems) =>
+      [...map.values()].sort((a, b) => b.n - a.n).slice(0, n).map(({ n, ...rest }) => rest);
+
+    return {
+      productLineName: pl?.name || "",
+      languages: Array.from(new Set(allModels.map(m => String(m?.type || "")).filter(Boolean))),
+      models: allModels.map(m => ({ phase: m.__phase, type: String(m?.type || ""), name: String(m?.name || "") })),
+      knownElementNames: topKeys(nameCount, maxItems),
+      knownElementTypes: topKeys(typeCount, Math.min(maxItems, 12)),
+      relationshipPatterns: topPatterns(relPatternCount, maxItems),
+      rootNames: topKeys(rootNameCount, Math.min(maxItems, 5)),
+      sameLang: {
+        knownElementNames: topKeys(sameLangNames, maxItems),
+        knownElementTypes: topKeys(sameLangTypes, Math.min(maxItems, 12)),
+        relationshipPatterns: topPatterns(sameLangPatterns, maxItems),
+        rootNames: topKeys(sameLangRootNames, Math.min(maxItems, 5)),
+      }
+    };
+  } catch {
+    return null;
+  }
+};
+
 /** ===== Chatbot ===== */
 const Chatbot: React.FC = () => {
   const [ps, setPs] = useState<any>(null);
   const [allLanguages, setAllLanguages] = useState<Language[]>([]);
   const [phase, setPhase] = useState<Phase>("DOMAIN");
   const [languageId, setLanguageId] = useState<string>("");
+  const [stage, setStage] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>(MODEL_OPTIONS[0].id);
-const [apiKey, setApiKey] = useState<string>(() =>  process.env.REACT_APP_OPENROUTER_API_KEY || "");
-useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey]);
+  const [apiKey, setApiKey] = useState<string>(() => process.env.REACT_APP_OPENROUTER_API_KEY || "");
+  useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey]);
 
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -113,48 +265,60 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
   const [log, setLog] = useState<string[]>([]);
   const addLog = (s: string) => setLog(prev => [...prev, s]);
 
-  /** 1) Esperar ProjectService */
-  useEffect(() => {
-    const tryAttach = () => {
-      const svc = (window as any).projectService;
-      if (!svc) return false;
-      setPs(svc);
-      const langs: Language[] = Array.isArray(svc.languages) ? svc.languages : [];
-      setAllLanguages(langs);
-      addLog(`[ps] attach ok, languages=${langs.length}`);
-      try {
-        svc.addLanguagesDetailListener(() => {
-          const latest: Language[] = Array.isArray(svc.languages) ? svc.languages : [];
-          setAllLanguages(latest);
-          addLog(`[ps] languages updated=${latest.length}`);
-        });
-      } catch {}
-      try { svc.refreshLanguageList?.(); } catch {}
-      return true;
-    };
-    if (tryAttach()) return;
-    const onReady = () => { tryAttach(); };
-    window.addEventListener("projectservice:ready", onReady);
-    let tries = 0;
-    const id = setInterval(() => {
-      if (tryAttach() || ++tries > 40) {
-        clearInterval(id);
-        window.removeEventListener("projectservice:ready", onReady);
-      }
-    }, 300);
-    return () => {
-      clearInterval(id);
-      window.removeEventListener("projectservice:ready", onReady);
-    };
-  }, []);
+useEffect(() => { const tryAttach = () => { const svc = (window as any).projectService; if (!svc) return false; setPs(svc); const langs: Language[] = Array.isArray(svc.languages) ? svc.languages : []; setAllLanguages(langs); addLog(`[ps] attach ok, languages=${langs.length}`); try { svc.addLanguagesDetailListener(() => { const latest: Language[] = Array.isArray(svc.languages) ? svc.languages : []; setAllLanguages(latest); addLog(`[ps] languages updated=${latest.length}`); }); } catch {} try { svc.refreshLanguageList?.(); } catch {} return true; }; if (tryAttach()) return; const onReady = () => { tryAttach(); }; window.addEventListener("projectservice:ready", onReady); let tries = 0; const id = setInterval(() => { if (tryAttach() || ++tries > 40) { clearInterval(id); window.removeEventListener("projectservice:ready", onReady); } }, 300); return () => { clearInterval(id); window.removeEventListener("projectservice:ready", onReady); }; }, []); 
 
-  /** 2) Lenguajes por fase */
-  const phaseLanguages = useMemo(() => {
-    const f = allLanguages.filter(l => l?.type === phase);
-    return f.length ? f : allLanguages;
-  }, [allLanguages, phase]);
+useEffect(() => {
+  if (!ps) return;
 
-  useEffect(() => {
+  let stop = false;
+  let lastSig = "";
+
+  const snapshot = (arr: Language[]) =>
+    arr.map(l => `${l.id}|${l.name}|${l.type}|${l.name?.length}`).join("§");
+
+  const tick = () => {
+    const arr: Language[] = Array.isArray((ps as any).languages) ? (ps as any).languages : [];
+    const sig = snapshot(arr);
+
+    if (sig && sig !== lastSig) {
+      lastSig = sig;
+      setAllLanguages([...arr]);              // nueva referencia
+      addLog(`[ps] languages poll → ${arr.length}`);
+    }
+    if (!stop) setTimeout(tick, 350);         // poll liviano
+  };
+
+  tick();
+  return () => { stop = true; };
+}, [ps]);  
+ // /** 2) Lenguajes por fase */ const phaseLanguages = useMemo(() => { const f = allLanguages.filter(l => l?.type === phase); return f.length ? f : allLanguages; }, [allLanguages, phase]);
+ /*
+ const phaseLanguages = useMemo(() => {
+  if (!allLanguages?.length) return [];
+
+  // Ej.: "Context diagram (SCOPE)", "Class diagram (DOMAIN)", etc.
+  const rx = new RegExp(`\\(\\s*${phase}\\s*\\)\\s*$`, "i");
+  const byName = allLanguages.filter(l => rx.test(String(l?.name ?? "")));
+  if (byName.length) return byName;
+
+  const byType = allLanguages.filter(l => String(l?.type ?? "").toUpperCase() === phase);
+  return byType.length ? byType : allLanguages;
+}, [allLanguages, phase]);
+*/
+//const phaseLanguages = useMemo(() => {
+//  if (!allLanguages?.length) return [];
+  // Filtra estrictamente por la fase activa, usando la clasificación robusta.
+//  return allLanguages.filter(l => getLangPhase(l) === phase);
+//}, [allLanguages, phase]);
+const phaseLanguages = useMemo(() => {
+  if (!allLanguages?.length) return [];
+  const filtered = allLanguages.filter(l => getLangPhase(l) === phase);
+  return filtered.length ? filtered : allLanguages;
+}, [allLanguages, phase]);
+
+
+
+ useEffect(() => {
     if (phaseLanguages.length) setLanguageId(String(phaseLanguages[0].id));
     else setLanguageId("");
   }, [phaseLanguages]);
@@ -163,6 +327,11 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
     () => phaseLanguages.find(l => String(l.id) === String(languageId)),
     [phaseLanguages, languageId]
   );
+
+  useEffect(() => {
+    const el = document.getElementById("chat-scroll");
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [thread, busy]);
 
   /** Helper: parsea string u objeto */
   const parseMaybeJson = (v: any): any | null => {
@@ -226,28 +395,19 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
   };
 
   // Tipo por defecto para instanciar conceptos del dominio
-  const chooseDefaultElementType = (abs: AbstractSyntax) => {
-    const elDefs = abs.elements || {};
-    const relDefs = abs.relationships || {};
-    const elems = Object.keys(elDefs);
-    if (!elems.length) return "";
-
-    // puntuación por "conectabilidad" (nº de veces como target)
-    const score = new Map<string, number>();
-    for (const r of Object.values(relDefs)) for (const t of r.target) {
-      score.set(t, (score.get(t) || 0) + 1);
-    }
-    let best = "";
-    let bestScore = -1;
-    for (const k of elems) {
-      const s = score.get(k) || 0;
-      if (s > bestScore) { best = k; bestScore = s; }
-    }
-
-    if (elems.includes("ConcreteFeature")) return "ConcreteFeature";
-    if (elems.includes("AbstractFeature")) return "AbstractFeature";
-    return best || elems[0];
-  };
+const chooseDefaultElementType = (abs: AbstractSyntax) => {
+  const elDefs = abs.elements || {};
+  const relDefs = abs.relationships || {};
+  const elems = Object.keys(elDefs);
+  if (!elems.length) return "";
+  const incoming = new Map<string, number>();
+  for (const r of Object.values(relDefs)) {
+    for (const t of r.target) incoming.set(t, (incoming.get(t) || 0) + 1);
+  }
+  // Elegimos el tipo con más “conectabilidad” como fallback neutral
+  return elems.reduce((best, k) =>
+    (incoming.get(k) || 0) > (incoming.get(best) || 0) ? k : best, elems[0]);
+};
 
   // Relación válida para sourceType → targetType
   const pickRelationTypeFor = (abs: AbstractSyntax, sourceType: string, targetType: string): string | null => {
@@ -258,9 +418,11 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
   };
 
   // Extrae nombres del dominio desde el prompt (es/es-EN simple)
-  const inferDomainFromPrompt = (text: string) => {
+/*
+  const inferDomainFromPrompt = (text: string, plk?: PLKnowledge) => {
     const t = (text || "").toLowerCase();
 
+    // Heurística básica original
     let rootName = "Modelo";
     if (/ventas?\s+de\s+productos?/.test(t)) rootName = "Ventas de Productos";
     else if (/sistema/.test(t) && /venta|sales/.test(t)) rootName = "Sistema de Ventas";
@@ -268,7 +430,7 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
     else if (/sales/.test(t)) rootName = "Sales System";
 
     const concepts: string[] = [];
-    const add = (s: string) => { if (!concepts.includes(s)) concepts.push(s); };
+    const add = (s: string) => { if (s && !concepts.includes(s)) concepts.push(s); };
 
     if (/productos?/.test(t)) add("Producto");
     if (/categor(ía|ia)s?/.test(t)) add("Categoria");
@@ -277,8 +439,18 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
     if (/tarjeta\s+de\s+cr(é|e)dito|credit\s*card/.test(t)) add("PagoTarjeta");
     if (/transferenc(ia|e)/.test(t)) add("Transferencia");
 
+    // Sesgo por LP: preferir rootNames y glosario existentes
+    const preferredRoot = plk?.sameLang?.rootNames?.[0] || plk?.rootNames?.[0];
+    if (preferredRoot) rootName = preferredRoot;
+
+    const glossary = plk?.sameLang?.knownElementNames?.length
+      ? plk.sameLang.knownElementNames
+      : (plk?.knownElementNames || []);
+    for (const g of glossary.slice(0, 8)) add(g);
+
     return { rootName, concepts };
   };
+*/
 
   // Coerciona elemento; si type inválido lo mapea al tipo por defecto o a partir de possibleValues
   const coerceElementFromTypos = (
@@ -312,7 +484,8 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
   };
 
   /** 4) Prompt generado desde el lenguaje */
-  const buildSystemPrompt = (abs: AbstractSyntax) => {
+  /** (ACTUALIZADA) Prompt del sistema enriquecido con el contexto de la línea de productos */
+  const buildSystemPrompt = (abs: AbstractSyntax, plk?: PLKnowledge) => {
     const elEntries = Object.entries(abs.elements || {});
     const relEntries = Object.entries(abs.relationships || {});
     const restr = abs.restrictions || {};
@@ -348,6 +521,18 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
     if (restr.unique_name?.elements?.length) restrLines.push(`- unique_name over groups: ${JSON.stringify(restr.unique_name.elements)}`);
     if (restr.parent_child?.length) for (const pc of restr.parent_child) restrLines.push(`- parent_child: child=${pc.childElement}, parent in [${pc.parentElement.join(", ")}]`);
 
+    const plCtx = plk ? [
+      `Contexto de la línea de productos activa: "${plk.productLineName || "(sin nombre)"}"`,
+      `- Lenguajes en uso: ${plk.languages.join(", ") || "(n/a)"}`,
+      `- Modelos (${plk.models.length}): ${plk.models.slice(0, 12).map(m => `[${m.phase}] ${m.name} <${m.type}>`).join("; ") || "(n/a)"}`,
+      `- Glosario de conceptos (priorizar consistencia): ${plk.sameLang.knownElementNames.slice(0, 10).join(", ") || plk.knownElementNames.slice(0, 10).join(", ") || "(n/a)"}`,
+      `- Tipos frecuentes: ${plk.sameLang.knownElementTypes.slice(0, 8).join(", ") || plk.knownElementTypes.slice(0, 8).join(", ") || "(n/a)"}`,
+      `- Patrones de relación frecuentes: ${(plk.sameLang.relationshipPatterns.length ? plk.sameLang.relationshipPatterns : plk.relationshipPatterns)
+        .slice(0, 12).map(p => `${p.type}: ${p.sourceType}→${p.targetType}`).join("; ") || "(n/a)"
+      }`,
+      `- Nombres raíz preferidos: ${plk.sameLang.rootNames.slice(0, 3).join(", ") || plk.rootNames.slice(0, 3).join(", ") || "(n/a)"}`
+    ].join("\n") : "(sin contexto de LP)";
+
     return [
       "Eres un generador de modelos para una herramienta de Líneas de Producto.",
       "Devuelve **solo** JSON válido (sin backticks) con esta forma exacta:",
@@ -359,6 +544,7 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
       "- Si una propiedad tiene 'possibleValues', usa exactamente uno de esos valores en `props.<Propiedad>`.",
       "- Cada relación es un objeto con `type, source, target`. Si hay varios destinos, crea varios objetos (uno por destino).",
       "- `source` y `target` deben ser **nombres de elementos** creados en `elements`.",
+      "- Mantén consistencia con el glosario, patrones de relación y nombres raíz usados previamente en la línea de productos. Si faltan elementos mínimos para la coherencia, puedes sugerir/agregar los imprescindibles siempre respetando las restricciones.",
       "",
       "Elementos permitidos y sus propiedades:",
       elementsDesc || "(sin elementos definidos)",
@@ -367,12 +553,16 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
       relsDesc || "(sin relaciones definidas)",
       "",
       "Restricciones del lenguaje:",
-      restrLines.length ? restrLines.join("\n") : "(sin restricciones declaradas)"
+      restrLines.length ? restrLines.join("\n") : "(sin restricciones declaradas)",
+      "",
+      "— Contexto de la línea de productos (resumen) —",
+      plCtx
     ].join("\n");
   };
 
+
   /** 5) Validación + normalización con renombrado de dominio */
-  const validateAndNormalizePlan = (planRaw: any, abs: AbstractSyntax, userText: string): PlanLLM => {
+  const validateAndNormalizePlan = (planRaw: any, abs: AbstractSyntax, userText: string, plk?: PLKnowledge): PlanLLM => {
     let plan: PlanLLM | null = planRaw && typeof planRaw === "object" ? (planRaw as PlanLLM) : null;
     if (!plan?.elements && !plan?.relationships) {
       const mapped = nodesEdgesToPlan(planRaw);
@@ -387,9 +577,12 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
     const pvIndex = buildPossibleValueIndex(abs);
     const defaultElType = chooseDefaultElementType(abs);
 
-    const { rootName, concepts } = inferDomainFromPrompt(userText);
+    // Terminos del usuario + sesgo LP
+    const domainTerms: string[] = [];
+    //const plConcepts = (plk?.sameLang?.knownElementNames?.length ? plk.sameLang.knownElementNames : (plk?.knownElementNames || [])).slice(0, 8);
+    //const domainTerms = Array.from(new Set([...concepts, ...plConcepts]));
 
-    // 1) Elements (coerción)
+    // Elements (coerción)
     const rawElems: any[] = Array.isArray(plan.elements) ? plan.elements : [];
     const elems: PlanElement[] = [];
     for (let i = 0; i < rawElems.length; i++) {
@@ -397,11 +590,12 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
       if (fixed) elems.push(fixed);
     }
 
-    // 1.b) Si name === type en elementos típicos, renombrar a conceptos de dominio
+    // Renombrado de genéricos
+    /*
     const renameIfGeneric = (e: PlanElement, idx: number) => {
       if (!e.name || e.name === e.type || /^(Root|Abstract|Concrete)Feature$/i.test(e.name)) {
         if (e.type === "RootFeature") e.name = rootName || "Root";
-        else if (concepts.length) e.name = concepts[Math.min(idx, concepts.length - 1)];
+        else if (domainTerms.length) e.name = domainTerms[Math.min(idx, domainTerms.length - 1)];
         else e.name = `${e.type}_${idx + 1}`;
       }
     };
@@ -411,8 +605,16 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
       if (e.type === "AbstractFeature") renameIfGeneric(e, afIdx++);
       if (e.type === "ConcreteFeature") renameIfGeneric(e, cfIdx++);
     }
-
-    // 2) unique_name
+   */
+    const typeCounters = new Map<string, number>();
+for (const e of elems) {
+  const count = (typeCounters.get(e.type) || 0) + 1;
+  typeCounters.set(e.type, count);
+  if (!e.name || e.name === e.type) {
+    e.name = `${e.type}_${count}`;
+  }
+}
+    // unique_name
     const uniqueGroups = abs.restrictions?.unique_name?.elements || [];
     if (uniqueGroups.length) {
       for (const group of uniqueGroups) {
@@ -430,23 +632,24 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
       }
     }
 
-    // 3) quantity_element (crear mínimos que falten)
+    // quantity_element (crear mínimos que falten)
     const qty = abs.restrictions?.quantity_element || [];
-    for (const q of qty) {
-      const count = elems.filter(e => e.type === q.element).length;
-      if (q.min && count < q.min) {
-        const toAdd = q.min - count;
-        for (let i = 0; i < toAdd; i++) {
-          const base = titleCase(q.element);
-          const name = count === 0 && i === 0 ? (q.element === "RootFeature" ? rootName : base) : `${base}_${count + i + 1}`;
-          elems.push({ name, type: q.element, props: {} });
-        }
-      }
+for (const q of qty) {
+  if (!allowedEl.has(q.element)) continue; // saltar tipos que NO existen en este lenguaje
+  const count = elems.filter(e => e.type === q.element).length;
+  if (q.min && count < q.min) {
+    const toAdd = q.min - count;
+    for (let i = 0; i < toAdd; i++) {
+      const base = titleCase(q.element);
+      const name = (count === 0 && i === 0) ? base : `${base}_${count + i + 1}`;
+      elems.push({ name, type: q.element, props: {} });
     }
+  }
+}
 
-    // 3.b) Asegurar presencia de conceptos del prompt (si no vinieron)
+    // Asegurar presencia de conceptos del prompt + LP
     const haveNames = new Set(elems.map(e => e.name));
-    const toAddConcepts = concepts.filter(c => !haveNames.has(c));
+    const toAddConcepts = domainTerms.filter(c => !haveNames.has(c));
     for (const c of toAddConcepts) {
       elems.push({ name: c, type: defaultElType, props: {} });
     }
@@ -456,7 +659,7 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
     const firstByType = new Map<string, string>();
     for (const e of elems) if (!firstByType.has(e.type)) firstByType.set(e.type, e.name);
 
-    // 4) Relaciones: aceptar type inventado → remap; aceptar targets[] → expandir
+    // Relaciones: aceptar invenciones → remap; expandir targets[]
     const rawRels: any[] = Array.isArray(plan.relationships) ? plan.relationships : [];
     const expanded: Array<{ type: string; source: string; target: string; props?: any }> = [];
     for (const r of rawRels) {
@@ -492,20 +695,46 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
       }
     }
 
-    // 5) Si hay RootFeature y conceptos del dominio, garantizar arcos root→concepto cuando exista relación válida
-    const roots = elems.filter(e => e.type === "RootFeature").map(e => e.name);
-    for (const root of roots) {
-      const srcType = name2type.get(root)!;
-      for (const e of elems) {
-        if (e.name === root) continue;
-        const mapped = pickRelationTypeFor(abs, srcType, e.type);
-        if (!mapped) continue;
-        const already = expanded.some(x => x.source === root && x.target === e.name);
-        if (!already) expanded.push({ type: mapped, source: root, target: e.name });
+    // Asegurar arcos root→concepto si existe relación válida
+    if (allowedEl.has("RootFeature")) {
+  const roots = elems.filter(e => e.type === "RootFeature").map(e => e.name);
+  for (const root of roots) {
+    const srcType = name2type.get(root)!;
+    for (const e of elems) {
+      if (e.name === root) continue;
+      const mapped = pickRelationTypeFor(abs, srcType, e.type);
+      if (!mapped) continue;
+      const already = expanded.some(x => x.source === root && x.target === e.name);
+      if (!already) expanded.push({ type: mapped, source: root, target: e.name });
+    }
+  }
+}
+
+    // Patrones frecuentes de la LP: añadir los imprescindibles si aplican
+    const pattList = (plk?.sameLang?.relationshipPatterns?.length
+      ? plk.sameLang.relationshipPatterns
+      : (plk?.relationshipPatterns || [])).slice(0, 10);
+
+    for (const p of pattList) {
+      if (!relDefs[p.type]) continue; // patrón no existe en el lenguaje actual
+      const sName = firstByType.get(p.sourceType);
+      const tName = firstByType.get(p.targetType);
+      if (!sName || !tName) continue;
+      const exists = expanded.some(x => x.type === p.type && x.source === sName && x.target === tName);
+      if (!exists) {
+        // Validar compatibilidad por si difiere de este lenguaje
+        const valid = relDefs[p.type].source === p.sourceType && relDefs[p.type].target.includes(p.targetType);
+        if (valid) expanded.push({ type: p.type, source: sName, target: tName });
+        else {
+          // fallback: mapear un tipo válido disponible
+          const mapped = pickRelationTypeFor(abs, p.sourceType, p.targetType);
+          if (mapped && !expanded.some(x => x.type === mapped && x.source === sName && x.target === tName)) {
+            expanded.push({ type: mapped, source: sName, target: tName });
+          }
+        }
       }
     }
-
-    const name = plan.name || rootName || "Generated Model";
+    const name = plan.name || "Generated Model";
     return { name, elements: elems, relationships: expanded };
   };
 
@@ -643,93 +872,160 @@ useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey
     }
   };
 
-/** 8) Enviar mensaje */
-const send = async (userText: string) => {
-  if (!ps || !currentLanguage) { addLog("ps/language no disponible"); return; }
-  const abs = getAbstract();
-  if (!Object.keys(abs.elements).length) return;
+  /** 8) Enviar mensaje */
+  /** 8) Enviar mensaje */
+  const send = async (userText: string) => {
+    if (!ps || !currentLanguage) { addLog("ps/language not available"); return; }
 
-  // Validación: necesitamos API key si usamos OpenRouter
-  if (!apiKey) {
-    setThread(prev => [...prev, {
-      role: "assistant",
-      content: "Falta tu OpenRouter API Key. Ingresa la key en el campo del encabezado."
-    }]);
-    return;
-  }
+    // helper para mostrar la etapa actual en la UI
+    const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
 
-  const systemPrompt = buildSystemPrompt(abs);
-  const messages: Message[] = [
-    { role: "system", content: systemPrompt },
-    { role: "user", content: userText }
-  ];
+    stageStep("Preparing prompt");
+    const abs = getAbstract();
+    if (!Object.keys(abs.elements).length) { addLog("abstractSyntax void"); return; }
 
-  // Siempre OpenRouter (sin .env)
-  const url = OPENROUTER_URL;
-  const model = selectedModel;
+    // Requiere API key (OpenRouter)
+    if (!apiKey) {
+      setThread(prev => [...prev, {
+        role: "assistant",
+        content: "Your OpenRouter API Key is missing. Enter the key in the header field."
+      }]);
+      return;
+    }
 
-  // Headers obligatorios para OpenRouter
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${apiKey}`,
-    "HTTP-Referer": (typeof window !== "undefined" ? window.location.origin : ""),
-    "X-Title": (typeof document !== "undefined" ? (document.title || "Variamos") : "Variamos")
-  };
+    // 1) Contexto adicional de la línea de productos
+    stageStep("Gathering context from the product line…");
+    const plKnowledge = harvestProductLineKnowledge(ps, currentLanguage);
 
-  setBusy(true);
-  setThread(prev => [...prev, { role: "user", content: userText }]);
+    // 2) Construcción de mensajes
+    const systemPrompt = buildSystemPrompt(abs, plKnowledge || undefined);
+    const messages: Message[] = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userText }
+    ];
 
-  try {
-    const resp = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ model, messages })
+    // 3) OpenRouter
+    const url = OPENROUTER_URL;
+    const model = selectedModel;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "HTTP-Referer": (typeof window !== "undefined" ? window.location.origin : ""),
+      "X-Title": (typeof document !== "undefined" ? (document.title || "Variamos") : "Variamos")
+    };
+
+    // 4) UI: push del mensaje del usuario + placeholder “typing…” (en un solo setState)
+    setBusy(true);
+    let placeholderIdx = -1;
+    setThread(prev => {
+      const next: Message[] = [
+        ...prev,
+        { role: "user" as Role, content: String(userText) },
+        { role: "assistant" as Role, content: "__typing__" }
+      ];
+      placeholderIdx = next.length - 1; // índice del "__typing__"
+      return next;
     });
 
-    const txt = await resp.text();
-    let data: any = null;
-    try { data = JSON.parse(txt); } catch {}
+    try {
+      // 5) Llamada HTTP
+      stageStep("Calling API…");
+      const resp = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ model, messages })
+      });
 
-    addLog(`[http] ${resp.status}`);
+      const txt = await resp.text();
+      let data: any = null;
+      try { data = JSON.parse(txt); } catch { }
+      addLog(`[http] ${resp.status}`);
 
-    if (!resp.ok) {
-      const msg = data?.error?.message || txt || `HTTP ${resp.status}`;
-      addLog(`[http error] ${msg}`);
-      setThread(prev => [...prev, { role: "assistant", content: `Error del modelo: ${msg}` }]);
+      if (!resp.ok) {
+        const msg = data?.error?.message || txt || `HTTP ${resp.status}`;
+        stageStep("Error");
+        setThread(prev => {
+          const copy = [...prev];
+          if (placeholderIdx >= 0 && placeholderIdx < copy.length) {
+            copy[placeholderIdx] = { role: "assistant", content: `Model error: ${msg}` };
+          } else {
+            copy.push({ role: "assistant", content: `Model error: ${msg}` });
+          }
+          return copy;
+        });
+        setBusy(false);
+        return;
+      }
+
+      // 6) Anti-fallback pagado si se pidió :free
+      const requestedIsFree = MODEL_OPTIONS.find(m => m.id === model)?.free === true;
+      const usedModel = data?.model || data?.choices?.[0]?.model || data?.choices?.[0]?.provider;
+      addLog(`[llm] requested=${model} used=${usedModel || "(n/a)"} usage=${JSON.stringify(data?.usage || {})}`);
+      if (requestedIsFree && usedModel && !/:free(\b|$)/i.test(String(usedModel))) {
+        const msg = `The free pool is not available. (used: ${usedModel})`;
+        stageStep("Cancel");
+        setThread(prev => {
+          const copy = [...prev];
+          if (placeholderIdx >= 0 && placeholderIdx < copy.length) {
+            copy[placeholderIdx] = { role: "assistant", content: msg };
+          } else {
+            copy.push({ role: "assistant", content: msg });
+          }
+          return copy;
+        });
+        setBusy(false);
+        return;
+      }
+
+      // 7) Mostrar texto del bot
+      stageStep("Parsing response...");
+      const raw = data?.choices?.[0]?.message?.content ?? "";
+      setThread(prev => {
+        const copy = [...prev];
+        const content = raw || "(no content)";
+        if (placeholderIdx >= 0 && placeholderIdx < copy.length) {
+          copy[placeholderIdx] = { role: "assistant", content };
+        } else {
+          copy.push({ role: "assistant", content });
+        }
+        return copy;
+      });
+      if (!raw) { setBusy(false); stageStep(""); return; }
+
+      // 8) Validación y normalización
+      stageStep("Validating and normalizing...");
+      const parsed0 = safeParseJSON(stripCodeFences(raw));
+      if (!parsed0) { addLog("[parse] Invalid JSON"); setBusy(false); stageStep(""); return; }
+
+      const plan = validateAndNormalizePlan(parsed0, abs, userText, plKnowledge || undefined);
+      if (!plan.elements.length) { addLog("[plan] with no valid elements after validation"); setBusy(false); stageStep(""); return; }
+
+      // 9) Inyección al proyecto
+      stageStep("Inyectando al proyecto…");
+      injectIntoProject(plan, currentLanguage, phase, abs);
+
+      stageStep("Listo ✅");
+    } catch (e: any) {
+      stageStep("Error");
+      addLog(`[error] ${e?.message || e}`);
+      setThread(prev => {
+        const copy = [...prev];
+        const content = "Error: " + (e?.message || e);
+        if (placeholderIdx >= 0 && placeholderIdx < copy.length) {
+          copy[placeholderIdx] = { role: "assistant", content };
+        } else {
+          copy.push({ role: "assistant", content });
+        }
+        return copy;
+      });
+    } finally {
       setBusy(false);
-      return;
+      setTimeout(() => setStage(""), 1200);
     }
+  };
 
-    // Guard: si pedimos :free, no permitir fallback pagado
-    const requestedIsFree = MODEL_OPTIONS.find(m => m.id === model)?.free === true;
-    const usedModel = data?.model || data?.choices?.[0]?.model || data?.choices?.[0]?.provider;
-    addLog(`[llm] requested=${model} used=${usedModel || "(n/a)"} usage=${JSON.stringify(data?.usage || {})}`);
-    if (requestedIsFree && usedModel && !/:free(\b|$)/i.test(String(usedModel))) {
-      const msg = `El pool gratuito no está disponible (usado: ${usedModel}). Cancelado para evitar cobros.`;
-      addLog(`[guard] ${msg}`);
-      setThread(prev => [...prev, { role: "assistant", content: msg }]);
-      setBusy(false);
-      return;
-    }
 
-    const raw = data?.choices?.[0]?.message?.content ?? "";
-    setThread(prev => [...prev, { role: "assistant", content: raw || "(sin contenido)" }]);
-    if (!raw) { setBusy(false); return; }
 
-    const parsed0 = safeParseJSON(stripCodeFences(raw));
-    if (!parsed0) { addLog("[parse] JSON inválido"); setBusy(false); return; }
-
-    const plan = validateAndNormalizePlan(parsed0, abs, userText);
-    if (!plan.elements.length) { addLog("[plan] sin elementos válidos tras validación"); setBusy(false); return; }
-
-    injectIntoProject(plan, currentLanguage, phase, abs);
-  } catch (e: any) {
-    addLog(`[error] ${e?.message || e}`);
-    setThread(prev => [...prev, { role: "assistant", content: "Error: " + (e?.message || e) }]);
-  } finally {
-    setBusy(false);
-  }
-};
 
 
 
@@ -745,85 +1041,80 @@ const send = async (userText: string) => {
   };
 
   /* ===== Render ===== */
-  const phaseLanguagesMemo = phaseLanguages;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 8 }}>
-      {/* Phase + Language */}
-      {/* Encabezado: Phase, Language, Model */}
-<div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 2fr", gap: 8 }}>
-  <div>
-    <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>Phase</label>
-    <select value={phase} onChange={e => setPhase(e.target.value as Phase)} style={{ width: "100%" }}>
-      <option value="SCOPE">Scope</option>
-      <option value="DOMAIN">Domain</option>
-      <option value="APPLICATION">Application</option>
-    </select>
-  </div>
-
-  <div>
-    <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>Language</label>
-    <select value={languageId} onChange={e => setLanguageId(e.target.value)} style={{ width: "100%" }}>
-      <option value="">— Select language —</option>
-      {phaseLanguages.map(l => (
-        <option key={String(l.id)} value={String(l.id)}>{l.name} ({l.type})</option>
-      ))}
-    </select>
-  </div>
-
-  <div>
-    <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>Model (OpenRouter)</label>
-    <select value={selectedModel} onChange={e => setSelectedModel(e.target.value)} style={{ width: "100%" }}>
-      {MODEL_OPTIONS.map(m => (
-        <option key={m.id} value={m.id}>{m.label}</option>
-      ))}
-    </select>
-  </div>
-</div>
-
-{/* API key (se almacena en localStorage) */}
-<div style={{ marginTop: 6 }}>
-  <label style={{ display: "block", fontSize: 12, opacity: 0.8 }}>OpenRouter API Key</label>
-  <input
-    type="password"
-    placeholder="sk-or-********************************"
-    value={apiKey}
-    onChange={e => setApiKey(e.target.value)}
-    style={{ width: "100%", padding: 6 }}
-  />
-  <div style={{ fontSize: 11, opacity: 0.7, marginTop: 4 }}>
-    La key se guarda localmente en tu navegador. Para producción, usa un proxy de servidor.
-  </div>
-</div>
-
+    <div className="chatbot">
+      {/* Header */}
+      <div className="chat-hd">
+        <div>
+          <label>Phase</label>
+          <select className="select" value={phase} onChange={e => setPhase(e.target.value as Phase)}>
+            <option value="SCOPE">Scope</option>
+            <option value="DOMAIN">Domain</option>
+            <option value="APPLICATION">Application</option>
+          </select>
+        </div>
+        <div>
+          <label>Language</label>
+          <select className="select" value={languageId} onChange={e => setLanguageId(e.target.value)}>
+            <option value="">— Select language —</option>
+            {phaseLanguages.map(l => (
+              <option key={String(l.id)} value={String(l.id)}>{l.name} ({l.type})</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label>AI model</label>
+          <select className="select" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
+            {MODEL_OPTIONS.map(m => (
+              <option key={m.id} value={m.id}>{m.label}{m.free ? " (free)" : ""}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* Conversación */}
-      <div style={{ flex: 1, overflow: "auto", border: "1px solid #eee", padding: 8 }}>
+      <div className="chat-body" id="chat-scroll">
         {thread.map((m, i) => (
-          <div key={i} style={{ marginBottom: 6 }}>
-            <b>{m.role === "user" ? "You" : m.role === "assistant" ? "Bot" : "Sys"}:</b>{" "}
-            <span style={{ whiteSpace: "pre-wrap" }}>{m.content}</span>
+          <div key={i} className={`msg ${m.role === "user" ? "user" : "bot"}`}>
+            <div className="bubble">
+              {m.content === "__typing__" ? <Typing /> : m.content}
+            </div>
+            <div className="meta">{m.role === "user" ? "You" : m.role === "assistant" ? "bot" : "Sys"}</div>
           </div>
         ))}
       </div>
 
-      {/* Input */}
-      <input
-        placeholder={busy ? "Generando…" : "Describe el modelo que quieres y presiona Enter…"}
-        value={input}
-        onChange={e => setInput(e.target.value)}
-        onKeyDown={onKeyDown}
-        disabled={busy}
-        style={{ padding: 8 }}
-      />
+      {/* Barra de estado fina */}
+      {busy && (
+        <div className="statusbar">
+          <div className="spinner" />
+          <span>{stage || "Processing…"}</span>
+        </div>
+      )}
 
-      {/* Log */}
-      <details>
+      {/* Input */}
+      <div className="chat-ft">
+        <input
+          placeholder={busy ? "Generating…" : "Describe the model you want and press Enter.…"}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={onKeyDown}
+          disabled={busy}
+        />
+        <button disabled={busy || !input.trim()} onClick={() => { const t = input.trim(); if (t) { setInput(""); void send(t); } }}>
+          Send
+        </button>
+      </div>
+
+      {/* Log plegable */}
+      <details className="logbox">
         <summary>Log</summary>
-        <pre style={{ whiteSpace: "pre-wrap" }}>{log.join("\n")}</pre>
+        <pre>{log.join("\n")}</pre>
       </details>
     </div>
   );
+
 };
 
 export default Chatbot;
