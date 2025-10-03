@@ -265,60 +265,60 @@ const Chatbot: React.FC = () => {
   const [log, setLog] = useState<string[]>([]);
   const addLog = (s: string) => setLog(prev => [...prev, s]);
 
-useEffect(() => { const tryAttach = () => { const svc = (window as any).projectService; if (!svc) return false; setPs(svc); const langs: Language[] = Array.isArray(svc.languages) ? svc.languages : []; setAllLanguages(langs); addLog(`[ps] attach ok, languages=${langs.length}`); try { svc.addLanguagesDetailListener(() => { const latest: Language[] = Array.isArray(svc.languages) ? svc.languages : []; setAllLanguages(latest); addLog(`[ps] languages updated=${latest.length}`); }); } catch {} try { svc.refreshLanguageList?.(); } catch {} return true; }; if (tryAttach()) return; const onReady = () => { tryAttach(); }; window.addEventListener("projectservice:ready", onReady); let tries = 0; const id = setInterval(() => { if (tryAttach() || ++tries > 40) { clearInterval(id); window.removeEventListener("projectservice:ready", onReady); } }, 300); return () => { clearInterval(id); window.removeEventListener("projectservice:ready", onReady); }; }, []); 
+  useEffect(() => { const tryAttach = () => { const svc = (window as any).projectService; if (!svc) return false; setPs(svc); const langs: Language[] = Array.isArray(svc.languages) ? svc.languages : []; setAllLanguages(langs); addLog(`[ps] attach ok, languages=${langs.length}`); try { svc.addLanguagesDetailListener(() => { const latest: Language[] = Array.isArray(svc.languages) ? svc.languages : []; setAllLanguages(latest); addLog(`[ps] languages updated=${latest.length}`); }); } catch { } try { svc.refreshLanguageList?.(); } catch { } return true; }; if (tryAttach()) return; const onReady = () => { tryAttach(); }; window.addEventListener("projectservice:ready", onReady); let tries = 0; const id = setInterval(() => { if (tryAttach() || ++tries > 40) { clearInterval(id); window.removeEventListener("projectservice:ready", onReady); } }, 300); return () => { clearInterval(id); window.removeEventListener("projectservice:ready", onReady); }; }, []);
 
-useEffect(() => {
-  if (!ps) return;
+  useEffect(() => {
+    if (!ps) return;
 
-  let stop = false;
-  let lastSig = "";
+    let stop = false;
+    let lastSig = "";
 
-  const snapshot = (arr: Language[]) =>
-    arr.map(l => `${l.id}|${l.name}|${l.type}|${l.name?.length}`).join("§");
+    const snapshot = (arr: Language[]) =>
+      arr.map(l => `${l.id}|${l.name}|${l.type}|${l.name?.length}`).join("§");
 
-  const tick = () => {
-    const arr: Language[] = Array.isArray((ps as any).languages) ? (ps as any).languages : [];
-    const sig = snapshot(arr);
+    const tick = () => {
+      const arr: Language[] = Array.isArray((ps as any).languages) ? (ps as any).languages : [];
+      const sig = snapshot(arr);
 
-    if (sig && sig !== lastSig) {
-      lastSig = sig;
-      setAllLanguages([...arr]);              // nueva referencia
-      addLog(`[ps] languages poll → ${arr.length}`);
-    }
-    if (!stop) setTimeout(tick, 350);         // poll liviano
-  };
+      if (sig && sig !== lastSig) {
+        lastSig = sig;
+        setAllLanguages([...arr]);              // nueva referencia
+        addLog(`[ps] languages poll → ${arr.length}`);
+      }
+      if (!stop) setTimeout(tick, 350);         // poll liviano
+    };
 
-  tick();
-  return () => { stop = true; };
-}, [ps]);  
- // /** 2) Lenguajes por fase */ const phaseLanguages = useMemo(() => { const f = allLanguages.filter(l => l?.type === phase); return f.length ? f : allLanguages; }, [allLanguages, phase]);
- /*
- const phaseLanguages = useMemo(() => {
-  if (!allLanguages?.length) return [];
-
-  // Ej.: "Context diagram (SCOPE)", "Class diagram (DOMAIN)", etc.
-  const rx = new RegExp(`\\(\\s*${phase}\\s*\\)\\s*$`, "i");
-  const byName = allLanguages.filter(l => rx.test(String(l?.name ?? "")));
-  if (byName.length) return byName;
-
-  const byType = allLanguages.filter(l => String(l?.type ?? "").toUpperCase() === phase);
-  return byType.length ? byType : allLanguages;
-}, [allLanguages, phase]);
-*/
-//const phaseLanguages = useMemo(() => {
-//  if (!allLanguages?.length) return [];
+    tick();
+    return () => { stop = true; };
+  }, [ps]);
+  // /** 2) Lenguajes por fase */ const phaseLanguages = useMemo(() => { const f = allLanguages.filter(l => l?.type === phase); return f.length ? f : allLanguages; }, [allLanguages, phase]);
+  /*
+  const phaseLanguages = useMemo(() => {
+   if (!allLanguages?.length) return [];
+ 
+   // Ej.: "Context diagram (SCOPE)", "Class diagram (DOMAIN)", etc.
+   const rx = new RegExp(`\\(\\s*${phase}\\s*\\)\\s*$`, "i");
+   const byName = allLanguages.filter(l => rx.test(String(l?.name ?? "")));
+   if (byName.length) return byName;
+ 
+   const byType = allLanguages.filter(l => String(l?.type ?? "").toUpperCase() === phase);
+   return byType.length ? byType : allLanguages;
+ }, [allLanguages, phase]);
+ */
+  //const phaseLanguages = useMemo(() => {
+  //  if (!allLanguages?.length) return [];
   // Filtra estrictamente por la fase activa, usando la clasificación robusta.
-//  return allLanguages.filter(l => getLangPhase(l) === phase);
-//}, [allLanguages, phase]);
-const phaseLanguages = useMemo(() => {
-  if (!allLanguages?.length) return [];
-  const filtered = allLanguages.filter(l => getLangPhase(l) === phase);
-  return filtered.length ? filtered : allLanguages;
-}, [allLanguages, phase]);
+  //  return allLanguages.filter(l => getLangPhase(l) === phase);
+  //}, [allLanguages, phase]);
+  const phaseLanguages = useMemo(() => {
+    if (!allLanguages?.length) return [];
+    const filtered = allLanguages.filter(l => getLangPhase(l) === phase);
+    return filtered.length ? filtered : allLanguages;
+  }, [allLanguages, phase]);
 
 
 
- useEffect(() => {
+  useEffect(() => {
     if (phaseLanguages.length) setLanguageId(String(phaseLanguages[0].id));
     else setLanguageId("");
   }, [phaseLanguages]);
@@ -395,19 +395,19 @@ const phaseLanguages = useMemo(() => {
   };
 
   // Tipo por defecto para instanciar conceptos del dominio
-const chooseDefaultElementType = (abs: AbstractSyntax) => {
-  const elDefs = abs.elements || {};
-  const relDefs = abs.relationships || {};
-  const elems = Object.keys(elDefs);
-  if (!elems.length) return "";
-  const incoming = new Map<string, number>();
-  for (const r of Object.values(relDefs)) {
-    for (const t of r.target) incoming.set(t, (incoming.get(t) || 0) + 1);
-  }
-  // Elegimos el tipo con más “conectabilidad” como fallback neutral
-  return elems.reduce((best, k) =>
-    (incoming.get(k) || 0) > (incoming.get(best) || 0) ? k : best, elems[0]);
-};
+  const chooseDefaultElementType = (abs: AbstractSyntax) => {
+    const elDefs = abs.elements || {};
+    const relDefs = abs.relationships || {};
+    const elems = Object.keys(elDefs);
+    if (!elems.length) return "";
+    const incoming = new Map<string, number>();
+    for (const r of Object.values(relDefs)) {
+      for (const t of r.target) incoming.set(t, (incoming.get(t) || 0) + 1);
+    }
+    // Elegimos el tipo con más “conectabilidad” como fallback neutral
+    return elems.reduce((best, k) =>
+      (incoming.get(k) || 0) > (incoming.get(best) || 0) ? k : best, elems[0]);
+  };
 
   // Relación válida para sourceType → targetType
   const pickRelationTypeFor = (abs: AbstractSyntax, sourceType: string, targetType: string): string | null => {
@@ -418,39 +418,39 @@ const chooseDefaultElementType = (abs: AbstractSyntax) => {
   };
 
   // Extrae nombres del dominio desde el prompt (es/es-EN simple)
-/*
-  const inferDomainFromPrompt = (text: string, plk?: PLKnowledge) => {
-    const t = (text || "").toLowerCase();
-
-    // Heurística básica original
-    let rootName = "Modelo";
-    if (/ventas?\s+de\s+productos?/.test(t)) rootName = "Ventas de Productos";
-    else if (/sistema/.test(t) && /venta|sales/.test(t)) rootName = "Sistema de Ventas";
-    else if (/productos?/.test(t)) rootName = "Sistema de Productos";
-    else if (/sales/.test(t)) rootName = "Sales System";
-
-    const concepts: string[] = [];
-    const add = (s: string) => { if (s && !concepts.includes(s)) concepts.push(s); };
-
-    if (/productos?/.test(t)) add("Producto");
-    if (/categor(ía|ia)s?/.test(t)) add("Categoria");
-    if (/compr(as|a)|orden(es)?|pedido(s)?/.test(t)) add("Compra");
-    if (/transacci(ó|o)n/.test(t)) add("Transaccion");
-    if (/tarjeta\s+de\s+cr(é|e)dito|credit\s*card/.test(t)) add("PagoTarjeta");
-    if (/transferenc(ia|e)/.test(t)) add("Transferencia");
-
-    // Sesgo por LP: preferir rootNames y glosario existentes
-    const preferredRoot = plk?.sameLang?.rootNames?.[0] || plk?.rootNames?.[0];
-    if (preferredRoot) rootName = preferredRoot;
-
-    const glossary = plk?.sameLang?.knownElementNames?.length
-      ? plk.sameLang.knownElementNames
-      : (plk?.knownElementNames || []);
-    for (const g of glossary.slice(0, 8)) add(g);
-
-    return { rootName, concepts };
-  };
-*/
+  /*
+    const inferDomainFromPrompt = (text: string, plk?: PLKnowledge) => {
+      const t = (text || "").toLowerCase();
+  
+      // Heurística básica original
+      let rootName = "Modelo";
+      if (/ventas?\s+de\s+productos?/.test(t)) rootName = "Ventas de Productos";
+      else if (/sistema/.test(t) && /venta|sales/.test(t)) rootName = "Sistema de Ventas";
+      else if (/productos?/.test(t)) rootName = "Sistema de Productos";
+      else if (/sales/.test(t)) rootName = "Sales System";
+  
+      const concepts: string[] = [];
+      const add = (s: string) => { if (s && !concepts.includes(s)) concepts.push(s); };
+  
+      if (/productos?/.test(t)) add("Producto");
+      if (/categor(ía|ia)s?/.test(t)) add("Categoria");
+      if (/compr(as|a)|orden(es)?|pedido(s)?/.test(t)) add("Compra");
+      if (/transacci(ó|o)n/.test(t)) add("Transaccion");
+      if (/tarjeta\s+de\s+cr(é|e)dito|credit\s*card/.test(t)) add("PagoTarjeta");
+      if (/transferenc(ia|e)/.test(t)) add("Transferencia");
+  
+      // Sesgo por LP: preferir rootNames y glosario existentes
+      const preferredRoot = plk?.sameLang?.rootNames?.[0] || plk?.rootNames?.[0];
+      if (preferredRoot) rootName = preferredRoot;
+  
+      const glossary = plk?.sameLang?.knownElementNames?.length
+        ? plk.sameLang.knownElementNames
+        : (plk?.knownElementNames || []);
+      for (const g of glossary.slice(0, 8)) add(g);
+  
+      return { rootName, concepts };
+    };
+  */
 
   // Coerciona elemento; si type inválido lo mapea al tipo por defecto o a partir de possibleValues
   const coerceElementFromTypos = (
@@ -607,13 +607,13 @@ const chooseDefaultElementType = (abs: AbstractSyntax) => {
     }
    */
     const typeCounters = new Map<string, number>();
-for (const e of elems) {
-  const count = (typeCounters.get(e.type) || 0) + 1;
-  typeCounters.set(e.type, count);
-  if (!e.name || e.name === e.type) {
-    e.name = `${e.type}_${count}`;
-  }
-}
+    for (const e of elems) {
+      const count = (typeCounters.get(e.type) || 0) + 1;
+      typeCounters.set(e.type, count);
+      if (!e.name || e.name === e.type) {
+        e.name = `${e.type}_${count}`;
+      }
+    }
     // unique_name
     const uniqueGroups = abs.restrictions?.unique_name?.elements || [];
     if (uniqueGroups.length) {
@@ -634,18 +634,18 @@ for (const e of elems) {
 
     // quantity_element (crear mínimos que falten)
     const qty = abs.restrictions?.quantity_element || [];
-for (const q of qty) {
-  if (!allowedEl.has(q.element)) continue; // saltar tipos que NO existen en este lenguaje
-  const count = elems.filter(e => e.type === q.element).length;
-  if (q.min && count < q.min) {
-    const toAdd = q.min - count;
-    for (let i = 0; i < toAdd; i++) {
-      const base = titleCase(q.element);
-      const name = (count === 0 && i === 0) ? base : `${base}_${count + i + 1}`;
-      elems.push({ name, type: q.element, props: {} });
+    for (const q of qty) {
+      if (!allowedEl.has(q.element)) continue; // saltar tipos que NO existen en este lenguaje
+      const count = elems.filter(e => e.type === q.element).length;
+      if (q.min && count < q.min) {
+        const toAdd = q.min - count;
+        for (let i = 0; i < toAdd; i++) {
+          const base = titleCase(q.element);
+          const name = (count === 0 && i === 0) ? base : `${base}_${count + i + 1}`;
+          elems.push({ name, type: q.element, props: {} });
+        }
+      }
     }
-  }
-}
 
     // Asegurar presencia de conceptos del prompt + LP
     const haveNames = new Set(elems.map(e => e.name));
@@ -697,18 +697,18 @@ for (const q of qty) {
 
     // Asegurar arcos root→concepto si existe relación válida
     if (allowedEl.has("RootFeature")) {
-  const roots = elems.filter(e => e.type === "RootFeature").map(e => e.name);
-  for (const root of roots) {
-    const srcType = name2type.get(root)!;
-    for (const e of elems) {
-      if (e.name === root) continue;
-      const mapped = pickRelationTypeFor(abs, srcType, e.type);
-      if (!mapped) continue;
-      const already = expanded.some(x => x.source === root && x.target === e.name);
-      if (!already) expanded.push({ type: mapped, source: root, target: e.name });
+      const roots = elems.filter(e => e.type === "RootFeature").map(e => e.name);
+      for (const root of roots) {
+        const srcType = name2type.get(root)!;
+        for (const e of elems) {
+          if (e.name === root) continue;
+          const mapped = pickRelationTypeFor(abs, srcType, e.type);
+          if (!mapped) continue;
+          const already = expanded.some(x => x.source === root && x.target === e.name);
+          if (!already) expanded.push({ type: mapped, source: root, target: e.name });
+        }
+      }
     }
-  }
-}
 
     // Patrones frecuentes de la LP: añadir los imprescindibles si aplican
     const pattList = (plk?.sameLang?.relationshipPatterns?.length
