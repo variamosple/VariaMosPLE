@@ -51,7 +51,7 @@ type PlanLLM = { name: string; elements: PlanElement[]; relationships: PlanRelat
 
 type ModelOption = { id: string; label: string; free?: boolean };
 
-const OPENROUTER_URL = process.env.REACT_APP_CHATBOT_URL;
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const MODEL_OPTIONS: ModelOption[] = [
   { id: "deepseek/deepseek-chat-v3.1:free", label: "DeepSeek V3.1", free: true },
