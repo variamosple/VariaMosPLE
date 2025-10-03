@@ -256,7 +256,7 @@ const Chatbot: React.FC = () => {
   const [languageId, setLanguageId] = useState<string>("");
   const [stage, setStage] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>(MODEL_OPTIONS[0].id);
-  const [apiKey, setApiKey] = useState<string>(() => process.env.REACT_APP_OPENROUTER_API_KEY || "");
+  const [apiKey] = useState<string>(() => process.env.REACT_APP_OPENROUTER_API_KEY || "");
   useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey]);
 
   const [input, setInput] = useState("");
@@ -291,25 +291,7 @@ const Chatbot: React.FC = () => {
     tick();
     return () => { stop = true; };
   }, [ps]);
-  // /** 2) Lenguajes por fase */ const phaseLanguages = useMemo(() => { const f = allLanguages.filter(l => l?.type === phase); return f.length ? f : allLanguages; }, [allLanguages, phase]);
-  /*
-  const phaseLanguages = useMemo(() => {
-   if (!allLanguages?.length) return [];
- 
-   // Ej.: "Context diagram (SCOPE)", "Class diagram (DOMAIN)", etc.
-   const rx = new RegExp(`\\(\\s*${phase}\\s*\\)\\s*$`, "i");
-   const byName = allLanguages.filter(l => rx.test(String(l?.name ?? "")));
-   if (byName.length) return byName;
- 
-   const byType = allLanguages.filter(l => String(l?.type ?? "").toUpperCase() === phase);
-   return byType.length ? byType : allLanguages;
- }, [allLanguages, phase]);
- */
-  //const phaseLanguages = useMemo(() => {
-  //  if (!allLanguages?.length) return [];
-  // Filtra estrictamente por la fase activa, usando la clasificación robusta.
-  //  return allLanguages.filter(l => getLangPhase(l) === phase);
-  //}, [allLanguages, phase]);
+  
   const phaseLanguages = useMemo(() => {
     if (!allLanguages?.length) return [];
     const filtered = allLanguages.filter(l => getLangPhase(l) === phase);
@@ -417,42 +399,6 @@ const Chatbot: React.FC = () => {
     return null;
   };
 
-  // Extrae nombres del dominio desde el prompt (es/es-EN simple)
-  /*
-    const inferDomainFromPrompt = (text: string, plk?: PLKnowledge) => {
-      const t = (text || "").toLowerCase();
-  
-      // Heurística básica original
-      let rootName = "Modelo";
-      if (/ventas?\s+de\s+productos?/.test(t)) rootName = "Ventas de Productos";
-      else if (/sistema/.test(t) && /venta|sales/.test(t)) rootName = "Sistema de Ventas";
-      else if (/productos?/.test(t)) rootName = "Sistema de Productos";
-      else if (/sales/.test(t)) rootName = "Sales System";
-  
-      const concepts: string[] = [];
-      const add = (s: string) => { if (s && !concepts.includes(s)) concepts.push(s); };
-  
-      if (/productos?/.test(t)) add("Producto");
-      if (/categor(ía|ia)s?/.test(t)) add("Categoria");
-      if (/compr(as|a)|orden(es)?|pedido(s)?/.test(t)) add("Compra");
-      if (/transacci(ó|o)n/.test(t)) add("Transaccion");
-      if (/tarjeta\s+de\s+cr(é|e)dito|credit\s*card/.test(t)) add("PagoTarjeta");
-      if (/transferenc(ia|e)/.test(t)) add("Transferencia");
-  
-      // Sesgo por LP: preferir rootNames y glosario existentes
-      const preferredRoot = plk?.sameLang?.rootNames?.[0] || plk?.rootNames?.[0];
-      if (preferredRoot) rootName = preferredRoot;
-  
-      const glossary = plk?.sameLang?.knownElementNames?.length
-        ? plk.sameLang.knownElementNames
-        : (plk?.knownElementNames || []);
-      for (const g of glossary.slice(0, 8)) add(g);
-  
-      return { rootName, concepts };
-    };
-  */
-
-  // Coerciona elemento; si type inválido lo mapea al tipo por defecto o a partir de possibleValues
   const coerceElementFromTypos = (
     raw: any,
     allowedEl: Set<string>,
@@ -590,22 +536,7 @@ const Chatbot: React.FC = () => {
       if (fixed) elems.push(fixed);
     }
 
-    // Renombrado de genéricos
-    /*
-    const renameIfGeneric = (e: PlanElement, idx: number) => {
-      if (!e.name || e.name === e.type || /^(Root|Abstract|Concrete)Feature$/i.test(e.name)) {
-        if (e.type === "RootFeature") e.name = rootName || "Root";
-        else if (domainTerms.length) e.name = domainTerms[Math.min(idx, domainTerms.length - 1)];
-        else e.name = `${e.type}_${idx + 1}`;
-      }
-    };
-    let afIdx = 0, cfIdx = 0;
-    for (const e of elems) {
-      if (e.type === "RootFeature") renameIfGeneric(e, 0);
-      if (e.type === "AbstractFeature") renameIfGeneric(e, afIdx++);
-      if (e.type === "ConcreteFeature") renameIfGeneric(e, cfIdx++);
-    }
-   */
+
     const typeCounters = new Map<string, number>();
     for (const e of elems) {
       const count = (typeCounters.get(e.type) || 0) + 1;
