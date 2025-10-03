@@ -4,7 +4,6 @@ import "./SuggestionInput.css"
 import ProjectService from "../../Application/Project/ProjectService";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import SuggestionInputReceivedEventArgs from "./SuggestionInputReceivedEventArgs";
-import { domainRequirementsSuggest } from "./autocompleteServiceV2";
 import SuggestionInputHelper from "./SuggestionInputHelper";
 
 interface Props {
@@ -58,11 +57,7 @@ export default class SuggestionInput extends Component<Props, State> {
   }
 
   loadSuggestions() {
-    let me = this;
-    if (!this.props.endPoint) {
-      return;
-    }
-    let url = this.props.endPoint;
+    let me = this; 
     let input = this.state.text;
     if (!input) {
       input = "";
@@ -74,12 +69,7 @@ export default class SuggestionInput extends Component<Props, State> {
       input: input,
       domain: productLine.domain,
       type: productLine.type
-    };
-    const config = {
-      baseURL: url,
-      method: "POST" as Method,
-      data: request,
-    };
+    }; 
 
     let data = me.suggestionInputHelper.getOptions(request);
     me.state.data = data;
