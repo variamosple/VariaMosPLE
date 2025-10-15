@@ -1,10 +1,21 @@
 import React, { useState } from "react";
-import Chatbot from "../Scope/Chatbot";
+import Chatbot from "./Chatbot";
 import { ReactComponent as ChatIcon } from "./support_agent.svg";
-import "../Scope/Chatbot.css";
+import ProjectService from "../../../Application/Project/ProjectService";
+import "./Chatbot.css";
 
-const FloatingChat: React.FC = () => {
-  const [visible, setVisible] = useState(false);   // mostrar/ocultar panel
+type ChatMode = "smart" | "edit" | "create";
+
+type FloatingChatProps = {
+  projectService: ProjectService;
+};
+
+const FloatingChat: React.FC<FloatingChatProps> = ({ projectService }) => {
+  // Default inteligente: si hay modelo seleccionado -> edit; si no -> create
+  const hasSelectedModel = !!projectService.getTreeIdItemSelected?.();
+  const [mode, setMode] = useState<ChatMode>(hasSelectedModel ? "edit" : "create");
+
+  const [visible, setVisible] = useState(false);    // mostrar/ocultar panel
   const [minimized, setMinimized] = useState(false); // colapsar a header
 
   const openFull = () => { setVisible(true); setMinimized(false); };
@@ -13,15 +24,15 @@ const FloatingChat: React.FC = () => {
     <>
       {/* Botón flotante (aparece cuando el panel está oculto) */}
       {!visible && (
-  <button
-    aria-label="Open assistant"
-    onClick={openFull}
-    className="chat-fab"
-    title="Modeling Assistant"
-  >
-    <ChatIcon className="chat-fab__icon" />
-  </button>
-)}
+        <button
+          aria-label="Open assistant"
+          onClick={openFull}
+          className="chat-fab"
+          title="Modeling Assistant"
+        >
+          <ChatIcon className="chat-fab__icon" />
+        </button>
+      )}
 
       {/* Panel flotante: SIEMPRE montado (no se pierde el estado), solo cambia visibilidad/tamaño */}
       <div
@@ -31,7 +42,7 @@ const FloatingChat: React.FC = () => {
           bottom: 16,
           width: 420,
           maxWidth: "calc(100vw - 32px)",
-          height: minimized ? 56 : 560, // altura colapsada vs completa
+          height: minimized ? 56 : 560,
           maxHeight: "calc(100vh - 32px)",
           background: "#fff",
           borderRadius: 12,
@@ -41,7 +52,6 @@ const FloatingChat: React.FC = () => {
           overflow: "hidden",
           zIndex: 9999,
 
-          // visibilidad sin desmontar el componente
           opacity: visible ? 1 : 0,
           pointerEvents: visible ? "auto" : "none",
           visibility: visible ? "visible" : "hidden",
@@ -62,12 +72,13 @@ const FloatingChat: React.FC = () => {
             borderBottom: "1px solid #e5e7eb",
             cursor: minimized ? "pointer" : "default",
           }}
-          // Permite restaurar a expandido al hacer click en el header cuando está minimizado
           onClick={() => minimized && setMinimized(false)}
         >
           <strong>Modeling Assistant</strong>
 
-          <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {/* Toggle de modo */}
+        
             {/* Minimizar / Restaurar */}
             <button
               onClick={() => setMinimized(m => !m)}
@@ -105,7 +116,8 @@ const FloatingChat: React.FC = () => {
         </div>
 
         <div style={{ flex: 1, minHeight: 0, display: minimized ? "none" : "block" }}>
-          <Chatbot />
+          {/* Pasamos projectService y el modo inicial (override con /edit /create en el prompt) */}
+          <Chatbot projectService={projectService}/>
         </div>
       </div>
     </>

@@ -5,8 +5,7 @@ import DiagramEditor from "../DiagramEditor/DiagramEditor";
 import ElementsPannel from "../DiagramEditor/ElementsPannel";
 import BillOfMaterialsEditor from "../Scope/BillOfMaterialsEditor";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
-import Chatbot from "../Scope/Chatbot";
-import FloatingChat from "./FloatingChat";
+import FloatingChat from "./Chatbot/FloatingChat";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 
 interface ModelRendererProps {
@@ -92,7 +91,7 @@ render() {
                     </tr>
                     </tbody>
                 </table>
-                <FloatingChat />
+                <FloatingChat projectService={this.props.projectService}/>
             </div>
         )
     }
