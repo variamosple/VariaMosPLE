@@ -168,41 +168,6 @@ class CatalogAwarenessService {
     this.currentUser = null;
   }
 
-  /**
-   * Obtiene el estado actual del awareness
-   */
-  getCurrentAwarenessState(): CatalogUserAwareness[] {
-    if (!this.currentProjectId || !this.currentModelId) {
-      return [];
-    }
-
-    const provider = getProjectProvider(this.currentProjectId);
-    if (!provider || !provider.awareness) {
-      return [];
-    }
-
-    const awarenessStates = provider.awareness.getStates();
-    const currentUserId = this.currentUser?.name;
-
-    return Array.from(awarenessStates.entries())
-      .map(([, state]: [number, any]) => {
-        if (!state.user || !state.user.name) return null;
-        
-        // Filtrar el usuario actual
-        if (state.user.name === currentUserId) return null;
-        
-        // Solo incluir usuarios que están en el mismo modelo
-        if (state.user.modelId !== this.currentModelId) return null;
-
-        return {
-          name: state.user.name,
-          color: state.user.color || '#6c757d',
-          action: state.user.action,
-          modelId: state.user.modelId
-        };
-      })
-      .filter(user => user !== null) as CatalogUserAwareness[];
-  }
 }
 
 // Instancia singleton

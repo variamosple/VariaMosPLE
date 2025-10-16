@@ -230,37 +230,12 @@ class TreeCollaborationService {
   }
 
   /**
-   * Obtiene el estado actual del tree desde YJS
-   */
-  getCurrentTreeState(): any {
-    if (!this.isInitialized || !this.treeState) {
-      return null;
-    }
-
-    return this.treeState.get('currentState');
-  }
-
-  /**
    * Verifica si la colaboración está inicializada
    */
   isCollaborationActive(): boolean {
     return this.isInitialized && this.treeState !== null;
   }
-
-  /**
-   * Verifica si la conexión WebSocket está activa
-   */
-  isWebSocketConnected(): boolean {
-    if (!this.projectId) return false;
-
-    try {
-      const provider = getProjectProvider(this.projectId);
-      return provider?.wsconnected || false;
-    } catch (error) {
-      return false;
-    }
-  }
-
+  
   /**
    * Obtiene información detallada del estado de conexión
    */

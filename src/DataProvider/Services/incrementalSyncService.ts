@@ -1,15 +1,6 @@
-import * as Y from "yjs";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 import { Element } from "../../Domain/ProductLineEngineering/Entities/Element";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
-
-export interface ModelChange {
-  type: 'element_added' | 'element_updated' | 'element_removed' | 
-        'relationship_added' | 'relationship_updated' | 'relationship_removed';
-  id: string;
-  data?: any;
-  oldData?: any;
-}
 
 export interface ModelDiff {
   elementsAdded: Element[];
@@ -168,34 +159,6 @@ const areRelationshipsEqual = (rel1: Relationship, rel2: Relationship): boolean 
   }
 
   return true;
-};
-
-/**
- * Extrae cambios específicos de un evento de Yjs
- */
-export const extractChangesFromYjsEvent = (event: any): ModelChange[] => {
-  const changes: ModelChange[] = [];
-  
-  if (event.keys) {
-    event.keys.forEach((change: any, key: string) => {
-      if (key === 'elements' && change.action === 'update') {
-        // Manejar cambios en elementos
-        const elementsMap = event.target.get('elements') as Y.Map<any>;
-        if (elementsMap) {
-          // Aquí podrías implementar lógica más específica para detectar
-          // qué elementos específicos cambiaron dentro del mapa
-        }
-      } else if (key === 'relationships' && change.action === 'update') {
-        // Manejar cambios en relaciones
-        const relationshipsMap = event.target.get('relationships') as Y.Map<any>;
-        if (relationshipsMap) {
-          // Lógica similar para relaciones
-        }
-      }
-    });
-  }
-  
-  return changes;
 };
 
 /**

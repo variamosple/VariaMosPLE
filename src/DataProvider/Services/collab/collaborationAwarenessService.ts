@@ -216,41 +216,9 @@ export const setUserResizingCell = (
   });
 };
 
-export const setUserSelectingCell = (
-  projectId: string,
-  modelId: string,
-  cellId: string
-) => {
-  updateUserAction(projectId, modelId, {
-    type: 'selecting',
-    cellId,
-    timestamp: new Date().toISOString()
-  });
-};
-
 export const setUserIdle = (
   projectId: string,
   modelId: string
 ) => {
   clearUserAction(projectId, modelId);
-};
-
-// Función para limpiar todos los awareness (para usar al cerrar la aplicación)
-export const cleanupAllAwareness = (): void => {
-  // Cancelar todos los timers
-  awarenessTimers.forEach((timer) => {
-    clearTimeout(timer);
-  });
-
-  // Limpiar mapas
-  awarenessMap.clear();
-  awarenessTimers.clear();
-};
-
-// Función para obtener estadísticas simples de awareness
-export const getAwarenessStats = () => {
-  return {
-    totalAwareness: awarenessMap.size,
-    scheduledCleanups: awarenessTimers.size
-  };
 };

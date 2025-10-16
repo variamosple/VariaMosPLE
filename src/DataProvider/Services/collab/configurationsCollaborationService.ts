@@ -459,13 +459,6 @@ class ConfigurationsCollaborationService {
     this.ownOperations.clear();
     this.lastProcessedTimestamp = 0;
   }
-
-  /**
-   * Verifica si la colaboración está inicializada
-   */
-  isCollaborationInitialized(): boolean {
-    return this.isInitialized;
-  }
 }
 
 // Exportar instancia singleton

@@ -36,15 +36,8 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { setupProjectSync,
-         removeProjectDoc,
-         handleCollaborativeProject,
-         observeProjectState,
-         updateProjectState,
-         getProjectState,
-         sendProjectUpdate,
+import { handleCollaborativeProject,
          observeModelState,
-         manageModelState,
          updateModelState,
          getProjectProvider} from "../../DataProvider/Services/collab/collaborationService";
 
@@ -1888,28 +1881,6 @@ export default class ProjectService {
         return this.projectPersistenceUseCases.shareProject(project, ToUserEmail,role);
     }
 
-    changeProjectCollaborationState = (projectId: string, successCallback: any, errorCallback:any) => {
-        return this.projectPersistenceUseCases.changeProjectCollaborationState(
-            projectId, 
-            (response) => {
-                console.log("Project collaboration state changed successfully:", response);
-                if (successCallback) {
-                    successCallback(response);
-                }
-            }, 
-            (error) => {
-                console.error("Error changing project collaboration state:", error);
-                if (errorCallback) {
-                    errorCallback(error);
-                }
-            }
-        );
-    }
-
-      getProjectCollaborators(projectId: string) : Promise<any> {
-      return this.projectPersistenceUseCases.getProjectCollaborators(projectId)
-    }
-
     removeCollaborator = (projectId: string, collaboratorId: string) => {
       return this.projectPersistenceUseCases.removeCollaborator(projectId, collaboratorId,);
     }
@@ -1925,37 +1896,6 @@ export default class ProjectService {
       }catch (error) {
         console.error("Error initializing user:", error);
       }
-    }
-    
-    getUserRole(projectId: string) {
-    return this.projectPersistenceUseCases.getUserRole(projectId)
-    }
-
-
-    async setupProjectSync(projectId: string) {
-      try {
-        await setupProjectSync(projectId);
-        console.log(`Sincronización iniciada para el proyecto ${projectId}`);
-      } catch (error) {
-        console.error("Error al iniciar la sincronización:", error);
-      }
-    }
-
-    removeProjectDoc(projectId: string) {
-      try {
-        removeProjectDoc(projectId);
-        console.log(`Sincronización detenida para el proyecto ${projectId}`);
-      } catch (error) {
-        console.error("Error al detener la sincronización:", error);
-      }
-    }
-
-    getProjectCollabState(projectId: string) {
-      return getProjectState(projectId);
-    }
-
-    sendProjectUpdate(projectId: string, updateFn: (state: any) => void){
-      return sendProjectUpdate(projectId, updateFn)
     }
 
     handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation){

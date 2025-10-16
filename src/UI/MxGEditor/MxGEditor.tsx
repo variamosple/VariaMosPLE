@@ -38,13 +38,11 @@ import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 import KaosGenerator from "../Scope/KaosGenerator";
 import {
   destroyModelAwareness,
-  getModelAwareness,
   onModelAwarenessChange,
   setupModelAwareness,
   updateUserCursor,
   setUserMovingCell,
   setUserEditingCell,
-  setUserResizingCell,
 
   setUserIdle
 } from "../../DataProvider/Services/collab/collaborationAwarenessService";

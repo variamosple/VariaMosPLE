@@ -698,7 +698,7 @@ class TreeExplorer extends Component<Props, State> {
                 );
                 newModel.id = modelState.id;
 
-                // 🔧 [FIX] Restaurar contenido preservado si existe
+                // Restaurar contenido preservado si existe
                 const preservedContent = existingModelsContent.get(modelState.id);
                 if (preservedContent) {
                   newModel.elements = preservedContent.elements;

@@ -1,7 +1,6 @@
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { ProjectInformation } from "../../../Domain/ProductLineEngineering/Entities/ProjectInformation";
-import { SessionUser } from "@variamosple/variamos-components";
 
 interface ProjectCollaborationData {
   doc: Y.Doc;
@@ -186,15 +185,6 @@ export const observeProjectState = (projectId: string, callback: (state: any) =>
   }
 };
 
-export const sendProjectUpdate = (projectId: string, update: any): void => {
-  const state = getProjectState(projectId);
-  if (state) {
-    state.set("data", {
-      ...state.get("data"),
-      ...update
-    });
-  }
-};
 
 export const observeModelState = (projectId: string, modelId: string, callback: (state: any, changes?: any) => void): () => void => {
   const projectState = getProjectState(projectId);
@@ -257,123 +247,10 @@ export const updateModelState = (projectId: string, modelId: string, updateFn: (
   } 
 }
 
-// Nuevas funciones para sincronización incremental
-export const updateModelElementsIncremental = (
-  projectId: string,
-  modelId: string,
-  elements: any[],
-  relationships: any[]
-): void => {
-  const projectState = getProjectState(projectId);
-  if (projectState) {
-    const modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
-    if (modelState) {
-      // Crear mapas de Yjs para elementos y relaciones si no existen
-      let elementsMap = modelState.get('elements') as Y.Map<any>;
-      let relationshipsMap = modelState.get('relationships') as Y.Map<any>;
-
-      if (!elementsMap) {
-        elementsMap = new Y.Map();
-        modelState.set('elements', elementsMap);
-      }
-
-      if (!relationshipsMap) {
-        relationshipsMap = new Y.Map();
-        modelState.set('relationships', relationshipsMap);
-      }
-
-      // Actualizar elementos
-      elements.forEach(element => {
-        elementsMap.set(element.id, element);
-      });
-
-      // Actualizar relaciones
-      relationships.forEach(relationship => {
-        relationshipsMap.set(relationship.id, relationship);
-      });
-
-      // Mantener compatibilidad con el formato anterior
-      modelState.set("data", {
-        elements: elements,
-        relationships: relationships,
-        timestamp: Date.now()
-      });
-    }
-  }
-}
-
-export const removeModelElements = (
-  projectId: string,
-  modelId: string,
-  elementIds: string[],
-  relationshipIds: string[]
-): void => {
-  const projectState = getProjectState(projectId);
-  if (projectState) {
-    const modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
-    if (modelState) {
-      const elementsMap = modelState.get('elements') as Y.Map<any>;
-      const relationshipsMap = modelState.get('relationships') as Y.Map<any>;
-
-      if (elementsMap) {
-        elementIds.forEach(id => elementsMap.delete(id));
-      }
-
-      if (relationshipsMap) {
-        relationshipIds.forEach(id => relationshipsMap.delete(id));
-      }
-    }
-  }
-}
-
 export const getProjectProvider = (projectId: string): WebsocketProvider | null => {
   const collaborationData = projectCollaborationData.get(projectId);
   if (collaborationData) {
     return collaborationData.provider;
   }
   return null;
-};
-
-// Función para actualizar manualmente el conteo de usuarios (exportada para uso externo)
-export const updateProjectUserCount = (projectId: string, count: number): void => {
-  updateUserCount(projectId, count);
-};
-
-// Función para forzar limpieza manual de un proyecto
-export const forceCleanupProject = (projectId: string): void => {
-  cleanupProject(projectId);
-};
-
-// Función para obtener estadísticas simples de los proyectos
-export const getProjectStats = () => {
-  const stats = {
-    totalProjects: projectCollaborationData.size,
-    projects: [] as any[]
-  };
-
-  projectCollaborationData.forEach((data, projectId) => {
-    stats.projects.push({
-      projectId,
-      userCount: data.userCount,
-      lastActivity: new Date(data.lastActivity).toISOString(),
-      hasCleanupScheduled: !!data.cleanupTimer
-    });
-  });
-
-  return stats;
-};
-
-// Función para limpiar todos los proyectos (para usar al cerrar la aplicación)
-export const cleanupAllProjects = (): void => {
-  projectCollaborationData.forEach((data) => {
-    if (data.cleanupTimer) {
-      clearTimeout(data.cleanupTimer);
-    }
-    data.provider.disconnect();
-    data.doc.destroy();
-  });
-
-  projectCollaborationData.clear();
-  currentActiveProjectId = null;
-
 };
