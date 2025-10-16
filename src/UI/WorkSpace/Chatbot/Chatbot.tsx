@@ -320,29 +320,69 @@ const heuristicIntent = (text: string, hasSelection: boolean): IntentResult => {
   return { intent: hasSelection ? "edit" : "create", confidence: 0.4 };
 };
 
+const heuristicIntentFallback = (text: string, hasSelection: boolean): IntentResult => {
+  const t = text.toLowerCase();
+
+  // CREATE hints en varios idiomas
+  const createHints = [
+    "nuevo modelo","modelo nuevo","crear modelo","crear un modelo","genera un modelo",
+    "new model","create a new model","another model","separate model","duplicate model","duplicar modelo",
+    "novo modelo","criar modelo","model novo",
+    "nouveau modèle","créer un modèle",
+    "nuovo modello","crea un modello",
+    "neues modell","modell anlegen"
+  ];
+
+  // EDIT hints (mucho más amplio, incluye “quítame”, “sácala”, etc.)
+  const editHints = [
+    "editar","modifica","cambia","agrega","añade","elimina","borra","conecta","relaciona","renombra","ajusta","actualiza","set ",
+    "edit","modify","change","add ","remove","delete","connect","rename","update","set ",
+    "quítame","quitame","quita","sácala","sacala","sácalo","sacalo","borra esa","elimina esa","remueve",
+    "alterar","adicionar","remover","conectar","renomear",
+    "modifier","ajouter","supprimer","connecter","renommer",
+    "modificare","aggiungi","rimuovi","collega","rinomina",
+    "bearbeiten","ändern","hinzufügen","entfernen","verbinden","umbenennen","aktualisieren"
+  ];
+
+  if (createHints.some(h => t.includes(h))) return { intent: "create", confidence: 0.55 };
+  if (editHints.some(h => t.includes(h)))   return { intent: "edit",   confidence: 0.55 };
+  return { intent: hasSelection ? "edit" : "create", confidence: 0.4 };
+};
 async function detectIntentWithAI(
   apiKey: string,
-  modelId: string,
+  modelId: string,         // usa un modelo rápido; puedes pasar el seleccionado o fijar uno “small”
   userText: string,
   hasSelection: boolean
 ): Promise<IntentResult> {
   const system = [
-    "You are a multilingual intent classifier for a modeling tool.",
-    "The user can write in ANY language.",
-    "Decide if the instruction wants to CREATE a NEW model or EDIT the CURRENTLY SELECTED model.",
-    "If the message asks to add/rename/delete/connect/set/fix/update/complete/refactor or otherwise modify an existing model → intent='edit'.",
-    "If it asks for a new/another/separate/different model, from scratch, template, or multiple alternatives → intent='create'.",
-    `If ambiguous, and hasSelection=${hasSelection}, prefer 'edit' when true; otherwise 'create'.`,
-    "Return ONLY valid JSON without backticks: " +
-      `{"intent":"create|edit","language":"<iso guess or ''>","confidence":0..1}`
+    "You are an intent classifier for a modeling tool. The user may write in ANY language.",
+    "Decide if the instruction is about CREATE a NEW model or EDIT the CURRENTLY SELECTED model.",
+    "Guidelines:",
+    "- If the message asks to add/rename/delete/remove/connect/set/fix/update/refactor/complete, or expresses things like 'remove that feature', 'sácala', 'quítame X', it's EDIT.",
+    "- If it asks to generate/produce/build a new/separate/another model/template from scratch, it's CREATE.",
+    `- If ambiguous and hasSelection=${hasSelection}, prefer EDIT when true, else CREATE.`,
+    'Return ONLY valid JSON without backticks: {"intent":"create|edit","language":"<guess or empty>","confidence":0..1}',
+    "",
+    "Examples:",
+    'User: "genera un modelo para representar el ecommerce" → {"intent":"create"}',
+    'User: "quítame la feature NFC" → {"intent":"edit"}',
+    'User: "no me gustó esa feature, sácala" → {"intent":"edit"}',
+    'User: "haz otro modelo con pagos" → {"intent":"create"}',
+    'User: "add a new relation between A and B" → {"intent":"edit"}'
   ].join("\n");
-  const user = `User instruction:\n${userText}\n\nhasSelection=${hasSelection}`;
+
+  const user = `User:\n${userText}\n\nhasSelection=${hasSelection}`;
+
   try {
     const raw = await callOpenRouterOnce(apiKey, modelId, user, system);
     const parsed = safeParseJSON(stripCodeFences(raw)) as IntentResult | null;
-    if (parsed && (parsed.intent === "create" || parsed.intent === "edit")) return parsed;
-  } catch { /* caemos al heurístico */ }
-  return heuristicIntent(userText, hasSelection);
+    if (parsed && (parsed.intent === "create" || parsed.intent === "edit")) {
+      return parsed;
+    }
+  } catch {
+    // swallow, go to fallback
+  }
+  return heuristicIntentFallback(userText, hasSelection);
 }
 
 
@@ -965,12 +1005,6 @@ const looksLikeEdit = (text: string): boolean => {
 };
 
   /** 8) Enviar mensaje */
-// =========
-// 2) send
-// =========
-// =========
-// 2) send
-// =========
 const send = async (userText: string) => {
   if (!ps || !currentLanguage) { addLog("ps/language not available"); return; }
 
@@ -995,54 +1029,16 @@ const send = async (userText: string) => {
 
   // ===== IA: detección de intención multilingüe =====
   stageStep("Detecting intent (language-agnostic)...");
-  const modelId = selectedModel;
-
-  const heuristicIntent = (text: string): "create" | "edit" => {
-    const t = text.toLowerCase();
-    const createHints = [
-      "nuevo modelo","modelo nuevo","crear modelo","crear un modelo","genera un modelo",
-      "new model","create a new model","another model","separate model","duplicate model","duplicar modelo",
-      "novo modelo","criar modelo","model novo",
-      "nouveau modèle","créer un modèle",
-      "nuovo modello","crea un modello",
-      "neues modell","modell anlegen"
-    ];
-    const editHints = [
-      "editar","modifica","cambia","agrega","añade","elimina","borra","conecta","relaciona","renombra","ajusta","actualiza","set ",
-      "edit","modify","change","add ","remove","delete","connect","rename","update","set ",
-      "alterar","adicionar","remover","conectar","renomear",
-      "modifier","ajouter","supprimer","connecter","renommer",
-      "modificare","aggiungi","rimuovi","collega","rinomina",
-      "bearbeiten","ändern","hinzufügen","entfernen","verbinden","umbenennen","aktualisieren"
-    ];
-    if (createHints.some(h => t.includes(h))) return "create";
-    if (editHints.some(h => t.includes(h))) return "edit";
-    return hasSelection ? "edit" : "create";
-  };
-
-  let wantCreate: boolean;
+  // Usa un modelo rápido/estable para clasificación (puedes cambiarlo si quieres).
+  const intentModelId = "mistralai/mistral-small-3.2-24b-instruct:free";
+  let wantCreate = true;
   try {
-    const sysIntent = [
-      "You are a multilingual intent classifier for a modeling tool.",
-      "The user may write in ANY language.",
-      "Decide if the instruction wants to CREATE a NEW model or EDIT the CURRENTLY SELECTED model.",
-      "If the message asks to add/rename/delete/connect/set/fix/update/complete/refactor or otherwise modify an existing model → intent='edit'.",
-      "If it asks for a new/another/separate/different model, from scratch, template, or multiple alternatives → intent='create'.",
-      `If ambiguous and hasSelection=${hasSelection}, prefer 'edit' when true; else 'create'.`,
-      "Return ONLY valid JSON without backticks: {\"intent\":\"create|edit\",\"language\":\"<guess or ''>\",\"confidence\":0..1}"
-    ].join("\n");
-    const userIntent = `User instruction:\n${userText}\n\nhasSelection=${hasSelection}`;
-    const rawIntent = await callOpenRouterOnce(apiKey, modelId, userIntent, sysIntent);
-    const intentParsed = safeParseJSON(stripCodeFences(rawIntent)) as { intent?: string; confidence?: number; language?: string } | null;
-    const intent = (intentParsed?.intent === "create" || intentParsed?.intent === "edit")
-      ? (intentParsed.intent as "create" | "edit")
-      : heuristicIntent(userText);
-    addLog(`[intent] ${intent} conf=${(intentParsed?.confidence ?? 0).toFixed?.(2) ?? "?"} lang=${intentParsed?.language ?? "?"}`);
-    wantCreate = !hasSelection ? true : intent === "create";
+    const intent = await detectIntentWithAI(apiKey, intentModelId, userText, hasSelection);
+    addLog(`[intent] ${intent.intent} conf=${(intent.confidence ?? 0).toFixed(2)} lang=${intent.language ?? "?"}`);
+    wantCreate = !hasSelection ? true : intent.intent === "create";
   } catch {
-    const intent = heuristicIntent(userText);
-    addLog(`[intent:fallback] ${intent}`);
-    wantCreate = !hasSelection ? true : intent === "create";
+    // caída improbable; si falla, con selección asumimos editar
+    wantCreate = !hasSelection ? true : false;
   }
 
   // — UI —
@@ -1054,14 +1050,12 @@ const send = async (userText: string) => {
     return next;
   });
 
-  // Helper local: convierte PATCH (de creación) → PLAN
+  // Helper: PATCH (de creación) → PLAN
   const patchToPlan = (patch: any): PlanLLM => {
     const elements: { name: string; type: string; props?: Record<string, any> }[] = [];
     const relationships: { type: string; source: string; target: string; props?: Record<string, any> }[] = [];
     const have = new Set<string>();
-
-    const getNameFromRef = (ref: any) =>
-      (ref?.name || ref?.id || "").toString();
+    const getNameFromRef = (ref: any) => (ref?.name || ref?.id || "").toString();
 
     for (const op of (patch?.ops || [])) {
       if (!op || !op.op) continue;
@@ -1072,11 +1066,7 @@ const send = async (userText: string) => {
         if (!name || !type) continue;
         if (!have.has(name)) {
           const props: Record<string, any> = {};
-          if (Array.isArray(op.properties)) {
-            for (const p of op.properties) {
-              if (p?.name) props[p.name] = p.value ?? "";
-            }
-          }
+          if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
           elements.push({ name, type, ...(Object.keys(props).length ? { props } : {}) });
           have.add(name);
         }
@@ -1088,11 +1078,7 @@ const send = async (userText: string) => {
         const target = getNameFromRef(op.target);
         if (!type || !source || !target) continue;
         const props: Record<string, any> = {};
-        if (Array.isArray(op.properties)) {
-          for (const p of op.properties) {
-            if (p?.name) props[p.name] = p.value ?? "";
-          }
-        }
+        if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
         relationships.push({ type, source, target, ...(Object.keys(props).length ? { props } : {}) });
       }
     }
@@ -1100,6 +1086,8 @@ const send = async (userText: string) => {
   };
 
   try {
+    const genModelId = selectedModel; // modelo elegido en el header para la generación/edición
+
     // =======================
     // EDIT (PATCH)
     // =======================
@@ -1109,7 +1097,7 @@ const send = async (userText: string) => {
       const sys = buildUnifiedSystemPrompt(abs, plKnowledge || undefined, true, PATCH_SCHEMA_TEXT);
 
       stageStep("Calling API… (edit)");
-      const botText = await callOpenRouterOnce(apiKey, modelId, prompt, sys);
+      const botText = await callOpenRouterOnce(apiKey, genModelId, prompt, sys);
 
       setThread(prev => { const copy = [...prev]; copy[placeholderIdx] = { role: "assistant", content: botText || "(no content)" }; return copy; });
       if (!botText) return;
@@ -1121,6 +1109,16 @@ const send = async (userText: string) => {
       const env: PatchEnvelope = parsed as PatchEnvelope;
       stageStep(`Applying patch (${env.ops.length} ops)…`);
       applyPatch(ps, targetModel, env);
+
+      // 🔧 Forzar refresco del lienzo (arregla el “desaparece hasta reabrir” al borrar relaciones)
+      const forceRefresh = () => {
+        ps.raiseEventSelectedModel?.(targetModel);
+        ps.requestRender?.();
+        ps.repaint?.();
+      };
+      forceRefresh();
+      setTimeout(forceRefresh, 0);
+
       ps.saveProject?.();
       stageStep("Done ✅");
       return;
@@ -1140,7 +1138,7 @@ const send = async (userText: string) => {
       + "\n\nIMPORTANT: For creation, prefer returning a PLAN object. If you still return PATCH, it must contain only createElement/connect ops.";
 
     stageStep("Calling API… (create)");
-    const botText = await callOpenRouterOnce(apiKey, modelId, prompt, sysCreate);
+    const botText = await callOpenRouterOnce(apiKey, genModelId, prompt, sysCreate);
 
     setThread(prev => { const copy = [...prev]; copy[placeholderIdx] = { role: "assistant", content: botText || "(no content)" }; return copy; });
     if (!botText) return;
@@ -1149,7 +1147,6 @@ const send = async (userText: string) => {
     const parsed = safeParseJSON(stripCodeFences(botText));
     if (!parsed) throw new Error("La respuesta del modelo no es JSON válido.");
 
-    // Si llega PATCH, lo convertimos a PLAN (para evitar el bug de applyPatch en creación)
     let planCandidate: any = parsed;
     if (Array.isArray((parsed as any).ops)) {
       addLog("[create] PATCH detected → converting to PLAN");
@@ -1176,6 +1173,8 @@ const send = async (userText: string) => {
     setTimeout(() => setStage(""), 1200);
   }
 };
+
+
 
 
 
