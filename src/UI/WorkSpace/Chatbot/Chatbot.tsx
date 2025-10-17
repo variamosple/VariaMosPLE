@@ -70,6 +70,17 @@ const MODEL_OPTIONS: ModelOption[] = [
   { id: "openai/gpt-oss-20b:free", label: "OpenAI: gpt-oss-20b", free: true }
 ];
 
+// Helper: label amigable para mostrar al usuario
+const modelLabel = (id: string) =>
+  MODEL_OPTIONS.find(m => m.id === id)?.label || id;
+
+// Helper: orden de cascada a partir de MODEL_OPTIONS (primero el elegido)
+const buildCascadeOrder = (primary: string) => {
+  const listed = MODEL_OPTIONS.map(m => m.id);
+  const seq = [primary, ...listed.filter(id => id !== primary)];
+  return Array.from(new Set(seq)); // sin duplicados
+};
+
 /** ===== Util ===== */
 const uuid = () =>
   "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
@@ -247,6 +258,94 @@ const harvestProductLineKnowledge = (ps: any, currentLanguage?: Language, maxIte
   }
 };
 
+type CascadeOpts = {
+  perModelRetries?: number;     // reintentos por modelo
+  retryDelayMs?: number;        // backoff base
+  validate?: (content: string) => boolean; // validación del contenido; si falla, prueba siguiente modelo
+};
+
+async function callOpenRouterCascade(
+  apiKey: string,
+  primaryModelId: string,
+  userContent: string,
+  systemContent?: string,
+  opts?: CascadeOpts
+): Promise<{ text: string; usedModelId: string }> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${apiKey}`,
+    "HTTP-Referer": (typeof window !== "undefined" ? window.location.origin : ""),
+    "X-Title": (typeof document !== "undefined" ? (document.title || "Variamos") : "Variamos")
+  };
+
+  const {
+    perModelRetries = 1,
+    retryDelayMs = 600,
+    validate
+  } = opts || {};
+
+  const order = buildCascadeOrder(primaryModelId);
+  const errors: string[] = [];
+
+  const tryOnce = async (mdl: string) => {
+    const body = {
+      model: mdl,
+      messages: systemContent
+        ? [{ role: "system", content: systemContent }, { role: "user", content: userContent }]
+        : [{ role: "user", content: userContent }]
+    };
+    const resp = await fetch(OPENROUTER_URL, { method: "POST", headers, body: JSON.stringify(body) });
+    const rawText = await resp.text();
+
+    let data: any = null;
+    try { data = JSON.parse(rawText); } catch { /* no-op */ }
+
+    if (!resp.ok) {
+      const msg = data?.error?.message || rawText || `HTTP ${resp.status}`;
+      const status = resp.status;
+      const err = Object.assign(new Error(msg), { status });
+      throw err;
+    }
+
+    // Si pediste :free, evitamos que el proveedor te "suba" a uno de pago
+    const usedModel = data?.model || data?.choices?.[0]?.model || data?.choices?.[0]?.provider;
+    const requestedIsFree = MODEL_OPTIONS.some(m => m.id === mdl && m.free);
+    if (requestedIsFree && usedModel && !/:free(\b|$)/i.test(String(usedModel))) {
+      throw new Error(`The free pool is not available. (used: ${usedModel})`);
+    }
+
+    const content = String(data?.choices?.[0]?.message?.content ?? "");
+    if (validate && !validate(content)) {
+      throw new Error("Validation failed for this model output.");
+    }
+    return content;
+  };
+
+  for (const mdl of order) {
+    for (let attempt = 0; attempt <= perModelRetries; attempt++) {
+      try {
+        const text = await tryOnce(mdl);
+        return { text, usedModelId: mdl };
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        errors.push(`[${mdl}] ${msg}`);
+        const st = Number(err?.status || 0);
+        const retriable = st === 429 || (st >= 500 && st <= 599) || /provider returned error/i.test(msg);
+        const noEndpoint = /no endpoints found/i.test(msg) || /free pool is not available/i.test(msg);
+        if (attempt < perModelRetries && retriable && !noEndpoint) {
+          const backoff = retryDelayMs * Math.pow(2, attempt);
+          await new Promise(r => setTimeout(r, backoff));
+          continue;
+        }
+        // si no es reintetable o ya agoté reintentos → paso al siguiente modelo
+        break;
+      }
+    }
+  }
+
+  throw new Error(`All models failed.\n${errors.join("\n")}`);
+}
+
 // =======================
 // 1) callOpenRouterOnce
 // =======================
@@ -254,7 +353,12 @@ async function callOpenRouterOnce(
   apiKey: string,
   modelId: string,
   userContent: string,
-  systemContent?: string
+  systemContent?: string,
+  opts?: {
+    maxRetries?: number;
+    retryDelayMs?: number;
+    fallbackModels?: string[]; // si el provider falla/no hay endpoints
+  }
 ): Promise<string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -263,33 +367,73 @@ async function callOpenRouterOnce(
     "X-Title": (typeof document !== "undefined" ? (document.title || "Variamos") : "Variamos")
   };
 
-  const body = {
-    model: modelId,
-    messages: systemContent
-      ? [{ role: "system", content: systemContent }, { role: "user", content: userContent }]
-      : [{ role: "user", content: userContent }]
+  const tryOnce = async (mdl: string) => {
+    const body = {
+      model: mdl,
+      messages: systemContent
+        ? [{ role: "system", content: systemContent }, { role: "user", content: userContent }]
+        : [{ role: "user", content: userContent }]
+    };
+    const resp = await fetch(OPENROUTER_URL, { method: "POST", headers, body: JSON.stringify(body) });
+    const rawText = await resp.text();
+    let data: any = null;
+    try { data = JSON.parse(rawText); } catch { /* noop */ }
+
+    if (!resp.ok) {
+      const msg = data?.error?.message || rawText || `HTTP ${resp.status}`;
+      const status = resp.status;
+      throw Object.assign(new Error(msg), { status });
+    }
+
+    // Anti-fallback si pediste :free
+    const usedModel = data?.model || data?.choices?.[0]?.model || data?.choices?.[0]?.provider;
+    const requestedIsFree = MODEL_OPTIONS.some(m => m.id === mdl && m.free);
+    if (requestedIsFree && usedModel && !/:free(\b|$)/i.test(String(usedModel))) {
+      throw new Error(`The free pool is not available. (used: ${usedModel})`);
+    }
+    return String(data?.choices?.[0]?.message?.content ?? "");
   };
 
-  const resp = await fetch(OPENROUTER_URL, { method: "POST", headers, body: JSON.stringify(body) });
+  const {
+    maxRetries = 2,
+    retryDelayMs = 600,
+    fallbackModels = MODEL_OPTIONS.filter(m => m.free && m.id !== modelId).map(m => m.id)
+  } = opts || {};
 
-  const rawText = await resp.text();
-  let data: any = null;
-  try { data = JSON.parse(rawText); } catch { /* noop */ }
+  let attempt = 0;
+  let curModel = modelId;
+  let usedFallbackIdx = -1;
 
-  if (!resp.ok) {
-    const msg = data?.error?.message || rawText || `HTTP ${resp.status}`;
-    throw new Error(msg);
+  while (true) {
+    try {
+      return await tryOnce(curModel);
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      const st = Number(err?.status || 0);
+      const retriable = st === 429 || (st >= 500 && st <= 599) || /provider returned error/i.test(msg);
+      const noEndpoint = /no endpoints found/i.test(msg);
+
+      if (noEndpoint || /free pool is not available/i.test(msg)) {
+        // prueba con otro modelo gratuito
+        usedFallbackIdx++;
+        if (usedFallbackIdx < fallbackModels.length) {
+          curModel = fallbackModels[usedFallbackIdx];
+          continue;
+        }
+        // sin fallback disponible → cae al mecanismo de reintentos con el modelo original
+      }
+
+      if (retriable && attempt < maxRetries) {
+        attempt++;
+        const backoff = retryDelayMs * Math.pow(2, attempt - 1);
+        await new Promise(r => setTimeout(r, backoff));
+        continue;
+      }
+      throw err;
+    }
   }
-
-  // Anti-fallback si se pidió un modelo ":free"
-  const usedModel = data?.model || data?.choices?.[0]?.model || data?.choices?.[0]?.provider;
-  const requestedIsFree = MODEL_OPTIONS.some(m => m.id === modelId && m.free);
-  if (requestedIsFree && usedModel && !/:free(\b|$)/i.test(String(usedModel))) {
-    throw new Error(`The free pool is not available. (used: ${usedModel})`);
-  }
-
-  return String(data?.choices?.[0]?.message?.content ?? "");
 }
+
 
 
 
@@ -299,20 +443,20 @@ const heuristicIntent = (text: string, hasSelection: boolean): IntentResult => {
   const t = text.toLowerCase();
   // Palabras en varios idiomas (muy cortita solo como fallback)
   const createHints = [
-    "nuevo modelo","modelo nuevo","crear modelo","crear un modelo","genera un modelo",
-    "new model","create a new model","another model","separate model",
-    "novo modelo","criar modelo","model novo",
-    "nouveau modèle","créer un modèle",
-    "nuovo modello","crea un modello",
-    "neues modell","neues model","neues modell anlegen"
+    "nuevo modelo", "modelo nuevo", "crear modelo", "crear un modelo", "genera un modelo",
+    "new model", "create a new model", "another model", "separate model",
+    "novo modelo", "criar modelo", "model novo",
+    "nouveau modèle", "créer un modèle",
+    "nuovo modello", "crea un modello",
+    "neues modell", "neues model", "neues modell anlegen"
   ];
   const editHints = [
-    "editar","modifica","cambia","agrega","añade","elimina","borra","conecta","relaciona","renombra","ajusta","actualiza","set ",
-    "edit","modify","change","add ","remove","delete","connect","rename","update","set ",
-    "editar","alterar","adicionar","remover","conectar","renomear",
-    "modifier","ajouter","supprimer","connecter","renommer",
-    "modificare","aggiungi","rimuovi","collega","rinomina",
-    "bearbeiten","ändern","hinzufügen","entfernen","verbinden","umbenennen","aktualisieren"
+    "editar", "modifica", "cambia", "agrega", "añade", "elimina", "borra", "conecta", "relaciona", "renombra", "ajusta", "actualiza", "set ",
+    "edit", "modify", "change", "add ", "remove", "delete", "connect", "rename", "update", "set ",
+    "editar", "alterar", "adicionar", "remover", "conectar", "renomear",
+    "modifier", "ajouter", "supprimer", "connecter", "renommer",
+    "modificare", "aggiungi", "rimuovi", "collega", "rinomina",
+    "bearbeiten", "ändern", "hinzufügen", "entfernen", "verbinden", "umbenennen", "aktualisieren"
   ];
   if (createHints.some(h => t.includes(h))) return { intent: "create", confidence: 0.6 };
   if (editHints.some(h => t.includes(h))) return { intent: "edit", confidence: 0.6 };
@@ -325,65 +469,98 @@ const heuristicIntentFallback = (text: string, hasSelection: boolean): IntentRes
 
   // CREATE hints en varios idiomas
   const createHints = [
-    "nuevo modelo","modelo nuevo","crear modelo","crear un modelo","genera un modelo",
-    "new model","create a new model","another model","separate model","duplicate model","duplicar modelo",
-    "novo modelo","criar modelo","model novo",
-    "nouveau modèle","créer un modèle",
-    "nuovo modello","crea un modello",
-    "neues modell","modell anlegen"
+    "nuevo modelo", "modelo nuevo", "crear modelo", "crear un modelo", "genera un modelo",
+    "new model", "create a new model", "another model", "separate model", "duplicate model", "duplicar modelo",
+    "novo modelo", "criar modelo", "model novo",
+    "nouveau modèle", "créer un modèle",
+    "nuovo modello", "crea un modello",
+    "neues modell", "modell anlegen"
   ];
 
   // EDIT hints (mucho más amplio, incluye “quítame”, “sácala”, etc.)
   const editHints = [
-    "editar","modifica","cambia","agrega","añade","elimina","borra","conecta","relaciona","renombra","ajusta","actualiza","set ",
-    "edit","modify","change","add ","remove","delete","connect","rename","update","set ",
-    "quítame","quitame","quita","sácala","sacala","sácalo","sacalo","borra esa","elimina esa","remueve",
-    "alterar","adicionar","remover","conectar","renomear",
-    "modifier","ajouter","supprimer","connecter","renommer",
-    "modificare","aggiungi","rimuovi","collega","rinomina",
-    "bearbeiten","ändern","hinzufügen","entfernen","verbinden","umbenennen","aktualisieren"
+    "editar", "modifica", "cambia", "agrega", "añade", "elimina", "borra", "conecta", "relaciona", "renombra", "ajusta", "actualiza", "set ",
+    "edit", "modify", "change", "add ", "remove", "delete", "connect", "rename", "update", "set ",
+    "quítame", "quitame", "quita", "sácala", "sacala", "sácalo", "sacalo", "borra esa", "elimina esa", "remueve",
+    "alterar", "adicionar", "remover", "conectar", "renomear",
+    "modifier", "ajouter", "supprimer", "connecter", "renommer",
+    "modificare", "aggiungi", "rimuovi", "collega", "rinomina",
+    "bearbeiten", "ändern", "hinzufügen", "entfernen", "verbinden", "umbenennen", "aktualisieren"
   ];
 
   if (createHints.some(h => t.includes(h))) return { intent: "create", confidence: 0.55 };
-  if (editHints.some(h => t.includes(h)))   return { intent: "edit",   confidence: 0.55 };
+  if (editHints.some(h => t.includes(h))) return { intent: "edit", confidence: 0.55 };
   return { intent: hasSelection ? "edit" : "create", confidence: 0.4 };
 };
+
+
 async function detectIntentWithAI(
   apiKey: string,
-  modelId: string,         // usa un modelo rápido; puedes pasar el seleccionado o fijar uno “small”
+  modelId: string, // modelo rápido para la cascada
   userText: string,
   hasSelection: boolean
 ): Promise<IntentResult> {
+  // Prompt multilingüe + política de desempate explícita
   const system = [
-    "You are an intent classifier for a modeling tool. The user may write in ANY language.",
-    "Decide if the instruction is about CREATE a NEW model or EDIT the CURRENTLY SELECTED model.",
-    "Guidelines:",
-    "- If the message asks to add/rename/delete/remove/connect/set/fix/update/refactor/complete, or expresses things like 'remove that feature', 'sácala', 'quítame X', it's EDIT.",
+    "You are an intent classifier for a model-editing tool. The user may write in ANY language.",
+    "Classify the instruction as either CREATE (make a brand-new/separate model) or EDIT (modify the currently selected model).",
+    "Rules:",
+    "- If the message asks to add/rename/delete/remove/connect/link/relate/set/fix/update/refactor/complete something in the existing model, it's EDIT.",
     "- If it asks to generate/produce/build a new/separate/another model/template from scratch, it's CREATE.",
     `- If ambiguous and hasSelection=${hasSelection}, prefer EDIT when true, else CREATE.`,
-    'Return ONLY valid JSON without backticks: {"intent":"create|edit","language":"<guess or empty>","confidence":0..1}',
+    'Return ONLY valid JSON (no backticks): {"intent":"create|edit","language":"<auto-detected or empty>","confidence":0..1}',
     "",
-    "Examples:",
+    // Ejemplos en varios idiomas (no son listas de palabras, son demostraciones de salida)
     'User: "genera un modelo para representar el ecommerce" → {"intent":"create"}',
     'User: "quítame la feature NFC" → {"intent":"edit"}',
-    'User: "no me gustó esa feature, sácala" → {"intent":"edit"}',
     'User: "haz otro modelo con pagos" → {"intent":"create"}',
-    'User: "add a new relation between A and B" → {"intent":"edit"}'
+    'User: "add a relation between A and B" → {"intent":"edit"}',
+    'User: "cria um novo modelo de pagamentos" → {"intent":"create"}',
+    'User: "remova a feature NFC" → {"intent":"edit"}',
+    'User: "créer un modèle distinct pour les rôles" → {"intent":"create"}',
+    'User: "relie A à B" → {"intent":"edit"}',
+    'User: "erstelle ein neues Modell für Zahlungen" → {"intent":"create"}',
+    'User: "verbinde A mit B" → {"intent":"edit"}',
+    'User: "crea un nuovo modello per i sensori" → {"intent":"create"}',
+    'User: "rinomina la feature X" → {"intent":"edit"}'
   ].join("\n");
 
   const user = `User:\n${userText}\n\nhasSelection=${hasSelection}`;
 
+  // 1) Intento con cascada de modelos (multimodel fallback)
   try {
-    const raw = await callOpenRouterOnce(apiKey, modelId, user, system);
-    const parsed = safeParseJSON(stripCodeFences(raw)) as IntentResult | null;
+    const { text } = await callOpenRouterCascade(
+      apiKey,
+      modelId,
+      user,
+      system,
+      {
+        perModelRetries: 1,
+        validate: (out) => {
+          const p = safeParseJSON(stripCodeFences(out));
+          return !!p && (p.intent === "create" || p.intent === "edit");
+        }
+      }
+    );
+    const parsed = safeParseJSON(stripCodeFences(text)) as IntentResult | null;
     if (parsed && (parsed.intent === "create" || parsed.intent === "edit")) {
+      // 2) Fallback neutral si la confianza es baja o falta
+      const conf = typeof parsed.confidence === "number" ? parsed.confidence : 0.0;
+      if (conf < 0.5) {
+        return hasSelection ? { intent: "edit", confidence: 0.5, language: parsed.language }
+          : { intent: "create", confidence: 0.5, language: parsed.language };
+      }
       return parsed;
     }
   } catch {
-    // swallow, go to fallback
+    // cae al fallback neutral
   }
-  return heuristicIntentFallback(userText, hasSelection);
+
+  // 3) Fallback neutral SIN listas por idioma:
+  //    si hay un modelo seleccionado → EDIT; si no → CREATE
+  return hasSelection ? { intent: "edit", confidence: 0.5 } : { intent: "create", confidence: 0.5 };
 }
+
 
 
 type ChatbotProps = {
@@ -391,7 +568,7 @@ type ChatbotProps = {
 };
 
 /** ===== Chatbot ===== */
-const Chatbot: React.FC<ChatbotProps> = ({ projectService}) => {
+const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   // PS por props o fallback a window
   const [ps, setPs] = useState<any>(projectService ?? null);
   const [allLanguages, setAllLanguages] = useState<Language[]>([]);
@@ -609,99 +786,99 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService}) => {
   };
 
   /** 4) Prompt del sistema enriquecido */
- const buildUnifiedSystemPrompt = (
-  abs: AbstractSyntax,
-  plk?: PLKnowledge,
-  hasSelection: boolean = false,
-  patchSchemaText: string = PATCH_SCHEMA_TEXT
-) => {
-  const elEntries = Object.entries(abs.elements || {});
-  const relEntries = Object.entries(abs.relationships || {});
-  const restr = abs.restrictions || {};
-  const defaultElType = (() => {
-    const elems = Object.keys(abs.elements || {});
-    if (!elems.length) return "";
-    const incoming = new Map<string, number>();
-    for (const r of Object.values(abs.relationships || {})) {
-      for (const t of r.target) incoming.set(t, (incoming.get(t) || 0) + 1);
-    }
-    return elems.reduce((best, k) =>
-      (incoming.get(k) || 0) > (incoming.get(best) || 0) ? k : best, elems[0]);
-  })();
+  const buildUnifiedSystemPrompt = (
+    abs: AbstractSyntax,
+    plk?: PLKnowledge,
+    hasSelection: boolean = false,
+    patchSchemaText: string = PATCH_SCHEMA_TEXT
+  ) => {
+    const elEntries = Object.entries(abs.elements || {});
+    const relEntries = Object.entries(abs.relationships || {});
+    const restr = abs.restrictions || {};
+    const defaultElType = (() => {
+      const elems = Object.keys(abs.elements || {});
+      if (!elems.length) return "";
+      const incoming = new Map<string, number>();
+      for (const r of Object.values(abs.relationships || {})) {
+        for (const t of r.target) incoming.set(t, (incoming.get(t) || 0) + 1);
+      }
+      return elems.reduce((best, k) =>
+        (incoming.get(k) || 0) > (incoming.get(best) || 0) ? k : best, elems[0]);
+    })();
 
-  const elementsDesc = elEntries.map(([ename, edef]) => {
-    const props = (edef.properties || []).map(p => {
-      const pv = typeof p.possibleValues === "string" && p.possibleValues.trim() ? ` (possibleValues: ${p.possibleValues})` : "";
-      const df = p.defaultValue !== undefined ? ` (default: ${p.defaultValue})` : "";
-      return `- ${p.name}: ${p.type}${pv}${df}`;
+    const elementsDesc = elEntries.map(([ename, edef]) => {
+      const props = (edef.properties || []).map(p => {
+        const pv = typeof p.possibleValues === "string" && p.possibleValues.trim() ? ` (possibleValues: ${p.possibleValues})` : "";
+        const df = p.defaultValue !== undefined ? ` (default: ${p.defaultValue})` : "";
+        return `- ${p.name}: ${p.type}${pv}${df}`;
+      }).join("\n");
+      return `* ${ename}${props ? `\n${props}` : ""}`;
     }).join("\n");
-    return `* ${ename}${props ? `\n${props}` : ""}`;
-  }).join("\n");
 
-  const relsDesc = relEntries.map(([rname, rdef]) => {
-    const props = (rdef.properties || []).map(p => {
-      const pv = typeof p.possibleValues === "string" && p.possibleValues.trim() ? ` (possibleValues: ${p.possibleValues})` : "";
-      const df = p.defaultValue !== undefined ? ` (default: ${p.defaultValue})` : "";
-      return `- ${p.name}: ${p.type}${pv}${df}`;
+    const relsDesc = relEntries.map(([rname, rdef]) => {
+      const props = (rdef.properties || []).map(p => {
+        const pv = typeof p.possibleValues === "string" && p.possibleValues.trim() ? ` (possibleValues: ${p.possibleValues})` : "";
+        const df = p.defaultValue !== undefined ? ` (default: ${p.defaultValue})` : "";
+        return `- ${p.name}: ${p.type}${pv}${df}`;
+      }).join("\n");
+      return [
+        `* ${rname}`,
+        `  source: ${rdef.source}`,
+        `  targets permitidos: [${rdef.target.join(", ")}]`,
+        props ? `  properties:\n${props}` : `  properties: none`
+      ].join("\n");
     }).join("\n");
+
+    const restrLines: string[] = [];
+    if (restr.quantity_element?.length) for (const q of restr.quantity_element) restrLines.push(`- quantity_element: element=${q.element}, min=${q.min}, max=${q.max}`);
+    if (restr.unique_name?.elements?.length) restrLines.push(`- unique_name over groups: ${JSON.stringify(restr.unique_name.elements)}`);
+    if (restr.parent_child?.length) for (const pc of restr.parent_child) restrLines.push(`- parent_child: child=${pc.childElement}, parent in [${pc.parentElement.join(", ")}]`);
+
+    const plCtx = plk ? [
+      `Contexto de la LP: "${plk.productLineName || "(sin nombre)"}"`,
+      `- Lenguajes: ${plk.languages.join(", ") || "(n/a)"}`,
+      `- Modelos (${plk.models.length}): ${plk.models.slice(0, 12).map(m => `[${m.phase}] ${m.name} <${m.type}>`).join("; ") || "(n/a)"}`,
+      `- Glosario: ${plk.sameLang.knownElementNames.slice(0, 10).join(", ") || plk.knownElementNames.slice(0, 10).join(", ") || "(n/a)"}`,
+      `- Tipos frecuentes: ${plk.sameLang.knownElementTypes.slice(0, 8).join(", ") || plk.knownElementTypes.slice(0, 8).join(", ") || "(n/a)"}`,
+      `- Patrones: ${(plk.sameLang.relationshipPatterns.length ? plk.sameLang.relationshipPatterns : plk.relationshipPatterns)
+        .slice(0, 12).map(p => `${p.type}: ${p.sourceType}→${p.targetType}`).join("; ") || "(n/a)"}`
+    ].join("\n") : "(sin contexto de LP)";
+
     return [
-      `* ${rname}`,
-      `  source: ${rdef.source}`,
-      `  targets permitidos: [${rdef.target.join(", ")}]`,
-      props ? `  properties:\n${props}` : `  properties: none`
+      "Eres un asistente de modelado para una herramienta de Líneas de Producto.",
+      "",
+      "Salida obligatoria: **devuelve un único objeto JSON válido, sin backticks**, en UNO de estos dos formatos:",
+      "A) **PATCH** (para modificar el modelo seleccionado): `{ \"ops\": [ ... ] }`",
+      "   - Debe seguir exactamente este esquema:",
+      patchSchemaText,
+      "",
+      "B) **PLAN** (para crear un modelo nuevo):",
+      "{\"name\": string, \"elements\":[{\"name\": string, \"type\": string, \"props\"?: object}], \"relationships\":[{\"type\": string, \"source\": string, \"target\": string, \"props\"?: object}]}",
+      "",
+      hasSelection
+        ? "- Hay un *modelo seleccionado*. Si la instrucción del usuario implica modificar/renombrar/eliminar/conectar/ajustar propiedades o consistencia del modelo, **devuelve PATCH**. Si requiere un nuevo modelo, **devuelve PLAN**."
+        : "- No hay modelo seleccionado. **Debes devolver PLAN** para crear uno nuevo.",
+      "",
+      "Reglas del lenguaje (debes respetarlas estrictamente):",
+      `- Usa tipos solo de 'Elementos permitidos'. Si dudas, usa '${defaultElType}'.`,
+      "- `name` de cada elemento debe ser un concepto del dominio (no repitas el tipo).",
+      "- Si una propiedad tiene 'possibleValues', usa exactamente uno de esos valores.",
+      "- Relaciones: objetos con `type, source, target`. Para varios destinos, crea varios objetos.",
+      "- `source` y `target` son **nombres de elementos** definidos en `elements`.",
+      "",
+      "Elementos permitidos y propiedades:",
+      elementsDesc || "(sin elementos definidos)",
+      "",
+      "Relaciones permitidas:",
+      relsDesc || "(sin relaciones definidas)",
+      "",
+      "Restricciones del lenguaje:",
+      restrLines.length ? restrLines.join("\n") : "(sin restricciones declaradas)",
+      "",
+      "— Contexto de la línea de productos —",
+      plCtx
     ].join("\n");
-  }).join("\n");
-
-  const restrLines: string[] = [];
-  if (restr.quantity_element?.length) for (const q of restr.quantity_element) restrLines.push(`- quantity_element: element=${q.element}, min=${q.min}, max=${q.max}`);
-  if (restr.unique_name?.elements?.length) restrLines.push(`- unique_name over groups: ${JSON.stringify(restr.unique_name.elements)}`);
-  if (restr.parent_child?.length) for (const pc of restr.parent_child) restrLines.push(`- parent_child: child=${pc.childElement}, parent in [${pc.parentElement.join(", ")}]`);
-
-  const plCtx = plk ? [
-    `Contexto de la LP: "${plk.productLineName || "(sin nombre)"}"`,
-    `- Lenguajes: ${plk.languages.join(", ") || "(n/a)"}`,
-    `- Modelos (${plk.models.length}): ${plk.models.slice(0, 12).map(m => `[${m.phase}] ${m.name} <${m.type}>`).join("; ") || "(n/a)"}`,
-    `- Glosario: ${plk.sameLang.knownElementNames.slice(0, 10).join(", ") || plk.knownElementNames.slice(0, 10).join(", ") || "(n/a)"}`,
-    `- Tipos frecuentes: ${plk.sameLang.knownElementTypes.slice(0, 8).join(", ") || plk.knownElementTypes.slice(0, 8).join(", ") || "(n/a)"}`,
-    `- Patrones: ${(plk.sameLang.relationshipPatterns.length ? plk.sameLang.relationshipPatterns : plk.relationshipPatterns)
-      .slice(0, 12).map(p => `${p.type}: ${p.sourceType}→${p.targetType}`).join("; ") || "(n/a)"}`
-  ].join("\n") : "(sin contexto de LP)";
-
-  return [
-    "Eres un asistente de modelado para una herramienta de Líneas de Producto.",
-    "",
-    "Salida obligatoria: **devuelve un único objeto JSON válido, sin backticks**, en UNO de estos dos formatos:",
-    "A) **PATCH** (para modificar el modelo seleccionado): `{ \"ops\": [ ... ] }`",
-    "   - Debe seguir exactamente este esquema:",
-    patchSchemaText,
-    "",
-    "B) **PLAN** (para crear un modelo nuevo):",
-    "{\"name\": string, \"elements\":[{\"name\": string, \"type\": string, \"props\"?: object}], \"relationships\":[{\"type\": string, \"source\": string, \"target\": string, \"props\"?: object}]}",
-    "",
-    hasSelection
-      ? "- Hay un *modelo seleccionado*. Si la instrucción del usuario implica modificar/renombrar/eliminar/conectar/ajustar propiedades o consistencia del modelo, **devuelve PATCH**. Si requiere un nuevo modelo, **devuelve PLAN**."
-      : "- No hay modelo seleccionado. **Debes devolver PLAN** para crear uno nuevo.",
-    "",
-    "Reglas del lenguaje (debes respetarlas estrictamente):",
-    `- Usa tipos solo de 'Elementos permitidos'. Si dudas, usa '${defaultElType}'.`,
-    "- `name` de cada elemento debe ser un concepto del dominio (no repitas el tipo).",
-    "- Si una propiedad tiene 'possibleValues', usa exactamente uno de esos valores.",
-    "- Relaciones: objetos con `type, source, target`. Para varios destinos, crea varios objetos.",
-    "- `source` y `target` son **nombres de elementos** definidos en `elements`.",
-    "",
-    "Elementos permitidos y propiedades:",
-    elementsDesc || "(sin elementos definidos)",
-    "",
-    "Relaciones permitidas:",
-    relsDesc || "(sin relaciones definidas)",
-    "",
-    "Restricciones del lenguaje:",
-    restrLines.length ? restrLines.join("\n") : "(sin restricciones declaradas)",
-    "",
-    "— Contexto de la línea de productos —",
-    plCtx
-  ].join("\n");
-};
+  };
 
 
   /** 5) Validación + normalización */
@@ -853,6 +1030,129 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService}) => {
     return { name, elements: elems, relationships: expanded };
   };
 
+  // --- Dedupe + normalization helpers (avoid duplicates in EDIT) ---
+  type ElementIndex = Map<string, { id: string; name: string; type: string }>;
+
+  const buildElementIndexCI = (model: any): ElementIndex => {
+    const idx: ElementIndex = new Map();
+    for (const e of (model?.elements || [])) {
+      idx.set(String(e.name).trim().toLowerCase(), { id: e.id, name: e.name, type: e.type });
+    }
+    return idx;
+  };
+
+  const findByNameCI = (model: any, name: string) => {
+    const key = String(name || "").trim().toLowerCase();
+    return (model?.elements || []).find((e: any) => String(e.name).trim().toLowerCase() === key) || null;
+  };
+
+  const canonicalizeName = (name: string, idx: ElementIndex) => {
+    const key = String(name || "").trim().toLowerCase();
+    return idx.get(key)?.name || name;
+  };
+
+  const relExists = (model: any, type: string, sName: string, tName: string) => {
+    const s = findByNameCI(model, sName)?.id;
+    const t = findByNameCI(model, tName)?.id;
+    if (!s || !t) return false;
+    return !!(model?.relationships || []).find((r: any) => r.type === type && r.sourceId === s && r.targetId === t);
+  };
+
+  const normalizeRefsInOps = (ops: any[], model: any) => {
+    const idx = buildElementIndexCI(model);
+    const fixRef = (ref: any) => {
+      if (!ref) return ref;
+      const token = String(ref.name ?? ref.id ?? "").trim();
+      if (!token) return ref;
+      const cname = canonicalizeName(token, idx);
+      return { name: cname };
+    };
+    for (const op of ops) {
+      if (op?.source) op.source = fixRef(op.source);
+      if (op?.target) op.target = fixRef(op.target);
+      if (op?.selector?.source || op?.selector?.target) {
+        op.selector.source = fixRef(op.selector.source);
+        op.selector.target = fixRef(op.selector.target);
+      }
+    }
+  };
+  type RefLike = { id?: string; name?: string } | null | undefined;
+const getRefName = (ref: RefLike): string =>
+  String(((ref as any)?.name ?? (ref as any)?.id ?? "")).trim();
+
+type DeleteRelSelector = {
+  id?: string;
+  type?: string;
+  relType?: string;
+  source?: RefLike;
+  target?: RefLike;
+  sourceName?: string;
+  targetName?: string;
+};
+
+const sanitizePatchForEdit = (patch: PatchEnvelope, model: any, abs: AbstractSyntax): PatchEnvelope => {
+  const idx = buildElementIndexCI(model);
+  const sanitized: PatchEnvelope = { ops: [] };
+
+  // 0) Canonicaliza referencias para que "mobileDevice" apunte a "MobileDevice"
+  normalizeRefsInOps(patch.ops || [], model);
+
+  for (const op of (patch.ops || [])) {
+    if (!op || !op.op) continue;
+
+    // 1) Evitar duplicados de elementos en EDIT (case-insensitive)
+    if (op.op === "createElement") {
+      const name = String((op as any).name ?? "").trim();
+      const type = String((op as any).type ?? "").trim();
+      if (!name || !type) continue;
+      const already = idx.has(name.toLowerCase());
+      if (already) continue; // no duplicar
+      sanitized.ops.push(op);
+      idx.set(name.toLowerCase(), { id: "", name, type });
+      continue;
+    }
+
+    // 2) Evitar duplicar relaciones exactas (usa helpers lazos)
+    if (op.op === "connect") {
+      const type = String((op as any).type ?? "").trim();
+      const sName = getRefName((op as any).source);
+      const tName = getRefName((op as any).target);
+      if (!type || !sName || !tName) continue;
+
+      if (relExists(model, type, sName, tName)) continue; // ya existe → descartar
+
+      sanitized.ops.push(op);
+      continue;
+    }
+
+    // 3) deleteRelationship con selector por nombres → resolver a id (selector laxo)
+    if (op.op === "deleteRelationship") {
+      const sel = ((op as any).selector || {}) as DeleteRelSelector;
+      if (!sel.id) {
+        const type = String(sel.type || sel.relType || "").trim();
+        const sName = getRefName(sel.source) || String(sel.sourceName || "").trim();
+        const tName = getRefName(sel.target) || String(sel.targetName || "").trim();
+        if (type && sName && tName) {
+          const sId = findByNameCI(model, sName)?.id;
+          const tId = findByNameCI(model, tName)?.id;
+          const rel = (model?.relationships || []).find(
+            (r: any) => r.type === type && r.sourceId === sId && r.targetId === tId
+          );
+          if (rel) (op as any).selector = { id: rel.id };
+        }
+      }
+      sanitized.ops.push(op);
+      continue;
+    }
+
+    // Default: dejar pasar
+    sanitized.ops.push(op);
+  }
+
+  return sanitized;
+};
+
+
   /** 6) Materializar PlanLLM como modelo Variamos */
   const materializeIntoModel = (model: any, gp: PlanLLM, abs: AbstractSyntax) => {
     const elDefs = abs.elements || {};
@@ -985,290 +1285,410 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService}) => {
     }
   };
 
-const shouldCreateNew = (text: string): boolean => {
-  const t = text.toLowerCase();
-  const cuesCreate = [
-    "crear modelo", "crear un modelo", "nuevo modelo", "modelo nuevo",
-    "create a new model", "new model", "otro modelo", "separate model", "duplicar modelo"
-  ];
-  return cuesCreate.some(p => t.includes(p));
-};
-
-const looksLikeEdit = (text: string): boolean => {
-  const t = text.toLowerCase();
-  const cuesEdit = [
-    "renombra", "rename", "agrega", "añade", "add ",
-    "elimina", "borra", "remove", "conecta", "relaciona", "connect",
-    "set ", "establece", "cambia", "modifica", "update", "editar", "edit"
-  ];
-  return cuesEdit.some(p => t.includes(p));
-};
-
-  /** 8) Enviar mensaje */
-const send = async (userText: string) => {
-  if (!ps || !currentLanguage) { addLog("ps/language not available"); return; }
-
-  const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
-
-  stageStep("Preparing prompt");
-  const abs = getAbstract();
-  if (!Object.keys(abs.elements).length) { addLog("abstractSyntax void"); return; }
-
-  if (!apiKey) {
-    setThread(prev => [...prev, { role: "assistant", content: "Your OpenRouter API Key is missing. Enter the key in the header field." }]);
-    return;
-  }
-
-  stageStep("Gathering context from the product line…");
-  const plKnowledge = harvestProductLineKnowledge(ps, currentLanguage);
-
-  // — Modelo seleccionado —
-  const selectedId = ps.getTreeIdItemSelected?.();
-  const targetModel = selectedId ? ps.findModelById(ps.project, selectedId) : null;
-  const hasSelection = !!targetModel;
-
-  // ===== IA: detección de intención multilingüe =====
-  stageStep("Detecting intent (language-agnostic)...");
-  // Usa un modelo rápido/estable para clasificación (puedes cambiarlo si quieres).
-  const intentModelId = "mistralai/mistral-small-3.2-24b-instruct:free";
-  let wantCreate = true;
-  try {
-    const intent = await detectIntentWithAI(apiKey, intentModelId, userText, hasSelection);
-    addLog(`[intent] ${intent.intent} conf=${(intent.confidence ?? 0).toFixed(2)} lang=${intent.language ?? "?"}`);
-    wantCreate = !hasSelection ? true : intent.intent === "create";
-  } catch {
-    // caída improbable; si falla, con selección asumimos editar
-    wantCreate = !hasSelection ? true : false;
-  }
-
-  // — UI —
-  setBusy(true);
-  let placeholderIdx = -1;
-  setThread(prev => {
-    const next: Message[] = [...prev, { role: "user" as Role, content: String(userText) }, { role: "assistant" as Role, content: "__typing__" }];
-    placeholderIdx = next.length - 1;
-    return next;
-  });
-
-  // Helper: PATCH (de creación) → PLAN
-  const patchToPlan = (patch: any): PlanLLM => {
-    const elements: { name: string; type: string; props?: Record<string, any> }[] = [];
-    const relationships: { type: string; source: string; target: string; props?: Record<string, any> }[] = [];
-    const have = new Set<string>();
-    const getNameFromRef = (ref: any) => (ref?.name || ref?.id || "").toString();
-
-    for (const op of (patch?.ops || [])) {
-      if (!op || !op.op) continue;
-
-      if (op.op === "createElement") {
-        const name = String(op.name ?? "").trim();
-        const type = String(op.type ?? "").trim();
-        if (!name || !type) continue;
-        if (!have.has(name)) {
-          const props: Record<string, any> = {};
-          if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
-          elements.push({ name, type, ...(Object.keys(props).length ? { props } : {}) });
-          have.add(name);
-        }
-      }
-
-      if (op.op === "connect") {
-        const type = String(op.type ?? "").trim();
-        const source = getNameFromRef(op.source);
-        const target = getNameFromRef(op.target);
-        if (!type || !source || !target) continue;
-        const props: Record<string, any> = {};
-        if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
-        relationships.push({ type, source, target, ...(Object.keys(props).length ? { props } : {}) });
-      }
-    }
-    return { name: "Generated Model", elements, relationships };
+  const shouldCreateNew = (text: string): boolean => {
+    const t = text.toLowerCase();
+    const cuesCreate = [
+      "crear modelo", "crear un modelo", "nuevo modelo", "modelo nuevo",
+      "create a new model", "new model", "otro modelo", "separate model", "duplicar modelo"
+    ];
+    return cuesCreate.some(p => t.includes(p));
   };
 
-  try {
-    const genModelId = selectedModel; // modelo elegido en el header para la generación/edición
+  const looksLikeEdit = (text: string): boolean => {
+    const t = text.toLowerCase();
+    const cuesEdit = [
+      "renombra", "rename", "agrega", "añade", "add ",
+      "elimina", "borra", "remove", "conecta", "relaciona", "connect",
+      "set ", "establece", "cambia", "modifica", "update", "editar", "edit"
+    ];
+    return cuesEdit.some(p => t.includes(p));
+  };
 
-    // =======================
-    // EDIT (PATCH)
-    // =======================
-    if (hasSelection && !wantCreate) {
-      const snapshot = buildSnapshot(targetModel);
-      const prompt = buildEditPrompt({ snapshot, userGoal: userText, patchSchema: PATCH_SCHEMA_TEXT });
-      const sys = buildUnifiedSystemPrompt(abs, plKnowledge || undefined, true, PATCH_SCHEMA_TEXT);
+  /** 8) Enviar mensaje */
+  // =========
+  // send (con IA para intención + descomposición de tareas + refresco de canvas)
+  // =========
+  const send = async (userText: string) => {
+    // Evita dobles envíos
+    if (busy) return;
+    setBusy(true);
 
-      stageStep("Calling API… (edit)");
-      const botText = await callOpenRouterOnce(apiKey, genModelId, prompt, sys);
+    if (!ps || !currentLanguage) { addLog("ps/language not available"); setBusy(false); return; }
 
-      setThread(prev => { const copy = [...prev]; copy[placeholderIdx] = { role: "assistant", content: botText || "(no content)" }; return copy; });
-      if (!botText) return;
+    const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
 
-      stageStep("Parsing patch…");
-      const parsed = safeParseJSON(stripCodeFences(botText));
-      if (!parsed || !Array.isArray((parsed as any).ops)) throw new Error("La respuesta no es un PATCH válido.");
+    stageStep("Preparing prompt");
+    const abs = getAbstract();
+    if (!Object.keys(abs.elements).length) { addLog("abstractSyntax void"); setBusy(false); return; }
 
-      const env: PatchEnvelope = parsed as PatchEnvelope;
-      stageStep(`Applying patch (${env.ops.length} ops)…`);
-      applyPatch(ps, targetModel, env);
-
-      // 🔧 Forzar refresco del lienzo (arregla el “desaparece hasta reabrir” al borrar relaciones)
-      const forceRefresh = () => {
-        ps.raiseEventSelectedModel?.(targetModel);
-        ps.requestRender?.();
-        ps.repaint?.();
-      };
-      forceRefresh();
-      setTimeout(forceRefresh, 0);
-
-      ps.saveProject?.();
-      stageStep("Done ✅");
+    if (!apiKey) {
+      setThread(prev => [...prev, { role: "assistant", content: "Your OpenRouter API Key is missing. Enter the key in the header field." }]);
+      setBusy(false);
       return;
     }
 
-    // =======================
-    // CREATE (PLAN preferido; PATCH → convert to PLAN)
-    // =======================
-    if (hasSelection) {
-      const ok = window.confirm?.("Tienes un modelo seleccionado. ¿Crear uno nuevo en vez de editarlo?") ?? true;
-      if (!ok) { stageStep("Cancel"); return; }
+    stageStep("Gathering context from the product line…");
+    const plKnowledge = harvestProductLineKnowledge(ps, currentLanguage);
+
+    // Modelo seleccionado en el canvas
+    const selectedId = ps.getTreeIdItemSelected?.();
+    const targetModel = selectedId ? ps.findModelById(ps.project, selectedId) : null;
+    const hasSelection = !!targetModel;
+
+    // ===== IA: intención multilingüe con CASCADA (semilla = modelo elegido por el usuario)
+    stageStep("Detecting intent (language-agnostic)...");
+    const intentModelId = selectedModel; // << semilla de la cascada
+    let wantCreate = !hasSelection;      // fallback neutral
+    try {
+      const intent = await detectIntentWithAI(apiKey, intentModelId, userText, hasSelection);
+      addLog(`[intent] ${intent.intent} conf=${(intent.confidence ?? 0).toFixed(2)} lang=${intent.language ?? "?"}`);
+      wantCreate = intent.intent === "create";
+    } catch {
+      wantCreate = !hasSelection;
     }
 
-    const langName = (currentLanguage?.name) || ps.getSelectedLanguage?.() || "Generic Language";
-    const prompt = buildCreatePrompt({ languageName: langName, userGoal: userText, patchSchema: PATCH_SCHEMA_TEXT });
-    const sysCreate = buildUnifiedSystemPrompt(abs, plKnowledge || undefined, false, PATCH_SCHEMA_TEXT)
-      + "\n\nIMPORTANT: For creation, prefer returning a PLAN object. If you still return PATCH, it must contain only createElement/connect ops.";
+    // — UI —
+    let placeholderIdx = -1;
+    setThread(prev => {
+      const next: Message[] = [...prev, { role: "user" as Role, content: String(userText) }, { role: "assistant" as Role, content: "__typing__" }];
+      placeholderIdx = next.length - 1;
+      return next;
+    });
 
-    stageStep("Calling API… (create)");
-    const botText = await callOpenRouterOnce(apiKey, genModelId, prompt, sysCreate);
+    // Refrescos del lienzo
+    const forceRefresh = (model?: any) => {
+      if (model) ps.raiseEventSelectedModel?.(model);
+      ps.requestRender?.();
+      ps.repaint?.();
+    };
 
-    setThread(prev => { const copy = [...prev]; copy[placeholderIdx] = { role: "assistant", content: botText || "(no content)" }; return copy; });
-    if (!botText) return;
+    // Resolver selectores por nombre → id (para deleteRelationship por nombres)
+    const resolveLooseSelectors = (patch: PatchEnvelope, model: any) => {
+      const elByName = new Map<string, any>();
+      for (const e of (model?.elements || [])) elByName.set(String(e.name), e);
+      const findRelId = (type: string, sName: string, tName: string) => {
+        const s = elByName.get(sName)?.id;
+        const t = elByName.get(tName)?.id;
+        if (!s || !t) return null;
+        const r = (model?.relationships || []).find((rr: any) =>
+          rr.type === type && rr.sourceId === s && rr.targetId === t);
+        return r?.id || null;
+      };
 
-    stageStep("Parsing response…");
-    const parsed = safeParseJSON(stripCodeFences(botText));
-    if (!parsed) throw new Error("La respuesta del modelo no es JSON válido.");
-
-    let planCandidate: any = parsed;
-    if (Array.isArray((parsed as any).ops)) {
-      addLog("[create] PATCH detected → converting to PLAN");
-      planCandidate = patchToPlan(parsed);
-    } else if (parsed.nodes || parsed.edges) {
-      planCandidate = nodesEdgesToPlan(parsed);
-    }
-
-    stageStep("Validating and normalizing (plan)...");
-    const plan = validateAndNormalizePlan(planCandidate, abs, userText, plKnowledge || undefined);
-    if (!plan || !plan.elements.length) throw new Error("PLAN vacío tras validación.");
-
-    stageStep("Inyectando al proyecto…");
-    injectIntoProject(plan, currentLanguage as Language, phase, abs);
-    stageStep("Listo ✅");
-    return;
-
-  } catch (e: any) {
-    stageStep("Error");
-    addLog(`[error] ${e?.message || e}`);
-    setThread(prev => { const copy = [...prev]; copy[placeholderIdx] = { role: "assistant", content: "Error: " + (e?.message || e) }; return copy; });
-  } finally {
-    setBusy(false);
-    setTimeout(() => setStage(""), 1200);
-  }
-};
-
-
-
-
-
-
-
-  /** 9) UI: Enter = enviar */
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !busy) {
-      const t = input.trim();
-      if (t) {
-        setInput("");
-        void send(t);
+      for (const op of (patch?.ops || [])) {
+        if (op.op === "deleteRelationship" && op.selector && !op.selector.id) {
+          const sel = op.selector as any;
+          const type = sel.type || sel.relType || "";
+          const sName = sel?.source?.name || sel?.sourceName || "";
+          const tName = sel?.target?.name || sel?.targetName || "";
+          if (type && sName && tName) {
+            const rid = findRelId(type, sName, tName);
+            if (rid) op.selector = { id: rid };
+          }
+        }
       }
-    }
+    };
+
+    // Descomponer en subtareas (IA + cascada). No dependemos de idioma: si hay selección, intentamos dividir.
+    const decomposeIfNeeded = async (text: string, enabled: boolean) => {
+      if (!enabled) return [text];
+      const sys = [
+        "You split a user modeling instruction (any language) into ordered, minimal edit steps.",
+        "Each step must be self-contained and executable against the current model.",
+        "Return JSON with an array 'steps' of strings. No backticks.",
+        `Example output: {"steps":["create X and connect ...","delete relation ...","remove feature Y"]}`
+      ].join("\n");
+
+      const { text: out } = await callOpenRouterCascade(
+        apiKey,
+        intentModelId,               // semilla = modelo elegido; luego cae al resto
+        `Instruction:\n${text}`,
+        sys,
+        {
+          perModelRetries: 1,
+          validate: (raw) => {
+            const parsed = safeParseJSON(stripCodeFences(raw));
+            return Array.isArray(parsed?.steps) && parsed.steps.every((s: any) => typeof s === "string");
+          }
+        }
+      );
+
+      const parsed = safeParseJSON(stripCodeFences(out));
+      return (Array.isArray(parsed?.steps) ? parsed.steps : [text]) as string[];
+    };
+
+    try {
+      const genModelId = selectedModel; // semilla para generación/edición
+
+      // =======================
+      // EDIT (PATCH por pasos)
+      // =======================
+      if (hasSelection && !wantCreate) {
+        const steps = await decomposeIfNeeded(userText, true);
+
+        for (let i = 0; i < steps.length; i++) {
+          const subGoal = steps[i];
+          const snapshot = buildSnapshot(targetModel);
+
+          // Política extra para IDs
+          const idPolicy =
+            "\nCRITICAL rules for EDIT mode:" +
+            "\n- Do NOT invent or guess UUIDs. Refer to elements/relationships by names only." +
+            "\n- Do NOT use createElement unless the user explicitly asked to add a NEW element." +
+            "\n- If an element already exists by name (case-insensitive), REUSE it and NEVER create a duplicate." +
+            "\n- For deletions, if you don't know a relationship id, use a selector with type and source/target names: " +
+            `{"op":"deleteRelationship","selector":{"type":"<RelType>","source":{"name":"<SourceName>"},"target":{"name":"<TargetName>"}}}. ` +
+            "\n- Apply ALL requested changes for this step in one PATCH.";
+
+
+          const sys = buildUnifiedSystemPrompt(abs, plKnowledge || undefined, true, PATCH_SCHEMA_TEXT) + idPolicy;
+          const prompt = buildEditPrompt({ snapshot, userGoal: subGoal, patchSchema: PATCH_SCHEMA_TEXT });
+
+          stageStep(`Calling API… (edit step ${i + 1}/${steps.length})`);
+          const { text: botText, usedModelId } = await callOpenRouterCascade(
+            apiKey,
+            genModelId,   // prueba este primero, luego el resto en cascada
+            prompt,
+            sys,
+            {
+              perModelRetries: 1,
+              validate: (raw) => {
+                const parsed = safeParseJSON(stripCodeFences(raw));
+                return !!parsed && Array.isArray((parsed as any).ops);
+              }
+            }
+          );
+
+          // Mostrar salida + modelo usado
+          setThread(prev => {
+            const copy = [...prev];
+            copy[placeholderIdx] = {
+              role: "assistant",
+              content: (botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`
+            };
+            return copy;
+          });
+          if (!botText) continue;
+
+          stageStep("Parsing patch…");
+          const parsed = safeParseJSON(stripCodeFences(botText));
+          if (!parsed || !Array.isArray((parsed as any).ops)) throw new Error("La respuesta no es un PATCH válido.");
+
+          let env: PatchEnvelope = parsed as PatchEnvelope;
+
+          // 1) Normalización + dedupe (case-insensitive) para evitar elementos y relaciones duplicadas
+          env = sanitizePatchForEdit(env, targetModel, abs);
+
+          // 2) Resolver selectores por nombre si vinieron sin id (deleteRelationship)
+          resolveLooseSelectors(env, targetModel);
+
+          if (!env.ops.length) {
+            addLog("[edit] Patch quedó vacío tras sanitizar (no-ops).");
+          } else {
+            stageStep(`Applying patch (${env.ops.length} ops)…`);
+            applyPatch(ps, targetModel, env);
+            forceRefresh(targetModel);
+          }
+        }
+
+          ps.saveProject?.();
+          stageStep("Done ✅");
+          return;
+        }
+
+        // =======================
+        // CREATE (nuevo modelo)
+        // =======================
+        // Sin confirmación: si la IA dice CREATE, creamos directo aunque haya selección.
+        const langName = (currentLanguage?.name) || ps.getSelectedLanguage?.() || "Generic Language";
+        const prompt = buildCreatePrompt({ languageName: langName, userGoal: userText, patchSchema: PATCH_SCHEMA_TEXT });
+        const sysCreate =
+          buildUnifiedSystemPrompt(abs, plKnowledge || undefined, false, PATCH_SCHEMA_TEXT) +
+          "\nIMPORTANT: Prefer returning a PLAN object for creation. If you still return PATCH, only use createElement/connect ops. " +
+          "Never invent UUIDs; refer to elements by names in source/target.";
+
+        stageStep("Calling API… (create)");
+        const { text: botText, usedModelId } = await callOpenRouterCascade(
+          apiKey,
+          genModelId,  // semilla = modelo elegido; si falla, prueba el resto
+          prompt,
+          sysCreate,
+          {
+            perModelRetries: 1,
+            validate: (raw) => !!safeParseJSON(stripCodeFences(raw))
+          }
+        );
+
+        setThread(prev => {
+          const copy = [...prev];
+          copy[placeholderIdx] = {
+            role: "assistant",
+            content: (botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`
+          };
+          return copy;
+        });
+        if (!botText) return;
+
+        stageStep("Parsing response…");
+        const parsed = safeParseJSON(stripCodeFences(botText));
+        if (!parsed) throw new Error("La respuesta del modelo no es JSON válido.");
+
+        // PATCH → PLAN (si el modelo responde con patch en creación)
+        const patchToPlan = (patch: any): PlanLLM => {
+          const elements: { name: string; type: string; props?: Record<string, any> }[] = [];
+          const relationships: { type: string; source: string; target: string; props?: Record<string, any> }[] = [];
+          const have = new Set<string>();
+          const getNameFromRef = (ref: any) => (ref?.name || ref?.id || "").toString();
+          for (const op of (patch?.ops || [])) {
+            if (!op || !op.op) continue;
+            if (op.op === "createElement") {
+              const name = String(op.name ?? "").trim();
+              const type = String(op.type ?? "").trim();
+              if (!name || !type) continue;
+              if (!have.has(name)) {
+                const props: Record<string, any> = {};
+                if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
+                elements.push({ name, type, ...(Object.keys(props).length ? { props } : {}) });
+                have.add(name);
+              }
+            }
+            if (op.op === "connect") {
+              const type = String(op.type ?? "").trim();
+              const source = getNameFromRef(op.source);
+              const target = getNameFromRef(op.target);
+              if (!type || !source || !target) continue;
+              const props: Record<string, any> = {};
+              if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
+              relationships.push({ type, source, target, ...(Object.keys(props).length ? { props } : {}) });
+            }
+          }
+          return { name: "Generated Model", elements, relationships };
+        };
+
+        let planCandidate: any = parsed;
+        if (Array.isArray((parsed as any).ops)) {
+          addLog("[create] PATCH detected → converting to PLAN");
+          planCandidate = patchToPlan(parsed);
+        } else if (parsed.nodes || parsed.edges) {
+          planCandidate = nodesEdgesToPlan(parsed);
+        }
+
+        stageStep("Validating and normalizing (plan)...");
+        const plan = validateAndNormalizePlan(planCandidate, abs, userText, plKnowledge || undefined);
+        if (!plan || !plan.elements.length) throw new Error("PLAN vacío tras validación.");
+
+        stageStep("Inyectando al proyecto…");
+        injectIntoProject(plan, currentLanguage as Language, phase, abs);
+        stageStep("Listo ✅");
+        return;
+
+      } catch (e: any) {
+        stageStep("Error");
+        addLog(`[error] ${e?.message || e}`);
+        setThread(prev => {
+          const copy = [...prev];
+          copy[placeholderIdx] = { role: "assistant", content: "Error: " + (e?.message || e) };
+          return copy;
+        });
+      } finally {
+        setBusy(false);
+        setTimeout(() => setStage(""), 1200);
+      }
+    };
+
+
+
+
+
+    /** 9) UI: Enter = enviar */
+    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && !busy) {
+        const t = input.trim();
+        if (t) {
+          setInput("");
+          void send(t);
+        }
+      }
+    };
+
+    /* ===== Render ===== */
+    return (
+      <div className="chatbot">
+        {/* Header */}
+        <div className="chat-hd">
+          <div>
+            <label>Phase</label>
+            <select className="select" value={phase} onChange={e => setPhase(e.target.value as Phase)}>
+              <option value="SCOPE">Scope</option>
+              <option value="DOMAIN">Domain</option>
+              <option value="APPLICATION">Application</option>
+            </select>
+          </div>
+          <div>
+            <label>Language</label>
+            <select className="select" value={languageId} onChange={e => setLanguageId(e.target.value)}>
+              <option value="">— Select language —</option>
+              {phaseLanguages.map(l => {
+                const key = getLanguageKey(l);
+                return (
+                  <option key={key} value={key}>
+                    {l.name} ({l.type})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+          <div>
+            <label>AI model</label>
+            <select className="select" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
+              {MODEL_OPTIONS.map(m => (
+                <option key={m.id} value={m.id}>{m.label}{m.free ? " (free)" : ""}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Conversación */}
+        <div className="chat-body" id="chat-scroll">
+          {thread.map((m, i) => (
+            <div key={i} className={`msg ${m.role === "user" ? "user" : "bot"}`}>
+              <div className="bubble">
+                {m.content === "__typing__" ? <Typing /> : m.content}
+              </div>
+              <div className="meta">{m.role === "user" ? "You" : m.role === "assistant" ? "bot" : "Sys"}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Barra de estado */}
+        {busy && (
+          <div className="statusbar">
+            <div className="spinner" />
+            <span>{stage || "Processing…"}</span>
+          </div>
+        )}
+
+        {/* Input */}
+        <div className="chat-ft">
+          <input
+            placeholder={busy ? "Generating…" : "Describe the model you want and press Enter.…"}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            disabled={busy}
+          />
+          <button disabled={busy || !input.trim()} onClick={() => { const t = input.trim(); if (t) { setInput(""); void send(t); } }}>
+            Send
+          </button>
+        </div>
+
+        {/* Log plegable */}
+        <details className="logbox">
+          <summary>Log</summary>
+          <pre>{log.join("\n")}</pre>
+        </details>
+      </div>
+    );
   };
 
-  /* ===== Render ===== */
-  return (
-    <div className="chatbot">
-      {/* Header */}
-      <div className="chat-hd">
-        <div>
-          <label>Phase</label>
-          <select className="select" value={phase} onChange={e => setPhase(e.target.value as Phase)}>
-            <option value="SCOPE">Scope</option>
-            <option value="DOMAIN">Domain</option>
-            <option value="APPLICATION">Application</option>
-          </select>
-        </div>
-        <div>
-          <label>Language</label>
-          <select className="select" value={languageId} onChange={e => setLanguageId(e.target.value)}>
-            <option value="">— Select language —</option>
-            {phaseLanguages.map(l => {
-              const key = getLanguageKey(l);
-              return (
-                <option key={key} value={key}>
-                  {l.name} ({l.type})
-                </option>
-              );
-            })}
-          </select>
-        </div>
-        <div>
-          <label>AI model</label>
-          <select className="select" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
-            {MODEL_OPTIONS.map(m => (
-              <option key={m.id} value={m.id}>{m.label}{m.free ? " (free)" : ""}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Conversación */}
-      <div className="chat-body" id="chat-scroll">
-        {thread.map((m, i) => (
-          <div key={i} className={`msg ${m.role === "user" ? "user" : "bot"}`}>
-            <div className="bubble">
-              {m.content === "__typing__" ? <Typing /> : m.content}
-            </div>
-            <div className="meta">{m.role === "user" ? "You" : m.role === "assistant" ? "bot" : "Sys"}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Barra de estado */}
-      {busy && (
-        <div className="statusbar">
-          <div className="spinner" />
-          <span>{stage || "Processing…"}</span>
-        </div>
-      )}
-
-      {/* Input */}
-      <div className="chat-ft">
-        <input
-          placeholder={busy ? "Generating…" : "Describe the model you want and press Enter.…"}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={onKeyDown}
-          disabled={busy}
-        />
-        <button disabled={busy || !input.trim()} onClick={() => { const t = input.trim(); if (t) { setInput(""); void send(t); } }}>
-          Send
-        </button>
-      </div>
-
-      {/* Log plegable */}
-      <details className="logbox">
-        <summary>Log</summary>
-        <pre>{log.join("\n")}</pre>
-      </details>
-    </div>
-  );
-};
-
-export default Chatbot;
+  export default Chatbot;
