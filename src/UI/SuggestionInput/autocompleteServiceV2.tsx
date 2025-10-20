@@ -78,6 +78,11 @@ const activity = {
         "next": "",
         "placeholder2": ""
     },
+    "<Process Verb>": {
+        "placeholder1": "",
+        "next": "",
+        "placeholder2": ""
+    },
     "be able to": {
         "placeholder1": "<Process Verb>",
         "next": [
@@ -1896,8 +1901,9 @@ async function endRequirement(req) {
 
 async function getAllDomainsList() {  
    try { 
-       let res = await axios.get(ip + 'domain');
-       let domains = res.data;
+       // let res = await axios.get(ip + 'domain');
+       // let domains = res.data;
+       let domains= ["Retail"];
        return domains; 
    }
    catch (e) {
@@ -1905,4 +1911,4 @@ async function getAllDomainsList() {
    } 
 }
 
-export {  securityRequirementsSuggest, domainRequirementsSuggest, functionalRequirementsSuggest, domainFunctionalRequirementsSuggest, endRequirement, getAllDomainsList };
+// export {  securityRequirementsSuggest, domainRequirementsSuggest, functionalRequirementsSuggest, domainFunctionalRequirementsSuggest, endRequirement, getAllDomainsList };

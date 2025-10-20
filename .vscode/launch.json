@@ -5,16 +5,11 @@
     "version": "0.2.0",
     "configurations": [  
         {
-            "type": "chrome",
+            "name": "Launch Chrome",
             "request": "launch",
-            "name": "Launch Chrome against localhost",
+            "type": "msedge",
             "url": "http://localhost:3000",
-            "webRoot": "${workspaceFolder}",
-            "sourceMaps": true,
-            "sourceMapPathOverrides": {
-                "webpack://./*": "${webRoot}/*"
-            },
-            "trace": true
+            "webRoot": "${workspaceFolder}"
         }
     ]
 }
