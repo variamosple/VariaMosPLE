@@ -339,7 +339,7 @@ class TreeCollaborationService {
     // Agregar la operación a YJS
     this.treeState.set(operation.operationId, operation);
 
-    // IMPORTANTE: Actualizar el currentState después de la operación
+    // Actualizar el currentState después de la operación
     if (projectService) {
       this.updateCurrentStateAfterOperation(projectService);
     }

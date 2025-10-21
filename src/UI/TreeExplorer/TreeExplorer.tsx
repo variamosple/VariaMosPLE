@@ -478,6 +478,7 @@ class TreeExplorer extends Component<Props, State> {
     // Manejar estado completo del tree (para nuevos usuarios)
     if (changes.type === 'tree-full-state') {
       this.applyFullTreeState(changes.data);
+      this.forceUpdate();
       return;
     }
 
@@ -490,7 +491,8 @@ class TreeExplorer extends Component<Props, State> {
           if (this.isValidTreeOperation(operation)) {
             this.processTreeOperation(operation);
           }
-        });
+        });      
+        this.forceUpdate();
       }
     }
   }
@@ -827,9 +829,8 @@ class TreeExplorer extends Component<Props, State> {
       }
       // Forzar actualización de la UI para mostrar el nuevo modelo
       this.forceUpdate();
-
     } catch (error) {
-      console.error(`Error agregando modelo remoto al proyecto local:`, error);
+      console.error(`Error agregando modelo remoto:`, error);
     }
   }
 

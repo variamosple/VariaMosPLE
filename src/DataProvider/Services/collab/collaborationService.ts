@@ -240,11 +240,15 @@ export const manageModelState = (projectId: string, modelId: string): Y.Map<any>
 export const updateModelState = (projectId: string, modelId: string, updateFn: (state: Y.Map<any>) => void): void => {
   const projectState = getProjectState(projectId);
   if (projectState) {
-    const modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
-    if (modelState) {
-      updateFn(modelState);
+    let modelState = projectState.get(`model_${modelId}`) as Y.Map<any>;
+    
+    if (!modelState) {
+      modelState = new Y.Map<any>();
+      projectState.set(`model_${modelId}`, modelState);
     }
-  } 
+    
+    updateFn(modelState);
+  }
 }
 
 export const getProjectProvider = (projectId: string): WebsocketProvider | null => {

@@ -12,6 +12,8 @@ import {
 } from "./ModelEditService";
 import { PatchEnvelope } from "./Patch";
 
+import treeCollaborationService from "../../../DataProvider/Services/collab/treeCollaborationService";
+
 /** ===== Tipos ===== */
 type Phase = "SCOPE" | "DOMAIN" | "APPLICATION";
 type Role = "system" | "user" | "assistant";
@@ -933,9 +935,45 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService}) => {
           ? ps.createApplicationEngineeringModel(ps.project, langName, langIdStr, gp.name, "", "", "")
           : ps.createApplicationModel(ps.project, langName, langIdStr, gp.name, "", "", ""))
       };
-      const model = createByPhase[ph]();
-      materializeIntoModel(model, gp, abs);
-      ps.raiseEventSelectedModel(model);
+
+    const model = createByPhase[ph]();
+    materializeIntoModel(model, gp, abs);
+    const raiseEventByPhase: Record<Phase, () => void> = {
+      SCOPE: () => ps.raiseEventScopeModel(model),
+      DOMAIN: () => ps.raiseEventDomainEngineeringModel(model),
+      APPLICATION: () => ps.raiseEventApplicationEngineeringModel(model)
+    };
+    raiseEventByPhase[ph]();
+
+    const projectInfo = ps.getProjectInformation?.();
+    if (projectInfo?.is_collaborative) {
+      const modelTypeByPhase: Record<Phase, string> = {
+        SCOPE: 'scope',
+        DOMAIN: 'domainEngineering',
+        APPLICATION: 'applicationEngineering'
+      };
+      
+      const modelDataForSync = {
+        ...model,
+        type: modelTypeByPhase[ph],
+        languageName: langName,
+        languageId: langIdStr
+      };
+
+      treeCollaborationService.syncAddModelOperation(modelDataForSync, ps);
+    
+      const projectId = ps.project?.id;
+      if (projectId && model.id) {
+        ps.updateModelState(projectId, model.id, (state: any) => {
+          state.set("data", {
+            elements: model.elements || [],
+            relationships: model.relationships || [],
+            timestamp: Date.now()
+          });
+        });
+      }
+    }
+
       ps.saveProject?.();
       addLog(`[inject] ok → ${model.name}`);
       return model;
