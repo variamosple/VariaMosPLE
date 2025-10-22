@@ -1,6 +1,6 @@
-projectKey=ejemplo
+projectKey=variamos
 serverUrl=http://localhost:9000
-serverVersion=10.7.0.96327
-dashboardUrl=http://localhost:9000/dashboard?id=ejemplo
-ceTaskId=1f9e45ec-007e-43a8-b5ef-d4fbdeaa6347
-ceTaskUrl=http://localhost:9000/api/ce/task?id=1f9e45ec-007e-43a8-b5ef-d4fbdeaa6347
+serverVersion=25.10.0.114319
+dashboardUrl=http://localhost:9000/dashboard?id=variamos
+ceTaskId=6bf9d188-15ae-4a49-9a4a-a10db1723590
+ceTaskUrl=http://localhost:9000/api/ce/task?id=6bf9d188-15ae-4a49-9a4a-a10db1723590

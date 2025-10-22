@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Chatbot.css";
 import ProjectService from "../../../Application/Project/ProjectService";
 import { Language as DomainLanguage } from "../../../Domain/ProductLineEngineering/Entities/Language";
@@ -13,6 +13,8 @@ import {
 import { PatchEnvelope } from "./Patch";
 
 /** ===== Tipos ===== */
+type ModePref = "AUTO" | "EDIT" | "CREATE";
+
 type Phase = "SCOPE" | "DOMAIN" | "APPLICATION";
 type Role = "system" | "user" | "assistant";
 interface Message { role: Role; content: string; }
@@ -73,6 +75,38 @@ const MODEL_OPTIONS: ModelOption[] = [
 // Helper: label amigable para mostrar al usuario
 const modelLabel = (id: string) =>
   MODEL_OPTIONS.find(m => m.id === id)?.label || id;
+
+// Forzar modo por comando inline (no heurística): /create o /edit al inicio del mensaje
+const extractInlineMode = (
+  text: string
+): { clean: string; forced: "EDIT" | "CREATE" | null } => {
+  let t = String(text || "").trim();
+  let forced: "EDIT" | "CREATE" | null = null;
+
+  // Comandos aceptados al comienzo del mensaje (cualquiera de estos):
+  // /create   /new     ::create   [create]
+  // /edit     /modify  ::edit     [edit]
+  const patterns: Array<{ re: RegExp; mode: "EDIT" | "CREATE" }> = [
+    { re: /^\/(new|create)\b/i, mode: "CREATE" },
+    { re: /^::(new|create)\b/i, mode: "CREATE" },
+    { re: /^\[(new|create)\]/i, mode: "CREATE" },
+
+    { re: /^\/(edit|modify)\b/i, mode: "EDIT" },
+    { re: /^::(edit|modify)\b/i, mode: "EDIT" },
+    { re: /^\[(edit|modify)\]/i, mode: "EDIT" },
+  ];
+
+  for (const p of patterns) {
+    if (p.re.test(t)) {
+      forced = p.mode;
+      t = t.replace(p.re, "").trim();
+      break;
+    }
+  }
+
+  return { clean: t, forced };
+};
+
 
 // Helper: orden de cascada a partir de MODEL_OPTIONS (primero el elegido)
 const buildCascadeOrder = (primary: string) => {
@@ -562,7 +596,6 @@ async function detectIntentWithAI(
 }
 
 
-
 type ChatbotProps = {
   projectService?: ProjectService;
 };
@@ -571,6 +604,7 @@ type ChatbotProps = {
 const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   // PS por props o fallback a window
   const [ps, setPs] = useState<any>(projectService ?? null);
+  const [modePref, setModePref] = useState<ModePref>("AUTO");
   const [allLanguages, setAllLanguages] = useState<Language[]>([]);
   const [phase, setPhase] = useState<Phase>("DOMAIN");
   const [languageId, setLanguageId] = useState<string>("");
@@ -584,6 +618,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   const [thread, setThread] = useState<Message[]>([]);
   const [log, setLog] = useState<string[]>([]);
   const addLog = (s: string) => setLog(prev => [...prev, s]);
+  const lastModelIdRef = useRef<string | null>(null);
 
   // Vinculación por props (si llega)
   useEffect(() => {
@@ -1151,6 +1186,64 @@ const sanitizePatchForEdit = (patch: PatchEnvelope, model: any, abs: AbstractSyn
 
   return sanitized;
 };
+// Convierte un PLAN (name/elements/relationships) a un PATCH con ops createElement/connect.
+// - Solo crea elementos que NO existan por nombre (case-insensitive).
+// - Evita crear un segundo RootFeature si el modelo ya tiene uno.
+// - Propiedades del plan se llevan como { name, value } (ajusta si tu PATCH requiere otro formato).
+const planToPatch = (plan: PlanLLM, model: any, abs: AbstractSyntax): PatchEnvelope => {
+  const ops: any[] = [];
+  const allowedEl = new Set(Object.keys(abs.elements || {}));
+
+  const hasRootAlready =
+    Array.isArray(model?.elements) &&
+    model.elements.some((e: any) => String(e?.type) === "RootFeature");
+
+  const propsToPatchProps = (props?: Record<string, any>) => {
+    if (!props || typeof props !== "object") return [];
+    return Object.entries(props).map(([k, v]) => ({ name: k, value: String(v) }));
+  };
+
+  // 1) createElement para los que no existen ya por nombre (CI)
+  const elems = Array.isArray(plan?.elements) ? plan.elements : [];
+  for (const el of elems) {
+    if (!el || !el.name || !el.type) continue;
+    if (!allowedEl.has(el.type)) continue;
+
+    const exists = !!findByNameCI(model, el.name);
+    if (exists) {
+      // Si quisieras actualizar props de existentes, aquí podrías emitir ops de setProperty.
+      continue;
+    }
+
+    // Evita crear más de un RootFeature en modo de edición (regla defensiva)
+    if (el.type === "RootFeature" && hasRootAlready) continue;
+
+    const properties = propsToPatchProps(el.props);
+    ops.push({
+      op: "createElement",
+      name: el.name,
+      type: el.type,
+      ...(properties.length ? { properties } : {})
+    });
+  }
+
+  // 2) connect (si ya existían por nombre, se referencian por nombre; si son nuevos, se acaban de crear)
+  const rels = Array.isArray(plan?.relationships) ? plan.relationships : [];
+  for (const r of rels) {
+    if (!r || !r.type || !r.source || !r.target) continue;
+    const properties = propsToPatchProps(r.props);
+
+    ops.push({
+      op: "connect",
+      type: r.type,
+      source: { name: String(r.source) },
+      target: { name: String(r.target) },
+      ...(properties.length ? { properties } : {})
+    });
+  }
+
+  return { ops };
+};
 
 
   /** 6) Materializar PlanLLM como modelo Variamos */
@@ -1308,211 +1401,143 @@ const sanitizePatchForEdit = (patch: PatchEnvelope, model: any, abs: AbstractSyn
   // =========
   // send (con IA para intención + descomposición de tareas + refresco de canvas)
   // =========
-  const send = async (userText: string) => {
-    // Evita dobles envíos
-    if (busy) return;
-    setBusy(true);
+// =========
+// send (EDIT si así lo indica override/selector; CREATE si así lo indica; AUTO: Edit si hay selección, si no Create)
+// =========
+const send = async (userText: string) => {
+  if (busy) return;
+  setBusy(true);
 
-    if (!ps || !currentLanguage) { addLog("ps/language not available"); setBusy(false); return; }
+  if (!ps || !currentLanguage) { addLog("ps/language not available"); setBusy(false); return; }
 
-    const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
+  const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
 
-    stageStep("Preparing prompt");
-    const abs = getAbstract();
-    if (!Object.keys(abs.elements).length) { addLog("abstractSyntax void"); setBusy(false); return; }
+  stageStep("Preparing prompt");
+  const abs = getAbstract();
+  if (!Object.keys(abs.elements).length) { addLog("abstractSyntax void"); setBusy(false); return; }
 
-    if (!apiKey) {
-      setThread(prev => [...prev, { role: "assistant", content: "Your OpenRouter API Key is missing. Enter the key in the header field." }]);
-      setBusy(false);
-      return;
-    }
+  if (!apiKey) {
+    setThread(prev => [...prev, { role: "assistant", content: "Your OpenRouter API Key is missing. Enter the key in the header field." }]);
+    setBusy(false);
+    return;
+  }
 
-    stageStep("Gathering context from the product line…");
-    const plKnowledge = harvestProductLineKnowledge(ps, currentLanguage);
+  stageStep("Gathering context from the product line…");
+  const plKnowledge = harvestProductLineKnowledge(ps, currentLanguage);
 
-    // Modelo seleccionado en el canvas
-    const selectedId = ps.getTreeIdItemSelected?.();
-    const targetModel = selectedId ? ps.findModelById(ps.project, selectedId) : null;
-    const hasSelection = !!targetModel;
+  // Modelo objetivo
+  const selectedId = ps.getTreeIdItemSelected?.();
+  let targetModel = selectedId ? ps.findModelById(ps.project, selectedId) : null;
+  if (!targetModel && lastModelIdRef.current) {
+    targetModel = ps.findModelById(ps.project, lastModelIdRef.current);
+  }
+  const hasSelection = !!targetModel;
 
-    // ===== IA: intención multilingüe con CASCADA (semilla = modelo elegido por el usuario)
-    stageStep("Detecting intent (language-agnostic)...");
-    const intentModelId = selectedModel; // << semilla de la cascada
-    let wantCreate = !hasSelection;      // fallback neutral
-    try {
-      const intent = await detectIntentWithAI(apiKey, intentModelId, userText, hasSelection);
-      addLog(`[intent] ${intent.intent} conf=${(intent.confidence ?? 0).toFixed(2)} lang=${intent.language ?? "?"}`);
-      wantCreate = intent.intent === "create";
-    } catch {
-      wantCreate = !hasSelection;
-    }
+  // --- override por comando + preferencia de UI
+  const { clean: cleanUserText, forced } = extractInlineMode(userText);
+  const effectiveMode: "EDIT" | "CREATE" =
+    forced ||
+    (modePref === "AUTO" ? (hasSelection ? "EDIT" : "CREATE") : modePref);
 
-    // — UI —
-    let placeholderIdx = -1;
-    setThread(prev => {
-      const next: Message[] = [...prev, { role: "user" as Role, content: String(userText) }, { role: "assistant" as Role, content: "__typing__" }];
-      placeholderIdx = next.length - 1;
-      return next;
-    });
+  // — UI —
+  let placeholderIdx = -1;
+  setThread(prev => {
+    const next: Message[] = [...prev, { role: "user" as Role, content: String(userText) }, { role: "assistant" as Role, content: "__typing__" }];
+    placeholderIdx = next.length - 1;
+    return next;
+  });
 
-    // Refrescos del lienzo
-    const forceRefresh = (model?: any) => {
-      if (model) ps.raiseEventSelectedModel?.(model);
-      ps.requestRender?.();
-      ps.repaint?.();
+  const forceRefresh = (model?: any) => {
+    if (model) ps.raiseEventSelectedModel?.(model);
+    ps.requestRender?.();
+    ps.repaint?.();
+  };
+
+  // Resolver deleteRelationship por nombres → id (helper externo)
+  const resolveLooseSelectors = (patch: PatchEnvelope, model: any) => {
+    const elByName = new Map<string, any>();
+    for (const e of (model?.elements || [])) elByName.set(String(e.name), e);
+    const findRelId = (type: string, sName: string, tName: string) => {
+      const s = elByName.get(sName)?.id;
+      const t = elByName.get(tName)?.id;
+      if (!s || !t) return null;
+      const r = (model?.relationships || []).find((rr: any) =>
+        rr.type === type && rr.sourceId === s && rr.targetId === t);
+      return r?.id || null;
     };
-
-    // Resolver selectores por nombre → id (para deleteRelationship por nombres)
-    const resolveLooseSelectors = (patch: PatchEnvelope, model: any) => {
-      const elByName = new Map<string, any>();
-      for (const e of (model?.elements || [])) elByName.set(String(e.name), e);
-      const findRelId = (type: string, sName: string, tName: string) => {
-        const s = elByName.get(sName)?.id;
-        const t = elByName.get(tName)?.id;
-        if (!s || !t) return null;
-        const r = (model?.relationships || []).find((rr: any) =>
-          rr.type === type && rr.sourceId === s && rr.targetId === t);
-        return r?.id || null;
-      };
-
-      for (const op of (patch?.ops || [])) {
-        if (op.op === "deleteRelationship" && op.selector && !op.selector.id) {
-          const sel = op.selector as any;
-          const type = sel.type || sel.relType || "";
-          const sName = sel?.source?.name || sel?.sourceName || "";
-          const tName = sel?.target?.name || sel?.targetName || "";
-          if (type && sName && tName) {
-            const rid = findRelId(type, sName, tName);
-            if (rid) op.selector = { id: rid };
-          }
+    for (const op of (patch?.ops || [])) {
+      if (op.op === "deleteRelationship" && op.selector && !op.selector.id) {
+        const sel = op.selector as any;
+        const type = sel.type || sel.relType || "";
+        const sName = sel?.source?.name || sel?.sourceName || "";
+        const tName = sel?.target?.name || sel?.targetName || "";
+        if (type && sName && tName) {
+          const rid = findRelId(type, sName, tName);
+          if (rid) op.selector = { id: rid };
         }
       }
-    };
+    }
+  };
 
-    // Descomponer en subtareas (IA + cascada). No dependemos de idioma: si hay selección, intentamos dividir.
-    const decomposeIfNeeded = async (text: string, enabled: boolean) => {
-      if (!enabled) return [text];
-      const sys = [
-        "You split a user modeling instruction (any language) into ordered, minimal edit steps.",
-        "Each step must be self-contained and executable against the current model.",
-        "Return JSON with an array 'steps' of strings. No backticks.",
-        `Example output: {"steps":["create X and connect ...","delete relation ...","remove feature Y"]}`
-      ].join("\n");
+  // Descomponer en pasos en EDIT
+  const decomposeIfNeeded = async (text: string, enabled: boolean) => {
+    if (!enabled) return [text];
+    const sys = [
+      "You split a user modeling instruction (any language) into ordered, minimal edit steps.",
+      "Each step must be self-contained and executable against the current model.",
+      "Return JSON with an array 'steps' of strings. No backticks.",
+      `Example output: {"steps":["create X and connect ...","delete relation ...","remove feature Y"]}`
+    ].join("\n");
 
-      const { text: out } = await callOpenRouterCascade(
-        apiKey,
-        intentModelId,               // semilla = modelo elegido; luego cae al resto
-        `Instruction:\n${text}`,
-        sys,
-        {
-          perModelRetries: 1,
-          validate: (raw) => {
-            const parsed = safeParseJSON(stripCodeFences(raw));
-            return Array.isArray(parsed?.steps) && parsed.steps.every((s: any) => typeof s === "string");
-          }
+    const { text: out } = await callOpenRouterCascade(
+      apiKey,
+      selectedModel,
+      `Instruction:\n${text}`,
+      sys,
+      {
+        perModelRetries: 1,
+        validate: (raw) => {
+          const parsed = safeParseJSON(stripCodeFences(raw));
+          return Array.isArray(parsed?.steps) && parsed.steps.every((s: any) => typeof s === "string");
         }
-      );
+      }
+    );
 
-      const parsed = safeParseJSON(stripCodeFences(out));
-      return (Array.isArray(parsed?.steps) ? parsed.steps : [text]) as string[];
-    };
+    const parsed = safeParseJSON(stripCodeFences(out));
+    return (Array.isArray(parsed?.steps) ? parsed.steps : [text]) as string[];
+  };
 
-    try {
-      const genModelId = selectedModel; // semilla para generación/edición
+  try {
+    const genModelId = selectedModel;
 
-      // =======================
-      // EDIT (PATCH por pasos)
-      // =======================
-      if (hasSelection && !wantCreate) {
-        const steps = await decomposeIfNeeded(userText, true);
+    // =======================
+    // EDIT (PATCH por pasos)
+    // =======================
+    if (effectiveMode === "EDIT") {
+      const steps = await decomposeIfNeeded(cleanUserText, true);
 
-        for (let i = 0; i < steps.length; i++) {
-          const subGoal = steps[i];
-          const snapshot = buildSnapshot(targetModel);
+      for (let i = 0; i < steps.length; i++) {
+        const subGoal = steps[i];
+        const snapshot = buildSnapshot(targetModel);
 
-          // Política extra para IDs
-          const idPolicy =
-            "\nCRITICAL rules for EDIT mode:" +
-            "\n- Do NOT invent or guess UUIDs. Refer to elements/relationships by names only." +
-            "\n- Do NOT use createElement unless the user explicitly asked to add a NEW element." +
-            "\n- If an element already exists by name (case-insensitive), REUSE it and NEVER create a duplicate." +
-            "\n- For deletions, if you don't know a relationship id, use a selector with type and source/target names: " +
-            `{"op":"deleteRelationship","selector":{"type":"<RelType>","source":{"name":"<SourceName>"},"target":{"name":"<TargetName>"}}}. ` +
-            "\n- Apply ALL requested changes for this step in one PATCH.";
+        const idPolicy =
+          "\nSTRICT EDIT MODE:" +
+          "\n- You MUST return a PATCH object only (no PLAN)." +
+          "\n- NEVER create a new RootFeature; modify the existing model." +
+          "\n- Do NOT invent UUIDs; refer to elements/relationships by names only." +
+          "\n- If an element already exists (case-insensitive), REUSE it; never duplicate." +
+          "\n- For deletions, if you don't know the relationship id, use selector {type, source.name, target.name}." +
+          "\n- Apply ALL requested changes for this step in a single PATCH.";
 
+        const sys = buildUnifiedSystemPrompt(abs, plKnowledge || undefined, true, PATCH_SCHEMA_TEXT) + idPolicy;
+        const prompt = buildEditPrompt({ snapshot, userGoal: subGoal, patchSchema: PATCH_SCHEMA_TEXT });
 
-          const sys = buildUnifiedSystemPrompt(abs, plKnowledge || undefined, true, PATCH_SCHEMA_TEXT) + idPolicy;
-          const prompt = buildEditPrompt({ snapshot, userGoal: subGoal, patchSchema: PATCH_SCHEMA_TEXT });
-
-          stageStep(`Calling API… (edit step ${i + 1}/${steps.length})`);
-          const { text: botText, usedModelId } = await callOpenRouterCascade(
-            apiKey,
-            genModelId,   // prueba este primero, luego el resto en cascada
-            prompt,
-            sys,
-            {
-              perModelRetries: 1,
-              validate: (raw) => {
-                const parsed = safeParseJSON(stripCodeFences(raw));
-                return !!parsed && Array.isArray((parsed as any).ops);
-              }
-            }
-          );
-
-          // Mostrar salida + modelo usado
-          setThread(prev => {
-            const copy = [...prev];
-            copy[placeholderIdx] = {
-              role: "assistant",
-              content: (botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`
-            };
-            return copy;
-          });
-          if (!botText) continue;
-
-          stageStep("Parsing patch…");
-          const parsed = safeParseJSON(stripCodeFences(botText));
-          if (!parsed || !Array.isArray((parsed as any).ops)) throw new Error("La respuesta no es un PATCH válido.");
-
-          let env: PatchEnvelope = parsed as PatchEnvelope;
-
-          // 1) Normalización + dedupe (case-insensitive) para evitar elementos y relaciones duplicadas
-          env = sanitizePatchForEdit(env, targetModel, abs);
-
-          // 2) Resolver selectores por nombre si vinieron sin id (deleteRelationship)
-          resolveLooseSelectors(env, targetModel);
-
-          if (!env.ops.length) {
-            addLog("[edit] Patch quedó vacío tras sanitizar (no-ops).");
-          } else {
-            stageStep(`Applying patch (${env.ops.length} ops)…`);
-            applyPatch(ps, targetModel, env);
-            forceRefresh(targetModel);
-          }
-        }
-
-          ps.saveProject?.();
-          stageStep("Done ✅");
-          return;
-        }
-
-        // =======================
-        // CREATE (nuevo modelo)
-        // =======================
-        // Sin confirmación: si la IA dice CREATE, creamos directo aunque haya selección.
-        const langName = (currentLanguage?.name) || ps.getSelectedLanguage?.() || "Generic Language";
-        const prompt = buildCreatePrompt({ languageName: langName, userGoal: userText, patchSchema: PATCH_SCHEMA_TEXT });
-        const sysCreate =
-          buildUnifiedSystemPrompt(abs, plKnowledge || undefined, false, PATCH_SCHEMA_TEXT) +
-          "\nIMPORTANT: Prefer returning a PLAN object for creation. If you still return PATCH, only use createElement/connect ops. " +
-          "Never invent UUIDs; refer to elements by names in source/target.";
-
-        stageStep("Calling API… (create)");
+        stageStep(`Calling API… (edit step ${i + 1}/${steps.length})`);
         const { text: botText, usedModelId } = await callOpenRouterCascade(
           apiKey,
-          genModelId,  // semilla = modelo elegido; si falla, prueba el resto
+          genModelId,
           prompt,
-          sysCreate,
+          sys,
           {
             perModelRetries: 1,
             validate: (raw) => !!safeParseJSON(stripCodeFences(raw))
@@ -1527,74 +1552,141 @@ const sanitizePatchForEdit = (patch: PatchEnvelope, model: any, abs: AbstractSyn
           };
           return copy;
         });
-        if (!botText) return;
+        if (!botText) continue;
 
-        stageStep("Parsing response…");
         const parsed = safeParseJSON(stripCodeFences(botText));
-        if (!parsed) throw new Error("La respuesta del modelo no es JSON válido.");
+        if (!parsed) throw new Error("La respuesta no es JSON válido.");
 
-        // PATCH → PLAN (si el modelo responde con patch en creación)
-        const patchToPlan = (patch: any): PlanLLM => {
-          const elements: { name: string; type: string; props?: Record<string, any> }[] = [];
-          const relationships: { type: string; source: string; target: string; props?: Record<string, any> }[] = [];
-          const have = new Set<string>();
-          const getNameFromRef = (ref: any) => (ref?.name || ref?.id || "").toString();
-          for (const op of (patch?.ops || [])) {
-            if (!op || !op.op) continue;
-            if (op.op === "createElement") {
-              const name = String(op.name ?? "").trim();
-              const type = String(op.type ?? "").trim();
-              if (!name || !type) continue;
-              if (!have.has(name)) {
-                const props: Record<string, any> = {};
-                if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
-                elements.push({ name, type, ...(Object.keys(props).length ? { props } : {}) });
-                have.add(name);
-              }
-            }
-            if (op.op === "connect") {
-              const type = String(op.type ?? "").trim();
-              const source = getNameFromRef(op.source);
-              const target = getNameFromRef(op.target);
-              if (!type || !source || !target) continue;
-              const props: Record<string, any> = {};
-              if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
-              relationships.push({ type, source, target, ...(Object.keys(props).length ? { props } : {}) });
-            }
-          }
-          return { name: "Generated Model", elements, relationships };
-        };
-
-        let planCandidate: any = parsed;
+        // Si el LLM se equivoca y manda PLAN en EDIT → convertimos a PATCH
+        let env: PatchEnvelope;
         if (Array.isArray((parsed as any).ops)) {
-          addLog("[create] PATCH detected → converting to PLAN");
-          planCandidate = patchToPlan(parsed);
-        } else if (parsed.nodes || parsed.edges) {
-          planCandidate = nodesEdgesToPlan(parsed);
+          env = parsed as PatchEnvelope;
+        } else if ((parsed as any).elements) {
+          env = planToPatch(parsed as PlanLLM, targetModel, abs);
+        } else {
+          throw new Error("La respuesta no contiene PATCH ni PLAN reconocible.");
         }
 
-        stageStep("Validating and normalizing (plan)...");
-        const plan = validateAndNormalizePlan(planCandidate, abs, userText, plKnowledge || undefined);
-        if (!plan || !plan.elements.length) throw new Error("PLAN vacío tras validación.");
+        // Sanitizar + resolver deletes
+        env = sanitizePatchForEdit(env, targetModel, abs);
+        resolveLooseSelectors(env, targetModel);
 
-        stageStep("Inyectando al proyecto…");
-        injectIntoProject(plan, currentLanguage as Language, phase, abs);
-        stageStep("Listo ✅");
-        return;
-
-      } catch (e: any) {
-        stageStep("Error");
-        addLog(`[error] ${e?.message || e}`);
-        setThread(prev => {
-          const copy = [...prev];
-          copy[placeholderIdx] = { role: "assistant", content: "Error: " + (e?.message || e) };
-          return copy;
-        });
-      } finally {
-        setBusy(false);
-        setTimeout(() => setStage(""), 1200);
+        if (!env.ops.length) {
+          addLog("[edit] Patch quedó vacío tras sanitizar (no-ops).");
+        } else {
+          stageStep(`Applying patch (${env.ops.length} ops)…`);
+          applyPatch(ps, targetModel, env);
+          lastModelIdRef.current = targetModel!.id;
+          forceRefresh(targetModel);
+        }
       }
+
+      ps.saveProject?.();
+      stageStep("Done ✅");
+      return;
+    }
+
+    // =======================
+    // CREATE (nuevo modelo)
+    // =======================
+    const langName = (currentLanguage?.name) || ps.getSelectedLanguage?.() || "Generic Language";
+    const prompt = buildCreatePrompt({ languageName: langName, userGoal: cleanUserText, patchSchema: PATCH_SCHEMA_TEXT });
+    const sysCreate =
+      buildUnifiedSystemPrompt(abs, plKnowledge || undefined, false, PATCH_SCHEMA_TEXT) +
+      "\nIMPORTANT: Prefer returning a PLAN object for creation. If you still return PATCH, only use createElement/connect ops. " +
+      "Never invent UUIDs; refer to elements by names in source/target.";
+
+    stageStep("Calling API… (create)");
+    const { text: botText, usedModelId } = await callOpenRouterCascade(
+      apiKey,
+      genModelId,
+      prompt,
+      sysCreate,
+      {
+        perModelRetries: 1,
+        validate: (raw) => !!safeParseJSON(stripCodeFences(raw))
+      }
+    );
+
+    setThread(prev => {
+      const copy = [...prev];
+      copy[placeholderIdx] = {
+        role: "assistant",
+        content: (botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`
+      };
+      return copy;
+    });
+    if (!botText) return;
+
+    const parsed = safeParseJSON(stripCodeFences(botText));
+    if (!parsed) throw new Error("La respuesta del modelo no es JSON válido.");
+
+    // Si vino PATCH → convertir a PLAN para inyectar
+    const patchToPlan = (patch: any): PlanLLM => {
+      const elements: { name: string; type: string; props?: Record<string, any> }[] = [];
+      const relationships: { type: string; source: string; target: string; props?: Record<string, any> }[] = [];
+      const have = new Set<string>();
+      const getNameFromRef = (ref: any) => (ref?.name || ref?.id || "").toString();
+
+      for (const op of (patch?.ops || [])) {
+        if (!op || !op.op) continue;
+        if (op.op === "createElement") {
+          const name = String(op.name ?? "").trim();
+          const type = String(op.type ?? "").trim();
+          if (!name || !type) continue;
+          if (!have.has(name)) {
+            const props: Record<string, any> = {};
+            if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
+            elements.push({ name, type, ...(Object.keys(props).length ? { props } : {}) });
+            have.add(name);
+          }
+        }
+        if (op.op === "connect") {
+          const type = String(op.type ?? "").trim();
+          const source = getNameFromRef(op.source);
+          const target = getNameFromRef(op.target);
+          if (!type || !source || !target) continue;
+          const props: Record<string, any> = {};
+          if (Array.isArray(op.properties)) for (const p of op.properties) if (p?.name) props[p.name] = p.value ?? "";
+          relationships.push({ type, source, target, ...(Object.keys(props).length ? { props } : {}) });
+        }
+      }
+      return { name: "Generated Model", elements, relationships };
     };
+
+    let planCandidate: any = parsed;
+    if (Array.isArray((parsed as any).ops)) {
+      addLog("[create] PATCH detected → converting to PLAN");
+      planCandidate = patchToPlan(parsed);
+    } else if (parsed.nodes || parsed.edges) {
+      planCandidate = nodesEdgesToPlan(parsed);
+    }
+
+    stageStep("Validating and normalizing (plan)...");
+    const plan = validateAndNormalizePlan(planCandidate, abs, cleanUserText, plKnowledge || undefined);
+    if (!plan || !plan.elements.length) throw new Error("PLAN vacío tras validación.");
+
+    stageStep("Inyectando al proyecto…");
+    const created = injectIntoProject(plan, currentLanguage as Language, phase, abs);
+    if (created?.id) lastModelIdRef.current = created.id;
+
+    stageStep("Listo ✅");
+    return;
+
+  } catch (e: any) {
+    stageStep("Error");
+    addLog(`[error] ${e?.message || e}`);
+    setThread(prev => {
+      const copy = [...prev];
+      copy[placeholderIdx] = { role: "assistant", content: "Error: " + (e?.message || e) };
+      return copy;
+    });
+  } finally {
+    setBusy(false);
+    setTimeout(() => setStage(""), 1200);
+  }
+};
+
 
 
 
