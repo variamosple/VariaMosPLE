@@ -1093,24 +1093,35 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
     return !!(model?.relationships || []).find((r: any) => r.type === type && r.sourceId === s && r.targetId === t);
   };
 
-  const normalizeRefsInOps = (ops: any[], model: any) => {
-    const idx = buildElementIndexCI(model);
-    const fixRef = (ref: any) => {
-      if (!ref) return ref;
-      const token = String(ref.name ?? ref.id ?? "").trim();
-      if (!token) return ref;
-      const cname = canonicalizeName(token, idx);
-      return { name: cname };
-    };
-    for (const op of ops) {
-      if (op?.source) op.source = fixRef(op.source);
-      if (op?.target) op.target = fixRef(op.target);
-      if (op?.selector?.source || op?.selector?.target) {
-        op.selector.source = fixRef(op.selector.source);
-        op.selector.target = fixRef(op.selector.target);
-      }
-    }
+ // --- NUEVO: normaliza refs por id o nombre → { name: canonical } ---
+// Normaliza referencias por id o nombre → { name: <canónico> }
+const normalizeRefsInOps = (ops: any[], model: any) => {
+  const nameIdx = buildElementIndexCI(model);
+  const idIdx = new Map<string, { id: string; name: string; type: string }>();
+  for (const e of (model?.elements || [])) idIdx.set(String(e.id), { id: e.id, name: e.name, type: e.type });
+
+  const fixRef = (ref: any) => {
+    if (!ref) return ref;
+    const rid = String(ref.id ?? "").trim();
+    if (rid && idIdx.has(rid)) return { name: idIdx.get(rid)!.name };
+    const token = String(ref.name ?? ref.id ?? "").trim();
+    if (!token) return ref;
+    const canonical = canonicalizeName(token, nameIdx);
+    return { name: canonical };
   };
+
+  for (const op of ops) {
+    if (!op || typeof op !== "object") continue;
+    if (op.source) op.source = fixRef(op.source);
+    if (op.target) op.target = fixRef(op.target);
+    if (op.selector) {
+      if (op.selector.source) op.selector.source = fixRef(op.selector.source);
+      if (op.selector.target) op.selector.target = fixRef(op.selector.target);
+    }
+  }
+};
+
+
   type RefLike = { id?: string; name?: string } | null | undefined;
 const getRefName = (ref: RefLike): string =>
   String(((ref as any)?.name ?? (ref as any)?.id ?? "")).trim();
@@ -1125,45 +1136,131 @@ type DeleteRelSelector = {
   targetName?: string;
 };
 
+// --- Helpers de layout y validación de relaciones ---
+const modelBBox = (model: any) => {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const e of (model?.elements || [])) {
+    const x = Number(e.x ?? 0), y = Number(e.y ?? 0);
+    minX = Math.min(minX, x); minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+  }
+  if (!isFinite(minX)) return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  return { minX, minY, maxX, maxY };
+};
+
+const nextGridPosGenerator = (model: any) => {
+  let i = 0;
+  const baseX = 140, baseY = 90, gridW = 220, gridH = 120, cols = 3;
+  const has = Array.isArray(model?.elements) ? model.elements.length : 0;
+  if (has > 0) {
+    let maxX = 0; for (const e of (model.elements || [])) maxX = Math.max(maxX, Number(e.x ?? 0));
+    return () => { const col = i % cols, row = Math.floor(i++ / cols); return { x: maxX + 200 + col * gridW, y: baseY + row * gridH }; };
+  }
+  return () => { const col = i % cols, row = Math.floor(i++ / cols); return { x: baseX + col * gridW, y: baseY + row * gridH }; };
+};
+
+const relTypeIsValid = (abs: AbstractSyntax, relType: string, sType: string, tType: string) => {
+  const def = (abs.relationships || {})[relType];
+  return !!def && def.source === sType && def.target.includes(tType);
+};
+
+const pickRelTypeOrMap = (abs: AbstractSyntax, requested: string, sType: string, tType: string) => {
+  if (requested && relTypeIsValid(abs, requested, sType, tType)) return requested;
+  for (const [name, def] of Object.entries(abs.relationships || {})) {
+    if (def.source === sType && def.target.includes(tType)) return name;
+  }
+  return null;
+};
+
 const sanitizePatchForEdit = (patch: PatchEnvelope, model: any, abs: AbstractSyntax): PatchEnvelope => {
   const idx = buildElementIndexCI(model);
+  const allowedEl = new Set(Object.keys(abs.elements || {}));
+  const defaultElType = chooseDefaultElementType(abs);
   const sanitized: PatchEnvelope = { ops: [] };
 
-  // 0) Canonicaliza referencias para que "mobileDevice" apunte a "MobileDevice"
+  // 0) refs {id|name} → {name}
   normalizeRefsInOps(patch.ops || [], model);
 
+  // 0.1) índice previo de elementos que creará el patch (para conocer tipos al conectar)
+  const futureNameToType = new Map<string, string>();
   for (const op of (patch.ops || [])) {
-    if (!op || !op.op) continue;
-
-    // 1) Evitar duplicados de elementos en EDIT (case-insensitive)
-    if (op.op === "createElement") {
+    if (op?.op === "createElement") {
       const name = String((op as any).name ?? "").trim();
       const type = String((op as any).type ?? "").trim();
-      if (!name || !type) continue;
-      const already = idx.has(name.toLowerCase());
-      if (already) continue; // no duplicar
+      if (name && type) futureNameToType.set(name, type);
+    }
+  }
+
+  const nextPos = nextGridPosGenerator(model);
+  const resolveTypeByName = (n: string) =>
+    futureNameToType.get(n) || idx.get(n.toLowerCase())?.type || null;
+  const getRefName = (ref: any): string =>
+    String(((ref as any)?.name ?? (ref as any)?.id ?? "")).trim();
+
+  for (const raw of (patch.ops || [])) {
+    const op = raw && typeof raw === "object" ? { ...raw } : null;
+    if (!op || !op.op) continue;
+
+    // ---------- createElement ----------
+    if (op.op === "createElement") {
+      const name = String((op as any).name ?? "").trim();
+      let type = String((op as any).type ?? "").trim();
+      if (!name) continue;
+
+      // Evita duplicados por nombre (CI)
+      if (idx.has(name.toLowerCase())) continue;
+
+      // Type genérico: si no es permitido, usa el default del lenguaje actual
+      if (!allowedEl.has(type)) type = defaultElType || type;
+      if (!allowedEl.has(type)) continue; // si sigue siendo inválido, descarta
+
+      (op as any).type = type;
+
+      // parentId admitido por nombre → resolver a id
+      if ((op as any).parentId) {
+        const pTok = String((op as any).parentId).trim();
+        const parent = findByNameCI(model, pTok);
+        (op as any).parentId = parent?.id || null;
+      }
+
+      // autolayout si faltan coords
+      if ((op as any).x == null || (op as any).y == null) {
+        const { x, y } = nextPos();
+        (op as any).x = x; (op as any).y = y;
+      }
+
       sanitized.ops.push(op);
       idx.set(name.toLowerCase(), { id: "", name, type });
       continue;
     }
 
-    // 2) Evitar duplicar relaciones exactas (usa helpers lazos)
+    // ---------- connect ----------
     if (op.op === "connect") {
-      const type = String((op as any).type ?? "").trim();
       const sName = getRefName((op as any).source);
       const tName = getRefName((op as any).target);
-      if (!type || !sName || !tName) continue;
+      if (!sName || !tName) continue;
 
-      if (relExists(model, type, sName, tName)) continue; // ya existe → descartar
+      let relType = String((op as any).type ?? "").trim();
+      const sType = resolveTypeByName(sName);
+      const tType = resolveTypeByName(tName);
+      if (sType && tType) {
+        const mapped = pickRelTypeOrMap(abs, relType, sType, tType);
+        if (!mapped) continue;            // no hay relación válida en el meta-modelo
+        relType = mapped;
+        (op as any).type = relType;
+      }
+
+      // Evita duplicados ya existentes en el modelo
+      if (relExists(model, relType, sName, tName)) continue;
 
       sanitized.ops.push(op);
       continue;
     }
 
-    // 3) deleteRelationship con selector por nombres → resolver a id (selector laxo)
+    // ---------- deleteRelationship ----------
     if (op.op === "deleteRelationship") {
-      const sel = ((op as any).selector || {}) as DeleteRelSelector;
-      if (!sel.id) {
+      const sel = ((op as any).selector || {}) as any;
+      if (!sel?.id) {
         const type = String(sel.type || sel.relType || "").trim();
         const sName = getRefName(sel.source) || String(sel.sourceName || "").trim();
         const tName = getRefName(sel.target) || String(sel.targetName || "").trim();
@@ -1180,66 +1277,53 @@ const sanitizePatchForEdit = (patch: PatchEnvelope, model: any, abs: AbstractSyn
       continue;
     }
 
-    // Default: dejar pasar
+    // ---------- default ----------
     sanitized.ops.push(op);
   }
 
   return sanitized;
 };
-// Convierte un PLAN (name/elements/relationships) a un PATCH con ops createElement/connect.
-// - Solo crea elementos que NO existan por nombre (case-insensitive).
-// - Evita crear un segundo RootFeature si el modelo ya tiene uno.
-// - Propiedades del plan se llevan como { name, value } (ajusta si tu PATCH requiere otro formato).
+
+
+// PLAN → PATCH respetando restricciones del lenguaje (sin nombres fijos)
 const planToPatch = (plan: PlanLLM, model: any, abs: AbstractSyntax): PatchEnvelope => {
   const ops: any[] = [];
   const allowedEl = new Set(Object.keys(abs.elements || {}));
+  const qty = Array.isArray(abs.restrictions?.quantity_element) ? abs.restrictions!.quantity_element : [];
+  const maxOne = new Set(qty.filter(q => q.max === 1).map(q => q.element));
 
-  const hasRootAlready =
-    Array.isArray(model?.elements) &&
-    model.elements.some((e: any) => String(e?.type) === "RootFeature");
+  const countInModel: Record<string, number> = {};
+  for (const e of (model?.elements || [])) {
+    const t = String(e?.type);
+    countInModel[t] = (countInModel[t] || 0) + 1;
+  }
 
-  const propsToPatchProps = (props?: Record<string, any>) => {
-    if (!props || typeof props !== "object") return [];
-    return Object.entries(props).map(([k, v]) => ({ name: k, value: String(v) }));
-  };
+  const propsToPatchProps = (props?: Record<string, any>) =>
+    !props ? [] : Object.entries(props).map(([k, v]) => ({ name: k, value: String(v) }));
 
-  // 1) createElement para los que no existen ya por nombre (CI)
+  // createElement (solo tipos válidos; no exceder max==1 si aplica)
   const elems = Array.isArray(plan?.elements) ? plan.elements : [];
   for (const el of elems) {
     if (!el || !el.name || !el.type) continue;
     if (!allowedEl.has(el.type)) continue;
 
-    const exists = !!findByNameCI(model, el.name);
-    if (exists) {
-      // Si quisieras actualizar props de existentes, aquí podrías emitir ops de setProperty.
-      continue;
-    }
+    if (maxOne.has(el.type) && (countInModel[el.type] || 0) >= 1) continue; // respeta max==1
 
-    // Evita crear más de un RootFeature en modo de edición (regla defensiva)
-    if (el.type === "RootFeature" && hasRootAlready) continue;
+    const exists = !!findByNameCI(model, el.name);
+    if (exists) continue;
 
     const properties = propsToPatchProps(el.props);
-    ops.push({
-      op: "createElement",
-      name: el.name,
-      type: el.type,
-      ...(properties.length ? { properties } : {})
-    });
+    ops.push({ op: "createElement", name: el.name, type: el.type, ...(properties.length ? { properties } : {}) });
+
+    countInModel[el.type] = (countInModel[el.type] || 0) + 1;
   }
 
-  // 2) connect (si ya existían por nombre, se referencian por nombre; si son nuevos, se acaban de crear)
+  // connect
   const rels = Array.isArray(plan?.relationships) ? plan.relationships : [];
   for (const r of rels) {
     if (!r || !r.type || !r.source || !r.target) continue;
     const properties = propsToPatchProps(r.props);
-
-    ops.push({
-      op: "connect",
-      type: r.type,
-      source: { name: String(r.source) },
-      target: { name: String(r.target) },
-      ...(properties.length ? { properties } : {})
-    });
+    ops.push({ op: "connect", type: r.type, source: { name: String(r.source) }, target: { name: String(r.target) }, ...(properties.length ? { properties } : {}) });
   }
 
   return { ops };
@@ -1425,7 +1509,7 @@ const send = async (userText: string) => {
   stageStep("Gathering context from the product line…");
   const plKnowledge = harvestProductLineKnowledge(ps, currentLanguage);
 
-  // Modelo objetivo
+  // modelo seleccionado (si hay)
   const selectedId = ps.getTreeIdItemSelected?.();
   let targetModel = selectedId ? ps.findModelById(ps.project, selectedId) : null;
   if (!targetModel && lastModelIdRef.current) {
@@ -1433,13 +1517,12 @@ const send = async (userText: string) => {
   }
   const hasSelection = !!targetModel;
 
-  // --- override por comando + preferencia de UI
+  // override por comando
   const { clean: cleanUserText, forced } = extractInlineMode(userText);
   const effectiveMode: "EDIT" | "CREATE" =
-    forced ||
-    (modePref === "AUTO" ? (hasSelection ? "EDIT" : "CREATE") : modePref);
+    forced || (modePref === "AUTO" ? (hasSelection ? "EDIT" : "CREATE") : modePref);
 
-  // — UI —
+  // UI placeholder
   let placeholderIdx = -1;
   setThread(prev => {
     const next: Message[] = [...prev, { role: "user" as Role, content: String(userText) }, { role: "assistant" as Role, content: "__typing__" }];
@@ -1449,11 +1532,10 @@ const send = async (userText: string) => {
 
   const forceRefresh = (model?: any) => {
     if (model) ps.raiseEventSelectedModel?.(model);
-    ps.requestRender?.();
-    ps.repaint?.();
+    ps.requestRender?.(); ps.repaint?.();
   };
 
-  // Resolver deleteRelationship por nombres → id (helper externo)
+  // resolver deletes laxos (se usa después del sanitize)
   const resolveLooseSelectors = (patch: PatchEnvelope, model: any) => {
     const elByName = new Map<string, any>();
     for (const e of (model?.elements || [])) elByName.set(String(e.name), e);
@@ -1479,106 +1561,60 @@ const send = async (userText: string) => {
     }
   };
 
-  // Descomponer en pasos en EDIT
-  const decomposeIfNeeded = async (text: string, enabled: boolean) => {
-    if (!enabled) return [text];
-    const sys = [
-      "You split a user modeling instruction (any language) into ordered, minimal edit steps.",
-      "Each step must be self-contained and executable against the current model.",
-      "Return JSON with an array 'steps' of strings. No backticks.",
-      `Example output: {"steps":["create X and connect ...","delete relation ...","remove feature Y"]}`
-    ].join("\n");
-
-    const { text: out } = await callOpenRouterCascade(
-      apiKey,
-      selectedModel,
-      `Instruction:\n${text}`,
-      sys,
-      {
-        perModelRetries: 1,
-        validate: (raw) => {
-          const parsed = safeParseJSON(stripCodeFences(raw));
-          return Array.isArray(parsed?.steps) && parsed.steps.every((s: any) => typeof s === "string");
-        }
-      }
-    );
-
-    const parsed = safeParseJSON(stripCodeFences(out));
-    return (Array.isArray(parsed?.steps) ? parsed.steps : [text]) as string[];
-  };
-
   try {
     const genModelId = selectedModel;
 
-    // =======================
-    // EDIT (PATCH por pasos)
-    // =======================
+    // ======================= EDIT =======================
     if (effectiveMode === "EDIT") {
-      const steps = await decomposeIfNeeded(cleanUserText, true);
+      const snapshot = buildSnapshot(targetModel);
 
-      for (let i = 0; i < steps.length; i++) {
-        const subGoal = steps[i];
-        const snapshot = buildSnapshot(targetModel);
+      // Política genérica (sin tipos fijos)
+      const idPolicy =
+        "\nSTRICT EDIT MODE:" +
+        "\n- Return a single PATCH object (no PLAN)." +
+        "\n- Do NOT invent UUIDs; refer to elements/relationships by names only." +
+        "\n- If an element already exists (case-insensitive), REUSE it; never duplicate." +
+        "\n- Respect the abstract syntax: element types, relationship types and 'quantity_element' min/max." +
+        "\n- If you need a relation, ensure both endpoints exist in this PATCH or already exist.";
 
-        const idPolicy =
-          "\nSTRICT EDIT MODE:" +
-          "\n- You MUST return a PATCH object only (no PLAN)." +
-          "\n- NEVER create a new RootFeature; modify the existing model." +
-          "\n- Do NOT invent UUIDs; refer to elements/relationships by names only." +
-          "\n- If an element already exists (case-insensitive), REUSE it; never duplicate." +
-          "\n- For deletions, if you don't know the relationship id, use selector {type, source.name, target.name}." +
-          "\n- Apply ALL requested changes for this step in a single PATCH.";
+      const sys = buildUnifiedSystemPrompt(abs, plKnowledge || undefined, true, PATCH_SCHEMA_TEXT) + idPolicy;
+      const prompt = buildEditPrompt({ snapshot, userGoal: cleanUserText, patchSchema: PATCH_SCHEMA_TEXT });
 
-        const sys = buildUnifiedSystemPrompt(abs, plKnowledge || undefined, true, PATCH_SCHEMA_TEXT) + idPolicy;
-        const prompt = buildEditPrompt({ snapshot, userGoal: subGoal, patchSchema: PATCH_SCHEMA_TEXT });
+      stageStep("Calling API… (edit)");
+      // 1 sola llamada rápida (sin descomponer pasos ni cascada)
+      const botText = await callOpenRouterOnce(apiKey, genModelId, prompt, sys);
 
-        stageStep(`Calling API… (edit step ${i + 1}/${steps.length})`);
-        const { text: botText, usedModelId } = await callOpenRouterCascade(
-          apiKey,
-          genModelId,
-          prompt,
-          sys,
-          {
-            perModelRetries: 1,
-            validate: (raw) => !!safeParseJSON(stripCodeFences(raw))
-          }
-        );
+      setThread(prev => {
+        const copy = [...prev];
+        copy[placeholderIdx] = { role: "assistant", content: botText || "(no content)" };
+        return copy;
+      });
+      if (!botText) return;
 
-        setThread(prev => {
-          const copy = [...prev];
-          copy[placeholderIdx] = {
-            role: "assistant",
-            content: (botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`
-          };
-          return copy;
-        });
-        if (!botText) continue;
+      const parsed = safeParseJSON(stripCodeFences(botText));
+      if (!parsed) throw new Error("La respuesta no es JSON válido.");
 
-        const parsed = safeParseJSON(stripCodeFences(botText));
-        if (!parsed) throw new Error("La respuesta no es JSON válido.");
+      // PLAN en edit → convertir a PATCH
+      let env: PatchEnvelope;
+      if (Array.isArray((parsed as any).ops)) {
+        env = parsed as PatchEnvelope;
+      } else if ((parsed as any).elements) {
+        env = planToPatch(parsed as PlanLLM, targetModel, abs);
+      } else {
+        throw new Error("La respuesta no contiene PATCH ni PLAN reconocible.");
+      }
 
-        // Si el LLM se equivoca y manda PLAN en EDIT → convertimos a PATCH
-        let env: PatchEnvelope;
-        if (Array.isArray((parsed as any).ops)) {
-          env = parsed as PatchEnvelope;
-        } else if ((parsed as any).elements) {
-          env = planToPatch(parsed as PlanLLM, targetModel, abs);
-        } else {
-          throw new Error("La respuesta no contiene PATCH ni PLAN reconocible.");
-        }
+      // Sanitizar (genérico) + resolver deletes
+      env = sanitizePatchForEdit(env, targetModel, abs);
+      resolveLooseSelectors(env, targetModel);
 
-        // Sanitizar + resolver deletes
-        env = sanitizePatchForEdit(env, targetModel, abs);
-        resolveLooseSelectors(env, targetModel);
-
-        if (!env.ops.length) {
-          addLog("[edit] Patch quedó vacío tras sanitizar (no-ops).");
-        } else {
-          stageStep(`Applying patch (${env.ops.length} ops)…`);
-          applyPatch(ps, targetModel, env);
-          lastModelIdRef.current = targetModel!.id;
-          forceRefresh(targetModel);
-        }
+      if (!env.ops.length) {
+        addLog("[edit] Patch vacío tras sanitize.");
+      } else {
+        stageStep(`Applying patch (${env.ops.length} ops)…`);
+        applyPatch(ps, targetModel, env);
+        lastModelIdRef.current = targetModel!.id;
+        forceRefresh(targetModel);
       }
 
       ps.saveProject?.();
@@ -1586,34 +1622,19 @@ const send = async (userText: string) => {
       return;
     }
 
-    // =======================
-    // CREATE (nuevo modelo)
-    // =======================
+    // ======================= CREATE =======================
     const langName = (currentLanguage?.name) || ps.getSelectedLanguage?.() || "Generic Language";
     const prompt = buildCreatePrompt({ languageName: langName, userGoal: cleanUserText, patchSchema: PATCH_SCHEMA_TEXT });
     const sysCreate =
       buildUnifiedSystemPrompt(abs, plKnowledge || undefined, false, PATCH_SCHEMA_TEXT) +
-      "\nIMPORTANT: Prefer returning a PLAN object for creation. If you still return PATCH, only use createElement/connect ops. " +
-      "Never invent UUIDs; refer to elements by names in source/target.";
+      "\nIMPORTANT: Prefer returning a PLAN object for creation. If you still return PATCH, only use createElement/connect ops.";
 
     stageStep("Calling API… (create)");
-    const { text: botText, usedModelId } = await callOpenRouterCascade(
-      apiKey,
-      genModelId,
-      prompt,
-      sysCreate,
-      {
-        perModelRetries: 1,
-        validate: (raw) => !!safeParseJSON(stripCodeFences(raw))
-      }
-    );
+    const botText = await callOpenRouterOnce(apiKey, genModelId, prompt, sysCreate);
 
     setThread(prev => {
       const copy = [...prev];
-      copy[placeholderIdx] = {
-        role: "assistant",
-        content: (botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`
-      };
+      copy[placeholderIdx] = { role: "assistant", content: botText || "(no content)" };
       return copy;
     });
     if (!botText) return;
@@ -1621,16 +1642,13 @@ const send = async (userText: string) => {
     const parsed = safeParseJSON(stripCodeFences(botText));
     if (!parsed) throw new Error("La respuesta del modelo no es JSON válido.");
 
-    // Si vino PATCH → convertir a PLAN para inyectar
-    const patchToPlan = (patch: any): PlanLLM => {
-      const elements: { name: string; type: string; props?: Record<string, any> }[] = [];
-      const relationships: { type: string; source: string; target: string; props?: Record<string, any> }[] = [];
-      const have = new Set<string>();
+    let planCandidate: any = parsed;
+    if (Array.isArray((parsed as any).ops)) {
+      // PATCH → PLAN genérico
+      const elements: any[] = [], relationships: any[] = [], have = new Set<string>();
       const getNameFromRef = (ref: any) => (ref?.name || ref?.id || "").toString();
-
-      for (const op of (patch?.ops || [])) {
-        if (!op || !op.op) continue;
-        if (op.op === "createElement") {
+      for (const op of (parsed?.ops || [])) {
+        if (op?.op === "createElement") {
           const name = String(op.name ?? "").trim();
           const type = String(op.type ?? "").trim();
           if (!name || !type) continue;
@@ -1640,8 +1658,7 @@ const send = async (userText: string) => {
             elements.push({ name, type, ...(Object.keys(props).length ? { props } : {}) });
             have.add(name);
           }
-        }
-        if (op.op === "connect") {
+        } else if (op?.op === "connect") {
           const type = String(op.type ?? "").trim();
           const source = getNameFromRef(op.source);
           const target = getNameFromRef(op.target);
@@ -1651,13 +1668,7 @@ const send = async (userText: string) => {
           relationships.push({ type, source, target, ...(Object.keys(props).length ? { props } : {}) });
         }
       }
-      return { name: "Generated Model", elements, relationships };
-    };
-
-    let planCandidate: any = parsed;
-    if (Array.isArray((parsed as any).ops)) {
-      addLog("[create] PATCH detected → converting to PLAN");
-      planCandidate = patchToPlan(parsed);
+      planCandidate = { name: "Generated Model", elements, relationships };
     } else if (parsed.nodes || parsed.edges) {
       planCandidate = nodesEdgesToPlan(parsed);
     }
@@ -1683,9 +1694,10 @@ const send = async (userText: string) => {
     });
   } finally {
     setBusy(false);
-    setTimeout(() => setStage(""), 1200);
+    setTimeout(() => setStage(""), 800);
   }
 };
+
 
 
 
