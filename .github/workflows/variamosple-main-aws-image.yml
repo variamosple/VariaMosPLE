@@ -40,6 +40,7 @@ jobs:
         echo "REACT_APP_OPENROUTER_API_KEY=${{ secrets.REACT_APP_OPENROUTER_API_KEY }}" >> .env
         echo "REACT_APP_VARIAMOS_ADMIN_API_URL=${{vars.REACT_APP_ADMIN_API_URL}}" >> .env
         echo "REACT_APP_VARIAMOS_LOGIN_URL=\"${{vars.REACT_APP_LOGIN_URL}}\"" >> .env
+        echo "REACT_APP_WEBSOCKET_URL=${{ vars.REACT_APP_WEBSOCKET_URL}}" >> .env
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v3
