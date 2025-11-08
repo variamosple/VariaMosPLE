@@ -37,19 +37,38 @@ class navBar extends Component<Props, State> {
   }
 
   saveProject() {
-    let me = this;
     if (this.props.projectService.isGuessUser()) {
-      this.exportProject(); 
-    }else{
-      let pf=this.props.projectService.getProjectInformation();
-      if (!pf) {
-        this.handleShowSaveModal();
-      }else if (!pf.id) {
-        this.handleShowSaveModal();
-      }else{
-        this.props.projectService.saveProjectInServer(pf, null, null);
-      }
-    } 
+      this.exportProject();
+      return;
+    }
+    const projectInfo = this.props.projectService.getProjectInformation();
+    const currentUser = this.props.projectService.getUser();
+
+    if (!projectInfo || !projectInfo.id || !currentUser) {
+      this.handleShowSaveModal();
+      return;
+    }
+    if (projectInfo.owner_id === currentUser) {
+      this.props.projectService.saveProjectInServer(projectInfo, null, null);
+      return;
+    }
+    if (
+      projectInfo.is_collaborative &&
+      projectInfo.collaborators &&
+      projectInfo.collaborators.some(
+        (collaborator: any) => collaborator.user_id === currentUser
+      )
+    ) {
+      this.props.projectService.saveProjectInServer(projectInfo, null, null);
+      return;
+    }
+    if (projectInfo.template) {
+      alert("This project is a template. Saving a copy instead.");
+      this.handleShowSaveModal();
+      return;
+    }
+    alert("You don't have permission to save this project. Saving a copy instead.");
+    this.handleShowSaveModal();
   }
 
   saveProjectAs() {
@@ -118,6 +137,7 @@ class navBar extends Component<Props, State> {
           <a title="Settings" onClick={() =>
             document.getElementById("projectManagement").click()
           }><span><img src="/images/menuIcons/settings.png"></img></span></a>{" "}
+
           <button
             type="button"
             data-bs-toggle="modal"

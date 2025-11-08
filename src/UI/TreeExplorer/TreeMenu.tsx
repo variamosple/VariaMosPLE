@@ -5,6 +5,7 @@ import * as alertify from "alertifyjs";
 import { ExternalFuntion } from "../../Domain/ProductLineEngineering/Entities/ExternalFuntion";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import treeCollaborationService from "../../DataProvider/Services/collab/treeCollaborationService";
 import { Dropdown, DropdownButton } from 'react-bootstrap';
 import "./TreeMenu.css";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
@@ -281,9 +282,41 @@ class TreeMenu extends Component<Props, State> {
   saveProperties() {
     let me = this;
     let pl: ProductLine = me.props.projectService.getProductLineSelected();
-    pl.name = me.state.plName;
-    pl.domain = me.state.plDomain;
-    pl.type = me.state.plType;
+
+    // Capturar valores anteriores para sincronización colaborativa
+    const oldValues = {
+      name: pl.name,
+      domain: pl.domain,
+      type: pl.type
+    };
+
+    const newValues = {
+      name: me.state.plName,
+      domain: me.state.plDomain,
+      type: me.state.plType
+    };
+
+    // Aplicar cambios
+    pl.name = newValues.name;
+    pl.domain = newValues.domain;
+    pl.type = newValues.type;
+
+    // Sincronizar la operación de edición si es colaborativo
+    if (treeCollaborationService.isCollaborationActive()) {
+      const itemData = {
+        id: pl.id,
+        itemType: 'productLine',
+        oldValues: oldValues,
+        newValues: newValues,
+        productLineId: this.props.projectService.getIdCurrentProductLine()
+      };
+
+      treeCollaborationService.syncEditItemOperation(itemData);
+    } 
+
+    // Guardar proyecto
+    this.props.projectService.saveProject();
+
     me.hidePropertiesModal();
     me.forceUpdate();
   }
@@ -297,8 +330,85 @@ class TreeMenu extends Component<Props, State> {
   }
 
   deleteItemProject() {
+    const itemName = this.props.projectService.getItemProjectName();
+    const itemType = this.props.projectService.getTreeItemSelected();
+    const itemId = this.props.projectService.getTreeIdItemSelected();
+
+    // Obtener información del modelo ANTES de eliminarlo (para sincronización)
+    let modelDataForSync = null;
+    if (itemType === 'model' && treeCollaborationService.isCollaborationActive()) {
+      const project = this.props.projectService.project;
+      const model = this.props.projectService.findModelById(project, itemId);
+
+      if (model) {
+        modelDataForSync = {
+          id: model.id,
+          name: model.name,
+          type: this.getModelTypeFromContext(),
+          languageName: model.type,
+          languageId: model.languageId,
+          productLineId: this.props.projectService.getIdCurrentProductLine()
+        };
+      } 
+    }
+
+    // PASO 1: Eliminar localmente PRIMERO
     this.hideDeleteModal();
     this.props.projectService.deleteItemProject();
+    // PASO 2: Sincronizar operación colaborativa DESPUÉS de eliminar localmente
+    if (modelDataForSync && treeCollaborationService.isCollaborationActive()) {
+      treeCollaborationService.syncDeleteModelOperation(modelDataForSync, this.props.projectService);
+    } 
+  }
+
+  /**
+   * Determina el tipo de modelo basado en el contexto del tree
+   */
+  getModelTypeFromContext(): string {
+    const treeItemSelected = this.props.projectService.getTreeItemSelected();
+    const modelId = this.props.projectService.getTreeIdItemSelected();
+    const project = this.props.projectService.project;
+
+    // Buscar el modelo en las diferentes secciones del proyecto para determinar su tipo
+    for (const productLine of project.productLines) {
+      // Verificar en scope
+      if (productLine.scope?.models?.some(model => model.id === modelId)) {
+        return 'scope';
+      }
+
+      // Verificar en domain engineering
+      if (productLine.domainEngineering?.models?.some(model => model.id === modelId)) {
+        return 'domainEngineering';
+      }
+
+      // Verificar en application engineering
+      if (productLine.applicationEngineering?.models?.some(model => model.id === modelId)) {
+        return 'applicationEngineering';
+      }
+
+      // Verificar en applications
+      for (const application of productLine.applicationEngineering?.applications || []) {
+        if (application.models?.some(model => model.id === modelId)) {
+          return 'application';
+        }
+
+        // Verificar en adaptations
+        for (const adaptation of application.adaptations || []) {
+          if (adaptation.models?.some(model => model.id === modelId)) {
+            return 'adaptation';
+          }
+        }
+      }
+    }
+
+    // Fallback: usar el contexto del tree si no se encuentra el modelo
+    if (treeItemSelected === 'scope') return 'scope';
+    if (treeItemSelected === 'domainEngineering') return 'domainEngineering';
+    if (treeItemSelected === 'applicationEngineering') return 'applicationEngineering';
+    if (treeItemSelected === 'application') return 'application';
+    if (treeItemSelected === 'adaptation') return 'adaptation';
+
+    return 'unknown';
   }
 
   saveConfiguration() {
@@ -317,6 +427,60 @@ class TreeMenu extends Component<Props, State> {
   }
 
   renameItemProject(newName: string) {
+    const oldName = this.props.projectService.getItemProjectName();
+    const itemType = this.props.projectService.getTreeItemSelected();
+    const itemId = this.props.projectService.getTreeIdItemSelected();
+
+    // Sincronizar la operación de edición si es colaborativo
+    if (treeCollaborationService.isCollaborationActive()) {
+
+      if (itemType === 'model') {
+        // Sincronización para modelos
+        const project = this.props.projectService.project;
+        const model = this.props.projectService.findModelById(project, itemId);
+
+        if (model) {
+          const itemData = {
+            id: model.id,
+            oldName: oldName,
+            newName: newName,
+            type: this.getModelTypeFromContext(),
+            languageName: model.type,
+            languageId: model.languageId,
+            productLineId: this.props.projectService.getIdCurrentProductLine(),
+            itemType: itemType
+          };
+
+          treeCollaborationService.syncEditItemOperation(itemData);
+        }
+
+      } else if (itemType === 'productLine') {
+        // Sincronización para ProductLines
+        const project = this.props.projectService.project;
+        const productLine = project.productLines.find((pl: any) => pl.id === itemId);
+
+        if (productLine) {
+          const itemData = {
+            id: productLine.id,
+            itemType: 'productLine',
+            oldValues: {
+              name: oldName,
+              domain: productLine.domain,
+              type: productLine.type
+            },
+            newValues: {
+              name: newName,
+              domain: productLine.domain,
+              type: productLine.type
+            },
+            productLineId: productLine.id
+          };
+
+          treeCollaborationService.syncEditItemOperation(itemData);
+        }
+      }
+    }
+
     this.props.projectService.renameItemProject(newName);
   }
 
@@ -616,9 +780,83 @@ class TreeMenu extends Component<Props, State> {
       alertify.error("The name is required");
       return;
     }
+
     if([null, '0'].includes(this.state.model.languageId)){
+      // Es un modelo nuevo, usar la lógica existente de agregar
       me.addNewModel(this.state.model.name, this.state.model.description, this.state.model.author, this.state.model.source);
-    }else{
+    } else {
+      // Es un modelo existente, sincronizar cambios colaborativamente
+      const project = this.props.projectService.project;
+      const existingModel = this.props.projectService.findModelById(project, this.state.model.id);
+
+      if (existingModel && treeCollaborationService.isCollaborationActive()) {
+        // Capturar valores anteriores y nuevos
+        const oldValues = {
+          name: existingModel.name,
+          description: existingModel.description,
+          author: existingModel.author,
+          source: existingModel.source
+        };
+
+        const newValues = {
+          name: this.state.model.name,
+          description: this.state.model.description,
+          author: this.state.model.author,
+          source: this.state.model.source
+        };
+
+        // Verificar si el nombre cambió para usar el método correcto
+        const nameChanged = oldValues.name !== newValues.name;
+
+        if (nameChanged) {
+          // Si el nombre cambió, usar el método renameItemProject para actualizar correctamente la UI local
+          const previousSelectedId = this.props.projectService.getTreeIdItemSelected();
+          const previousSelectedType = this.props.projectService.getTreeItemSelected();
+
+          // Temporalmente seleccionar el modelo para renombrarlo
+          this.props.projectService.setTreeItemSelected("model");
+          (this.props.projectService as any).treeIdItemSelected = existingModel.id;
+
+          // Renombrar usando el método que actualiza la UI correctamente
+          this.props.projectService.renameItemProject(newValues.name);
+
+          // Restaurar la selección anterior
+          this.props.projectService.setTreeItemSelected(previousSelectedType);
+          (this.props.projectService as any).treeIdItemSelected = previousSelectedId;
+        }
+
+        // Aplicar cambios a las otras propiedades (no nombre)
+        existingModel.description = newValues.description;
+        existingModel.author = newValues.author;
+        existingModel.source = newValues.source;
+
+        // Solo sincronizar las propiedades que no sean el nombre (el nombre ya se sincronizó con renameItemProject)
+        if (!nameChanged || oldValues.description !== newValues.description ||
+            oldValues.author !== newValues.author || oldValues.source !== newValues.source) {
+
+          const itemData = {
+            id: existingModel.id,
+            itemType: 'model',
+            oldValues: oldValues,
+            newValues: newValues,
+            nameAlreadySynced: nameChanged, // Indicar que el nombre ya fue sincronizado
+            type: this.getModelTypeFromContext(),
+            languageName: existingModel.type,
+            languageId: existingModel.languageId,
+            productLineId: this.props.projectService.getIdCurrentProductLine()
+          };
+
+          treeCollaborationService.syncEditItemOperation(itemData);
+        }
+
+      } else if (existingModel) {
+        // Aplicar cambios localmente sin sincronización
+        existingModel.name = this.state.model.name;
+        existingModel.description = this.state.model.description;
+        existingModel.author = this.state.model.author;
+        existingModel.source = this.state.model.source;
+      }
+
       me.props.projectService.saveProject();
     }
     me.hideModelInformationEditorModal();
@@ -666,6 +904,7 @@ class TreeMenu extends Component<Props, State> {
       type,
       domain
     );
+
     this.props.projectService.raiseEventNewProductLine(productLine);
     this.props.projectService.saveProject();
   }
@@ -675,15 +914,18 @@ class TreeMenu extends Component<Props, State> {
       this.props.projectService.project,
       applicationName
     );
+
     this.props.projectService.raiseEventApplication(application);
     this.props.projectService.saveProject();
   }
 
   addNewAdaptation(adaptationName: string) {
+
     let adaptation = this.props.projectService.createAdaptation(
       this.props.projectService.project,
       adaptationName
     );
+
     this.props.projectService.raiseEventAdaptation(adaptation);
     this.props.projectService.saveProject();
   }
@@ -758,6 +1000,24 @@ class TreeMenu extends Component<Props, State> {
       model
     );
     this.props.projectService.saveProject();
+
+    // Sincronizar operación colaborativa
+    if (treeCollaborationService.isCollaborationActive()) {
+
+      const modelData = {
+        id: model.id,
+        name: model.name,
+        type: 'scope',
+        languageName: languageName,
+        languageId: languageId,
+        description: description,
+        author: author,
+        source: source,
+        productLineId: this.props.projectService.getIdCurrentProductLine()
+      };
+
+      treeCollaborationService.syncAddModelOperation(modelData, this.props.projectService);
+    } 
   }
 
 
@@ -777,6 +1037,23 @@ class TreeMenu extends Component<Props, State> {
       domainEngineeringModel
     );
     this.props.projectService.saveProject();
+
+    // Sincronizar operación colaborativa
+    if (treeCollaborationService.isCollaborationActive()) {
+      const modelData = {
+        id: domainEngineeringModel.id,
+        name: domainEngineeringModel.name,
+        type: 'domainEngineering',
+        languageName: languageName,
+        languageId: languageId,
+        description: description,
+        author: author,
+        source: source,
+        productLineId: this.props.projectService.getIdCurrentProductLine()
+      };
+
+      treeCollaborationService.syncAddModelOperation(modelData, this.props.projectService);
+    } 
   }
 
   addNewApplicationEModel(languageName: string, languageId: string, name: string, description: string, author: string, source: string) {
@@ -846,8 +1123,6 @@ class TreeMenu extends Component<Props, State> {
       console.error("No scope model found for the selected product line.");
       return;
     }
-
-    console.log("Forcing Scope Management with ID:", selectedScopeModel.id);
 
     // Actualiza el Tree ID seleccionado y lanza el evento
     this.props.projectService.updateScopeSelectedOri(selectedScopeModel.id);
@@ -1408,7 +1683,29 @@ class TreeMenu extends Component<Props, State> {
           }
           onHide={() => this.setState({ showScopeModal: false })}
           onSave={(updatedScope: ScopeSPL) => {
-            this.props.projectService.project.productLines[this.props.projectService.getIdCurrentProductLine()].scope = updatedScope;
+            const currentProductLineIndex = this.props.projectService.getIdCurrentProductLine();
+            const currentProductLine = this.props.projectService.project.productLines[currentProductLineIndex];
+
+            // Capturar valores anteriores para sincronización colaborativa
+            const oldValues = { ...currentProductLine.scope };
+            const newValues = { ...updatedScope };
+
+            // Aplicar cambios localmente
+            this.props.projectService.project.productLines[currentProductLineIndex].scope = updatedScope;
+
+            // Sincronizar la operación de actualización de scope si es colaborativo
+            if (treeCollaborationService.isCollaborationActive()) {
+              const scopeData = {
+                productLineId: currentProductLine.id,
+                productLineName: currentProductLine.name,
+                oldValues: oldValues,
+                newValues: newValues,
+                timestamp: Date.now()
+              };
+              treeCollaborationService.syncUpdateScopeOperation(scopeData, this.props.projectService);
+            }
+
+            // Guardar proyecto
             const projectInfo = this.props.projectService.getProjectInformation();
             this.props.projectService.saveProjectInServer(
               projectInfo,

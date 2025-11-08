@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component} from "react";
 import "./MxGEditor.css";
 
 import { mxGraph } from "mxgraph";
@@ -12,6 +12,12 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import MxgraphUtils from "../../Infraestructure/Mxgraph/MxgraphUtils";
+import {
+  calculateModelDiff,
+  hasMeaningfulChanges,
+  ModelDiff
+} from "../../DataProvider/Services/incrementalSyncService";
+import { IncrementalGraphUpdater } from "./IncrementalGraphUpdater";
 
 import Button from "react-bootstrap/Button";
 import Dropdown from 'react-bootstrap/Dropdown';
@@ -26,9 +32,21 @@ import { ImZoomIn, ImZoomOut } from "react-icons/im";
 import { IoMdAlert } from "react-icons/io";
 import { LuSheet } from "react-icons/lu";
 import { RiSave3Fill } from "react-icons/ri";
-import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reactstrap";
+import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGroup } from "reactstrap";
 import MxProperties from "../MxProperties/MxProperties";
+import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 import KaosGenerator from "../Scope/KaosGenerator";
+import {
+  destroyModelAwareness,
+  onModelAwarenessChange,
+  setupModelAwareness,
+  updateUserCursor,
+  setUserMovingCell,
+  setUserEditingCell,
+
+  setUserIdle
+} from "../../DataProvider/Services/collab/collaborationAwarenessService";
+import CollaborativeIndicators from "./CollaborativeIndicators";
 
 interface Props {
   projectService: ProjectService;
@@ -52,6 +70,29 @@ interface State {
   messageModalTitle: string;
   openAccordion: string[];
   showRequirementsReportModal: boolean;
+  pendingChanges: boolean;  // Nuevo estado para cambios pendientes
+
+  //   Collab
+    isCollaborative: boolean;
+    collaborators: Array<{id: string, name: string,email: string; role: string }>;
+    showCollaboratorsModal: boolean;
+    userRole: string;
+    backupObject: any;
+    awarnessStates?: Array<any>;
+  collaborativeUsers: Array<{
+    name: string;
+    color: string;
+    cursor?: { x: number; y: number };
+    action?: {
+      type: 'moving' | 'editing' | 'resizing' | 'selecting' | 'idle';
+      cellId?: string;
+      timestamp: string;
+      details?: any;
+    };
+    modelId?: string;
+  }>;
+  isMovingCell: boolean;
+  movingCellId: string | null;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -60,6 +101,13 @@ export default class MxGEditor extends Component<Props, State> {
   graphContainerRef: any;
   graph?: mxGraph;
   currentModel?: Model;
+  isRemoteChange: boolean;
+  isInitialLoad: boolean= false;
+  currentModelObserver: (() => void) | null = null;
+  awarenessUnsubscribe: (() => void) | null = null;
+  incrementalUpdaters: Map<string, IncrementalGraphUpdater> = new Map();
+  modelSnapshots: Map<string, { elements: any[], relationships: any[] }> = new Map();
+
 
   constructor(props: Props) {
     super(props);
@@ -83,6 +131,18 @@ export default class MxGEditor extends Component<Props, State> {
       allScopeConfigurations: [] as Array<Record<string, any>>,
       openAccordion: [],
       showRequirementsReportModal: false,
+// Collab
+      isCollaborative: false,
+      collaborators: [],
+      showCollaboratorsModal: false,
+      userRole: "",
+      pendingChanges: false,
+      backupObject: null,
+      awarnessStates: [],
+      collaborativeUsers: [],
+      isMovingCell: false,
+      movingCellId: null
+
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
     this.getRequirementsReport = this.getRequirementsReport.bind(this);
@@ -103,6 +163,9 @@ export default class MxGEditor extends Component<Props, State> {
     this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
     this.savePropertiesModal = this.savePropertiesModal.bind(this);
     this.hideMessageModal = this.hideMessageModal.bind(this);
+
+    // Collabcondition
+    // this.changeProjectCollaborative = this.changeProjectCollaborative.bind(this);
   }
 
   projectService_addNewProductLineListener(e: any) {
@@ -120,6 +183,13 @@ export default class MxGEditor extends Component<Props, State> {
     }
     this.forceUpdate();
 
+    const projectId = this.props.projectService.getProject().id;
+    if (projectId && e.model) {
+      // Agregar un pequeño delay para asegurar que el modelo se haya cargado completamente
+      setTimeout(() => {
+        this.observeModel(projectId, e.model);
+      }, 300);
+    }
   }
 
   projectService_addCreatedElementListener(e: any) {
@@ -159,6 +229,9 @@ export default class MxGEditor extends Component<Props, State> {
           this.refreshEdgeStyle(edge);
         }
       }
+
+      this.setState({ pendingChanges: true });
+      
       this.graph.refresh();
       let model = this.currentModel;
       this.loadModel(model);
@@ -169,15 +242,35 @@ export default class MxGEditor extends Component<Props, State> {
     
   }
 
+  // TODO DESPUES DE QUE SE ABRE UN DIAGRAMA, SE EJECUTA CON CADA CAMBIO, EJ, ABRIR UN NUEVO PROYECTO
   projectService_addUpdateProjectListener(e: any) {
     let me = this;
     let model = me.props.projectService.findModelById(e.project, e.modelSelectedId);
     me.loadModel(model);
+
+    const projectInfo = this.props.projectService.getProjectInformation();
+    if (projectInfo) {
+      // Actualizar estado del proyecto
+      me.setState({
+        isCollaborative: projectInfo.is_collaborative || false,
+        collaborators: projectInfo.collaborators || [],
+        userRole: projectInfo.role || "",
+      }, () => {
+
+      if (projectInfo.is_collaborative && projectInfo.project.id && model) {
+        this.observeModel(projectInfo.project.id, model);
+      }
+
+      });
+
+    }
+  
     me.forceUpdate();
   }
-
+// TODO SE EJECUTA CUANDO SE ABRE UN DIAGRAMA, NO UN PROYECTO
   componentDidMount() {
     let me = this;
+    let model = null
     if (!this.graph) {
       this.graph = new mx.mxGraph(this.graphContainerRef.current);
       this.props.projectService.setGraph(this.graph);
@@ -203,7 +296,7 @@ export default class MxGEditor extends Component<Props, State> {
     // Carga inicial del modelo actual
     const initialModelId = this.props.projectService.getTreeIdItemSelected();
     if (initialModelId) {
-      const model = this.props.projectService.findModelById(
+      model = this.props.projectService.findModelById(
         this.props.projectService.project,
         initialModelId
       );
@@ -223,6 +316,24 @@ export default class MxGEditor extends Component<Props, State> {
       this.setState({ isBillOfMaterials: false });
     }
     this.logAccordionContents();
+
+    const projectInfo = this.props.projectService.getProjectInformation();
+    
+    if (projectInfo) {
+      // Actualizar estado del proyecto
+      me.setState({
+        isCollaborative: projectInfo.is_collaborative || false,
+        collaborators: projectInfo.collaborators || [],
+        userRole: projectInfo.role || "",
+      }, () => {
+
+      if (projectInfo.is_collaborative && projectInfo.project.id && model) {
+        this.observeModel(projectInfo.project.id, model);
+      }
+
+      });
+
+    }
   }
 
   LoadGraph(graph: mxGraph) {
@@ -275,10 +386,10 @@ export default class MxGEditor extends Component<Props, State> {
         return "";
       }
     };
-    graph.addListener(mx.mxEvent.CELLS_MOVED, function (sender, evt) {
+
+    graph.addListener(mx.mxEvent.CELLS_MOVED, (sender, evt) => {
       if (evt.properties.cells) {
         for (const c of evt.properties.cells) {
-          console.log(c)
           if (c.getGeometry().x < 0 || c.getGeometry().y < 0) {
             c.getGeometry().x -= evt.properties.dx;
             c.getGeometry().y -= evt.properties.dy;
@@ -287,27 +398,44 @@ export default class MxGEditor extends Component<Props, State> {
         }
       }
       evt.consume();
+      
       if (evt.properties.cells) {
-        let cell = evt.properties.cells[0];
-        if (!cell.value.attributes) {
-          return;
-        }
-        let uid = cell.value.getAttribute("uid");
-        if (me.currentModel) {
-          for (let i = 0; i < me.currentModel.elements.length; i++) {
-            const element: any = me.currentModel.elements[i];
-            if (element.id === uid) {
-              element.x = cell.geometry.x;
-              element.y = cell.geometry.y;
-              element.width = cell.geometry.width;
-              element.height = cell.geometry.height;
+        // Procesar todas las celdas movidas
+        evt.properties.cells.forEach(cell => {
+          if (!cell.value.attributes) {
+            return;
+          }
+          let uid = cell.value.getAttribute("uid");
+
+          if (me.currentModel) {
+            for (let i = 0; i < me.currentModel.elements.length; i++) {
+              const element: any = me.currentModel.elements[i];
+              if (element.id === uid) {
+                element.x = cell.geometry.x;
+                element.y = cell.geometry.y;
+                element.width = cell.geometry.width;
+                element.height = cell.geometry.height;
+
+                // Awareness colaborativo: Marcar que el usuario terminó de mover
+                const projectId = me.props.projectService.getProject().id;
+                const modelId = me.currentModel?.id;
+                if (projectId && modelId) {
+                  setUserIdle(projectId, modelId);
+                }
+
+                // Limpiar estado de movimiento
+                me.setState({ isMovingCell: false, movingCellId: null });
+                break;
+              }
             }
           }
-        }
+        });
+
+        this.syncModelChanges();
       }
     });
 
-    graph.addListener(mx.mxEvent.CELLS_ADDED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.CELLS_ADDED, (sender, evt) => {
       try {
         //evt.consume(); 
         if (evt.properties.cells) {
@@ -333,8 +461,11 @@ export default class MxGEditor extends Component<Props, State> {
                 element.height = cell.geometry.height;
               }
             }
-          }
+          } 
         }
+        
+        this.syncModelChanges();
+
       } catch (error) {
         me.processException(error);
       }
@@ -342,38 +473,60 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
 
-    graph.addListener(mx.mxEvent.CELLS_RESIZED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.CELLS_RESIZED, (sender, evt) => {
       evt.consume();
+
       if (evt.properties.cells) {
-        let cell = evt.properties.cells[0];
-        if (!cell.value.attributes) {
-          return;
-        }
-        let uid = cell.value.getAttribute("uid");
-        if (me.currentModel) {
-          for (let i = 0; i < me.currentModel.elements.length; i++) {
-            const element: any = me.currentModel.elements[i];
-            if (element.id === uid) {
-              element.x = cell.geometry.x;
-              element.y = cell.geometry.y;
-              element.width = cell.geometry.width;
-              element.height = cell.geometry.height;
+        const resizedCells = evt.properties.cells;
+
+        resizedCells.forEach((cell) => {
+          if (!cell.value.attributes) {
+            return;
+          }
+          const uid = cell.value.getAttribute("uid");
+
+          if (me.currentModel) {
+            for (let i = 0; i < me.currentModel.elements.length; i++) {
+              const element: any = me.currentModel.elements[i];
+              if (element.id === uid) {
+                // Actualizar las propiedades del elemento en el modelo local
+                element.x = cell.geometry.x;
+                element.y = cell.geometry.y;
+                element.width = cell.geometry.width;
+                element.height = cell.geometry.height;
+
+                // Awareness colaborativo: Marcar que el usuario terminó de redimensionar
+                const projectId = me.props.projectService.getProject().id;
+                const modelId = me.currentModel?.id;
+                if (projectId && modelId) {
+                  setUserIdle(projectId, modelId);
+                }
+              }
             }
           }
-        }
+        });
+
+        this.syncModelChanges();
       }
       me.forceUpdate();
     }
-    
+
   );
 
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
+      // Solo consumir el evento, sin awareness colaborativo para selección simple
       evt.consume();
     });
 
     graph.addListener(mx.mxEvent.DOUBLE_CLICK, function (sender, evt) {
       evt.consume();
       if (me.state.selectedObject) {
+        // Awareness colaborativo: Marcar que el usuario comenzó a editar propiedades
+        const projectId = me.props.projectService.getProject().id;
+        const modelId = me.currentModel?.id;
+        if (projectId && modelId) {
+          setUserEditingCell(projectId, modelId, me.state.selectedObject.id, 'properties');
+        }
         me.showPropertiesModal();
       }
     });
@@ -429,7 +582,7 @@ export default class MxGEditor extends Component<Props, State> {
 
 
 
-    graph.addListener(mx.mxEvent.CELL_CONNECTED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.CELL_CONNECTED,  (sender, evt) => {
       try {
         evt.consume();
         let edge = evt.getProperty("edge");
@@ -451,15 +604,16 @@ export default class MxGEditor extends Component<Props, State> {
         if (languageDefinition.abstractSyntax.relationships) {
           for (let key in languageDefinition.abstractSyntax.relationships) {
             const rel = languageDefinition.abstractSyntax.relationships[key];
-            if (rel.source == source.value.tagName) {
-              for (let t = 0; t < rel.target.length; t++) {
-                if (rel.target[t] == target.value.tagName) {
-                  relationshipType = key;
-                  break;
-                }
-              }
-            }
-            if (relationshipType) {
+            // Verificar dirección normal: source -> target
+            const normalDirection = rel.source == source.value.tagName && rel.target.includes(target.value.tagName);
+            // Verificar dirección inversa: target -> source (solo para tipos diferentes)
+            // Esto evita problemas con relaciones que no deberían ser bidireccionales
+            const reverseDirection = rel.target.includes(source.value.tagName) &&
+                                   rel.source == target.value.tagName &&
+                                   source.value.tagName !== target.value.tagName;
+
+            if (normalDirection || reverseDirection) {
+              relationshipType = key;
               break;
             }
           }
@@ -513,14 +667,28 @@ export default class MxGEditor extends Component<Props, State> {
           node.setAttribute("uid", relationship.id);
           edge.style = "strokeColor=#446E79;strokeWidth=2;";
         }
+
+        this.syncModelChanges();
+
         me.refreshEdgeLabel(edge);
         me.refreshEdgeStyle(edge);
+
+        // Awareness colaborativo: Limpiar estado después de conectar celdas
+        const projectId = me.props.projectService.getProject().id;
+        const modelId = me.currentModel?.id;
+        if (projectId && modelId) {
+          setUserIdle(projectId, modelId);
+        }
+
+        // Limpiar estado de movimiento local
+        me.setState({ isMovingCell: false, movingCellId: null });
+
       } catch (error) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         let m = error;
         console.error("something went wrong: ", error)
       }
-      
+
     }
     
   );
@@ -532,15 +700,31 @@ export default class MxGEditor extends Component<Props, State> {
     //   var target = graph.getModel().getTerminal(edge, false);
     // });
 
-    graph.addListener(mx.mxEvent.REMOVE_CELLS, function (sender, evt) {
-      try {
-        evt.consume();
-      } catch (error) {
-        alert(error);
+    graph.addListener(mx.mxEvent.REMOVE_CELLS, (sender, evt) => {
+      evt.consume();
+      
+      if (evt.properties.cells) {
+        const removedCells = evt.properties.cells;
+        
+        removedCells.forEach(cell => {
+          if (cell.value && cell.value.attributes) {
+            const uid = cell.value.getAttribute("uid");
+            if (uid) {
+              if (cell.edge) {
+                me.props.projectService.removeModelRelationshipById(me.currentModel, uid);
+              } else {
+                me.props.projectService.removeModelElementById(me.currentModel, uid);
+              }
+            }
+          }
+        });
+
+      this.syncModelChanges();
+
       }
     });
 
-    graph.addListener(mx.mxEvent.LABEL_CHANGED, function (sender, evt) {
+    graph.addListener(mx.mxEvent.LABEL_CHANGED, (sender, evt) => {
       let t = 0;
       let name = evt.properties.value;
       evt.properties.value = evt.properties.old;
@@ -594,6 +778,42 @@ export default class MxGEditor extends Component<Props, State> {
 
     graph.getView().setAllowEval(true);
 
+
+    // Agregar eventos de mouse para detectar inicio de drag
+    graph.addMouseListener({
+      mouseDown: function(sender, me_evt) {
+        const cell = me_evt.getCell();
+        if (cell && cell.value && cell.value.attributes) {
+          const uid = cell.value.getAttribute("uid");
+
+          // Marcar que potencialmente vamos a mover esta celda
+          me.setState({ movingCellId: uid });
+        }
+      },
+      mouseMove: function(sender, me_evt) {
+        // Solo si hay una celda siendo arrastrada y tenemos una celda marcada para mover
+        if (graph.isMouseDown && me.state.movingCellId) {
+          // Si no hemos marcado que estamos moviendo, hacerlo ahora
+          if (!me.state.isMovingCell) {
+            me.setState({ isMovingCell: true });
+          }
+
+          // Awareness colaborativo: Marcar que el usuario está moviendo la celda original
+          const projectId = me.props.projectService.getProject().id;
+          const modelId = me.currentModel?.id;
+          if (projectId && modelId) {
+            setUserMovingCell(projectId, modelId, me.state.movingCellId, {
+              x: me_evt.getGraphX(),
+              y: me_evt.getGraphY()
+            });
+          }
+        }
+      },
+      mouseUp: function(sender, me_evt) {
+        // Limpiar el ID de la celda que estábamos preparando para mover
+        me.setState({ movingCellId: null });
+      }
+    });
 
     let keyHandler = new mx.mxKeyHandler(graph);
     keyHandler.bindKey(46, function (evt) {
@@ -883,13 +1103,28 @@ export default class MxGEditor extends Component<Props, State> {
         showContextMenuElement: false
       });
 
+
+      this.isInitialLoad = true;
       let graph: mxGraph | undefined = this.graph;
       if (graph) {
         graph.getModel().beginUpdate();
         try {
-          graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
+        // ---------------------------------------------------------
+          const graphModel = graph.getModel();
+          const parent = graph.getDefaultParent();
+          const childCount = graphModel.getChildCount(parent);
+          
+          for (let i = childCount - 1; i >= 0; i--) {
+            graphModel.remove(graphModel.getChildAt(parent, i));
+          } 
+          // ---------------------------------------------------------
           if (model) {
             let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
+            if (!languageDefinition) {
+             console.error("Language definition not found for model type:", model.type);
+             this.showMessageModal("Error", "Language definition not found for model type: " + model.type);
+              return;
+            }
             let orden = [];
             for (let i = 0; i < model.elements.length; i++) {
               let element: any = model.elements[i];
@@ -903,6 +1138,12 @@ export default class MxGEditor extends Component<Props, State> {
 
             for (let i = 0; i < orden.length; i++) {
               let element: any = this.props.projectService.findModelElementById(model, orden[i]);
+
+              // Validar que el tipo de elemento existe en la definición del lenguaje
+              if (!languageDefinition.concreteSyntax.elements[element.type]) {
+                console.warn(`loadModel: Tipo de elemento '${element.type}' no encontrado en la definición del lenguaje '${languageDefinition.name}'. Saltando elemento ${element.id}.`);
+                continue;
+              }
 
               let shape = null;
               if (languageDefinition.concreteSyntax.elements[element.type].styles) {
@@ -1004,7 +1245,22 @@ export default class MxGEditor extends Component<Props, State> {
             }
           }
         } finally {
+          this.isInitialLoad = false;
           graph.getModel().endUpdate();
+
+          // Inicializar el updater incremental específico para este modelo
+          if (model && this.graph) {
+            const modelKey = `${model.type}_${model.id}`;
+            if (!this.incrementalUpdaters.has(modelKey)) {
+              this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
+            }
+
+            // Actualizar snapshot específico para este modelo
+            this.modelSnapshots.set(modelKey, {
+              elements: JSON.parse(JSON.stringify(model.elements || [])),
+              relationships: JSON.parse(JSON.stringify(model.relationships || []))
+            });
+          }
         }
       }
     }, 250);
@@ -1589,26 +1845,66 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   showPropertiesModal() {
-    // if (this.currentModel) {
-    //   if (this.currentModel.constraints !== "") {
-    //     this.setState({ currentModelConstraints: this.currentModel.constraints })
-    //   }
-    //   this.setState({ showConstraintModal: true })
-    // } else {
-    //   alertify.error("You have not opened a model")
-    // }
-    this.setState({ showPropertiesModal: true });
+    if (this.state.selectedObject) {
+      // Awareness colaborativo: Marcar que el usuario está editando propiedades
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserEditingCell(projectId, modelId, this.state.selectedObject.id, 'properties');
+      }
+    }
+
+    const backup = JSON.parse(JSON.stringify(this.state.selectedObject));
+    this.setState({
+      showPropertiesModal: true,
+      backupObject: backup,
+      pendingChanges: false
+    });
   }
 
   hidePropertiesModal() {
-    this.setState({ showPropertiesModal: false });
-    // for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
-    //   const efunction = this.props.projectService.externalFunctions[i];
-    //   if (efunction.id == 510 || efunction.id == 511) { //todo: validar por el campo call_on_properties_changed
-    //     let selectedElementsIds = [this.state.selectedObject.id];
-    //     this.callExternalFuntionFromIndex(i, selectedElementsIds, null);
-    //   }
-    // }
+    if (this.state.pendingChanges) {
+      // Awareness colaborativo: Marcar que el usuario canceló la edición
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
+
+      const originalObject = this.state.backupObject;
+      if (originalObject) {
+        // Restaurar el objeto en el modelo
+        if (this.currentModel) {
+          const element = this.props.projectService.findModelElementById(this.currentModel, originalObject.id);
+          if (element) {
+            Object.assign(element, originalObject);
+          } else {
+            const relationship = this.props.projectService.findModelRelationshipById(this.currentModel, originalObject.id);
+            if (relationship) {
+              Object.assign(relationship, originalObject);
+            }
+          }
+        }
+        // Actualizar la vista
+        this.props.projectService.raiseEventUpdatedElement(
+          this.currentModel,
+          originalObject
+        );
+      }
+    } else {
+      // Awareness colaborativo: Marcar que el usuario terminó la edición sin cambios
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
+    }
+
+    this.setState({
+      showPropertiesModal: false,
+      pendingChanges: false,
+      backupObject: null
+    });
   }
 
   /*
@@ -1770,12 +2066,28 @@ export default class MxGEditor extends Component<Props, State> {
 
 
   savePropertiesModal() {
-    // if (this.currentModel) {
-    //   // TODO: Everything we are doing with respect to
-    //   // the model management is an anti pattern
-    //   this.currentModel.constraints = this.state.currentModelConstraints;
-    // }
-    // //this.hideConstraintModal();
+    if (this.state.pendingChanges) {
+      // Awareness colaborativo: Marcar que el usuario guardó los cambios
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
+      this.syncModelChanges();
+    } else {
+      // Awareness colaborativo: Marcar que el usuario terminó sin cambios
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
+    }
+
+    this.setState({
+      showPropertiesModal: false,
+      pendingChanges: false,
+      backupObject: null
+    });
   }
 
   showMessageModal(title, message) {
@@ -3152,6 +3464,254 @@ renderRequirementsReport() {
     }
   };
 
+
+//   NEW COLABORATIVE FUNCTIONALITY
+
+syncModelChanges() {
+  const projectId = this.props.projectService.getProject().id;
+
+  if (this.state.isCollaborative && projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
+
+
+
+    // Usar la nueva función incremental para mejor rendimiento
+    this.props.projectService.updateModelState(projectId, this.currentModel.id, (state) => {
+      state.set("data", {
+        elements: this.currentModel.elements,
+        relationships: this.currentModel.relationships,
+        timestamp: Date.now()
+      });
+    });
+
+    // Actualizar snapshot local específico para este modelo
+    if (this.currentModel) {
+      const modelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+      this.modelSnapshots.set(modelKey, {
+        elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
+        relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
+      });
+    }
+  }
+}
+
+// Conjunto
+
+observeModel(projectId: string, model: Model) {
+  // Eliminar el observador anterior si existe
+  if (this.currentModelObserver) {
+    this.currentModelObserver();
+    this.currentModelObserver = null;
+  }
+
+  this.unsuscribeModelAwareness(projectId, model.id);
+
+  // Limpiar recursos de modelos anteriores
+  this.cleanupUnusedModelResources();
+
+  // Obtener o crear el updater específico para este modelo
+  const modelKey = `${model.type}_${model.id}`;
+  if (!this.incrementalUpdaters.has(modelKey) && this.graph) {
+    this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
+  }
+
+  // Asegurar que el modelo actual esté actualizado
+  this.currentModel = model;
+
+  // Configurar el nuevo observador con sincronización incremental
+  this.currentModelObserver = this.props.projectService.observeModelState(
+    projectId,
+    model.id,
+    (state) => {
+
+      // Solo procesar si el modelo actual coincide con el modelo observado
+      if (state && this.currentModel && this.currentModel.id === model.id && !this.isInitialLoad) {
+        this.isRemoteChange = true;
+
+        const modelData = state.get("data");
+        if (modelData && this.currentModel) {
+          const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+
+          // Asegurar que tenemos un snapshot válido antes de calcular diferencias
+          if (!this.modelSnapshots.has(currentModelKey)) {
+            this.modelSnapshots.set(currentModelKey, {
+              elements: JSON.parse(JSON.stringify(this.currentModel.elements || [])),
+              relationships: JSON.parse(JSON.stringify(this.currentModel.relationships || []))
+            });
+          }
+
+          // Calcular diferencias usando el snapshot específico del modelo
+          const diff = calculateModelDiff(this.currentModel, modelData);
+
+          if (hasMeaningfulChanges(diff)) {
+
+            // Actualizar el modelo actual
+            this.currentModel.elements = modelData.elements || this.currentModel.elements;
+            this.currentModel.relationships = modelData.relationships || this.currentModel.relationships;
+
+            // Aplicar cambios incrementales al grafo usando el updater específico
+            const updater = this.incrementalUpdaters.get(currentModelKey);
+            if (updater) {
+              updater.applyIncrementalChanges(this.currentModel, diff, {
+                refreshVertexLabel: this.refreshVertexLabel.bind(this),
+                refreshEdgeLabel: this.refreshEdgeLabel.bind(this),
+                refreshEdgeStyle: this.refreshEdgeStyle.bind(this),
+                createOverlays: this.createOverlays.bind(this),
+                getFontColorFromShape: this.getFontColorFromShape.bind(this)
+              });
+            }
+
+            // Actualizar snapshot específico después de aplicar cambios
+            this.modelSnapshots.set(currentModelKey, {
+              elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
+              relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
+            });
+          }
+        }
+
+        this.isRemoteChange = false;
+      }
+    }
+  );
+
+  this.initNewModelAwarness(projectId, model.id);
+}
+
+/**
+ * Limpia los updaters y snapshots de modelos que ya no se están usando
+ */
+private cleanupUnusedModelResources() {
+  // Mantener solo los recursos del modelo actual
+  if (this.currentModel) {
+    const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+
+    // Limpiar updaters no utilizados
+    for (const key of this.incrementalUpdaters.keys()) {
+      if (key !== currentModelKey) {
+        this.incrementalUpdaters.delete(key);
+      }
+    }
+
+    // Limpiar snapshots no utilizados
+    for (const key of this.modelSnapshots.keys()) {
+      if (key !== currentModelKey) {
+        this.modelSnapshots.delete(key);
+      }
+    }
+  }
+}
+
+
+  unsuscribeModelAwareness(projectId : string, modelId: string) {
+
+    if (this.awarenessUnsubscribe){
+      this.awarenessUnsubscribe();
+      this.awarenessUnsubscribe = null;
+    }
+
+    if (modelId && projectId){
+      destroyModelAwareness(projectId, modelId);
+    }
+  }
+
+
+  initNewModelAwarness(projectId: string, modelId: string) {
+    const provider = this.props.projectService.getProjectProvider(projectId);
+    const user = this.state.collaborators.find((collab) => collab.id === this.props.projectService.getUser());
+
+    if (provider && user) {
+      setupModelAwareness(projectId, modelId, provider, {
+        name: user.name,
+        color: "#" + Math.floor(Math.random() * 16777215).toString(16)
+      });
+
+      this.awarenessUnsubscribe = onModelAwarenessChange(projectId, modelId , (state) => {
+        const awarenessStates = Array.from(state.values());
+
+        // Procesar usuarios colaborativos para los indicadores visuales
+        const currentUserId = this.props.projectService.getUser();
+        const collaborativeUsers = awarenessStates
+          .filter((userState: any) => {
+            // Filtrar usuarios que no sean el usuario actual
+            if (!userState.user) return false;
+
+            // Buscar el colaborador correspondiente por nombre para obtener su ID
+            const collaborator = this.state.collaborators.find(c => c.name === userState.user.name);
+            return collaborator && collaborator.id !== currentUserId;
+          })
+          .map((userState: any) => ({
+            name: userState.user.name,
+            color: userState.user.color,
+            cursor: userState.user.cursor,
+            action: userState.user.action,
+            modelId: userState.user.modelId
+          }));
+
+
+
+        this.setState({
+          awarnessStates: awarenessStates,
+          collaborativeUsers: collaborativeUsers
+        });
+      })
+
+    } 
+  }
+  // Conjunto
+
+    
+  // TODO: Ver que hacer con esto
+  // changeProjectCollaborative() { 
+  //   try {
+  //     const projectId = this.props.projectService.getProjectInformation().id;
+  //     if (!projectId) {
+  //       alert("No hay un proyecto seleccionado.");
+  //       return;
+  //     }
+  //     this.props.projectService.changeProjectCollaborationState(
+  //       projectId,
+  //       async (response) => {
+  //         if (response) {
+  //           const newCollaborativeState = response.collaborativeState;
+  //           this.setState({ isCollaborative: newCollaborativeState }); 
+            
+  //           // Manejar la conexión/desconexión del WebSocket
+  //           if (newCollaborativeState) {
+  //             await this.props.projectService.setupProjectSync(projectId);
+  //           } else {
+  //             this.props.projectService.removeProjectDoc(projectId);
+  //           }
+  //           // alert(`El proyecto ahora es ${newCollaborativeState ? "colaborativo" : "no colaborativo"}.`);
+  //         } else {
+  //           alert("No se pudo cambiar el estado de colaboración.");
+  //         }
+  //       },
+  //       (error) => {
+  //         console.error("Error al cambiar el estado de colaboración:", error);
+  //         alert("Ocurrió un error al intentar cambiar el estado de colaboración.");
+  //       }
+  //     );
+  //   } catch (error) {
+  //     console.error("Error al cambiar el estado de colaboración:", error);
+  //     alert("Ocurrió un error al intentar cambiar el estado de colaboración.");
+  //   }
+  // }
+
+  handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const isCollaborative  = this.state;
+    const projectId = this.props.projectService.getProject().id;
+    let modelId = null;
+    modelId = this.currentModel && this.currentModel.id === null ? 'none' : this.currentModel?.id;
+      
+    if (isCollaborative && projectId && modelId) {
+      const rect = this.graphContainerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      updateUserCursor(projectId, modelId, x, y);
+    }
+  };
+
+// END NEW COLABORATIVE FUNCTIONALITY
+
   render() {
     return (
       <div ref={this.containerRef} className="MxGEditor">
@@ -3187,7 +3747,63 @@ renderRequirementsReport() {
           <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
         </div>
         {this.renderContexMenu()}
-        <div ref={this.graphContainerRef} className="GraphContainer"></div>
+
+
+        <div ref={this.graphContainerRef} className="GraphContainer" style={{ position: "relative" }} onMouseMove={this.handleMouseMove}>
+
+        {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => {
+          // Filtrar usuarios que tengan cursor, estén en el modelo actual y no sean el usuario actual
+          if (!user.user || !user.user.cursor || user.user.modelId !== this.currentModel?.id) {
+            return false;
+          }
+
+          // Excluir el usuario actual por nombre
+          const currentUserId = this.props.projectService.getUser();
+          const currentUserName = this.state.collaborators.find(c => c.id === currentUserId)?.name;
+          return user.user.name !== currentUserName;
+        })
+      .map((user: any, idx: number) => (
+        <div
+          key={idx}
+          style={{
+            position: "absolute",
+            left: user.user.cursor.x,
+            top: user.user.cursor.y,
+            pointerEvents: "none",
+            zIndex: 10,
+            color: user.user.color,
+            fontWeight: "bold",
+            fontSize: 12,
+            background: "#fff8",
+            borderRadius: 4,
+            padding: "2px 6px",
+            border: `1px solid ${user.user.color}`,
+            transform: "translate(-50%, -50%)"
+          }}
+        >
+          {user.user.name}
+          <span style={{
+            display: "inline-block",
+            width: 8,
+            height: 8,
+            background: user.user.color,
+            borderRadius: "50%",
+            marginLeft: 4,
+            verticalAlign: "middle"
+          }} />
+        </div>
+        ))}
+
+        {/* Indicadores colaborativos para acciones de usuario */}
+        <CollaborativeIndicators
+          users={this.state.collaborativeUsers}
+          currentUserId={this.props.projectService.getUser()}
+          currentUserName={this.state.collaborators.find(c => c.id === this.props.projectService.getUser())?.name || ''}
+          graph={this.graph}
+        />
+
+        </div>
+        
         <div>
           <Modal
             show={this.state.showCatalogModal}
@@ -3296,15 +3912,25 @@ renderRequirementsReport() {
             </Modal.Header>
             <Modal.Body>
               <div style={{ maxHeight: "65vh", overflow: "auto" }}>
-                <MxProperties projectService={this.props.projectService} model={this.currentModel} item={this.state.selectedObject} />
+                <MxProperties 
+                  projectService={this.props.projectService} 
+                  model={this.currentModel} 
+                  item={this.state.selectedObject}
+                />
               </div>
             </Modal.Body>
             <Modal.Footer>
               <Button
                 variant="primary"
+                onClick={this.savePropertiesModal}
+              >
+                Save
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={this.hidePropertiesModal}
               >
-                Close
+                Cancel
               </Button>
             </Modal.Footer>
           </Modal>

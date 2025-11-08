@@ -18,10 +18,15 @@ import { v4 as uuidv4 } from 'uuid';
 interface NewProductManagerProps {
   projectService: ProjectService;
    onCloseAllModals?: () => void;
+   onProductCreated?: (productData: any) => void;
+   onProductDeleted?: (deletionData: any) => void;
+   onProductEdited?: (editData: any) => void;
+   onModelModified?: (modelData: any) => void;
+   onModelDeleted?: (deletionData: any) => void;
   //onClose: () => void;
 }
 
-const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService, onCloseAllModals }) => {
+const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService, onCloseAllModals, onProductCreated, onProductDeleted, onProductEdited, onModelModified, onModelDeleted }) => {
   // Estado para mostrar/ocultar el modal de edición de configuración (nuevo producto)
   const [showProductModal, setShowProductModal] = useState(false);
   const [productName, setProductName] = useState('');
@@ -34,8 +39,9 @@ const NewProductManager: React.FC<NewProductManagerProps> = ({ projectService, o
 
   // Obtenemos el modelo actual (se asume que es el "Catalog of potential products")
   const currentModel: Model = projectService.currentModel;
-  // Obtenemos la estructura (elementos y relaciones) a través del projectService
-  const { elements = [], relationships = [] } = projectService.getStructureAndRelationships();
+  // 🔧 [FIX] Usar currentModel como fuente única para evitar inconsistencias
+  const elements = currentModel.elements || [];
+  const relationships = currentModel.relationships || [];
   const [showAddSubModal, setShowAddSubModal] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const [newSubName, setNewSubName] = useState("");
@@ -269,6 +275,19 @@ useEffect(() => {
     projectService.raiseEventUpdatedElement(currentModel, newElement);
     projectService.saveProjectInServer(projectService.getProjectInformation(), null, null);
 
+    // Notificar al componente padre sobre la modificación del modelo base
+    if (onModelModified) {
+      const modelData = {
+        type: 'FUNCTIONALITY_ADDED',
+        newElement: newElement,
+        newRelationship: newRel,
+        parentId: selectedParentId,
+        modelId: currentModel.id,
+        timestamp: Date.now()
+      };
+      onModelModified(modelData);
+    } 
+
     forceUpdateModel();
     setShowAddSubModal(false);
     setNewSubName("");
@@ -472,6 +491,18 @@ const handleUploadProductImage = (file: File) => {
     projectService.raiseEventUpdatedElement(currentModel, null);
     projectService.saveProjectInServer(projectService.getProjectInformation(), null, null);
 
+    // Notificar al componente padre sobre la eliminación colaborativa del modelo base
+    if (onModelDeleted) {
+      const deletionData = {
+        type: 'FUNCTIONALITY_DELETED_FROM_MODEL',
+        deletedIds: idsToDelete,
+        rootFeatureId: featureId,
+        modelId: currentModel.id,
+        timestamp: Date.now()
+      };
+      onModelDeleted(deletionData);
+    }
+
     // Forzamos el re-render para que se reflejen los cambios
     forceUpdateModel();
   };
@@ -632,6 +663,23 @@ const handleUploadProductImage = (file: File) => {
 
     // Llamamos a la función de guardado en el projectService
     projectService.saveConfigurationInServer(configurationInformation, successCallback, errorCallback);
+
+    // Notificar al componente padre sobre la creación del producto
+    if (onProductCreated) {
+      const productData = {
+        type: 'PRODUCT_CREATED',
+        configurationData: {
+          id: configurationInformation.id,
+          name: productName,
+          config_name: productName,
+          selectedFeatures: selectedFeatureIds,
+          timestamp: Date.now()
+        },
+        modelId: currentModel.id
+      };
+      onProductCreated(productData);
+    } 
+
     setShowProductModal(false)
     if (onCloseAllModals) {
       onCloseAllModals();
@@ -712,10 +760,26 @@ const handleUploadProductImage = (file: File) => {
       setEditingFeatureId(null);
     }}
     onSave={(updatedFeature: Element) => {
+      const originalFeature = currentModel.elements.find((e: Element) => e.id === updatedFeature.id);
       const index = currentModel.elements.findIndex((e: Element) => e.id === updatedFeature.id);
+
       if (index > -1) {
         currentModel.elements[index] = updatedFeature;
         projectService.raiseEventUpdatedElement(currentModel, updatedFeature);
+
+        // Notificar al componente padre sobre la edición colaborativa
+        if (onProductEdited) {
+          const editData = {
+            type: 'FUNCTIONALITY_EDITED',
+            elementId: updatedFeature.id,
+            originalFeature: originalFeature,
+            updatedFeature: updatedFeature,
+            modelId: currentModel.id,
+            timestamp: Date.now()
+          };
+          onProductEdited(editData);
+        } 
+
         // Si es posible, evita llamar forceUpdateModel() inmediatamente, ya que puede reinicializar el render
       }
       setShowEditFeatureModal(false);

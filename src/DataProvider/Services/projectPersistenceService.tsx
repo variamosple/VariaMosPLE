@@ -6,17 +6,19 @@ export default class ProjectPersistenceService {
   getProjectsByUser(user: string, successCallback: any, errorCallback: any) {
     try {
       PROJECTS_CLIENT.get("/getProjects").then((res) => {
-        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
-        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
-        if (responseAPISuccess.message?.includes("Error")) {
-          throw new Error(JSON.stringify(res.data));
+        const { owned_projects, shared_projects } = res.data;
+        if (!owned_projects && !shared_projects) {
+          throw new Error("Invalid server response: Missing owned_projects or shared_projects");
         }
-        let records: ProjectInformation[] = [];
-        records = Object.assign(records, responseAPISuccess.data["projects"]);
-        successCallback(records);
+        successCallback({
+          owned_projects: owned_projects,
+          shared_projects: shared_projects});
       });
     } catch (error) {
       console.log("Something wrong in getProjectsByUser Service: " + error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
     }
   }
 
@@ -241,8 +243,163 @@ export default class ProjectPersistenceService {
       console.log("Something wrong in getAllConfigurations Service: " + error);
     }
   }
+  // ADDED SHARE FUNCTIONS
+  async shareProject(  projectId: string,  toUserEmail: string,  role: string): Promise<any> {
+    if (!projectId || !toUserEmail || !role) {
+      throw new Error("Invalid input parameters");
+    }
+    
+
+    let project_id = projectId;
+    let user_email = toUserEmail;
+    let user_role = role;
+    
+    try {
+      const res = await PROJECTS_CLIENT.post("/shareProject", {
+        user_email,
+        project_id,
+        user_role,
+      });
+
+      const responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+      return responseAPISuccess.data;
+    } catch (error) {
+      console.error("Error in shareProject Service:", error);
+      throw error;
+    }
+  }
+
+  changeProjectCollaborationState(
+    projectId: string,
+    successCallback: any,
+    errorCallback: any
+  ):void {
+    try {
+      PROJECTS_CLIENT.post("/changeProjectCollaborative", {
+        project_id: projectId,
+      }).then((res) => {
+        let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+        responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+        if (responseAPISuccess.message?.includes("Error")) {
+          throw new Error(JSON.stringify(res.data));
+        }
+        if (successCallback) {
+          successCallback(responseAPISuccess.data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        if (errorCallback) {
+          errorCallback(error);
+        }
+      });
+    } catch (error) {
+      console.error("Something wrong in changeProjectCollaborationState Service:", error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
+    }
+  }
+
+  async getProjectCollaborators(projectId: string):Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.get("/usersProject", {
+        params: { project_id: projectId },
+      });
+  
+      let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+      responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+      return responseAPISuccess.data?.["users"];
+  
+    }catch (error) {
+      console.error("Error in getProjectCollaborators Service:", error);
+      throw error;
+    }
 }
 
+  async removeCollaborator(projectId:string, collaboratorId:string): Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.delete("/removeCollaborator", {
+        params: { project_id: projectId, collaborator_id: collaboratorId },
+      });
+
+      let responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      console.log("Response from removeCollaborator Service:", responseAPISuccess);
+      return responseAPISuccess;
+    } catch (error) {
+      console.error("Something wrong in removeCollaborator Service:", error);
+      throw error;
+    }
+  }
+
+  async changeCollaboratorRole(projectId :string, collaboratorId:string, role:string): Promise<any> {
+    try {
+
+      const res = await PROJECTS_CLIENT.post("/changeUserRole", {
+        project_id: projectId,
+        collaborator_id: collaboratorId,
+        role: role,
+      });
+      let responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.log("Something wrong in changeCollaboratorRole Service: " + error);
+      throw error;
+    }
+  }
+
+  async initUser(): Promise<any> {
+    try {
+        const res = await PROJECTS_CLIENT.get("/getUser");
+        const responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
+
+        if (responseAPISuccess.message?.includes("Error")) {
+            throw new Error(JSON.stringify(res.data));
+        }
+        
+    return responseAPISuccess.data?.["user"];
+
+    } catch (error) {
+        console.error("Error in getActualUser Service:", error);
+        throw error;
+    }
+  }
+
+
+  async getUserRole(projectId:string): Promise<any> {
+    try{
+      const res = await PROJECTS_CLIENT.get("/getUserRole", {
+        params: { project_id: projectId },
+      });
+  
+      let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+      responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+      return responseAPISuccess.data?.["role"];
+
+    }catch (error) {
+      console.error("Error in getUserRole Service:", error);
+      throw error;
+
+    }
+  }
+}
 export class ResponseAPISuccess {
   transactionId?: string;
   message?: string;
