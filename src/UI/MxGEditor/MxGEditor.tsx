@@ -3539,8 +3539,14 @@ observeModel(projectId: string, model: Model) {
             });
           }
 
-          // Calcular diferencias usando el snapshot específico del modelo
-          const diff = calculateModelDiff(this.currentModel, modelData);
+          const snapshot = this.modelSnapshots.get(currentModelKey);
+          const snapshotAsModel = {
+            ...this.currentModel,
+            elements: snapshot.elements,
+            relationships: snapshot.relationships
+          };
+          
+          const diff = calculateModelDiff(snapshotAsModel, modelData);
 
           if (hasMeaningfulChanges(diff)) {
 
