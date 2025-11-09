@@ -217,8 +217,10 @@ export const observeModelState = (projectId: string, modelId: string, callback: 
       return () => {
         modelState.unobserve(observer);
       };
-    } 
-  } 
+    }
+  }
+  
+  return () => {};
 }
 
 export const manageModelState = (projectId: string, modelId: string): Y.Map<any> | null => {
