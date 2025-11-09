@@ -7,6 +7,7 @@ import SaveDialog from "../SaveDialog/saveDialog";
 
 import { SessionUser } from "@variamosple/variamos-components";
 import "./NavBar.css";
+import { RoleEnum } from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 
 interface Props {
   projectService: ProjectService;
@@ -48,17 +49,7 @@ class navBar extends Component<Props, State> {
       this.handleShowSaveModal();
       return;
     }
-    if (projectInfo.owner_id === currentUser) {
-      this.props.projectService.saveProjectInServer(projectInfo, null, null);
-      return;
-    }
-    if (
-      projectInfo.is_collaborative &&
-      projectInfo.collaborators &&
-      projectInfo.collaborators.some(
-        (collaborator: any) => collaborator.user_id === currentUser
-      )
-    ) {
+    if (projectInfo.role === RoleEnum.OWNER || projectInfo.role === RoleEnum.EDITOR) {
       this.props.projectService.saveProjectInServer(projectInfo, null, null);
       return;
     }

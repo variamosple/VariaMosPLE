@@ -253,8 +253,8 @@ class ProjectCollaboration extends Component<Props, State> {
                     <Dropdown.Item onClick={() => this.handleRoleChange(RoleEnum.VIEWER)}>
                       {RoleEnum.VIEWER}
                     </Dropdown.Item>
-                    <Dropdown.Item onClick={() => this.handleRoleChange(RoleEnum.EDIOR)}>
-                      {RoleEnum.EDIOR}
+                    <Dropdown.Item onClick={() => this.handleRoleChange(RoleEnum.EDITOR)}>
+                      {RoleEnum.EDITOR}
                     </Dropdown.Item>
                   </Dropdown.Menu>
                 </Dropdown>
@@ -339,7 +339,7 @@ class ProjectCollaboration extends Component<Props, State> {
                         <Dropdown.Menu>
                           <Dropdown.Item
                             onClick={() =>
-                              this.changeCollaboratorRole(collaborator.id, RoleEnum.EDIOR)
+                              this.changeCollaboratorRole(collaborator.id, RoleEnum.EDITOR)
                             }
                             disabled={isCollaboratorOwner || isCurrentUser}
                           >
