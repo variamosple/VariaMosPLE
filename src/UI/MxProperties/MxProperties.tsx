@@ -23,6 +23,7 @@ import CheckboxItem from "../CheckboxList/CheckboxItem";
 import { MdEdit } from "react-icons/md";
 import { FaTrashAlt } from "react-icons/fa";
 import { MdAddCircle } from "react-icons/md";
+import { FaInfoCircle } from "react-icons/fa";
 
 import secretGraph from '../SuggestionInput/secretGraph.json';
 import secretGraphNFR from '../SuggestionInput/SecretGraphNFR.json';
@@ -977,7 +978,7 @@ export default class MxProperties extends Component<Props, State> {
     return (
       <div className="row" style={style}>
         <div className="col-md-3">
-          <label title={titleToolTip}>{labelControl}</label>   {" "}
+          <label title={titleToolTip}>{labelControl}</label>   {" "}<span title={titleToolTip}><FaInfoCircle  /></span>
           {editionControl}
         </div>
         <div className="col-md-9">

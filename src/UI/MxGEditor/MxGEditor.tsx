@@ -1,4 +1,4 @@
-import React, { Component} from "react";
+import React, { Component } from "react";
 import "./MxGEditor.css";
 
 import { mxGraph } from "mxgraph";
@@ -34,7 +34,7 @@ import { LuSheet } from "react-icons/lu";
 import { RiSave3Fill } from "react-icons/ri";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGroup } from "reactstrap";
 import MxProperties from "../MxProperties/MxProperties";
-import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
+import { RoleEnum } from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 import KaosGenerator from "../Scope/KaosGenerator";
 import {
   destroyModelAwareness,
@@ -73,12 +73,12 @@ interface State {
   pendingChanges: boolean;  // Nuevo estado para cambios pendientes
 
   //   Collab
-    isCollaborative: boolean;
-    collaborators: Array<{id: string, name: string,email: string; role: string }>;
-    showCollaboratorsModal: boolean;
-    userRole: string;
-    backupObject: any;
-    awarnessStates?: Array<any>;
+  isCollaborative: boolean;
+  collaborators: Array<{ id: string, name: string, email: string; role: string }>;
+  showCollaboratorsModal: boolean;
+  userRole: string;
+  backupObject: any;
+  awarnessStates?: Array<any>;
   collaborativeUsers: Array<{
     name: string;
     color: string;
@@ -103,7 +103,7 @@ export default class MxGEditor extends Component<Props, State> {
   currentModel?: Model;
   modifiedObject?: any;
   isRemoteChange: boolean;
-  isInitialLoad: boolean= false;
+  isInitialLoad: boolean = false;
   currentModelObserver: (() => void) | null = null;
   awarenessUnsubscribe: (() => void) | null = null;
   incrementalUpdaters: Map<string, IncrementalGraphUpdater> = new Map();
@@ -132,7 +132,7 @@ export default class MxGEditor extends Component<Props, State> {
       allScopeConfigurations: [] as Array<Record<string, any>>,
       openAccordion: [],
       showRequirementsReportModal: false,
-// Collab
+      // Collab
       isCollaborative: false,
       collaborators: [],
       showCollaboratorsModal: false,
@@ -233,7 +233,7 @@ export default class MxGEditor extends Component<Props, State> {
       }
 
       this.setState({ pendingChanges: true });
-      
+
       this.graph.refresh();
       let model = this.currentModel;
       this.loadModel(model);
@@ -259,17 +259,17 @@ export default class MxGEditor extends Component<Props, State> {
         userRole: projectInfo.role || "",
       }, () => {
 
-      if (projectInfo.is_collaborative && projectInfo.project.id && model) {
-        this.observeModel(projectInfo.project.id, model);
-      }
+        if (projectInfo.is_collaborative && projectInfo.project.id && model) {
+          this.observeModel(projectInfo.project.id, model);
+        }
 
       });
 
     }
-  
+
     me.forceUpdate();
   }
-// TODO SE EJECUTA CUANDO SE ABRE UN DIAGRAMA, NO UN PROYECTO
+  // TODO SE EJECUTA CUANDO SE ABRE UN DIAGRAMA, NO UN PROYECTO
   componentDidMount() {
     let me = this;
     let model = null
@@ -320,7 +320,7 @@ export default class MxGEditor extends Component<Props, State> {
     this.logAccordionContents();
 
     const projectInfo = this.props.projectService.getProjectInformation();
-    
+
     if (projectInfo) {
       // Actualizar estado del proyecto
       me.setState({
@@ -329,9 +329,9 @@ export default class MxGEditor extends Component<Props, State> {
         userRole: projectInfo.role || "",
       }, () => {
 
-      if (projectInfo.is_collaborative && projectInfo.project.id && model) {
-        this.observeModel(projectInfo.project.id, model);
-      }
+        if (projectInfo.is_collaborative && projectInfo.project.id && model) {
+          this.observeModel(projectInfo.project.id, model);
+        }
 
       });
 
@@ -400,7 +400,7 @@ export default class MxGEditor extends Component<Props, State> {
         }
       }
       evt.consume();
-      
+
       if (evt.properties.cells) {
         // Procesar todas las celdas movidas
         evt.properties.cells.forEach(cell => {
@@ -463,9 +463,9 @@ export default class MxGEditor extends Component<Props, State> {
                 element.height = cell.geometry.height;
               }
             }
-          } 
+          }
         }
-        
+
         this.syncModelChanges();
 
       } catch (error) {
@@ -513,7 +513,7 @@ export default class MxGEditor extends Component<Props, State> {
       me.forceUpdate();
     }
 
-  );
+    );
 
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
       // Solo consumir el evento, sin awareness colaborativo para selección simple
@@ -584,7 +584,7 @@ export default class MxGEditor extends Component<Props, State> {
 
 
 
-    graph.addListener(mx.mxEvent.CELL_CONNECTED,  (sender, evt) => {
+    graph.addListener(mx.mxEvent.CELL_CONNECTED, (sender, evt) => {
       try {
         evt.consume();
         let edge = evt.getProperty("edge");
@@ -611,8 +611,8 @@ export default class MxGEditor extends Component<Props, State> {
             // Verificar dirección inversa: target -> source (solo para tipos diferentes)
             // Esto evita problemas con relaciones que no deberían ser bidireccionales
             const reverseDirection = rel.target.includes(source.value.tagName) &&
-                                   rel.source == target.value.tagName &&
-                                   source.value.tagName !== target.value.tagName;
+              rel.source == target.value.tagName &&
+              source.value.tagName !== target.value.tagName;
 
             if (normalDirection || reverseDirection) {
               relationshipType = key;
@@ -704,10 +704,10 @@ export default class MxGEditor extends Component<Props, State> {
 
     graph.addListener(mx.mxEvent.REMOVE_CELLS, (sender, evt) => {
       evt.consume();
-      
+
       if (evt.properties.cells) {
         const removedCells = evt.properties.cells;
-        
+
         removedCells.forEach(cell => {
           if (cell.value && cell.value.attributes) {
             const uid = cell.value.getAttribute("uid");
@@ -721,7 +721,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         });
 
-      this.syncModelChanges();
+        this.syncModelChanges();
 
       }
     });
@@ -783,7 +783,7 @@ export default class MxGEditor extends Component<Props, State> {
 
     // Agregar eventos de mouse para detectar inicio de drag
     graph.addMouseListener({
-      mouseDown: function(sender, me_evt) {
+      mouseDown: function (sender, me_evt) {
         const cell = me_evt.getCell();
         if (cell && cell.value && cell.value.attributes) {
           const uid = cell.value.getAttribute("uid");
@@ -792,7 +792,7 @@ export default class MxGEditor extends Component<Props, State> {
           me.setState({ movingCellId: uid });
         }
       },
-      mouseMove: function(sender, me_evt) {
+      mouseMove: function (sender, me_evt) {
         // Solo si hay una celda siendo arrastrada y tenemos una celda marcada para mover
         if (graph.isMouseDown && me.state.movingCellId) {
           // Si no hemos marcado que estamos moviendo, hacerlo ahora
@@ -811,7 +811,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
       },
-      mouseUp: function(sender, me_evt) {
+      mouseUp: function (sender, me_evt) {
         // Limpiar el ID de la celda que estábamos preparando para mover
         me.setState({ movingCellId: null });
       }
@@ -1111,20 +1111,20 @@ export default class MxGEditor extends Component<Props, State> {
       if (graph) {
         graph.getModel().beginUpdate();
         try {
-        // ---------------------------------------------------------
+          // ---------------------------------------------------------
           const graphModel = graph.getModel();
           const parent = graph.getDefaultParent();
           const childCount = graphModel.getChildCount(parent);
-          
+
           for (let i = childCount - 1; i >= 0; i--) {
             graphModel.remove(graphModel.getChildAt(parent, i));
-          } 
+          }
           // ---------------------------------------------------------
           if (model) {
             let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
             if (!languageDefinition) {
-             console.error("Language definition not found for model type:", model.type);
-             this.showMessageModal("Error", "Language definition not found for model type: " + model.type);
+              console.error("Language definition not found for model type:", model.type);
+              this.showMessageModal("Error", "Language definition not found for model type: " + model.type);
               return;
             }
             let orden = [];
@@ -1857,10 +1857,70 @@ export default class MxGEditor extends Component<Props, State> {
     }
 
     const backup = JSON.parse(JSON.stringify(this.state.selectedObject));
+    this.modifiedObject = backup;
     this.setState({
       showPropertiesModal: true,
       backupObject: backup,
       pendingChanges: false
+    });
+  }
+
+  acceptPropertiesModal = (e) => {
+    if (this.state.pendingChanges) {
+      // Awareness colaborativo: Marcar que el usuario canceló la edición
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
+
+      const originalObject = this.state.backupObject;
+      if (originalObject) {
+        // Restaurar el objeto en el modelo
+        if (this.currentModel) {
+          const element = this.props.projectService.findModelElementById(this.currentModel, originalObject.id);
+          if (element) {
+            Object.assign(element, originalObject);
+          } else {
+            const relationship = this.props.projectService.findModelRelationshipById(this.currentModel, originalObject.id);
+            if (relationship) {
+              Object.assign(relationship, originalObject);
+            }
+          }
+        }
+        // Actualizar la vista
+        this.props.projectService.raiseEventUpdatedElement(
+          this.currentModel,
+          originalObject
+        );
+      }
+    } else {
+      // Awareness colaborativo: Marcar que el usuario terminó la edición sin cambios
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
+    }
+
+    this.setState({
+      showPropertiesModal: false,
+      pendingChanges: false,
+      backupObject: null
+    });
+  }
+
+  cancelPropertiesModal = () => {
+    Object.assign(this.state.selectedObject, this.modifiedObject);
+    this.props.projectService.saveProject();
+    this.props.projectService.raiseEventUpdatedElement(
+      this.currentModel,
+      this.state.selectedObject
+    );
+    this.setState({
+      showPropertiesModal: false,
+      pendingChanges: false,
+      backupObject: null
     });
   }
 
@@ -3467,156 +3527,156 @@ export default class MxGEditor extends Component<Props, State> {
   };
 
 
-//   NEW COLABORATIVE FUNCTIONALITY
+  //   NEW COLABORATIVE FUNCTIONALITY
 
-syncModelChanges() {
-  const projectId = this.props.projectService.getProject().id;
+  syncModelChanges() {
+    const projectId = this.props.projectService.getProject().id;
 
-  if (this.state.isCollaborative && projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
+    if (this.state.isCollaborative && projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
 
 
 
-    // Usar la nueva función incremental para mejor rendimiento
-    this.props.projectService.updateModelState(projectId, this.currentModel.id, (state) => {
-      state.set("data", {
-        elements: this.currentModel.elements,
-        relationships: this.currentModel.relationships,
-        timestamp: Date.now()
+      // Usar la nueva función incremental para mejor rendimiento
+      this.props.projectService.updateModelState(projectId, this.currentModel.id, (state) => {
+        state.set("data", {
+          elements: this.currentModel.elements,
+          relationships: this.currentModel.relationships,
+          timestamp: Date.now()
+        });
       });
-    });
 
-    // Actualizar snapshot local específico para este modelo
-    if (this.currentModel) {
-      const modelKey = `${this.currentModel.type}_${this.currentModel.id}`;
-      this.modelSnapshots.set(modelKey, {
-        elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
-        relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
-      });
+      // Actualizar snapshot local específico para este modelo
+      if (this.currentModel) {
+        const modelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+        this.modelSnapshots.set(modelKey, {
+          elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
+          relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
+        });
+      }
     }
   }
-}
 
-// Conjunto
+  // Conjunto
 
-observeModel(projectId: string, model: Model) {
-  // Eliminar el observador anterior si existe
-  if (this.currentModelObserver) {
-    this.currentModelObserver();
-    this.currentModelObserver = null;
-  }
+  observeModel(projectId: string, model: Model) {
+    // Eliminar el observador anterior si existe
+    if (this.currentModelObserver) {
+      this.currentModelObserver();
+      this.currentModelObserver = null;
+    }
 
-  this.unsuscribeModelAwareness(projectId, model.id);
+    this.unsuscribeModelAwareness(projectId, model.id);
 
-  // Limpiar recursos de modelos anteriores
-  this.cleanupUnusedModelResources();
+    // Limpiar recursos de modelos anteriores
+    this.cleanupUnusedModelResources();
 
-  // Obtener o crear el updater específico para este modelo
-  const modelKey = `${model.type}_${model.id}`;
-  if (!this.incrementalUpdaters.has(modelKey) && this.graph) {
-    this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
-  }
+    // Obtener o crear el updater específico para este modelo
+    const modelKey = `${model.type}_${model.id}`;
+    if (!this.incrementalUpdaters.has(modelKey) && this.graph) {
+      this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
+    }
 
-  // Asegurar que el modelo actual esté actualizado
-  this.currentModel = model;
+    // Asegurar que el modelo actual esté actualizado
+    this.currentModel = model;
 
-  // Configurar el nuevo observador con sincronización incremental
-  this.currentModelObserver = this.props.projectService.observeModelState(
-    projectId,
-    model.id,
-    (state) => {
+    // Configurar el nuevo observador con sincronización incremental
+    this.currentModelObserver = this.props.projectService.observeModelState(
+      projectId,
+      model.id,
+      (state) => {
 
-      // Solo procesar si el modelo actual coincide con el modelo observado
-      if (state && this.currentModel && this.currentModel.id === model.id && !this.isInitialLoad) {
-        this.isRemoteChange = true;
+        // Solo procesar si el modelo actual coincide con el modelo observado
+        if (state && this.currentModel && this.currentModel.id === model.id && !this.isInitialLoad) {
+          this.isRemoteChange = true;
 
-        const modelData = state.get("data");
-        if (modelData && this.currentModel) {
-          const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+          const modelData = state.get("data");
+          if (modelData && this.currentModel) {
+            const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
 
-          // Asegurar que tenemos un snapshot válido antes de calcular diferencias
-          if (!this.modelSnapshots.has(currentModelKey)) {
-            this.modelSnapshots.set(currentModelKey, {
-              elements: JSON.parse(JSON.stringify(this.currentModel.elements || [])),
-              relationships: JSON.parse(JSON.stringify(this.currentModel.relationships || []))
-            });
-          }
-
-          const snapshot = this.modelSnapshots.get(currentModelKey);
-          const snapshotAsModel = {
-            ...this.currentModel,
-            elements: snapshot.elements,
-            relationships: snapshot.relationships
-          };
-          
-          const diff = calculateModelDiff(snapshotAsModel, modelData);
-
-          if (hasMeaningfulChanges(diff)) {
-
-            // Actualizar el modelo actual
-            this.currentModel.elements = modelData.elements || this.currentModel.elements;
-            this.currentModel.relationships = modelData.relationships || this.currentModel.relationships;
-
-            // Aplicar cambios incrementales al grafo usando el updater específico
-            const updater = this.incrementalUpdaters.get(currentModelKey);
-            if (updater) {
-              updater.applyIncrementalChanges(this.currentModel, diff, {
-                refreshVertexLabel: this.refreshVertexLabel.bind(this),
-                refreshEdgeLabel: this.refreshEdgeLabel.bind(this),
-                refreshEdgeStyle: this.refreshEdgeStyle.bind(this),
-                createOverlays: this.createOverlays.bind(this),
-                getFontColorFromShape: this.getFontColorFromShape.bind(this)
+            // Asegurar que tenemos un snapshot válido antes de calcular diferencias
+            if (!this.modelSnapshots.has(currentModelKey)) {
+              this.modelSnapshots.set(currentModelKey, {
+                elements: JSON.parse(JSON.stringify(this.currentModel.elements || [])),
+                relationships: JSON.parse(JSON.stringify(this.currentModel.relationships || []))
               });
             }
 
-            // Actualizar snapshot específico después de aplicar cambios
-            this.modelSnapshots.set(currentModelKey, {
-              elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
-              relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
-            });
+            const snapshot = this.modelSnapshots.get(currentModelKey);
+            const snapshotAsModel = {
+              ...this.currentModel,
+              elements: snapshot.elements,
+              relationships: snapshot.relationships
+            };
+
+            const diff = calculateModelDiff(snapshotAsModel, modelData);
+
+            if (hasMeaningfulChanges(diff)) {
+
+              // Actualizar el modelo actual
+              this.currentModel.elements = modelData.elements || this.currentModel.elements;
+              this.currentModel.relationships = modelData.relationships || this.currentModel.relationships;
+
+              // Aplicar cambios incrementales al grafo usando el updater específico
+              const updater = this.incrementalUpdaters.get(currentModelKey);
+              if (updater) {
+                updater.applyIncrementalChanges(this.currentModel, diff, {
+                  refreshVertexLabel: this.refreshVertexLabel.bind(this),
+                  refreshEdgeLabel: this.refreshEdgeLabel.bind(this),
+                  refreshEdgeStyle: this.refreshEdgeStyle.bind(this),
+                  createOverlays: this.createOverlays.bind(this),
+                  getFontColorFromShape: this.getFontColorFromShape.bind(this)
+                });
+              }
+
+              // Actualizar snapshot específico después de aplicar cambios
+              this.modelSnapshots.set(currentModelKey, {
+                elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
+                relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
+              });
+            }
           }
+
+          this.isRemoteChange = false;
         }
-
-        this.isRemoteChange = false;
       }
-    }
-  );
+    );
 
-  this.initNewModelAwarness(projectId, model.id);
-}
+    this.initNewModelAwarness(projectId, model.id);
+  }
 
-/**
- * Limpia los updaters y snapshots de modelos que ya no se están usando
- */
-private cleanupUnusedModelResources() {
-  // Mantener solo los recursos del modelo actual
-  if (this.currentModel) {
-    const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+  /**
+   * Limpia los updaters y snapshots de modelos que ya no se están usando
+   */
+  private cleanupUnusedModelResources() {
+    // Mantener solo los recursos del modelo actual
+    if (this.currentModel) {
+      const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
 
-    // Limpiar updaters no utilizados
-    for (const key of this.incrementalUpdaters.keys()) {
-      if (key !== currentModelKey) {
-        this.incrementalUpdaters.delete(key);
+      // Limpiar updaters no utilizados
+      for (const key of this.incrementalUpdaters.keys()) {
+        if (key !== currentModelKey) {
+          this.incrementalUpdaters.delete(key);
+        }
       }
-    }
 
-    // Limpiar snapshots no utilizados
-    for (const key of this.modelSnapshots.keys()) {
-      if (key !== currentModelKey) {
-        this.modelSnapshots.delete(key);
+      // Limpiar snapshots no utilizados
+      for (const key of this.modelSnapshots.keys()) {
+        if (key !== currentModelKey) {
+          this.modelSnapshots.delete(key);
+        }
       }
     }
   }
-}
 
 
-  unsuscribeModelAwareness(projectId : string, modelId: string) {
+  unsuscribeModelAwareness(projectId: string, modelId: string) {
 
-    if (this.awarenessUnsubscribe){
+    if (this.awarenessUnsubscribe) {
       this.awarenessUnsubscribe();
       this.awarenessUnsubscribe = null;
     }
 
-    if (modelId && projectId){
+    if (modelId && projectId) {
       destroyModelAwareness(projectId, modelId);
     }
   }
@@ -3632,7 +3692,7 @@ private cleanupUnusedModelResources() {
         color: "#" + Math.floor(Math.random() * 16777215).toString(16)
       });
 
-      this.awarenessUnsubscribe = onModelAwarenessChange(projectId, modelId , (state) => {
+      this.awarenessUnsubscribe = onModelAwarenessChange(projectId, modelId, (state) => {
         const awarenessStates = Array.from(state.values());
 
         // Procesar usuarios colaborativos para los indicadores visuales
@@ -3662,11 +3722,11 @@ private cleanupUnusedModelResources() {
         });
       })
 
-    } 
+    }
   }
   // Conjunto
 
-    
+
   // TODO: Ver que hacer con esto
   // changeProjectCollaborative() { 
   //   try {
@@ -3681,7 +3741,7 @@ private cleanupUnusedModelResources() {
   //         if (response) {
   //           const newCollaborativeState = response.collaborativeState;
   //           this.setState({ isCollaborative: newCollaborativeState }); 
-            
+
   //           // Manejar la conexión/desconexión del WebSocket
   //           if (newCollaborativeState) {
   //             await this.props.projectService.setupProjectSync(projectId);
@@ -3705,11 +3765,11 @@ private cleanupUnusedModelResources() {
   // }
 
   handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const isCollaborative  = this.state;
+    const isCollaborative = this.state;
     const projectId = this.props.projectService.getProject().id;
     let modelId = null;
     modelId = this.currentModel && this.currentModel.id === null ? 'none' : this.currentModel?.id;
-      
+
     if (isCollaborative && projectId && modelId) {
       const rect = this.graphContainerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -3718,7 +3778,7 @@ private cleanupUnusedModelResources() {
     }
   };
 
-// END NEW COLABORATIVE FUNCTIONALITY
+  // END NEW COLABORATIVE FUNCTIONALITY
 
   render() {
     return (
@@ -3759,59 +3819,59 @@ private cleanupUnusedModelResources() {
 
         <div ref={this.graphContainerRef} className="GraphContainer" style={{ position: "relative" }} onMouseMove={this.handleMouseMove}>
 
-        {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => {
-          // Filtrar usuarios que tengan cursor, estén en el modelo actual y no sean el usuario actual
-          if (!user.user || !user.user.cursor || user.user.modelId !== this.currentModel?.id) {
-            return false;
-          }
+          {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => {
+            // Filtrar usuarios que tengan cursor, estén en el modelo actual y no sean el usuario actual
+            if (!user.user || !user.user.cursor || user.user.modelId !== this.currentModel?.id) {
+              return false;
+            }
 
-          // Excluir el usuario actual por nombre
-          const currentUserId = this.props.projectService.getUser();
-          const currentUserName = this.state.collaborators.find(c => c.id === currentUserId)?.name;
-          return user.user.name !== currentUserName;
-        })
-      .map((user: any, idx: number) => (
-        <div
-          key={idx}
-          style={{
-            position: "absolute",
-            left: user.user.cursor.x,
-            top: user.user.cursor.y,
-            pointerEvents: "none",
-            zIndex: 10,
-            color: user.user.color,
-            fontWeight: "bold",
-            fontSize: 12,
-            background: "#fff8",
-            borderRadius: 4,
-            padding: "2px 6px",
-            border: `1px solid ${user.user.color}`,
-            transform: "translate(-50%, -50%)"
-          }}
-        >
-          {user.user.name}
-          <span style={{
-            display: "inline-block",
-            width: 8,
-            height: 8,
-            background: user.user.color,
-            borderRadius: "50%",
-            marginLeft: 4,
-            verticalAlign: "middle"
-          }} />
+            // Excluir el usuario actual por nombre
+            const currentUserId = this.props.projectService.getUser();
+            const currentUserName = this.state.collaborators.find(c => c.id === currentUserId)?.name;
+            return user.user.name !== currentUserName;
+          })
+            .map((user: any, idx: number) => (
+              <div
+                key={idx}
+                style={{
+                  position: "absolute",
+                  left: user.user.cursor.x,
+                  top: user.user.cursor.y,
+                  pointerEvents: "none",
+                  zIndex: 10,
+                  color: user.user.color,
+                  fontWeight: "bold",
+                  fontSize: 12,
+                  background: "#fff8",
+                  borderRadius: 4,
+                  padding: "2px 6px",
+                  border: `1px solid ${user.user.color}`,
+                  transform: "translate(-50%, -50%)"
+                }}
+              >
+                {user.user.name}
+                <span style={{
+                  display: "inline-block",
+                  width: 8,
+                  height: 8,
+                  background: user.user.color,
+                  borderRadius: "50%",
+                  marginLeft: 4,
+                  verticalAlign: "middle"
+                }} />
+              </div>
+            ))}
+
+          {/* Indicadores colaborativos para acciones de usuario */}
+          <CollaborativeIndicators
+            users={this.state.collaborativeUsers}
+            currentUserId={this.props.projectService.getUser()}
+            currentUserName={this.state.collaborators.find(c => c.id === this.props.projectService.getUser())?.name || ''}
+            graph={this.graph}
+          />
+
         </div>
-        ))}
 
-        {/* Indicadores colaborativos para acciones de usuario */}
-        <CollaborativeIndicators
-          users={this.state.collaborativeUsers}
-          currentUserId={this.props.projectService.getUser()}
-          currentUserName={this.state.collaborators.find(c => c.id === this.props.projectService.getUser())?.name || ''}
-          graph={this.graph}
-        />
-
-        </div>
-        
         <div>
           <Modal
             show={this.state.showCatalogModal}
@@ -3920,9 +3980,9 @@ private cleanupUnusedModelResources() {
             </Modal.Header>
             <Modal.Body>
               <div style={{ maxHeight: "65vh", overflow: "auto" }}>
-                <MxProperties 
-                  projectService={this.props.projectService} 
-                  model={this.currentModel} 
+                <MxProperties
+                  projectService={this.props.projectService}
+                  model={this.currentModel}
                   item={this.state.selectedObject}
                 />
               </div>
@@ -3936,7 +3996,7 @@ private cleanupUnusedModelResources() {
               </Button>
               <Button
                 variant="secondary"
-                onClick={this.hidePropertiesModal}
+                onClick={this.cancelPropertiesModal}
               >
                 Cancel
               </Button>
