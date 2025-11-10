@@ -163,7 +163,7 @@ export default class MxPalette extends Component<Props, State> {
     if (def.properties) {
       for (let i = 0; i < def.properties.length; i++) {
         const p = def.properties[i];
-        const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.possibleValuesLinks, p.minCardinality, p.maxCardinality, p.constraint, p.defaultValue);
+        const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.possibleValuesLinks, p.minCardinality, p.maxCardinality, p.constraint, p.defaultValue, p.autocompleteSource);
         if (p.defaultValue=="") {
           property.value=p.defaultValue;
         }else if(p.defaultValue){

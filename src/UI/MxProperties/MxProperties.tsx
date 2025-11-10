@@ -375,6 +375,7 @@ export default class MxProperties extends Component<Props, State> {
           this.state.propertyMinCardinality,
           this.state.propertyMaxCardinality,
           this.state.propertyConstraint,
+          null,
           null
         )
       );
@@ -594,11 +595,10 @@ export default class MxProperties extends Component<Props, State> {
             for (let p = 0; p < this.currentObject.properties.length; p++) {
               if (this.currentObject.properties[p].name == property.name) {
                 this.currentObject.properties[p].type = property.type;
+                this.currentObject.properties[p].autocompleteSource = property.autocompleteSource;
                 this.currentObject.properties[p].options = property.options;
-                this.currentObject.properties[p].linked_property =
-                  property.linked_property;
-                this.currentObject.properties[p].linked_value =
-                  property.linked_value;
+                this.currentObject.properties[p].linked_property = property.linked_property;
+                this.currentObject.properties[p].linked_value = property.linked_value;
                 index = p;
                 break;
               }
@@ -620,7 +620,8 @@ export default class MxProperties extends Component<Props, State> {
                   property.minCardinality,
                   property.maxCardinality,
                   property.constraint,
-                  null
+                  null,
+                  property.autocompleteSource
                 )
               );
               index = this.currentObject.properties.length - 1;
@@ -756,25 +757,25 @@ export default class MxProperties extends Component<Props, State> {
         );
         break;
       case "Image":
-            control = (
-              <ImageInput
-                className="form-control form-control-sm ImageInput"
-                data-name={property.name}
-                onChange={this.input_onChange}
-                value={this.state.values[property.name]}
-              />
-            );
-            break;
+        control = (
+          <ImageInput
+            className="form-control form-control-sm ImageInput"
+            data-name={property.name}
+            onChange={this.input_onChange}
+            value={this.state.values[property.name]}
+          />
+        );
+        break;
       case "Date":
         control = (
           <input
-              className="form-control form-control-sm"
-              type="date"
-              title={titleToolTip}
-              data-name={property.name}
-              onChange={this.input_onChange}
-              value={this.state.values[property.name]}
-            />
+            className="form-control form-control-sm"
+            type="date"
+            title={titleToolTip}
+            data-name={property.name}
+            onChange={this.input_onChange}
+            value={this.state.values[property.name]}
+          />
         );
         break;
       case "Integer":
@@ -782,7 +783,7 @@ export default class MxProperties extends Component<Props, State> {
       case "Double":
       case "Real":
         if (possibleValues && possibleValues != "") {
-          if (!(possibleValues.includes('..'))) { 
+          if (!(possibleValues.includes('..'))) {
             let options = [];
             let possibleValuesList = this.getListFromString(possibleValues);
             if (property.name != "Selected") {
@@ -818,7 +819,7 @@ export default class MxProperties extends Component<Props, State> {
               </select>
             );
             break;
-          } 
+          }
         }
 
         control = (
@@ -940,10 +941,14 @@ export default class MxProperties extends Component<Props, State> {
         }
         break;
       case "Autocomplete":
-        let textGraph:any=secretGraph;
-        if (this.currentObject.type=="NonFunctionalRequirement") {
-          textGraph=secretGraphNFR;
-        } 
+        let textGraph: any = secretGraph;
+        if (this.currentObject.type == "NonFunctionalRequirement") {
+          textGraph = secretGraphNFR;
+        }
+        if (property.autocompleteSource) {
+          let json = this.base64ToString(property.autocompleteSource);
+          textGraph = JSON.parse(json);
+        }
         control = (
           <SuggestionInput
             className="form-control form-control-sm"
@@ -968,7 +973,7 @@ export default class MxProperties extends Component<Props, State> {
       )
     }
 
-    let labelControl=property.name.replace(/_/g, " ");
+    let labelControl = property.name.replace(/_/g, " ");
 
     return (
       <div className="row" style={style}>
@@ -981,6 +986,14 @@ export default class MxProperties extends Component<Props, State> {
         </div>
       </div>
     );
+  }
+
+  base64ToString(base64) {
+    const decoded = atob(base64);
+    const text = decodeURIComponent(
+      decoded.split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+    );
+    return text;
   }
 
 

@@ -58,7 +58,7 @@ export default class KaosGenerator {
           "Description", purpose, "String",
           undefined, undefined, undefined,
           false, true, "Hard goal",
-          "", {}, 0, 0, "", ""
+          "", {}, 0, 0, "", "", null
         )
       ],
       sourceModelElements: [],
@@ -86,7 +86,7 @@ export default class KaosGenerator {
               "Description", text, "String",
               undefined, undefined, undefined,
               false, true, "Soft goal",
-              "", {}, 0, 0, "", ""
+              "", {}, 0, 0, "", "", null
             )
           ],
           sourceModelElements: [],
@@ -131,7 +131,7 @@ export default class KaosGenerator {
               "Description", need, "String",
               undefined, undefined, undefined,
               false, true, "Hard goal",
-              "", {}, 0, 0, "", ""
+              "", {}, 0, 0, "", "", null
             )
           ],
           sourceModelElements: [],
@@ -173,7 +173,7 @@ export default class KaosGenerator {
                   "Description", text, "String",
                   undefined, undefined, undefined,
                   false, true, "Soft goal",
-                  "", {}, 0, 0, "", ""
+                  "", {}, 0, 0, "", "", null
                 )
               ],
               sourceModelElements: [],
@@ -210,7 +210,7 @@ export default class KaosGenerator {
               "Description", `Implements ${sub.name}`, "String",
               undefined, undefined, undefined,
               false, true, "Operationalization",
-              "", {}, 0, 0, "", ""
+              "", {}, 0, 0, "", "", null
             )
           ],
           sourceModelElements: [],

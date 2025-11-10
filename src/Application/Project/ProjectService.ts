@@ -1849,7 +1849,7 @@ export default class ProjectService {
     formattedResults.forEach(elem => {
       let esdelcore = !elem[1];
       const element = this.findModelElementByIdInProject(elem[0]);
-      const property = new Property('Core', esdelcore, "Boolean", null, null, null, false, false, null, null, null, null, null, null, null);
+      const property = new Property('Core', esdelcore, "Boolean", null, null, null, false, false, null, null, null, null, null, null, null, null);
       element.properties.push(property);
       console.log(element.properties);
     });
