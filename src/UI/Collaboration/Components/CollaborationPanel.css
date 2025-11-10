@@ -1,0 +1,93 @@
+.collaboration-panel {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  margin: 8px 12px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.collaboration-header {
+  background-color: #e9ecef;
+  padding: 8px 12px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.collaboration-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.collaboration-content {
+  padding: 8px;
+}
+
+.collaboration-buttons {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.collaboration-buttons:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.collaboration-awareness {
+  /* Los estilos específicos están en ProjectAwareness.css */
+}
+
+/* Ajustes para que los botones se vean mejor en el panel */
+.collaboration-panel .project-collaboration {
+  justify-content: center;
+  gap: 6px;
+}
+
+.collaboration-panel .collaboration-button {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+  font-size: 10px;
+  padding: 6px 8px;
+}
+
+/* Ajustes para el awareness en el panel */
+.collaboration-panel .project-awareness {
+  margin: 0;
+  border: none;
+  background-color: transparent;
+  padding: 4px 0;
+}
+
+.collaboration-panel .awareness-header {
+  margin-bottom: 6px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .collaboration-panel {
+    margin: 6px 8px;
+  }
+  
+  .collaboration-header {
+    padding: 6px 8px;
+  }
+  
+  .collaboration-title {
+    font-size: 11px;
+  }
+  
+  .collaboration-content {
+    padding: 6px;
+  }
+  
+  .collaboration-panel .collaboration-button {
+    font-size: 9px;
+    padding: 4px 6px;
+  }
+}

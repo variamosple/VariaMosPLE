@@ -55,7 +55,10 @@ export default function OpenDialog({
   const [semanticsReady, setSemanticsReady] = useState(false);
   const [savedQueries, setSavedQueries] = useState({});
   const [queryName, setQueryName] = useState("");
-  const [projects, setProjects] = useState([]);
+  // NUEVAS VARIABLES
+  const [owned_projects, setOwnedProjects] = useState<ProjectInformation[]>([]);
+  const [sharedProjects, setSharedProjects] = useState<ProjectInformation[]>([]); 
+  // 
   const [templateProjects, setTemplateProjects] = useState([]);
   const [users, setUsers] = useState(["Hugo", "Paco", "Luis"]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -160,7 +163,9 @@ export default function OpenDialog({
     //setSavedQueries(savedQueries);
   };
 
-  const   getProjectsByUser = () => {
+
+  // MODIFICADO
+  const getProjectsByUser = () => {
     if (!projectService.isGuessUser()) {
       setKey("privateProjects");
     }
@@ -168,8 +173,10 @@ export default function OpenDialog({
     projectService.getTemplateProjects(getTemplateProjectsSuccessCallback, getTemplateProjectsErrorCallback);
   }
 
-  const getProjectsByUserSuccessCallback = (records: ProjectInformation[]) => {
-    setProjects(records);
+  const getProjectsByUserSuccessCallback = (response: { owned_projects: ProjectInformation[]; shared_projects: ProjectInformation[] }) => {
+    setOwnedProjects(response.owned_projects);
+    setSharedProjects(response.shared_projects);
+
   }
 
   const getProjectsByUserErrorCallback = (e) => {
@@ -195,17 +202,30 @@ export default function OpenDialog({
   const btnDeleteProject_onClic = (e) => {
     e.preventDefault();
     if (window.confirm("Delete this project?") == true) {
-      let p = e.target;
-      p = p.parentElement;
-      p = p.parentElement;
-      let projectId = p.attributes["data-id"].value;
-      let pi = new ProjectInformation(projectId, null, null, false, null, null, null, null);
-      let successCallback = (e) => {
-        getProjectsByUser();
+
+      const targetRow = e.target.closest("tr");
+      if (!targetRow || !targetRow.hasAttribute("data-id")) {
+        console.log("No data-id attribute found in the target row.");
+        return; 
+      }
+      const projectId = targetRow.getAttribute("data-id");
+
+      const isOwnedProjects = owned_projects.some((project) => project.id == projectId);
+
+      let pi = new ProjectInformation(projectId, null, null, null, false, null, null, null, null, false);
+      let successCallback = () => {
+        if (isOwnedProjects) {
+          setOwnedProjects((prevProjects) => prevProjects.filter((project) => project.id !== projectId));
+        }
+        else {
+          setSharedProjects((prevProjects) => prevProjects.filter((project) => project.id !== projectId));
+        }
       }
       projectService.deleteProjectInServer(pi, successCallback, null);
     }
   }
+
+
   const filterProjects = (projects) => {
     if (!searchTerm) return projects;
     return projects.filter((project) =>
@@ -214,17 +234,18 @@ export default function OpenDialog({
   };
 
 
-  const renderProjects = () => {
+  const renderProjects = (projects: ProjectInformation[], isDeletable: boolean) => {
     let elements = [];
     if (projects) {
       const filteredProjects = filterProjects(projects);
       for (let i = 0; i < filteredProjects.length; i++) {
         let project: ProjectInformation = filteredProjects[i];
         const element = (
-          <tr>
+          <tr key={project.id} data-id={project.id}>
             {/* <a title="Change name" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}><MdEdit/></a> */}
             <td>
-              <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
+              {isDeletable && <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
+            }
             </td>
             <td>
               <a href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
@@ -263,52 +284,6 @@ export default function OpenDialog({
         </tbody>
       </table>
     )
-  }
-
-  const renderTemplateProjects = () => {
-    if (templateProjects) {
-      const filteredTemplateProjects = filterProjects(templateProjects);
-      let elements = [];
-      for (let i = 0; i < filteredTemplateProjects.length; i++) {
-        let project: ProjectInformation = filteredTemplateProjects[i];
-        const element = (
-          <tr> 
-            <td>
-              <a href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
-            </td>
-            <td>
-              {new Date(project.date).toLocaleString()}
-            </td>
-            <td>
-              {project.description}
-            </td>
-            <td>
-              {project.author}
-            </td>
-            <td>
-              {project.source}
-            </td>
-          </tr>
-        );
-        elements.push(element);
-      }
-      return (
-        <table>
-          <thead style={{ position: 'sticky', top: '0', backgroundColor: 'white' }}>
-            <tr> 
-              <th>Name</th>
-              <th>Date</th>
-              <th>Description</th>
-              <th>Author</th>
-              <th>Source</th>
-            </tr>
-          </thead>
-          <tbody>
-            {elements}
-          </tbody>
-        </table>
-      )
-    }
   }
 
   const renderUsers = () => {
@@ -381,7 +356,11 @@ export default function OpenDialog({
                 {!projectService.isGuessUser() && (
                   <Tab eventKey="privateProjects" title="Personal"></Tab>
                 )}
+
+                <Tab eventKey="sharedProjects" title="Shared With Me"></Tab>
+                
                 <Tab eventKey="templateProjects" title="Public"></Tab>
+
               </Tabs>
             </div>
   
@@ -418,11 +397,13 @@ export default function OpenDialog({
   
           {/* Contenedor de proyectos */}
           {key === "privateProjects" ? (
-            <div className="div-container-projects">{renderProjects()}</div>
+            <div className="div-container-projects">{renderProjects(owned_projects, true)}</div>
+          ) : key === "sharedProjects" ? (
+            <div className="div-container-projects">{renderProjects(sharedProjects, false)}</div>
           ) : (
-            <div className="div-container-projects">{renderTemplateProjects()}</div>
+            <div className="div-container-projects">{renderProjects(templateProjects, false)}</div>
           )}
-  
+            
           <input
             type="file"
             id="uploadInput"

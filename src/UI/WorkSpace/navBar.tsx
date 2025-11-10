@@ -7,6 +7,7 @@ import SaveDialog from "../SaveDialog/saveDialog";
 
 import { SessionUser } from "@variamosple/variamos-components";
 import "./NavBar.css";
+import { RoleEnum } from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 
 interface Props {
   projectService: ProjectService;
@@ -37,19 +38,28 @@ class navBar extends Component<Props, State> {
   }
 
   saveProject() {
-    let me = this;
     if (this.props.projectService.isGuessUser()) {
-      this.exportProject(); 
-    }else{
-      let pf=this.props.projectService.getProjectInformation();
-      if (!pf) {
-        this.handleShowSaveModal();
-      }else if (!pf.id) {
-        this.handleShowSaveModal();
-      }else{
-        this.props.projectService.saveProjectInServer(pf, null, null);
-      }
-    } 
+      this.exportProject();
+      return;
+    }
+    const projectInfo = this.props.projectService.getProjectInformation();
+    const currentUser = this.props.projectService.getUser();
+
+    if (!projectInfo || !projectInfo.id || !currentUser) {
+      this.handleShowSaveModal();
+      return;
+    }
+    if (projectInfo.role === RoleEnum.OWNER || projectInfo.role === RoleEnum.EDITOR) {
+      this.props.projectService.saveProjectInServer(projectInfo, null, null);
+      return;
+    }
+    if (projectInfo.template) {
+      alert("This project is a template. Saving a copy instead.");
+      this.handleShowSaveModal();
+      return;
+    }
+    alert("You don't have permission to save this project. Saving a copy instead.");
+    this.handleShowSaveModal();
   }
 
   saveProjectAs() {
@@ -118,6 +128,7 @@ class navBar extends Component<Props, State> {
           <a title="Settings" onClick={() =>
             document.getElementById("projectManagement").click()
           }><span><img src="/images/menuIcons/settings.png"></img></span></a>{" "}
+
           <button
             type="button"
             data-bs-toggle="modal"

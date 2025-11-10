@@ -51,8 +51,8 @@ export default function SaveDialog({
   const [semanticsReady, setSemanticsReady] = useState(false);
   const [savedQueries, setSavedQueries] = useState({});
   const [queryName, setQueryName] = useState("");
-  const [projects, setProjects] = useState([]);
-  const [projectInformation, setProjectInformation] = useState(new ProjectInformation(null, null, null, false, null, null, null, new Date()));
+  const [projects, setProjects] = useState({owned: [], shared: []});
+  const [projectInformation, setProjectInformation] = useState(new ProjectInformation(null, null, null, null, false, null, null, null, new Date(), false));
   const [users, setUsers] = useState(["Hugo", "Paco", "Luis"]);
 
   //Load the saved queries from the local storage on load
@@ -61,7 +61,7 @@ export default function SaveDialog({
     if (savedQueries) {
       setSavedQueries(JSON.parse(savedQueries));
     }
-    getProjectsByUser();
+    // getProjectsByUser();
   }, []);
 
   useEffect(() => {
@@ -202,84 +202,85 @@ export default function SaveDialog({
     handleCloseCallback();
   };
 
-  const getProjectsByUser = () => {
-    let projectInformation = projectService.getProjectInformation();
-    if (projectInformation) {
-      let p2 = JSON.parse(JSON.stringify(projectInformation));
-      setProjectInformation(p2);
-    } else {
-      let project = projectService.getProject();
-      let p2 = new ProjectInformation(null, project.name, null, false, null, null, null, new Date());
-      setProjectInformation(p2);
-    }
-    projectService.getProjectsByUser(getProjectsByUserSuccessCallback, getProjectsByUserErrorCallback);
-  }
+//   const getProjectsByUser = () => {
+//     let projectInformation = projectService.getProjectInformation();
+//     if (projectInformation) {
+//       let p2 = JSON.parse(JSON.stringify(projectInformation));
+//       setProjectInformation(p2);
+//     } else {
+//       let project = projectService.getProject();
+//       let p2 = new ProjectInformation(null, null, project.name, null, false, null, null, null, new Date(), false);
+//       setProjectInformation(p2);
+//     }
+//     projectService.getProjectsByUser(getProjectsByUserSuccessCallback, getProjectsByUserErrorCallback);
+//   }
+// // TODO PREGUNTAR PARA QUE SIRVE?
+//   const getProjectsByUserSuccessCallback = (data: {owned_projects: ProjectInformation[]; shared_projects: ProjectInformation[]}) => {
+//     const {owned_projects, shared_projects} = data;
+//     setProjects({owned: owned_projects || [], shared: shared_projects || []}); 
+//   }
 
-  const getProjectsByUserSuccessCallback = (records: ProjectInformation[]) => {
-    setProjects(records);
-  }
+//   const getProjectsByUserErrorCallback = (e) => {
+//     alert(JSON.stringify(e));
+//   }
 
-  const getProjectsByUserErrorCallback = (e) => {
-    alert(JSON.stringify(e));
-  }
+//   const btnProject_onClic = (e) => {
+//     e.preventDefault();
+//     let index = e.target.attributes["data-index"].value;
+//     let projectInformation = projects[index];
+//     setProjectInformation(projectInformation);
+//     setKey("solversemantics");
+//   }
 
-  const btnProject_onClic = (e) => {
-    e.preventDefault();
-    let index = e.target.attributes["data-index"].value;
-    let projectInformation = projects[index];
-    setProjectInformation(projectInformation);
-    setKey("solversemantics");
-  }
-
-  const renderProjects = () => {
-    let elements = [];
-    if (projects) {
-      for (let i = 0; i < projects.length; i++) {
-        let project: ProjectInformation = projects[i];
-        const element = (
-          <tr>
-            {/* <a title="Change name" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}><MdEdit/></a> */}
-            {/* <td>
-              <a title="Delete project" href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnDeleteProject_onClic}><IoMdTrash /></a>
-            </td> */}
-            <td>
-              <a href="#" className="link-project" data-id={project.id} data-index={i} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
-            </td>
-            <td>
-              {new Date(project.date).toLocaleString()}
-            </td>
-            <td>
-              {project.description}
-            </td>
-            <td>
-              {project.author}
-            </td>
-            <td>
-              {project.source}
-            </td>
-          </tr>
-        );
-        elements.push(element);
-      }
-    }
-    return (
-      <table>
-        <thead style={{ position: 'sticky', top: '0', backgroundColor: 'white' }}>
-          <tr>
-            {/* <th></th> */}
-            <th>Name</th>
-            <th>Date</th>
-            <th>Description</th>
-            <th>Author</th>
-            <th>Source</th>
-          </tr>
-        </thead>
-        <tbody>
-          {elements}
-        </tbody>
-      </table>
-    )
-  }
+  // const renderProjects = () => {
+  //   if (!projects) return null;
+  
+  //   const renderProjectGroup = (group, title) => (
+  //     <>
+  //       <h3>{title}</h3>
+  //       <table>
+  //         <thead style={{ position: "sticky", top: "0", backgroundColor: "white" }}>
+  //           <tr>
+  //             <th>Name</th>
+  //             <th>Date</th>
+  //             <th>Description</th>
+  //             <th>Author</th>
+  //             <th>Source</th>
+  //           </tr>
+  //         </thead>
+  //         <tbody>
+  //           {group.map((project, i) => (
+  //             <tr key={i}>
+  //               <td>
+  //                 <a
+  //                   href="#"
+  //                   className="link-project"
+  //                   data-id={project.id}
+  //                   data-index={i}
+  //                   data-template={false}
+  //                   onClick={btnProject_onClic}
+  //                 >
+  //                   {project.name}
+  //                 </a>
+  //               </td>
+  //               <td>{new Date(project.date).toLocaleString()}</td>
+  //               <td>{project.description}</td>
+  //               <td>{project.author}</td>
+  //               <td>{project.source}</td>
+  //             </tr>
+  //           ))}
+  //         </tbody>
+  //       </table>
+  //     </>
+  //   );
+  
+  //   return (
+  //     <div>
+  //       {renderProjectGroup(projects.owned, "Owned Projects")}
+  //       {renderProjectGroup(projects.shared, "Shared Projects")}
+  //     </div>
+  //   );
+  // };
 
   const renderUsers = () => {
     let elements = [];
@@ -348,11 +349,11 @@ export default function SaveDialog({
                 </Form.Group>
               </Form>
             </Tab>
-            <Tab eventKey="query" title="Projects">
+            {/* <Tab eventKey="query" title="Projects">
               <div className="div-container-projects">
                 {renderProjects()}
               </div>
-            </Tab>
+            </Tab> */}
           </Tabs>
         </Modal.Body>
         <Modal.Footer>

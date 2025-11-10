@@ -137,6 +137,19 @@ export default class ProjectUseCases {
         return project;
       }
 
+      // Nueva eliminación modelos Scope de base
+      if (productLine.scope && productLine.scope.models) {
+        productLine.scope.models.forEach((scopeModel) => {
+          if (scopeModel.id === idItem) {
+            project.productLines[currentLP].scope.models =
+              project.productLines[currentLP].scope.models.filter(
+                (model) => model.id !== idItem
+              );
+            return project;
+          }
+        });
+      }
+
       productLine.domainEngineering.models.forEach((domainModel) => {
         // search domainModel
         if (domainModel.id === idItem) {
@@ -640,6 +653,16 @@ export default class ProjectUseCases {
     if (project && uid) {
       for (let pl = 0; pl < project.productLines.length; pl++) {
         const productLine: ProductLine = project.productLines[pl];
+
+        // Nuevo Find Scope, faltaba de base
+        if (productLine.scope && productLine.scope.models) {
+          for (let m = 0; m < productLine.scope.models.length; m++) {
+            const model: Model = productLine.scope.models[m];
+            if (model.id == uid) {
+              return model;
+            }
+          }
+        }
 
         // Buscar en domainEngineering
         for (let m = 0; m < productLine.domainEngineering.models.length; m++) {

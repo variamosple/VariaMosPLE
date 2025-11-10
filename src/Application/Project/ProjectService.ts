@@ -1,4 +1,3 @@
-
 import { SessionUser } from "@variamosple/variamos-components";
 import * as alertify from "alertifyjs";
 import { Buffer } from "buffer";
@@ -37,6 +36,10 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
+import { handleCollaborativeProject,
+         observeModelState,
+         updateModelState,
+         getProjectProvider} from "../../DataProvider/Services/collab/collaborationService";
 
 
 export default class ProjectService {
@@ -274,7 +277,7 @@ export default class ProjectService {
     }
     return null;
   }
-  
+
   getStructureAndRelationships() {
     const selectedScope = this.getSelectedScope();
     if (!selectedScope) {
@@ -757,7 +760,7 @@ export default class ProjectService {
     console.log(file);
     if (file) {
       this._project = Object.assign(this._project, JSON.parse(file));
-      this._projectInformation = new ProjectInformation(null, this._project.name, null, false, null, null, null, new Date());
+      this._projectInformation = new ProjectInformation(null, null, this._project.name, null, false, null, null, null, new Date(), false);
     }
     this.raiseEventUpdateProject(this._project, null);
   }
@@ -778,20 +781,22 @@ export default class ProjectService {
     return project;
   }
 
+  // TODO TRABAJAR AQUí POSTERIORMENTE, se abre el proyecto en el servidor
   openProjectInServer(projectId: string, template: boolean): void {
     let me = this;
     let user = this.getUser();
     console.log("abro projecto en project service", user);
 
-    let openProjectInServerSuccessCallback = (projectInformation: ProjectInformation) => {
+    let openProjectInServerSuccessCallback = async (projectInformation: ProjectInformation) => {
       me._project = projectInformation.project;
       me._projectInformation = projectInformation;
       me._currentModel=null;
       if (template) {
         me._projectInformation.id = null;
         me._projectInformation.template = false;
-      }
+      }          
       me.raiseEventUpdateProject(me._project, null);
+      me.handleCollaborativeProject(me._project.id, projectInformation)
     }
 
     let openProjectInServerErrorCallback = (e) => {
@@ -897,30 +902,35 @@ export default class ProjectService {
     this.projectPersistenceUseCases.applyConfiguration(user, projectInformation, configurationInformation, successCallback, errorCallback);
   }
 
-  deleteConfigurationInServer(configurationId: string,): void {
+  deleteConfigurationInServer(configurationId: string, successCallback?: any, errorCallback?: any): void {
     let me = this;
     let user = this.getUser();
     let projectInformation = this.getProjectInformation();
     if (!projectInformation) {
+      if (errorCallback) {
+        errorCallback(new Error("No se encontró información del proyecto"));
+      }
       return;
     }
     let modelId = this.treeIdItemSelected;
     let configurationInformation = new ConfigurationInformation(configurationId, null, modelId, null);
 
-    let successCallback = (project: Project) => {
-      let x = 0;
-      // let configuredModel: Model = this.findModelById(project, modelId);
-      // let targetModel: Model = this.findModelById(me._project, modelId);
-      // targetModel.elements = configuredModel.elements;
-      // targetModel.relationships = configuredModel.relationships;
-      // me.raiseEventUpdateProject(this._project, modelId);
+    let internalSuccessCallback = (response: any) => {
+      if (successCallback) {
+        successCallback(response);
+      }
     }
 
-    let errorCallback = (e) => {
-      alert(JSON.stringify(e));
+    let internalErrorCallback = (error: any) => {
+      console.error(`Error eliminando configuración del servidor:`, error);
+      if (errorCallback) {
+        errorCallback(error);
+      } else {
+        alert(JSON.stringify(error));
+      }
     }
 
-    this.projectPersistenceUseCases.deleteConfiguration(user, projectInformation, configurationInformation, successCallback, errorCallback);
+    this.projectPersistenceUseCases.deleteConfiguration(user, projectInformation, configurationInformation, internalSuccessCallback, internalErrorCallback);
   }
 
   saveProject(): void {
@@ -936,12 +946,28 @@ export default class ProjectService {
     this.utils.downloadFile(this._project.name + ".json", this._project);
   }
 
+  /**
+   * Obtiene el ID del modelo actualmente abierto en el editor
+   */
+  getCurrentlyOpenModelId(): string | null {
+    // El modelo actualmente abierto es el que está en _currentModel
+    return this._currentModel?.id || null;
+  }
+
   deleteItemProject() {
+    const deletedItemId = this.treeIdItemSelected;
+    const currentlyOpenModelId = this.getCurrentlyOpenModelId();
+
     this._project = this.projectManager.deleteItemProject(
       this._project,
-      this.treeIdItemSelected
+      deletedItemId
     );
-    this.raiseEventUpdateProject(this._project, null);
+    // Solo cerrar el editor si el modelo eliminado es el que está actualmente abierto
+    if (deletedItemId === currentlyOpenModelId) {
+      this.raiseEventUpdateProject(this._project, null);
+    } else {
+      this.raiseEventUpdateProject(this._project, currentlyOpenModelId);
+    }
   }
 
   refreshLanguageList() {
@@ -1855,4 +1881,47 @@ export default class ProjectService {
     });
     this.raiseEventUpdateProject(this._project, this.getTreeIdItemSelected());
   }
+
+// COLLABORATIVE FUNCTIONS START***********
+
+    shareProject = (project: string, ToUserEmail: string, role:string) => {
+        return this.projectPersistenceUseCases.shareProject(project, ToUserEmail,role);
+    }
+
+    removeCollaborator = (projectId: string, collaboratorId: string) => {
+      return this.projectPersistenceUseCases.removeCollaborator(projectId, collaboratorId,);
+    }
+
+    changeCollaboratorRole = (projectId: string, collaboratorId: string, role: string) => {
+      return this.projectPersistenceUseCases.changeCollaboratorRole(projectId, collaboratorId, role,);
+    }
+
+    async initUser(): Promise<any> {
+        try{
+        const user = await this.projectPersistenceUseCases.initUser();
+        this.user = user;
+      }catch (error) {
+        console.error("Error initializing user:", error);
+      }
+    }
+
+    handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation){
+      return handleCollaborativeProject(projectId, projectInfo);
+    }
+
+    observeModelState(projectId:string ,modelId: string, callback: (state: any, changes?: any) => void) {
+      return observeModelState(projectId, modelId, callback);
+    }
+
+    updateModelState(projectId: string, modelId: string, updateFn: (state: any) => void) {
+      return updateModelState(projectId, modelId, updateFn);
+    }
+
+    getProjectProvider(projectId: string): any {
+      return getProjectProvider(projectId);
+
+
+    }
+
+
 }

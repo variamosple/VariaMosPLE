@@ -18,9 +18,11 @@ interface EditProductManagerProps {
   projectService: ProjectService;
   selectedConfig: any; // Configuración del producto seleccionada (contiene name, features, etc.)
   onClose: () => void;
+  onConfigurationEdited?: (editData: any) => void;
+  onProductEdited?: (editData: any) => void; // Agregar callback para edición de funcionalidades
 }
 
-const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService, selectedConfig, onClose }) => {
+const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService, selectedConfig, onClose, onConfigurationEdited, onProductEdited }) => {
   // Inicializamos los estados con los valores del producto seleccionado
   const [productName, setProductName] = useState(selectedConfig.name || '');
   const [productImage, setProductImage] = useState<string | null>(null); // Base64 sin prefijo
@@ -151,7 +153,8 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
   // Renderizado recursivo de las funcionalidades disponibles
   // ----------------------------------------------------------
   const getChildElements = (parentId: string): Element[] => {
-    const { elements, relationships } = projectService.getStructureAndRelationships();
+    const elements = currentModel.elements || [];
+    const relationships = currentModel.relationships || [];
     return elements.filter((el: Element) =>
       relationships.some((rel: Relationship) => rel.sourceId === parentId && rel.targetId === el.id)
     );
@@ -310,7 +313,8 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
     forceUpdateModel();
   };
   const renderAvailableFunctionalities = () => {
-    const { elements, relationships } = projectService.getStructureAndRelationships();
+    const elements = currentModel.elements || [];
+    const relationships = currentModel.relationships || [];
     const rootElements = elements.filter((el: Element) =>
       !relationships.some((rel: Relationship) => rel.targetId === el.id)
     );
@@ -466,22 +470,52 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
 
     // Define callbacks para el guardado
     const successCallback = (e: any) => {
-      alert("Configuración guardada.");
-      // Forzamos la actualización del modelo (por ejemplo, refrescando la lista de configuraciones)
-      forceUpdateModel();
-      // Cerramos ambos modals (el de edición y el de detalle)
-      onClose();
+      // AHORA eliminamos la configuración anterior (solo después del éxito del guardado)
+      const deleteSuccessCallback = () => {
+        // Notificar al componente padre sobre la edición colaborativa (crear nueva + eliminar anterior)
+        if (onConfigurationEdited) {
+          const editData = {
+            type: 'CONFIGURATION_EDITED',
+            originalConfigurationId: selectedConfig.id,
+            originalConfigurationName: selectedConfig.name,
+            newConfigurationData: {
+              id: configurationInformation.id,
+              name: productName,
+              config_name: productName,
+              selectedFeatures: selectedFeatureIds,
+              timestamp: Date.now()
+            },
+            timestamp: Date.now()
+          };
+          onConfigurationEdited(editData);
+        } 
+
+        alert("Configuración editada exitosamente.");
+        // Forzamos la actualización del modelo
+        forceUpdateModel();
+        // Cerramos ambos modals
+        onClose();
+      };
+
+      const deleteErrorCallback = (deleteError: any) => {
+        console.error(`Error eliminando configuración anterior:`, deleteError);
+        alert(`Nueva configuración guardada, pero hubo un error eliminando la anterior: ${deleteError.message || 'Error desconocido'}`);
+
+        // Aún cerramos los modals y actualizamos
+        forceUpdateModel();
+        onClose();
+      };
+
+      // Eliminar la configuración anterior con callbacks
+      projectService.deleteConfigurationInServer(selectedConfig.id, deleteSuccessCallback, deleteErrorCallback);
     };
 
     const errorCallback = (e: any) => {
+      console.error(`Error guardando nueva configuración:`, e);
       alert("No se pudo guardar la configuración.");
     };
-
     // Llamamos a la función de guardado en el projectService
     projectService.saveConfigurationInServer(configurationInformation, successCallback, errorCallback);
-    projectService.deleteConfigurationInServer(selectedConfig.id);
-    forceUpdateModel();
-    onClose();
   };
 
 
@@ -529,10 +563,27 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
           feature={getFeatureById(editingFeatureId)!}
           onClose={() => { setShowEditFeatureModal(false); setEditingFeatureId(null); }}
           onSave={(updatedFeature: Element) => {
+            const originalFeature = currentModel.elements.find((e: Element) => e.id === updatedFeature.id);
             const index = currentModel.elements.findIndex((e: Element) => e.id === updatedFeature.id);
+
             if (index > -1) {
               currentModel.elements[index] = updatedFeature;
               projectService.raiseEventUpdatedElement(currentModel, updatedFeature);
+
+              // 🔥 AGREGAR: Notificar al componente padre sobre la edición colaborativa
+              if (onProductEdited) {
+                const editData = {
+                  type: 'FUNCTIONALITY_EDITED',
+                  elementId: updatedFeature.id,
+                  originalFeature: originalFeature,
+                  updatedFeature: updatedFeature,
+                  modelId: currentModel.id,
+                  timestamp: Date.now(),
+                  source: 'EDIT_PRODUCT_MODAL' // Para identificar que viene del modal de edición de producto
+                };
+                onProductEdited(editData);
+              }
+
               forceUpdateModel();
             }
             setShowEditFeatureModal(false);

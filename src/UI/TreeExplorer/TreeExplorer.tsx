@@ -14,9 +14,11 @@ import {
 } from "../../Domain/ProductLineEngineering/UseCases/QueryUseCases";
 import QueryModal from "../Queries/queryModal";
 import NavBar from "../WorkSpace/navBar";
+import { CollaborationPanel } from "../Collaboration";
 import "./TreeExplorer.css";
 import { TreeItem } from "./TreeItem";
 import TreeMenu from "./TreeMenu";
+import treeCollaborationService from "../../DataProvider/Services/collab/treeCollaborationService";
 
 import { highlight, languages } from "prismjs";
 
@@ -31,6 +33,9 @@ interface State {
   arbitraryConstraints: string,
   showScopeModal: boolean,
   currentProductLineIndex: number,
+  currentProjectId: string | null,
+  treeSyncStatus: 'idle' | 'connecting' | 'syncing' | 'ready' | 'error',
+  treeSyncMessage: string,
 }
 
 class TreeExplorer extends Component<Props, State> {
@@ -41,6 +46,9 @@ class TreeExplorer extends Component<Props, State> {
     arbitraryConstraints: "",
     showScopeModal: false,
     currentProductLineIndex: 0,
+    currentProjectId: null,
+    treeSyncStatus: 'idle' as const,
+    treeSyncMessage: '',
   };
 
   constructor(props: any) {
@@ -222,6 +230,29 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   projectService_addListener(e: any) {
+    // Detectar si cambió el proyecto
+    const projectInfo = this.props.projectService.getProjectInformation();
+    const newProjectId = projectInfo?.project?.id || null;
+
+    if (newProjectId !== this.state.currentProjectId) {
+      // Actualizar el estado con el nuevo proyecto
+      this.setState({ currentProjectId: newProjectId });
+
+      // Limpiar colaboración anterior
+      treeCollaborationService.cleanup();
+
+      // Limpiar estado de sincronización
+      this.setState({
+        treeSyncStatus: 'idle',
+        treeSyncMessage: ''
+      });
+
+      // Reinicializar colaboración para el nuevo proyecto
+      if (newProjectId) {
+        this.initializeTreeCollaboration();
+      }
+    }
+
     this.forceUpdate();
     this.props.projectService.saveProject();
   }
@@ -266,6 +297,9 @@ class TreeExplorer extends Component<Props, State> {
     const constraints = getCurrentConstraints(this.props.projectService);
     this.setArbitraryConstraints(constraints);
 
+    // Inicializar colaboración del tree si el proyecto es colaborativo
+    this.initializeTreeCollaboration();
+
     document.addEventListener("click", function(e:any) {
       if(!(''+e.target.className).includes("dropdown")){
         me.setState({
@@ -277,6 +311,665 @@ class TreeExplorer extends Component<Props, State> {
 
   btnSave_onClick(e: any) {
     this.props.projectService.saveProject();
+  }
+
+  // Inicializar colaboración del TreeExplorer
+  async initializeTreeCollaboration() {
+    const projectInfo = this.props.projectService.getProjectInformation();
+    if (!projectInfo?.is_collaborative) {
+      this.setState({
+        treeSyncStatus: 'idle',
+        treeSyncMessage: ''
+      });
+      return;
+    }
+
+    if (!projectInfo.project?.id) {
+      this.setState({
+        treeSyncStatus: 'error',
+        treeSyncMessage: 'Proyecto sin ID válido'
+      });
+      return;
+    }
+
+    // Actualizar el estado del proyecto actual si no está establecido
+    if (this.state.currentProjectId !== projectInfo.project.id) {
+      this.setState({ currentProjectId: projectInfo.project.id });
+    }
+
+    // Indicar que se está conectando
+    this.setState({
+      treeSyncStatus: 'connecting',
+      treeSyncMessage: 'Conectando con el servidor colaborativo...'
+    });
+
+    // Esperar un poco para que YJS se inicialice
+    setTimeout(async () => {
+      try {
+        // Indicar que se está sincronizando
+        this.setState({
+          treeSyncStatus: 'syncing',
+          treeSyncMessage: 'Sincronizando estado del árbol...'
+        });
+
+        const success = await treeCollaborationService.initializeTreeSync(projectInfo.project.id);
+
+        if (success) {
+          // Verificar el estado de la conexión
+          const connectionStatus = treeCollaborationService.getConnectionStatus();
+          // PASO 1: Determinar fuente de verdad inteligentemente
+          const existingTreeState = treeCollaborationService.getExistingTreeState();
+          const localModelsCount = this.countAllModels(this.props.projectService.getProject());
+
+          if (existingTreeState && existingTreeState.productLines && existingTreeState.productLines.length > 0) {
+            // CASO 1: Hay estado colaborativo activo - usarlo como fuente de verdad
+            this.applyFullTreeState(existingTreeState);
+
+            // Sincronizar estado actual después de aplicar
+            treeCollaborationService.syncCurrentProjectState(this.props.projectService);
+
+          } else if (localModelsCount > 0) {
+            // CASO 2: No hay estado colaborativo pero sí modelos locales (DB) - usar DB como fuente de verdad
+            treeCollaborationService.syncCurrentProjectState(this.props.projectService);
+
+          } else {
+            // CASO 3: Ambos vacíos - proyecto nuevo
+            treeCollaborationService.syncCurrentProjectState(this.props.projectService);
+          }
+
+          // PASO 2: Observar cambios en el tree colaborativo
+          const unsubscribe = treeCollaborationService.observeTreeChanges((changes) => {
+            this.handleCollaborativeTreeChanges(changes);
+          });
+
+          // Verificar si la conexión está completamente sincronizada
+          if (connectionStatus.connected && connectionStatus.synced) {
+            // Mostrar mensaje de éxito por 5 segundos y luego ocultar
+            this.setState({
+              treeSyncStatus: 'ready',
+              treeSyncMessage: `Sincronización completada. Es seguro usar los diagramas. (${connectionStatus.userCount} usuario${connectionStatus.userCount !== 1 ? 's' : ''} conectado${connectionStatus.userCount !== 1 ? 's' : ''})`
+            });
+
+            // Ocultar el indicador después de 5 segundos
+            setTimeout(() => {
+              this.setState({
+                treeSyncStatus: 'ready', // Esto hará que el indicador desaparezca
+                treeSyncMessage: ''
+              });
+            }, 5000);
+          } else {
+            // Si no está completamente sincronizado, mostrar estado de espera
+            this.setState({
+              treeSyncStatus: 'syncing',
+              treeSyncMessage: 'Esperando sincronización completa...'
+            });
+
+            // Verificar periódicamente hasta que esté sincronizado
+            const checkSyncInterval = setInterval(() => {
+              const currentStatus = treeCollaborationService.getConnectionStatus();
+              if (currentStatus.connected && currentStatus.synced) {
+                clearInterval(checkSyncInterval);
+                this.setState({
+                  treeSyncStatus: 'ready',
+                  treeSyncMessage: `Sincronización completada. Es seguro usar los diagramas.`
+                });
+
+                // Ocultar después de 5 segundos
+                setTimeout(() => {
+                  this.setState({
+                    treeSyncStatus: 'ready',
+                    treeSyncMessage: ''
+                  });
+                }, 5000);
+              }
+            }, 1000); // Verificar cada segundo
+
+            // Timeout de seguridad para evitar verificación infinita
+            setTimeout(() => {
+              clearInterval(checkSyncInterval);
+              // Forzar el estado a ready después del timeout
+              this.setState({
+                treeSyncStatus: 'ready',
+                treeSyncMessage: ''
+              });
+            }, 10000); // Máximo 10 segundos de verificación
+          }
+
+          // Guardar la función de cleanup (podrías guardarla en el state si necesitas limpiar después)
+
+        } else {
+          this.setState({
+            treeSyncStatus: 'error',
+            treeSyncMessage: 'Error al inicializar la colaboración'
+          });
+
+          // Los errores se mantienen visibles por más tiempo
+          setTimeout(() => {
+            this.setState({
+              treeSyncStatus: 'idle',
+              treeSyncMessage: ''
+            });
+          }, 10000); // 10 segundos para errores
+        }
+      } catch (error) {
+        console.error(`[TreeExplorer] ❌ Error inicializando tree collaboration:`, error);
+        this.setState({
+          treeSyncStatus: 'error',
+          treeSyncMessage: 'Error de conexión con el servidor colaborativo'
+        });
+
+        // Los errores se mantienen visibles por más tiempo
+        setTimeout(() => {
+          this.setState({
+            treeSyncStatus: 'idle',
+            treeSyncMessage: ''
+          });
+        }, 10000); // 10 segundos para errores
+      }
+    }, 3000); // Esperar 3 segundos para que YJS se conecte
+  }
+
+  // Manejar cambios colaborativos en el tree
+  handleCollaborativeTreeChanges(changes: any) {
+    if (!changes || !changes.data) {
+      return;
+    }
+
+    // Manejar estado completo del tree (para nuevos usuarios)
+    if (changes.type === 'tree-full-state') {
+      this.applyFullTreeState(changes.data);
+      this.forceUpdate();
+      return;
+    }
+
+    // Manejar operaciones incrementales
+    if (changes.type === 'tree-operations') {
+      const operations = changes.data;
+
+      if (typeof operations === 'object') {
+        Object.values(operations).forEach((operation: any) => {
+          if (this.isValidTreeOperation(operation)) {
+            this.processTreeOperation(operation);
+          }
+        });      
+        this.forceUpdate();
+      }
+    }
+  }
+
+  // Función auxiliar para contar todos los modelos en un proyecto
+  countAllModels(project: any): number {
+    let totalModels = 0;
+
+    if (project.productLines) {
+      project.productLines.forEach((pl: any) => {
+        // Contar modelos de scope
+        if (pl.scope?.models) {
+          totalModels += pl.scope.models.length;
+        }
+
+        // Contar modelos de domain engineering
+        if (pl.domainEngineering?.models) {
+          totalModels += pl.domainEngineering.models.length;
+        }
+
+        // Contar modelos de application engineering
+        if (pl.applicationEngineering?.models) {
+          totalModels += pl.applicationEngineering.models.length;
+        }
+      });
+    }
+
+    return totalModels;
+  }
+
+  // Buscar un modelo por ID en todo el proyecto
+  findModelById(modelId: string): any {
+    const project = this.props.projectService.project;
+
+    for (const productLine of project.productLines) {
+      // Buscar en modelos de scope
+      if (productLine.scope?.models) {
+        const found = productLine.scope.models.find((model: any) => model.id === modelId);
+        if (found) return found;
+      }
+
+      // Buscar en modelos de domain engineering
+      if (productLine.domainEngineering?.models) {
+        const found = productLine.domainEngineering.models.find((model: any) => model.id === modelId);
+        if (found) return found;
+      }
+
+      // Buscar en modelos de application engineering
+      if (productLine.applicationEngineering?.models) {
+        const found = productLine.applicationEngineering.models.find((model: any) => model.id === modelId);
+        if (found) return found;
+      }
+
+      // Buscar en applications
+      if (productLine.applicationEngineering?.applications) {
+        for (const application of productLine.applicationEngineering.applications) {
+          if (application.models) {
+            const found = application.models.find((model: any) => model.id === modelId);
+            if (found) return found;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // Validar si una operación del tree es válida
+  isValidTreeOperation(operation: any): boolean {
+    return operation &&
+           operation.type &&
+           operation.operationId &&
+           operation.timestamp &&
+           operation.data;
+  }
+
+  // Aplicar estado completo del tree (sincronización inteligente como fuente de verdad)
+  applyFullTreeState(treeState: any) {
+    if (!treeState || !treeState.productLines) {
+      return;
+    }
+
+    const totalModels = treeState.productLines.reduce((total: number, pl: any) => total + (pl.models?.length || 0), 0);
+    const totalApplications = treeState.productLines.reduce((total: number, pl: any) => total + (pl.applications?.length || 0), 0);
+
+    try {
+      // Obtener el proyecto actual
+      const project = this.props.projectService.getProject();
+      if (!project) {
+        return;
+      }
+
+      // Contar elementos antes de la sincronización
+      const beforeCount = project.productLines?.length || 0;
+      const beforeModelsCount = this.countAllModels(project);
+
+      //  PASO 1: Preservar contenido de modelos existentes antes de limpiar
+      // Crear mapa para preservar contenido de modelos
+      const existingModelsContent = new Map();
+      project.productLines?.forEach(pl => {
+        // Buscar modelos en todas las secciones
+        const allModels = [
+          ...(pl.domainEngineering?.models || []),
+          ...(pl.applicationEngineering?.models || []),
+          ...(pl.scope?.models || [])
+        ];
+
+        allModels.forEach(model => {
+          if (model && model.id && model.elements && model.elements.length > 0) {
+            existingModelsContent.set(model.id, {
+              elements: [...model.elements],
+              relationships: [...(model.relationships || [])],
+              constraints: model.constraints,
+              author: model.author,
+              description: model.description
+            });
+          }
+        });
+      });
+
+      // PASO 2: Limpiar solo estructura (preservando contenido)
+      project.productLines = [];
+
+      // PASO 3: Recrear estructura desde estado colaborativo
+      project.productLines = treeState.productLines.map((plState: any) => {
+        // Crear nueva línea de producto usando el servicio
+        const newPL = this.props.projectService.createLPS(
+          project,
+          plState.name,
+          plState.type,
+          plState.domain
+        );
+
+        // Actualizar el ID para que coincida con el estado colaborativo
+        newPL.id = plState.id;
+        // Sincronizar applications en applicationEngineering
+        if (plState.applications && newPL.applicationEngineering) {
+          newPL.applicationEngineering.applications = plState.applications.map((appState: any) => {
+            const newApp = {
+              id: appState.id,
+              name: appState.name,
+              models: [],
+              adaptations: []
+            };
+
+            // Sincronizar adaptations
+            if (appState.adaptations) {
+              newApp.adaptations = appState.adaptations.map((adaptState: any) => ({
+                id: adaptState.id,
+                name: adaptState.name,
+                models: []
+              }));
+            }
+
+            return newApp;
+          });
+        }
+
+        // Sincronizar models en las diferentes secciones
+        if (plState.models) {
+          plState.models.forEach((modelState: any, modelIndex: number) => {
+            // Determinar dónde colocar el modelo según su tipo
+            if (modelState.type === 'scope' && newPL.scope) {
+              try {
+                const languageName = modelState.languageName || 'default';
+                const languageId = modelState.languageId || 'default';
+
+                const newModel = this.props.projectService.createScopeModel(
+                  project,
+                  languageName,
+                  languageId,
+                  modelState.name,
+                  '',
+                  '',
+                  ''
+                );
+                // Actualizar el ID para que coincida con el estado colaborativo
+                newModel.id = modelState.id;
+
+                //Restaurar contenido preservado si existe
+                const preservedContent = existingModelsContent.get(modelState.id);
+                if (preservedContent) {
+                  newModel.elements = preservedContent.elements;
+                  newModel.relationships = preservedContent.relationships;
+                  newModel.constraints = preservedContent.constraints;
+                  newModel.author = preservedContent.author;
+                  newModel.description = preservedContent.description;
+                }
+              } catch (error) {
+                console.error(`Error creando scope model:`, error);
+              }
+            } else if (modelState.type === 'domainEngineering' && newPL.domainEngineering) {
+              try {
+                const languageName = modelState.languageName || 'default';
+                const languageId = modelState.languageId || 'default';
+
+                const newModel = this.props.projectService.createDomainEngineeringModel(
+                  project,
+                  languageName,
+                  languageId,
+                  modelState.name,
+                  '',
+                  '',
+                  ''
+                );
+                newModel.id = modelState.id;
+
+                // Restaurar contenido preservado si existe
+                const preservedContent = existingModelsContent.get(modelState.id);
+                if (preservedContent) {
+                  newModel.elements = preservedContent.elements;
+                  newModel.relationships = preservedContent.relationships;
+                  newModel.constraints = preservedContent.constraints;
+                  newModel.author = preservedContent.author;
+                  newModel.description = preservedContent.description;
+                }
+
+              } catch (error) {
+                console.error(`Error creando domain engineering model:`, error);
+              }
+            } else if (modelState.type === 'applicationEngineering' && newPL.applicationEngineering) {
+              try {
+                const languageName = modelState.languageName || 'default';
+                const languageId = modelState.languageId || 'default';
+
+                const newModel = this.props.projectService.createApplicationEngineeringModel(
+                  project,
+                  languageName,
+                  languageId,
+                  modelState.name,
+                  '',
+                  '',
+                  ''
+                );
+                newModel.id = modelState.id;
+
+                // 🔧 [FIX] Restaurar contenido preservado si existe
+                const preservedContent = existingModelsContent.get(modelState.id);
+                if (preservedContent) {
+                  newModel.elements = preservedContent.elements;
+                  newModel.relationships = preservedContent.relationships;
+                  newModel.constraints = preservedContent.constraints;
+                  newModel.author = preservedContent.author;
+                  newModel.description = preservedContent.description;
+                }
+
+              } catch (error) {
+                console.error(`Error creando application engineering model:`, error);
+              }
+            } 
+          });
+        }
+
+        return newPL;
+      });
+
+      // Contar elementos después de la sincronización
+      const afterCount = project.productLines?.length || 0;
+      const afterModelsCount = this.countAllModels(project);
+
+      // Forzar actualización de la UI
+      this.forceUpdate();
+    } catch (error) {
+      console.error(`Error aplicando estado completo del tree:`, error);
+    }
+  }
+  // Procesar una operación del tree
+  processTreeOperation(operation: any) {
+    switch (operation.type) {
+      case 'ADD_MODEL':
+        this.handleRemoteAddModel(operation.data);
+        break;
+      case 'DELETE_MODEL':
+        this.handleRemoteDeleteModel(operation.data);
+        break;
+      case 'EDIT_ITEM':
+        this.handleRemoteEditItem(operation.data);
+        break;
+      case 'UPDATE_SCOPE':
+        this.handleRemoteUpdateScope(operation.data);
+        break;
+      default:
+        console.log(`Tipo de operación no reconocido: ${operation.type}`);
+    }
+  }
+
+  // Manejar agregar modelo remoto (mejorado con validación robusta)
+  handleRemoteAddModel(modelData: any) {
+    try {
+      // Verificar si el modelo ya existe para evitar duplicados (usando función mejorada)
+      const existingModel = this.findModelById(modelData.id);
+      if (existingModel) {
+        return;
+      }
+
+      // Agregar el modelo al proyecto local según su tipo
+      let newModel = null;
+
+      if (modelData.type === 'scope') {
+        newModel = this.props.projectService.createScopeModel(
+          this.props.projectService.project,
+          modelData.languageName,
+          modelData.languageId,
+          modelData.name,
+          modelData.description,
+          modelData.author,
+          modelData.source
+        );
+      } else if (modelData.type === 'domainEngineering') {
+        newModel = this.props.projectService.createDomainEngineeringModel(
+          this.props.projectService.project,
+          modelData.languageName,
+          modelData.languageId,
+          modelData.name,
+          modelData.description,
+          modelData.author,
+          modelData.source
+        );
+      } else if (modelData.type === 'applicationEngineering') {
+        newModel = this.props.projectService.createApplicationEngineeringModel(
+          this.props.projectService.project,
+          modelData.languageName,
+          modelData.languageId,
+          modelData.name,
+          modelData.description,
+          modelData.author,
+          modelData.source
+        );
+      }
+
+      // Actualizar el ID del modelo para que coincida con el remoto
+      if (newModel) {
+        newModel.id = modelData.id;
+      }
+      // Forzar actualización de la UI para mostrar el nuevo modelo
+      this.forceUpdate();
+    } catch (error) {
+      console.error(`Error agregando modelo remoto:`, error);
+    }
+  }
+
+
+
+  // Manejar eliminar modelo remoto
+  handleRemoteDeleteModel(modelData: any) {
+    try {
+      // Usar la función mejorada de búsqueda
+      const model = this.findModelById(modelData.id);
+
+      if (model) {
+        // Usar la lógica existente de eliminación del ProjectService
+        // Guardar el ID seleccionado actual para restaurarlo después
+        const previousSelectedId = this.props.projectService.getTreeIdItemSelected();
+        const previousSelectedType = this.props.projectService.getTreeItemSelected();
+
+        // Temporalmente establecer el modelo como seleccionado usando el método público
+        this.props.projectService.setTreeItemSelected("model");
+        // Acceder directamente a la propiedad privada temporalmente para la eliminación
+        (this.props.projectService as any).treeIdItemSelected = modelData.id;
+
+        // Usar el método público deleteItemProject que maneja todo internamente
+        this.props.projectService.deleteItemProject();
+
+        // Restaurar la selección anterior
+        this.props.projectService.setTreeItemSelected(previousSelectedType);
+        (this.props.projectService as any).treeIdItemSelected = previousSelectedId;
+
+      } 
+    } catch (error) {
+      console.error(`Error eliminando modelo remoto:`, error);
+    }
+
+    // Forzar actualización de la UI
+    this.forceUpdate();
+  }
+
+  // Manejar editar elemento remoto
+  handleRemoteEditItem(itemData: any) {
+    try {
+      const project = this.props.projectService.project;
+
+      if (itemData.itemType === 'model') {
+        // Usar la función mejorada de búsqueda
+        const model = this.findModelById(itemData.id);
+
+        if (model) {
+          // Verificar si es una operación de renombrado simple o cambio de propiedades múltiples
+          if (itemData.newName && itemData.oldName) {
+            // Operación de renombrado simple (desde menú contextual)
+            const previousSelectedId = this.props.projectService.getTreeIdItemSelected();
+            const previousSelectedType = this.props.projectService.getTreeItemSelected();
+
+            this.props.projectService.setTreeItemSelected("model");
+            (this.props.projectService as any).treeIdItemSelected = itemData.id;
+
+            this.props.projectService.renameItemProject(itemData.newName);
+
+            this.props.projectService.setTreeItemSelected(previousSelectedType);
+            (this.props.projectService as any).treeIdItemSelected = previousSelectedId;
+
+          } else if (itemData.newValues && itemData.oldValues) {
+            // Operación de cambio de propiedades múltiples (desde modal de propiedades)
+            // Aplicar cambios de propiedades, pero omitir el nombre si ya fue sincronizado
+            if (itemData.newValues.name !== undefined && !itemData.nameAlreadySynced) {
+              model.name = itemData.newValues.name;
+            }
+            if (itemData.newValues.description !== undefined) model.description = itemData.newValues.description;
+            if (itemData.newValues.author !== undefined) model.author = itemData.newValues.author;
+            if (itemData.newValues.source !== undefined) model.source = itemData.newValues.source;
+
+            // Guardar proyecto y disparar eventos
+            this.props.projectService.saveProject();
+            this.props.projectService.raiseEventUpdateProject(project, itemData.id);
+          }
+        }
+      } else if (itemData.itemType === 'productLine') {
+        // Manejar edición de ProductLine
+        const productLine = project.productLines.find((pl: any) => pl.id === itemData.id);
+
+        if (productLine && itemData.newValues && itemData.oldValues) {
+          // Aplicar cambios de propiedades
+          if (itemData.newValues.name !== undefined) productLine.name = itemData.newValues.name;
+          if (itemData.newValues.domain !== undefined) productLine.domain = itemData.newValues.domain;
+          if (itemData.newValues.type !== undefined) productLine.type = itemData.newValues.type;
+
+          // Guardar proyecto y disparar eventos
+          this.props.projectService.saveProject();
+          this.props.projectService.raiseEventUpdateProject(project, null);
+        } 
+      } 
+    } catch (error) {
+      console.error(`Error editando elemento remoto:`, error);
+    }
+
+    // Forzar actualización de la UI
+    this.forceUpdate();
+
+    // Mostrar notificación al usuario
+    const notificationText = itemData.newName
+      ? `${itemData.itemType} renombrado: ${itemData.oldName} -> ${itemData.newName}`
+      : `${itemData.itemType} propiedades actualizadas`;
+  }
+
+  // Manejar actualización remota de scope (Technical Metrics)
+  handleRemoteUpdateScope(scopeData: any) {
+    try {
+      const project = this.props.projectService.project;
+
+      // Buscar la product line correspondiente
+      const productLine = project.productLines.find((pl: any) => pl.id === scopeData.productLineId);
+
+      if (productLine && productLine.scope) {
+        // Aplicar los cambios del scope remoto
+        if (scopeData.newValues) {
+          // Actualizar las propiedades del scope
+          Object.keys(scopeData.newValues).forEach(key => {
+            if (productLine.scope.hasOwnProperty(key)) {
+              productLine.scope[key] = scopeData.newValues[key];
+            }
+          });
+
+          // Guardar proyecto y disparar eventos
+          this.props.projectService.saveProject();
+          this.props.projectService.raiseEventUpdateProject(project, null);
+        }
+      } 
+    } catch (error) {
+      console.error(`Error aplicando actualización remota de scope:`, error);
+    }
+
+    // Forzar actualización de la UI
+    this.forceUpdate();
+  }
+
+  componentWillUnmount() {
+    // Limpiar la colaboración del tree al desmontar el componente
+    treeCollaborationService.cleanup();
   }
 
   renderModelFolders(folders:any[]) {
@@ -405,7 +1098,7 @@ class TreeExplorer extends Component<Props, State> {
   renderDomainEngineering(productLine: ProductLine, idProductLine: number) {
     return this.renderDomainModels(productLine.domainEngineering.models, idProductLine)
   }
-
+// TODO ver que sucede con el scope
   renderScope(productLine: ProductLine, idProductLine: number) {
     //colocar validación de que el scope se tiene que validar en el caso de que no exista
     productLine.scope ??= new ScopeSPL();
@@ -542,6 +1235,81 @@ class TreeExplorer extends Component<Props, State> {
     return this.renderProject();
   }
 
+  // Renderizar el indicador de estado de sincronización
+  renderSyncStatusIndicator() {
+    const { treeSyncStatus, treeSyncMessage } = this.state;
+
+    // Solo mostrar cuando hay un mensaje que mostrar
+    // No mostrar cuando está idle o cuando el mensaje está vacío
+    if (treeSyncStatus === 'idle' || !treeSyncMessage) {
+      return null;
+    }
+
+    const getStatusConfig = () => {
+      switch (treeSyncStatus) {
+        case 'connecting':
+          return {
+            icon: '🔄',
+            color: '#ffc107',
+            bgColor: '#fff3cd',
+            borderColor: '#ffeaa7'
+          };
+        case 'syncing':
+          return {
+            icon: '⏳',
+            color: '#17a2b8',
+            bgColor: '#d1ecf1',
+            borderColor: '#bee5eb'
+          };
+        case 'ready':
+          return {
+            icon: '✅',
+            color: '#28a745',
+            bgColor: '#d4edda',
+            borderColor: '#c3e6cb'
+          };
+        case 'error':
+          return {
+            icon: '❌',
+            color: '#dc3545',
+            bgColor: '#f8d7da',
+            borderColor: '#f5c6cb'
+          };
+        default:
+          return {
+            icon: '❓',
+            color: '#6c757d',
+            bgColor: '#e2e3e5',
+            borderColor: '#d6d8db'
+          };
+      }
+    };
+
+    const config = getStatusConfig();
+
+    return (
+      <div
+        style={{
+          padding: '8px 12px',
+          margin: '8px 12px',
+          borderRadius: '6px',
+          border: `1px solid ${config.borderColor}`,
+          backgroundColor: config.bgColor,
+          color: config.color,
+          fontSize: '12px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: treeSyncStatus === 'connecting' || treeSyncStatus === 'syncing' ? 'pulse 1.5s infinite' : 'none'
+        }}
+      >
+        <span style={{ fontSize: '14px' }}>{config.icon}</span>
+        <span>{treeSyncMessage}</span>
+      </div>
+    );
+  }
+
   render() {
     return (
       <div
@@ -553,6 +1321,9 @@ class TreeExplorer extends Component<Props, State> {
         }}
       >
         <NavBar projectService={this.props.projectService} />
+
+        {/* Indicador de estado de sincronización */}
+        {this.renderSyncStatusIndicator()}
 
         <div
           className="flex-grow-1 d-grid overflow-hidden"
@@ -619,6 +1390,10 @@ class TreeExplorer extends Component<Props, State> {
             </Tab.Content>
           </Tab.Container>
         </div>
+
+        {/* Panel de colaboración - al final del TreeExplorer */}
+        <CollaborationPanel projectService={this.props.projectService} />
+
         {/* {this.state.showScopeModal && (
           <ScopeModal
           show={this.state.showScopeModal}

@@ -52,4 +52,35 @@ export default class ProjectPersistenceUseCases {
     let me=this; 
     this.projectPersistenceService.getAllConfigurations(user, projectInformation, configurationInformation, successCallback, errorCallback);
   } 
+
+  // ADDED SHARE FUNCTIONS
+  async shareProject(projectId:string, toUserEmail: string, role: string): Promise<any> {
+    return this.projectPersistenceService.shareProject(projectId , toUserEmail, role);
+  }
+
+  changeProjectCollaborationState(projectId:string, successCallback:any, errorCallback: any): void {
+    let me=this;
+    this.projectPersistenceService.changeProjectCollaborationState(projectId, successCallback, errorCallback);
+  }
+
+  async getProjectCollaborators(projectId:string): Promise<any> {
+    return this.projectPersistenceService.getProjectCollaborators(projectId);
+  }
+
+  removeCollaborator(projectId:string, collaboratorId:string): Promise<any> {
+    return this.projectPersistenceService.removeCollaborator(projectId, collaboratorId);
+  }
+
+  changeCollaboratorRole(projectId:string, collaboratorId:string, role:string): Promise<any> {
+    return this.projectPersistenceService.changeCollaboratorRole(projectId, collaboratorId, role);
+  }
+
+  initUser(): Promise<any> {
+    return this.projectPersistenceService.initUser();
+  }
+  
+  async getUserRole(projectId:string): Promise<any> {
+    return this.projectPersistenceService.getUserRole(projectId);
+  }
+
 }

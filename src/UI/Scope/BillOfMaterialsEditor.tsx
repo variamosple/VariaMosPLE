@@ -15,6 +15,9 @@ import { Accordion, AccordionBody, AccordionHeader, AccordionItem } from "reacts
 import ProductCatalogManager from "./ProductCatalogManager";
 import ProjectService from "../../Application/Project/ProjectService";
 import EditProductManager from "./EditProductManager";
+import catalogAwarenessService, { CatalogUserAwareness } from "../../DataProvider/Services/collab/catalogAwarenessService";
+import CatalogAwarenessIndicator from "./CatalogAwarenessIndicators";
+import configurationsCollaborationService from "../../DataProvider/Services/collab/configurationsCollaborationService";
 import './scope.css';
 
 
@@ -55,13 +58,16 @@ interface BillOfMaterialsEditorState {
   contextMenuPosition: { x: number; y: number };
   compareSelection: string[];
   showCompareModal: boolean;
-
+  isCollaborationInitialized: boolean;
+  catalogAwarenessUsers?: CatalogUserAwareness[]
 }
 
 export default class BillOfMaterialsEditor extends Component<
   BillOfMaterialsEditorProps,
   BillOfMaterialsEditorState
 > {
+  private currentAwarenessObserver: (() => void) | null = null;
+  
   constructor(props: BillOfMaterialsEditorProps) {
     super(props);
     this.state = {
@@ -79,6 +85,9 @@ export default class BillOfMaterialsEditor extends Component<
       contextMenuPosition: { x: 0, y: 0 },
       compareSelection: [],
       showCompareModal: false,
+      isCollaborationInitialized: false,
+      catalogAwarenessUsers: [],
+
     };
   }
 
@@ -95,6 +104,29 @@ export default class BillOfMaterialsEditor extends Component<
         console.error("Error fetching configurations:", error);
       }
     );
+
+    let projectInfo;
+    try {
+      projectInfo = this.props.projectService.getProjectInformation();
+    } catch (error) {
+      projectInfo = null;
+    }
+
+    if (projectInfo?.is_collaborative) {
+      // Usar el ID del proyecto real, no el ProjectInformation ID
+      const realProjectId = projectInfo.project?.id || projectInfo.id;
+
+      this.initializeCollaboration(realProjectId);
+    }
+  }
+
+  componentWillUnmount() {
+    // Limpiar awareness cuando se desmonta el componente
+    if (this.currentAwarenessObserver) {
+      this.currentAwarenessObserver();
+      this.currentAwarenessObserver = null;
+    }
+    catalogAwarenessService.cleanup();
   }
   // Dentro de BillOfMaterialsEditor (en la clase)
   handleCloseAllModals = () => {
@@ -107,6 +139,11 @@ export default class BillOfMaterialsEditor extends Component<
       this.setState(prevState => ({ modelVersion: prevState.modelVersion + 1 }));
     });
 
+    // Awareness: notificar que el usuario ya no está viendo/editando ningún producto
+    if (this.state.isCollaborationInitialized) {
+      catalogAwarenessService.setUserIdle();
+    }
+
     // También actualizamos la lista de configuraciones
     this.props.projectService.getAllConfigurations(
       (configs: any[]) => {
@@ -117,6 +154,274 @@ export default class BillOfMaterialsEditor extends Component<
       }
     );
   };
+
+  // Inicializar colaboración
+  private async initializeCollaboration(projectId: string): Promise<void> {
+    try {
+      const success = await configurationsCollaborationService.initializeConfigurationsSync(projectId);
+      if (success) {
+        this.setState({ isCollaborationInitialized: true }, () => {
+        this.initializeCatalogAwareness(projectId);
+        });
+
+        // Observar cambios colaborativos
+        this.observeConfigurationsChanges();
+      } 
+    } catch (error) {
+      console.error(`Error inicializando colaboración:`, error);
+    }
+  }
+
+private initializeCatalogAwareness(projectId: string): void {
+  try {
+    const currentModel = this.props.projectService.currentModel;
+    if (!currentModel) return;
+
+    const projectInfo = this.props.projectService.getProjectInformation();
+    const currentUserId = this.props.projectService.getUser();
+    const currentUser = projectInfo?.collaborators?.find((c: any) => c.id === currentUserId);
+
+    if (!currentUser) return;
+
+    catalogAwarenessService.initializeCatalogAwareness(
+      projectId,
+      currentModel.id,
+      {
+        name: currentUser.name,
+        color: "#" + Math.floor(Math.random() * 16777215).toString(16)
+      }
+    );
+
+    // Observa awareness de otros usuarios
+      this.currentAwarenessObserver = catalogAwarenessService.observeCatalogAwareness(
+      (users: CatalogUserAwareness[]) => {
+        this.setState({ catalogAwarenessUsers: users });
+      }
+    );
+  } catch (error) {
+    console.error(`[BillOfMaterialsEditor] Error inicializando awareness del catálogo:`, error);
+  }
+}
+
+
+  // Observar cambios colaborativos
+  private observeConfigurationsChanges(): void {
+    const unsubscribe = configurationsCollaborationService.observeConfigurationsChanges(
+      (changes: any) => {
+        if (changes.type === 'configurations-operations') {
+          this.processCollaborativeOperations(changes.data);
+        }
+      }
+    );
+  }
+
+  // Procesar operaciones colaborativas
+  private processCollaborativeOperations(operations: any): void {
+    Object.entries(operations).forEach(([operationId, operation]: [string, any]) => {
+      switch (operation.type) {
+        case 'CREATE_PRODUCT':
+          // Recargar configuraciones para mostrar el nuevo producto
+          setTimeout(() => {
+            this.loadConfigurations(() => {
+            });
+          }, 1000);
+          break;
+
+        case 'DELETE_PRODUCT':
+          // Recargar configuraciones para reflejar la eliminación
+          setTimeout(() => {
+            this.loadConfigurations(() => {
+            });
+          }, 1000);
+          break;
+
+        case 'DELETE_CONFIGURATION':
+          // Recargar configuraciones para reflejar la eliminación de la configuración completa
+          setTimeout(() => {
+            this.loadConfigurations(() => {
+            });
+          }, 1000);
+          break;
+
+        case 'EDIT_PRODUCT':
+          // Aplicar los cambios directamente al modelo actual
+          try {
+            const { elements } = this.props.projectService.getStructureAndRelationships();
+            const elementIndex = elements.findIndex((elem: any) => elem.id === operation.data.elementId);
+
+            if (elementIndex > -1) {
+              // Actualizar el elemento con los datos colaborativos
+              elements[elementIndex] = { ...elements[elementIndex], ...operation.data.updatedFeature };
+              // Forzar actualización del modelo
+              this.props.projectService.raiseEventUpdatedElement(
+                this.props.projectService.currentModel,
+                elements[elementIndex]
+              );
+
+              // Recargar configuraciones para reflejar los cambios
+              setTimeout(() => {
+                this.loadConfigurations(() => {
+                });
+              }, 500);
+            } 
+          } catch (error) {
+            console.error(`Error aplicando edición colaborativa:`, error);
+          }
+          break;
+
+        case 'MODEL_MODIFIED':
+          // Aplicar los cambios directamente al modelo base
+          try {
+            const currentModel = this.props.projectService.currentModel;
+
+            // Verificar que el elemento no existe ya (evitar duplicados)
+            const existingElement = currentModel.elements.find((elem: any) => elem.id === operation.data.newElement.id);
+            const existingRelationship = currentModel.relationships.find((rel: any) =>
+              rel.sourceId === operation.data.newElement.id || rel.targetId === operation.data.newElement.id
+            );
+
+            if (!existingElement) {
+              // Agregar el nuevo elemento al modelo
+              currentModel.elements.push(operation.data.newElement);
+            }
+
+            if (!existingRelationship && operation.data.newRelationship) {
+              // Agregar la nueva relación al modelo
+              currentModel.relationships.push(operation.data.newRelationship);
+            }
+
+            // Forzar actualización del modelo
+            this.props.projectService.raiseEventUpdatedElement(currentModel, operation.data.newElement);
+
+            // Recargar configuraciones para reflejar los cambios en el modelo base
+            setTimeout(() => {
+              this.loadConfigurations(() => {
+              });
+            }, 500);
+
+          } catch (error) {
+            console.error(`Error aplicando modificación colaborativa del modelo:`, error);
+          }
+          break;
+
+        case 'MODEL_DELETED':
+          // Aplicar las eliminaciones directamente al modelo base
+          try {
+            const currentModel = this.props.projectService.currentModel;
+
+            // Eliminar elementos del modelo
+            const originalElementsCount = currentModel.elements.length;
+            currentModel.elements = currentModel.elements.filter((elem: any) =>
+              !operation.data.deletedIds.includes(elem.id)
+            );
+            const deletedElementsCount = originalElementsCount - currentModel.elements.length;
+
+            // Eliminar relaciones del modelo
+            const originalRelationshipsCount = currentModel.relationships.length;
+            currentModel.relationships = currentModel.relationships.filter((rel: any) =>
+              !operation.data.deletedIds.includes(rel.sourceId) && !operation.data.deletedIds.includes(rel.targetId)
+            );
+            const deletedRelationshipsCount = originalRelationshipsCount - currentModel.relationships.length;
+
+            // Forzar actualización del modelo
+            this.props.projectService.raiseEventUpdatedElement(currentModel, null);
+
+            // Recargar configuraciones para reflejar los cambios en el modelo base
+            setTimeout(() => {
+              this.loadConfigurations(() => {
+              });
+            }, 500);
+
+          } catch (error) {
+            console.error(`Error aplicando eliminación colaborativa del modelo:`, error);
+          }
+          break;
+
+        default:
+          console.log(`Tipo de operación no reconocido:`, operation.type);
+      }
+    });
+  }
+
+  // Callback para manejar cuando se crean productos
+  handleProductCreated = (productData: any) => {
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncCreateProductOperation(productData);
+      } catch (error) {
+        console.error(`Error enviando operación CREATE_PRODUCT:`, error);
+      }
+    } 
+  };
+
+  // Callback para manejar cuando se eliminan productos/funcionalidades
+  handleProductDeleted = (deletionData: any) => {
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncDeleteProductOperation(deletionData);
+      } catch (error) {
+      }
+    }
+  };
+
+  // Callback para manejar cuando se editan productos/funcionalidades
+  handleProductEdited = (editData: any) => {
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncEditProductOperation(editData);
+      } catch (error) {
+        console.error(`Error enviando operación EDIT_PRODUCT:`, error);
+      }
+    } 
+  };
+
+  // Callback para manejar cuando se editan configuraciones completas
+  handleConfigurationEdited = (editData: any) => {
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncEditConfigurationOperation(editData);
+      } catch (error) {
+        console.error(`Error enviando operación EDIT_CONFIGURATION:`, error);
+      }
+    }
+  };
+
+  // Callback para manejar cuando se modifica el modelo base (agregar funcionalidades)
+  handleModelModified = (modelData: any) => {
+
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncModelModificationOperation(modelData);
+      } catch (error) {
+        console.error(`Error enviando operación MODEL_MODIFIED:`, error);
+      }
+    } 
+  };
+
+  // Callback para manejar cuando se elimina del modelo base (eliminar funcionalidades)
+  handleModelDeleted = (deletionData: any) => {
+
+    if (this.state.isCollaborationInitialized) {
+      try {
+        configurationsCollaborationService.syncModelDeletionOperation(deletionData);
+      } catch (error) {
+        console.error(`Error enviando operación MODEL_DELETED:`, error);
+      }
+    } 
+  };
+
+  // Cargar configuraciones desde el servidor
+  private loadConfigurations(callback?: () => void): void {
+    this.props.projectService.getAllConfigurations(
+      (configs: any[]) => {
+        this.setState({ allScopeConfigurations: configs }, callback);
+      },
+      (error: any) => {
+        console.error("Error fetching configurations:", error);
+        if (callback) callback();
+      }
+    );
+  }
 
 
 
@@ -144,6 +449,11 @@ export default class BillOfMaterialsEditor extends Component<
       openAccordion: [],
       allAccordionIds: [],
     });
+
+    // Awareness: notificar que el usuario está viendo un producto en el modal
+    if (this.state.isCollaborationInitialized) {
+      catalogAwarenessService.setUserViewingProduct(config.id, config.name || config.config_name || "Producto");
+    }
   }
 
   handleCloseModal = () => {
@@ -153,6 +463,11 @@ export default class BillOfMaterialsEditor extends Component<
       openAccordion: [],
       allAccordionIds: [],
     });
+
+    // Awareness: notificar que el usuario ya no está viendo ningún producto
+    if (this.state.isCollaborationInitialized) {
+      catalogAwarenessService.setUserIdle();
+    }
   };
 
   /** Manejo de accordion individual */
@@ -296,7 +611,13 @@ export default class BillOfMaterialsEditor extends Component<
     return (
       <Modal
         show={true}
-        onHide={() => this.setState({ showCompareModal: false })}
+        onHide={() => {
+          this.setState({ showCompareModal: false });
+          // Awareness: notificar que el usuario ya no está comparando productos
+          if (this.state.isCollaborationInitialized) {
+            catalogAwarenessService.setUserIdle();
+          }
+        }}
         size="xl"
         centered
         scrollable
@@ -398,7 +719,7 @@ export default class BillOfMaterialsEditor extends Component<
     if (filtered.length === 0) {
       return <p>No products were found with that filter.</p>;
     }
-  
+
     return (
       <div style={{
         height: "80vh",
@@ -419,75 +740,81 @@ export default class BillOfMaterialsEditor extends Component<
                 }
               }
             }
-  
+
             return (
               <Col md={4} key={cfg.id} style={{ marginBottom: "15px" }}>
-                <Card
-                  style={{ position: 'relative', cursor: "pointer" }}
-                  onClick={() => this.handleSelectProduct(cfg)}
-                  onContextMenu={(e) =>
-                    this.handleRightClickOnConfig(cfg, e as React.MouseEvent<HTMLDivElement, MouseEvent>)
-                  }
+                <CatalogAwarenessIndicator
+                  productId={cfg.id}
+                  productName={cfg.name || "Producto"}
+                  users={this.state.catalogAwarenessUsers || []}
                 >
-                  {/* —– Checkbox Comparar —– */}
-                  <Form.Check
-                    type="checkbox"
-                    label="Compare"
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      left: 18,
-                      background: 'rgba(255,255,255,0.8)',
-                      padding: '2px 4px',
-                      borderRadius: '4px',
-                      zIndex: 10
-                    }}
-                    onClick={e => e.stopPropagation()}           // evita que abra el detalle
-                    checked={this.state.compareSelection.includes(cfg.id)}
-                    onChange={e => {
-                      e.stopPropagation();
-                      const sel = [...this.state.compareSelection];
-                      if (e.target.checked) {
-                        sel.push(cfg.id);
-                      } else {
-                        sel.splice(sel.indexOf(cfg.id), 1);
-                      }
-                      this.setState({ compareSelection: sel });
-                    }}
-                  />
-  
-                  {/* —– Tu código original de la imagen —– */}
-                  {imageSrc ? (
-                    <div style={{ height: "180px", width: "100%" }}>
-                      <img
-                        src={imageSrc}
-                        alt={cfg.name}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: "100%",
-                          objectFit: "contain",
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div
+                  <Card
+                    style={{ position: 'relative', cursor: "pointer" }}
+                    onClick={() => this.handleSelectProduct(cfg)}
+                    onContextMenu={(e) =>
+                      this.handleRightClickOnConfig(cfg, e as React.MouseEvent<HTMLDivElement, MouseEvent>)
+                    }
+                  >
+                    {/* —– Checkbox Comparar —– */}
+                    <Form.Check
+                      type="checkbox"
+                      label="Compare"
                       style={{
-                        height: "180px",
-                        backgroundColor: "#eee",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#999",
+                        position: 'absolute',
+                        top: 8,
+                        left: 18,
+                        background: 'rgba(255,255,255,0.8)',
+                        padding: '2px 4px',
+                        borderRadius: '4px',
+                        zIndex: 10
                       }}
-                    >
-                      No image
-                    </div>
-                  )}
-  
-                  <Card.Body>
-                    <Card.Title>{cfg.name || "Producto"}</Card.Title>
-                  </Card.Body>
-                </Card>
+                      onClick={e => e.stopPropagation()}           // evita que abra el detalle
+                      checked={this.state.compareSelection.includes(cfg.id)}
+                      onChange={e => {
+                        e.stopPropagation();
+                        const sel = [...this.state.compareSelection];
+                        if (e.target.checked) {
+                          sel.push(cfg.id);
+                        } else {
+                          sel.splice(sel.indexOf(cfg.id), 1);
+                        }
+                        this.setState({ compareSelection: sel });
+                      }}
+                    />
+
+                    {/* —– Tu código original de la imagen —– */}
+                    {imageSrc ? (
+                      <div style={{ height: "180px", width: "100%" }}>
+                        <img
+                          src={imageSrc}
+                          alt={cfg.name}
+                          style={{
+                            maxWidth: "100%",
+                            maxHeight: "100%",
+                            objectFit: "contain",
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          height: "180px",
+                          backgroundColor: "#eee",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#999",
+                        }}
+                      >
+                        No image
+                      </div>
+                    )}
+
+                    <Card.Body>
+                      <Card.Title>{cfg.name || "Producto"}</Card.Title>
+                    </Card.Body>
+                  </Card>
+                </CatalogAwarenessIndicator>
               </Col>
             );
           })}
@@ -495,6 +822,11 @@ export default class BillOfMaterialsEditor extends Component<
       </div>
     );
   }
+
+
+
+
+
   
   
 
@@ -510,21 +842,56 @@ export default class BillOfMaterialsEditor extends Component<
   handleDeleteContextConfig = () => {
     const { contextMenuConfig } = this.state;
     if (contextMenuConfig) {
-      // Llamamos a eliminar la configuración (sólo se requiere la id)
-      this.props.projectService.deleteConfigurationInServer(contextMenuConfig.id);
-      alert("Potential product successfully removed.");
-      // Actualizamos el listado de configuraciones
-      this.props.projectService.getAllConfigurations(
-        (configs: any[]) => {
-          this.setState({ allScopeConfigurations: configs });
-        },
-        (error: any) => {
-          console.error("Error fetching updated product:", error);
+      const projectInfo = this.props.projectService.getProjectInformation();
+      // Llamamos a eliminar la configuración con callbacks mejorados
+      const successCallback = () => {
+        alert("Potential product successfully removed.");
+
+        // Notificar eliminación colaborativa
+        if (this.state.isCollaborationInitialized) {
+          const deletionData = {
+            type: 'CONFIGURATION_DELETED',
+            configurationId: contextMenuConfig.id,
+            configurationName: contextMenuConfig.name,
+            timestamp: Date.now()
+          };
+
+          try {
+            configurationsCollaborationService.syncDeleteConfigurationOperation(deletionData);
+          } catch (error) {
+            console.error(`Error enviando operación DELETE_CONFIGURATION:`, error);
+          }
         }
+
+        // Actualizamos el listado de configuraciones
+        this.props.projectService.getAllConfigurations(
+          (configs: any[]) => {
+            this.setState({ allScopeConfigurations: configs });
+          },
+          (error: any) => {
+            console.error("Error fetching updated configurations:", error);
+          }
+        );
+
+        // Ocultamos el menú contextual y forzamos actualización del modelo
+        this.setState({ showContextMenu: false, contextMenuConfig: null });
+        this.handleCloseAllModals();
+      };
+
+      const errorCallback = (error: any) => {
+        console.error(`Error eliminando configuración:`, error);
+        alert(`Error eliminando el producto: ${error.message || 'Error desconocido'}`);
+
+        // Aún ocultamos el menú contextual
+        this.setState({ showContextMenu: false, contextMenuConfig: null });
+      };
+
+      // Llamamos al método con callbacks
+      this.props.projectService.deleteConfigurationInServer(
+        contextMenuConfig.id,
+        successCallback,
+        errorCallback
       );
-      // Ocultamos el menú contextual y forzamos actualización del modelo
-      this.setState({ showContextMenu: false, contextMenuConfig: null });
-      this.handleCloseAllModals()
     }
   };
 
@@ -665,8 +1032,15 @@ export default class BillOfMaterialsEditor extends Component<
             {this.renderSearchBar()}
           </div>
           <div style={{ flex: 1 }}>
-            <ProductCatalogManager projectService={this.props.projectService} 
-             onCloseAllModals={this.handleCloseAllModals}/>
+            <ProductCatalogManager
+              projectService={this.props.projectService}
+              onCloseAllModals={this.handleCloseAllModals}
+              onProductCreated={this.handleProductCreated}
+              onProductDeleted={this.handleProductDeleted}
+              onProductEdited={this.handleProductEdited}
+              onModelModified={this.handleModelModified}
+              onModelDeleted={this.handleModelDeleted}
+            />
           </div>
           <div style={{
           // si necesitas exacto 150px, o usa flex:1 también
@@ -695,6 +1069,8 @@ export default class BillOfMaterialsEditor extends Component<
             projectService={this.props.projectService}
             selectedConfig={this.state.selectedConfig}
             onClose={this.handleCloseAllModals}
+            onConfigurationEdited={this.handleConfigurationEdited}
+            onProductEdited={this.handleProductEdited}
           />
         )}
         {this.state.showContextMenu && (

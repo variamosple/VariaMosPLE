@@ -420,7 +420,6 @@ export default class MxProperties extends Component<Props, State> {
       this.clearForm();
       this.setState({ showAddPropertyModal: false })
     }
-
   }
 
   updateCustomProperty() {

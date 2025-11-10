@@ -15,6 +15,7 @@
   "private": true,
   "dependencies": {
     "@variamosple/variamos-components": "^0.0.23",
+    "@y/websocket-server": "^0.1.1",
     "alertifyjs": "^1.13.1",
     "axios": "^0.21.1",
     "bootstrap": "^5.3.3",
@@ -42,14 +43,18 @@
     "resizable-panes-react": "^6.0.26",
     "stream-browserify": "^3.0.0",
     "typescript": "^4.2.3",
-    "variamos-ple": "file:"
+    "uuid": "^11.1.0",
+    "variamos-ple": "file:",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.24"
   },
   "scripts": {
     "start": "react-scripts start",
     "dev": "set PORT=3002 && react-scripts start",
-    "build": "CI=false && react-scripts build",
+    "build": "react-scripts build",
     "buildwindows": "set CI=false && react-scripts build",
     "test": "react-scripts test",
+    "test:collab":"npm test -- --testPathPattern=src/DataProvider/Services/collab/tests",
     "eject": "react-scripts eject",
     "docker:ci": "docker build -t variamos:latest .",
     "docker:deploy": "docker run -d --name variamos -p 3000:3000 variamos:latest "
@@ -73,6 +78,7 @@
     ]
   },
   "devDependencies": {
+    "@babel/core": "^7.22.9",
     "@stryker-mutator/core": "^6.0.2",
     "@stryker-mutator/jest-runner": "^6.0.2",
     "@testing-library/cypress": "^8.0.2",
