@@ -48,10 +48,15 @@ export default function NewDialog({
 
   const [projectName, setProjectName] = useState("");
   const [productLineName, setProductLineName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [projectAuthor, setProjectAuthor] = useState("");
+  const [projectSource, setProjectSource] = useState("");
+  const [isPublic, setIsPublic] = useState(false);
   const [plDomains, setPlDomains] = useState(['Advertising and Marketing', 'Agriculture', 'Architecture and Design', 'Art and Culture', 'Automotive', 'Beauty and Wellness', 'Childcare and Parenting', 'Construction', 'Consulting and Professional Services', 'E-commerce', 'Education', 'Energy and Utilities', 'Environmental Services', 'Event Planning and Management', 'Fashion and Apparel', 'Finance and Banking', 'Food and Beverage', 'Gaming and Gambling', 'Government and Public Sector', 'Healthcare', 'Hospitality and Tourism', 'Insurance', 'Legal Services', 'Manufacturing', 'Media and Entertainment', 'Non-profit and Social Services','Office', 'Pharmaceuticals', 'Photography and Videography', 'Printing and Publishing', 'Real Estate', 'Research and Development', 'Retail', 'Security and Surveillance', 'Software and Web Development', 'Sports and Recreation', 'Telecommunications', 'Transportation and Logistics', 'Travel and Leisure', 'Wholesale and Distribution', 'Other']);
   const [plTypes, setPlTypes] = useState(['Software', 'System']);
   const [productLineDomain, setProductLineDomain] = useState('Retail');
   const [productLineType, setProductLineType] = useState("System");
+  const [isGuest, setIsGuest] = useState(false);
   
   const inputProjectNameRef = useRef(null);
   const inputProductLineNameRef = useRef(null);
@@ -63,6 +68,7 @@ export default function NewDialog({
       setSavedQueries(JSON.parse(savedQueries));
     }
     getProjectsByUser();
+    setIsGuest(projectService.isGuessUser());
   }, []);
 
   useEffect(() => {
@@ -269,9 +275,27 @@ export default function NewDialog({
       inputProductLineNameRef.current.focus();
       return;
     }
+    
     let project = projectService.createNewProject(projectName, productLineName, productLineType, productLineDomain);
     projectService.setProjectInformation(null);
     projectService.updateProject(project, null);
+    
+    if (!isGuest) {
+      const projectInformation = new ProjectInformation(
+        null,
+        null,
+        projectName,
+        project,
+        isPublic,
+        projectDescription,
+        projectSource,
+        projectAuthor,
+        new Date(),
+      );
+      
+      projectService.saveProjectInServer(projectInformation, null, null);
+    }
+    
     handleCloseCallback();
   };
 
@@ -289,6 +313,22 @@ export default function NewDialog({
 
   const inputProductLineDomain_onChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setProductLineDomain(event.target.value);
+  };
+
+  const inputProjectDescription_onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setProjectDescription(event.target.value);
+  };
+
+  const inputProjectAuthor_onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setProjectAuthor(event.target.value);
+  };
+
+  const inputProjectSource_onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setProjectSource(event.target.value);
+  };
+
+  const inputIsPublic_onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsPublic(event.target.checked);
   };
 
   return (
@@ -332,6 +372,38 @@ export default function NewDialog({
                   </option>
                 ))}
               </Form.Select>
+              
+              {!isGuest && (
+                <>
+                  <Form.Label>Description</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter your project description"
+                    value={projectDescription}
+                    onChange={inputProjectDescription_onChange}
+                  />
+                  <Form.Label>Author</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter your name or the author's name, e.g.: J. Doe"
+                    value={projectAuthor}
+                    onChange={inputProjectAuthor_onChange}
+                  />
+                  <Form.Label>Source</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter the bibliographic reference or source link"
+                    value={projectSource}
+                    onChange={inputProjectSource_onChange}
+                  />
+                  <Form.Label>Public</Form.Label>
+                  <Form.Check
+                    type="checkbox"
+                    checked={isPublic}
+                    onChange={inputIsPublic_onChange}
+                  />
+                </>
+              )}
             </Form.Group>
           </Form>
         </Modal.Body>
