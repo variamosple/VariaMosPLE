@@ -791,11 +791,17 @@ export default class ProjectService {
       me._project = projectInformation.project;
       me._projectInformation = projectInformation;
       me._currentModel=null;
+      
+      if (projectInformation.id && me._project) {
+        me._project.id = projectInformation.id;
+      }
+      
       if (template) {
         me._projectInformation.id = null;
         me._projectInformation.template = false;
       }          
       me.raiseEventUpdateProject(me._project, null);
+      
       me.handleCollaborativeProject(me._project.id, projectInformation)
     }
 
