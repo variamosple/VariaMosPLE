@@ -293,10 +293,23 @@ export default function NewDialog({
         new Date(),
       );
       
-      projectService.saveProjectInServer(projectInformation, null, null);
+      const saveSuccessCallback = (savedProject: ProjectInformation) => {
+        if (savedProject && savedProject.id) {
+          projectService.openProjectInServer(savedProject.id, false);
+        }
+        handleCloseCallback();
+      };
+      
+      const saveErrorCallback = (error) => {
+        console.error("Error saving project:", error);
+        alert("Error saving project: " + JSON.stringify(error));
+        handleCloseCallback();
+      };
+      
+      projectService.saveProjectInServer(projectInformation, saveSuccessCallback, saveErrorCallback);
+    } else {
+      handleCloseCallback();
     }
-    
-    handleCloseCallback();
   };
 
   const inputProjectName_onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
