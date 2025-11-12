@@ -17,7 +17,7 @@ export class ProjectInformation {
   currentUserRole?: string;
   collaborators?: Array<{ id: string; name: string; email: string; role: string }>;
 
-  constructor(id: string, owner_id: string, name: string, project: Project, template: boolean, description: string, source: string, author: string, date: Date, is_collaborative: boolean, role?: string, collaborators?: Array<{ id: string; name: string; email: string; role: string }>) {
+  constructor(id: string, owner_id: string, name: string, project: Project, template: boolean, description: string, source: string, author: string, date: Date, is_collaborative?: boolean, role?: string, collaborators?: Array<{ id: string; name: string; email: string; role: string }>) {
     this.id = id;
     this.name = name;
     this.project = project;
