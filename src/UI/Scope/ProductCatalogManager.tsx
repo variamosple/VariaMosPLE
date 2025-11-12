@@ -63,14 +63,14 @@ useEffect(() => {
         "Quantity", "1", "String",
         undefined, undefined, undefined,
         false, true, "", "", undefined,
-        0, 0, "", "1"
+        0, 0, "", "1", null
       );
       // Propiedad BoM_level = "Product (level 0)"
       const levelProp = new Property(
         "BoM_level", "Product (level 0)", "String",
         undefined, undefined, undefined,
         false, true, "", "", undefined,
-        0, 0, "", "Product (level 0)"
+        0, 0, "", "Product (level 0)", null
       );
       const rootMaterial: Element = {
         id: newId,
@@ -426,7 +426,8 @@ const handleUploadProductImage = (file: File) => {
       0,
       0,
       "",
-      base64Data
+      base64Data, 
+      null
     );
 
     const newProduct: Element = {
@@ -545,7 +546,8 @@ const handleUploadProductImage = (file: File) => {
         p.minCardinality,
         p.maxCardinality,
         p.constraint,
-        defaultVal
+        defaultVal,
+        p.autocompleteSource
       );
     });
     const newElement: Element = {
@@ -595,7 +597,8 @@ const handleUploadProductImage = (file: File) => {
           0,
           0,
           "",
-          "Contains"
+          "Contains",
+          null
         )
       ]
     };

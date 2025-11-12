@@ -1,4 +1,4 @@
-import React, { Component} from "react";
+import React, { Component } from "react";
 import "./MxGEditor.css";
 
 import { mxGraph } from "mxgraph";
@@ -34,7 +34,7 @@ import { LuSheet } from "react-icons/lu";
 import { RiSave3Fill } from "react-icons/ri";
 import { Accordion, AccordionBody, AccordionHeader, AccordionItem, Form, FormGroup } from "reactstrap";
 import MxProperties from "../MxProperties/MxProperties";
-import {RoleEnum} from "../../Domain/ProductLineEngineering/Enums/roleEnum";
+import { RoleEnum } from "../../Domain/ProductLineEngineering/Enums/roleEnum";
 import KaosGenerator from "../Scope/KaosGenerator";
 import {
   destroyModelAwareness,
@@ -73,12 +73,12 @@ interface State {
   pendingChanges: boolean;  // Nuevo estado para cambios pendientes
 
   //   Collab
-    isCollaborative: boolean;
-    collaborators: Array<{id: string, name: string,email: string; role: string }>;
-    showCollaboratorsModal: boolean;
-    userRole: string;
-    backupObject: any;
-    awarnessStates?: Array<any>;
+  isCollaborative: boolean;
+  collaborators: Array<{ id: string, name: string, email: string; role: string }>;
+  showCollaboratorsModal: boolean;
+  userRole: string;
+  backupObject: any;
+  awarnessStates?: Array<any>;
   collaborativeUsers: Array<{
     name: string;
     color: string;
@@ -101,8 +101,9 @@ export default class MxGEditor extends Component<Props, State> {
   graphContainerRef: any;
   graph?: mxGraph;
   currentModel?: Model;
+  modifiedObject?: any;
   isRemoteChange: boolean;
-  isInitialLoad: boolean= false;
+  isInitialLoad: boolean = false;
   currentModelObserver: (() => void) | null = null;
   awarenessUnsubscribe: (() => void) | null = null;
   incrementalUpdaters: Map<string, IncrementalGraphUpdater> = new Map();
@@ -131,7 +132,7 @@ export default class MxGEditor extends Component<Props, State> {
       allScopeConfigurations: [] as Array<Record<string, any>>,
       openAccordion: [],
       showRequirementsReportModal: false,
-// Collab
+      // Collab
       isCollaborative: false,
       collaborators: [],
       showCollaboratorsModal: false,
@@ -160,7 +161,7 @@ export default class MxGEditor extends Component<Props, State> {
     this.saveConstraints = this.saveConstraints.bind(this);
     //handle properties modal
     this.showPropertiesModal = this.showPropertiesModal.bind(this);
-    this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
+    this.cancelPropertiesModal = this.cancelPropertiesModal.bind(this);
     this.savePropertiesModal = this.savePropertiesModal.bind(this);
     this.hideMessageModal = this.hideMessageModal.bind(this);
 
@@ -196,6 +197,7 @@ export default class MxGEditor extends Component<Props, State> {
     let me = this;
     let vertice = MxgraphUtils.findVerticeById(this.graph, e.element.id, null);
     if (vertice) {
+      this.modifiedObject = JSON.parse(JSON.stringify(e.element));
       me.setState({
         selectedObject: e.element
       })
@@ -231,7 +233,7 @@ export default class MxGEditor extends Component<Props, State> {
       }
 
       this.setState({ pendingChanges: true });
-      
+
       this.graph.refresh();
       let model = this.currentModel;
       this.loadModel(model);
@@ -239,7 +241,7 @@ export default class MxGEditor extends Component<Props, State> {
     } catch (error) {
       let m = error;
     }
-    
+
   }
 
   // TODO DESPUES DE QUE SE ABRE UN DIAGRAMA, SE EJECUTA CON CADA CAMBIO, EJ, ABRIR UN NUEVO PROYECTO
@@ -257,17 +259,17 @@ export default class MxGEditor extends Component<Props, State> {
         userRole: projectInfo.role || "",
       }, () => {
 
-      if (projectInfo.is_collaborative && projectInfo.project.id && model) {
-        this.observeModel(projectInfo.project.id, model);
-      }
+        if (projectInfo.is_collaborative && projectInfo.project.id && model) {
+          this.observeModel(projectInfo.project.id, model);
+        }
 
       });
 
     }
-  
+
     me.forceUpdate();
   }
-// TODO SE EJECUTA CUANDO SE ABRE UN DIAGRAMA, NO UN PROYECTO
+  // TODO SE EJECUTA CUANDO SE ABRE UN DIAGRAMA, NO UN PROYECTO
   componentDidMount() {
     let me = this;
     let model = null
@@ -275,7 +277,7 @@ export default class MxGEditor extends Component<Props, State> {
       this.graph = new mx.mxGraph(this.graphContainerRef.current);
       this.props.projectService.setGraph(this.graph);
     }
-    
+
     this.LoadGraph(this.graph);
 
     me.props.projectService.addNewProductLineListener(
@@ -318,7 +320,7 @@ export default class MxGEditor extends Component<Props, State> {
     this.logAccordionContents();
 
     const projectInfo = this.props.projectService.getProjectInformation();
-    
+
     if (projectInfo) {
       // Actualizar estado del proyecto
       me.setState({
@@ -327,9 +329,9 @@ export default class MxGEditor extends Component<Props, State> {
         userRole: projectInfo.role || "",
       }, () => {
 
-      if (projectInfo.is_collaborative && projectInfo.project.id && model) {
-        this.observeModel(projectInfo.project.id, model);
-      }
+        if (projectInfo.is_collaborative && projectInfo.project.id && model) {
+          this.observeModel(projectInfo.project.id, model);
+        }
 
       });
 
@@ -398,7 +400,7 @@ export default class MxGEditor extends Component<Props, State> {
         }
       }
       evt.consume();
-      
+
       if (evt.properties.cells) {
         // Procesar todas las celdas movidas
         evt.properties.cells.forEach(cell => {
@@ -461,9 +463,9 @@ export default class MxGEditor extends Component<Props, State> {
                 element.height = cell.geometry.height;
               }
             }
-          } 
+          }
         }
-        
+
         this.syncModelChanges();
 
       } catch (error) {
@@ -511,7 +513,7 @@ export default class MxGEditor extends Component<Props, State> {
       me.forceUpdate();
     }
 
-  );
+    );
 
     graph.addListener(mx.mxEvent.SELECT, function (sender, evt) {
       // Solo consumir el evento, sin awareness colaborativo para selección simple
@@ -582,7 +584,7 @@ export default class MxGEditor extends Component<Props, State> {
 
 
 
-    graph.addListener(mx.mxEvent.CELL_CONNECTED,  (sender, evt) => {
+    graph.addListener(mx.mxEvent.CELL_CONNECTED, (sender, evt) => {
       try {
         evt.consume();
         let edge = evt.getProperty("edge");
@@ -609,8 +611,8 @@ export default class MxGEditor extends Component<Props, State> {
             // Verificar dirección inversa: target -> source (solo para tipos diferentes)
             // Esto evita problemas con relaciones que no deberían ser bidireccionales
             const reverseDirection = rel.target.includes(source.value.tagName) &&
-                                   rel.source == target.value.tagName &&
-                                   source.value.tagName !== target.value.tagName;
+              rel.source == target.value.tagName &&
+              source.value.tagName !== target.value.tagName;
 
             if (normalDirection || reverseDirection) {
               relationshipType = key;
@@ -630,7 +632,7 @@ export default class MxGEditor extends Component<Props, State> {
           if (rel.properties) {
             for (let i = 0; i < rel.properties.length; i++) {
               const p = rel.properties[i];
-              const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.possibleValuesLinks, p.minCardinality, p.maxCardinality, p.constraint, p.defaultValue);
+              const property = new Property(p.name, p.value, p.type, p.options, p.linked_property, p.linked_value, false, true, p.comment, p.possibleValues, p.possibleValuesLinks, p.minCardinality, p.maxCardinality, p.constraint, p.defaultValue, p.autocompleteSource);
               if (p.defaultValue == "") {
                 property.value = p.defaultValue;
               } else if (p.defaultValue) {
@@ -690,8 +692,8 @@ export default class MxGEditor extends Component<Props, State> {
       }
 
     }
-    
-  );
+
+    );
 
     // graph.connectionHandler.addListener(mx.mxEvent.CONNECT, function(sender, evt)
     // {
@@ -702,10 +704,10 @@ export default class MxGEditor extends Component<Props, State> {
 
     graph.addListener(mx.mxEvent.REMOVE_CELLS, (sender, evt) => {
       evt.consume();
-      
+
       if (evt.properties.cells) {
         const removedCells = evt.properties.cells;
-        
+
         removedCells.forEach(cell => {
           if (cell.value && cell.value.attributes) {
             const uid = cell.value.getAttribute("uid");
@@ -719,7 +721,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         });
 
-      this.syncModelChanges();
+        this.syncModelChanges();
 
       }
     });
@@ -781,7 +783,7 @@ export default class MxGEditor extends Component<Props, State> {
 
     // Agregar eventos de mouse para detectar inicio de drag
     graph.addMouseListener({
-      mouseDown: function(sender, me_evt) {
+      mouseDown: function (sender, me_evt) {
         const cell = me_evt.getCell();
         if (cell && cell.value && cell.value.attributes) {
           const uid = cell.value.getAttribute("uid");
@@ -790,7 +792,7 @@ export default class MxGEditor extends Component<Props, State> {
           me.setState({ movingCellId: uid });
         }
       },
-      mouseMove: function(sender, me_evt) {
+      mouseMove: function (sender, me_evt) {
         // Solo si hay una celda siendo arrastrada y tenemos una celda marcada para mover
         if (graph.isMouseDown && me.state.movingCellId) {
           // Si no hemos marcado que estamos moviendo, hacerlo ahora
@@ -809,7 +811,7 @@ export default class MxGEditor extends Component<Props, State> {
           }
         }
       },
-      mouseUp: function(sender, me_evt) {
+      mouseUp: function (sender, me_evt) {
         // Limpiar el ID de la celda que estábamos preparando para mover
         me.setState({ movingCellId: null });
       }
@@ -977,12 +979,20 @@ export default class MxGEditor extends Component<Props, State> {
         }
         else if (languageDefinition.concreteSyntax.relationships[relationship.type].label_property) {
           label_property = languageDefinition.concreteSyntax.relationships[relationship.type].label_property;
-          for (let p = 0; p < relationship.properties.length; p++) {
-            const property = relationship.properties[p];
-            if (property.name == label_property) {
-              edge.value.setAttribute("label", property.value);
-              return;
+          let property = this.findProperty(relationship, label_property);
+          if (property != null) {
+            let label = property.value;
+            if (label == "IndividualCardinality") {
+              let minProperty = this.findProperty(relationship, "MinValue");
+              let maxProperty = this.findProperty(relationship, "MaxValue");
+              if (minProperty != null && maxProperty != null) {
+                let minValue = minProperty.value;
+                let maxValue = maxProperty.value;
+                label = label + "\n[" + minValue + ".." + maxValue + "]";
+              }
             }
+            edge.value.setAttribute("label", label);
+            return;
           }
         }
       }
@@ -992,6 +1002,16 @@ export default class MxGEditor extends Component<Props, State> {
     } else {
       edge.value.setAttribute("label", "");
     }
+  }
+
+  findProperty(relationship, name) {
+    for (let p = 0; p < relationship.properties.length; p++) {
+      const property = relationship.properties[p];
+      if (property.name == name) {
+        return property;
+      }
+    }
+    return null;
   }
 
   refreshVertexLabel(vertice: any) {
@@ -1009,8 +1029,23 @@ export default class MxGEditor extends Component<Props, State> {
 
     vertice.value.setAttribute("Name", element.name);
     for (let i = 0; i < element.properties.length; i++) {
-      const p = element.properties[i];
+      const p: any = element.properties[i];
       vertice.value.setAttribute(p.name, p.value);
+      let typeDescription = "";
+      if (!p.possibleValues) {
+        typeDescription = p.type;
+      } else if (p.possibleValues.startsWith("[")) {
+        let str = p.possibleValues;
+        if (str.length <= 2) {
+          str = "";
+        } else {
+          str = str.slice(1, -1);
+        }
+        typeDescription = p.type + " in " + str;
+      } else {
+        typeDescription = "{" + p.possibleValues + "}";
+      }
+      vertice.value.setAttribute(p.name + "_typeDescription", typeDescription);
     }
 
     if (languageDefinition.concreteSyntax.elements) {
@@ -1109,20 +1144,20 @@ export default class MxGEditor extends Component<Props, State> {
       if (graph) {
         graph.getModel().beginUpdate();
         try {
-        // ---------------------------------------------------------
+          // ---------------------------------------------------------
           const graphModel = graph.getModel();
           const parent = graph.getDefaultParent();
           const childCount = graphModel.getChildCount(parent);
-          
+
           for (let i = childCount - 1; i >= 0; i--) {
             graphModel.remove(graphModel.getChildAt(parent, i));
-          } 
+          }
           // ---------------------------------------------------------
           if (model) {
             let languageDefinition: any = this.props.projectService.getLanguageDefinition("" + model.type);
             if (!languageDefinition) {
-             console.error("Language definition not found for model type:", model.type);
-             this.showMessageModal("Error", "Language definition not found for model type: " + model.type);
+              console.error("Language definition not found for model type:", model.type);
+              this.showMessageModal("Error", "Language definition not found for model type: " + model.type);
               return;
             }
             let orden = [];
@@ -1201,12 +1236,12 @@ export default class MxGEditor extends Component<Props, State> {
                 }
               }
               let design = languageDefinition.concreteSyntax.elements[element.type].design;
-              let styleShape="shape=" + element.type + ";whiteSpace=wrap;" + fontcolor + design; 
-              let resizable=languageDefinition.concreteSyntax.elements[element.type].resizable;
+              let styleShape = "shape=" + element.type + ";whiteSpace=wrap;" + fontcolor + design;
+              let resizable = languageDefinition.concreteSyntax.elements[element.type].resizable;
               if ("" + resizable == "false") {
                 styleShape += ";resizable=0;";
               }
-              styleShape+=fontcolor + design; 
+              styleShape += fontcolor + design;
               var vertex = graph.insertVertex(
                 parent,
                 null,
@@ -1855,10 +1890,70 @@ export default class MxGEditor extends Component<Props, State> {
     }
 
     const backup = JSON.parse(JSON.stringify(this.state.selectedObject));
+    this.modifiedObject = backup;
     this.setState({
       showPropertiesModal: true,
       backupObject: backup,
       pendingChanges: false
+    });
+  }
+
+  acceptPropertiesModal = (e) => {
+    if (this.state.pendingChanges) {
+      // Awareness colaborativo: Marcar que el usuario canceló la edición
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
+
+      const originalObject = this.state.backupObject;
+      if (originalObject) {
+        // Restaurar el objeto en el modelo
+        if (this.currentModel) {
+          const element = this.props.projectService.findModelElementById(this.currentModel, originalObject.id);
+          if (element) {
+            Object.assign(element, originalObject);
+          } else {
+            const relationship = this.props.projectService.findModelRelationshipById(this.currentModel, originalObject.id);
+            if (relationship) {
+              Object.assign(relationship, originalObject);
+            }
+          }
+        }
+        // Actualizar la vista
+        this.props.projectService.raiseEventUpdatedElement(
+          this.currentModel,
+          originalObject
+        );
+      }
+    } else {
+      // Awareness colaborativo: Marcar que el usuario terminó la edición sin cambios
+      const projectId = this.props.projectService.getProject().id;
+      const modelId = this.currentModel?.id;
+      if (projectId && modelId) {
+        setUserIdle(projectId, modelId);
+      }
+    }
+
+    this.setState({
+      showPropertiesModal: false,
+      pendingChanges: false,
+      backupObject: null
+    });
+  }
+
+  cancelPropertiesModal = () => {
+    Object.assign(this.state.selectedObject, this.modifiedObject);
+    this.props.projectService.saveProject();
+    this.props.projectService.raiseEventUpdatedElement(
+      this.currentModel,
+      this.state.selectedObject
+    );
+    this.setState({
+      showPropertiesModal: false,
+      pendingChanges: false,
+      backupObject: null
     });
   }
 
@@ -2369,12 +2464,12 @@ export default class MxGEditor extends Component<Props, State> {
     const exclusions = [];
     const totalConfigs = this.state.allScopeConfigurations.length;
     if (totalConfigs === 0) return exclusions;
-  
+
     // 1. Recolectar materiales, contar apariciones y coocurrencias
     const allMaterialsMap = new Map();
     const appearCount = new Map<string, number>();       // Número de configuraciones en que aparece cada material
     const pairCooccurrence = new Map<string, number>();    // Número de configuraciones en que dos materiales aparecen juntos
-  
+
     this.state.allScopeConfigurations.forEach((config: any) => {
       const mats = this.getMaterialsFromConfig(config);
       // Filtrar para omitir materiales de tipo "Product (level 0)"
@@ -2402,16 +2497,16 @@ export default class MxGEditor extends Component<Props, State> {
         }
       }
     });
-  
+
     const allMaterials = Array.from(allMaterialsMap.values());
     const coreIds = this.getCoreMaterialIds();
-  
+
     // 2. Recorrer pares (A, B) (evitando duplicados, i < j)
     for (let i = 0; i < allMaterials.length; i++) {
       for (let j = i + 1; j < allMaterials.length; j++) {
         const matA = allMaterials[i];
         const matB = allMaterials[j];
-  
+
         // Excluir el par si alguno es core (para evitar relaciones triviales)
         if (coreIds.has(matA.id) || coreIds.has(matB.id)) {
           continue;
@@ -2420,19 +2515,19 @@ export default class MxGEditor extends Component<Props, State> {
         if (this.hasStructuralRelationship(matA, matB)) {
           continue;
         }
-  
+
         const countA = appearCount.get(matA.id) || 0;
         const countB = appearCount.get(matB.id) || 0;
         const coAB = pairCooccurrence.get(matA.id + "," + matB.id) || 0;
-  
+
         // Calcular la fracción de veces que A aparece sin B:
         const ratioA_notB = countA > 0 ? ((countA - coAB) / countA) : 0;
         // De B hacia A:
         const ratioB_notA = countB > 0 ? ((countB - coAB) / countB) : 0;
-  
+
         let aExcludesB = false;  // "If A is selected, then B is absent"
         let bExcludesA = false;  // "If B is selected, then A is absent"
-  
+
         // Solo considerar la relación si el material de origen aparece en al menos minOccurrence configuraciones
         if (countA >= minOccurrence && ratioA_notB >= threshold_exc) {
           aExcludesB = true;
@@ -2440,7 +2535,7 @@ export default class MxGEditor extends Component<Props, State> {
         if (countB >= minOccurrence && ratioB_notA >= threshold_exc) {
           bExcludesA = true;
         }
-  
+
         if (aExcludesB || bExcludesA) {
           exclusions.push({
             matA,
@@ -2455,19 +2550,19 @@ export default class MxGEditor extends Component<Props, State> {
         }
       }
     }
-  
+
     return exclusions;
   }
-  
-  
-  
+
+
+
   renderPartialExclusionsTable(exclusions: any[]) {
     if (!exclusions || exclusions.length === 0) {
       return <p>No potential exclusions found.</p>;
     }
-  
+
     const getLabel = (mat: any) => this.getBoMLabel(mat);
-  
+
     return (
       <table
         style={{
@@ -2525,9 +2620,9 @@ export default class MxGEditor extends Component<Props, State> {
       </table>
     );
   }
-  
-  
-  
+
+
+
 
 
 
@@ -2594,845 +2689,845 @@ export default class MxGEditor extends Component<Props, State> {
  * Retorna un Set con los IDs de materiales core 
  * (materiales presentes en el 100% de las configuraciones).
  */
-getCoreMaterialIds(): Set<string> {
-  const coreIds = new Set<string>();
-  const totalConfigs = this.state.allScopeConfigurations.length;
-  if (totalConfigs === 0) return coreIds;
+  getCoreMaterialIds(): Set<string> {
+    const coreIds = new Set<string>();
+    const totalConfigs = this.state.allScopeConfigurations.length;
+    if (totalConfigs === 0) return coreIds;
 
-  // 1. Contamos en cuántas configuraciones aparece cada material
-  const appearCount = new Map<string, number>();
+    // 1. Contamos en cuántas configuraciones aparece cada material
+    const appearCount = new Map<string, number>();
 
-  this.state.allScopeConfigurations.forEach((config) => {
-    const mats = this.getMaterialsFromConfig(config);
-    // Usamos un Set local para no duplicar en la misma config
-    const localSet = new Set<string>();
-    mats.forEach((m) => localSet.add(m.id));
-    // Incr. el contador para cada material presente
-    localSet.forEach((id) => {
-      appearCount.set(id, (appearCount.get(id) || 0) + 1);
+    this.state.allScopeConfigurations.forEach((config) => {
+      const mats = this.getMaterialsFromConfig(config);
+      // Usamos un Set local para no duplicar en la misma config
+      const localSet = new Set<string>();
+      mats.forEach((m) => localSet.add(m.id));
+      // Incr. el contador para cada material presente
+      localSet.forEach((id) => {
+        appearCount.set(id, (appearCount.get(id) || 0) + 1);
+      });
     });
-  });
 
-  // 2. Verificar quién está en todas las configs
-  for (let [matId, count] of appearCount) {
-    if (count === totalConfigs) {
-      coreIds.add(matId);
-    }
-  }
-  
-  return coreIds;
-}
-
-renderMaterialDependenciesPartition() {
-  // Obtenemos todas las dependencias según la lógica (por ejemplo, con threshold 1.0)
-  const deps = this.getPartialDependencies(1.0);
-
-  // Particionamos en bidireccionales y unidireccionales
-  const bidirectional = deps.filter(dep => dep.aImpliesB && dep.bImpliesA);
-  const unidirectional = deps.filter(dep => (dep.aImpliesB && !dep.bImpliesA) || (!dep.aImpliesB && dep.bImpliesA));
-
-  return (
-    <div>
-      <h5>Potential component dependencies</h5>
-      {/* Texto introductorio */}
-      <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
-      The following dependencies indicate that one material requires another to function properly. Symbols: “⇔” for both ways, “⇒” or “⇐” for one-way.</p>
-
-      <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
-      These dependencies exclude any pairs where at least one component is core or already linked through structural relationships. 
-      Also, each dependency only appears if the source material appears in multiple configurations and always (or above a threshold) co-occurs with the target, ensuring meaningful associations.
-      </p>
-
-      {/* Sección de Dependencias Bidireccionales */}
-      <h6>Bidirectional Dependencies (Always appear together under threshold)</h6>
-      {bidirectional.length === 0 ? (
-        <p>No bidirectional dependencies found.</p>
-      ) : (
-        this.renderPartialDependenciesTable(bidirectional)
-      )}
-
-      {/* Sección de Dependencias Unidireccionales */}
-      <h6>Unidirectional Dependencies</h6>
-      {unidirectional.length === 0 ? (
-        <p>No unidirectional dependencies found.</p>
-      ) : (
-        this.renderPartialDependenciesTable(unidirectional)
-      )}
-    </div>
-  );
-}
-
-
-getPartialDependencies(threshold_dep: number = 1.0, minOccurrence: number = 2) {
-  const dependencies = [];
-  const totalConfigs = this.state.allScopeConfigurations.length;
-  if (totalConfigs === 0) return dependencies;
-
-  // 1. Recolectar materiales, contar apariciones y coocurrencias
-  const allMaterialsMap = new Map();
-  const appearCount = new Map<string, number>();  // Número de configuraciones donde aparece cada material
-  const pairCooccurrence = new Map<string, number>();  // Número de configuraciones donde dos materiales aparecen juntos
-
-  this.state.allScopeConfigurations.forEach((config: any) => {
-    const mats = this.getMaterialsFromConfig(config);
-    // Filtrar para omitir materiales con BoM_level "Product (level 0)"
-    const filteredMats = mats.filter((m: any) => {
-      const bomProp = m.properties?.find((p: any) => p.name === "BoM_level");
-      return !(bomProp && bomProp.value && bomProp.value.includes("Product (level 0)"));
-    });
-    const matIds = filteredMats.map((m: any) => m.id);
-    const localSet = new Set<string>();
-    filteredMats.forEach((m: any) => {
-      localSet.add(m.id);
-      if (!allMaterialsMap.has(m.id)) {
-        allMaterialsMap.set(m.id, m);
-      }
-    });
-    localSet.forEach((id) => {
-      appearCount.set(id, (appearCount.get(id) || 0) + 1);
-    });
-    for (let i = 0; i < matIds.length; i++) {
-      for (let j = i + 1; j < matIds.length; j++) {
-        const key = matIds[i] + "," + matIds[j];
-        pairCooccurrence.set(key, (pairCooccurrence.get(key) || 0) + 1);
-        // Guardar de forma simétrica
-        pairCooccurrence.set(matIds[j] + "," + matIds[i], (pairCooccurrence.get(matIds[j] + "," + matIds[i]) || 0) + 1);
+    // 2. Verificar quién está en todas las configs
+    for (let [matId, count] of appearCount) {
+      if (count === totalConfigs) {
+        coreIds.add(matId);
       }
     }
-  });
 
-  const allMaterials = Array.from(allMaterialsMap.values());
-  const coreIds = this.getCoreMaterialIds();
-
-  // 2. Recorrer pares (A, B) (evitando duplicados, i < j)
-  for (let i = 0; i < allMaterials.length; i++) {
-    for (let j = i + 1; j < allMaterials.length; j++) {
-      const matA = allMaterials[i];
-      const matB = allMaterials[j];
-
-      // Excluir el par si alguno es core (para evitar relaciones triviales)
-      if (coreIds.has(matA.id) || coreIds.has(matB.id)) {
-        continue;
-      }
-      // Excluir pares que ya tengan una relación estructural "Contains"
-      if (this.hasStructuralRelationship(matA, matB)) {
-        continue;
-      }
-
-      const countA = appearCount.get(matA.id) || 0;
-      const countB = appearCount.get(matB.id) || 0;
-      const coAB = pairCooccurrence.get(matA.id + "," + matB.id) || 0;
-
-      // Calcula el ratio: de las configuraciones en que A aparece, cuántas veces aparece B
-      const ratioAtoB = countA > 0 ? (coAB / countA) : 0;
-      // De B hacia A
-      const ratioBtoA = countB > 0 ? (coAB / countB) : 0;
-
-      // Solo se consideran relaciones si el material de origen aparece al menos minOccurrence veces
-      let aImpliesB = (ratioAtoB >= threshold_dep) && (countA >= minOccurrence);
-      let bImpliesA = (ratioBtoA >= threshold_dep) && (countB >= minOccurrence);
-
-      if (aImpliesB || bImpliesA) {
-        dependencies.push({
-          matA,
-          matB,
-          aImpliesB,
-          bImpliesA,
-          ratioAtoB,
-          ratioBtoA,
-          countA,
-          countB
-        });
-      }
-    }
+    return coreIds;
   }
 
-  return dependencies;
-}
+  renderMaterialDependenciesPartition() {
+    // Obtenemos todas las dependencias según la lógica (por ejemplo, con threshold 1.0)
+    const deps = this.getPartialDependencies(1.0);
 
+    // Particionamos en bidireccionales y unidireccionales
+    const bidirectional = deps.filter(dep => dep.aImpliesB && dep.bImpliesA);
+    const unidirectional = deps.filter(dep => (dep.aImpliesB && !dep.bImpliesA) || (!dep.aImpliesB && dep.bImpliesA));
 
-limitDependencies(dependencies: any[], limitPerMaterial: number = 3) {
-  const grouped = new Map();
-  // Agrupar por matA.id (puedes elegir otra forma de agrupar, según el contexto)
-  dependencies.forEach((dep) => {
-    const key = dep.matA.id;
-    if (!grouped.has(key)) {
-      grouped.set(key, []);
-    }
-    grouped.get(key).push(dep);
-  });
-  const limitedDeps = [];
-  grouped.forEach((depsGroup, key) => {
-    // Ordenar el grupo por la "fuerza" de la asociación, por ejemplo,
-    // usando la suma de ratioAtoB y ratioBtoA.
-    depsGroup.sort((a, b) => {
-      const strengthA = (a.aImpliesB ? a.ratioAtoB : 0) + (a.bImpliesA ? a.ratioBtoA : 0);
-      const strengthB = (b.aImpliesB ? b.ratioAtoB : 0) + (b.bImpliesA ? b.ratioBtoA : 0);
-      return strengthB - strengthA;
-    });
-    limitedDeps.push(...depsGroup.slice(0, limitPerMaterial));
-  });
-  return limitedDeps;
-}
-
-
-
-
-
-hasStructuralRelationship(matA: any, matB: any): boolean {
-  const structure = this.props.projectService.getStructureAndRelationships();
-  const rels = structure.relationships || [];
-  return rels.some((rel: any) => {
-    // Se asume que la propiedad "Type" en rel.properties determina el tipo de relación.
-    const typeProp = rel.properties?.find((p: any) => p.name === "Type");
-    if (!typeProp || typeProp.value !== "Contains") {
-      return false;
-    }
     return (
-      (rel.sourceId === matA.id && rel.targetId === matB.id) ||
-      (rel.sourceId === matB.id && rel.targetId === matA.id)
+      <div>
+        <h5>Potential component dependencies</h5>
+        {/* Texto introductorio */}
+        <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
+          The following dependencies indicate that one material requires another to function properly. Symbols: “⇔” for both ways, “⇒” or “⇐” for one-way.</p>
+
+        <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
+          These dependencies exclude any pairs where at least one component is core or already linked through structural relationships.
+          Also, each dependency only appears if the source material appears in multiple configurations and always (or above a threshold) co-occurs with the target, ensuring meaningful associations.
+        </p>
+
+        {/* Sección de Dependencias Bidireccionales */}
+        <h6>Bidirectional Dependencies (Always appear together under threshold)</h6>
+        {bidirectional.length === 0 ? (
+          <p>No bidirectional dependencies found.</p>
+        ) : (
+          this.renderPartialDependenciesTable(bidirectional)
+        )}
+
+        {/* Sección de Dependencias Unidireccionales */}
+        <h6>Unidirectional Dependencies</h6>
+        {unidirectional.length === 0 ? (
+          <p>No unidirectional dependencies found.</p>
+        ) : (
+          this.renderPartialDependenciesTable(unidirectional)
+        )}
+      </div>
     );
-  });
-}
-
-
-
-
-renderPartialDependenciesTable(deps: any[]) {
-  if (!deps || deps.length === 0) {
-    return <p>No dependencies found.</p>;
   }
 
-  const getLabel = (mat: any) => this.getBoMLabel(mat);
 
-  return (
-    <table
-      style={{
-        borderCollapse: "collapse",
-        width: "100%",
-        marginTop: "10px",
-      }}
-    >
-      <thead>
-        <tr style={{ backgroundColor: "#f8f8f8", border: "1px solid #ccc" }}>
-          <th
-            style={{
-              padding: "8px",
-              border: "1px solid #ccc",
-              fontWeight: "bold",
-              textAlign: "left",
-            }}
-          >
-            Material Dependencies (Threshold-based)
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {deps.map((pair: any, idx: number) => {
-          const labelA = getLabel(pair.matA);
-          const labelB = getLabel(pair.matB);
-          if (pair.aImpliesB && pair.bImpliesA) {
-            return (
-              <tr key={idx} style={{ border: "1px solid #ccc" }}>
-                <td style={{ padding: "8px" }}>
-                  {`${labelA} "${pair.matA.name}" ⇔ ${labelB} "${pair.matB.name}" (always appear together under threshold)`}
-                </td>
-              </tr>
-            );
-          } else if (pair.aImpliesB) {
-            return (
-              <tr key={idx} style={{ border: "1px solid #ccc" }}>
-                <td style={{ padding: "8px" }}>
-                  {`If ${labelA} "${pair.matA.name}" is selected ⇒ ${labelB} "${pair.matB.name}" must also be selected.`}
-                </td>
-              </tr>
-            );
-          } else if (pair.bImpliesA) {
-            return (
-              <tr key={idx} style={{ border: "1px solid #ccc" }}>
-                <td style={{ padding: "8px" }}>
-                  {`If ${labelB} "${pair.matB.name}" is selected ⇒ ${labelA} "${pair.matA.name}" must also be selected.`}
-                </td>
-                </tr>
-            );
-          }
-          return null;
-        })}
-      </tbody>
-    </table>
-  );
-}
+  getPartialDependencies(threshold_dep: number = 1.0, minOccurrence: number = 2) {
+    const dependencies = [];
+    const totalConfigs = this.state.allScopeConfigurations.length;
+    if (totalConfigs === 0) return dependencies;
 
+    // 1. Recolectar materiales, contar apariciones y coocurrencias
+    const allMaterialsMap = new Map();
+    const appearCount = new Map<string, number>();  // Número de configuraciones donde aparece cada material
+    const pairCooccurrence = new Map<string, number>();  // Número de configuraciones donde dos materiales aparecen juntos
 
-/**
- * Calcula el ratio promedio de funcionalidades avanzadas en todas las configuraciones.
- * Se consideran avanzadas aquellas funcionalidades que NO sean core (según getCoreMaterialIds).
- */
-calculateAverageAdvancedRatio(): number {
-  let totalRatios = 0;
-  let countConfigs = 0;
-  const coreIds = this.getCoreMaterialIds();
-  this.state.allScopeConfigurations.forEach((config: any) => {
-    const materials = this.getMaterialsFromConfig(config);
-    const totalCount = materials.length;
-    if (totalCount > 0) {
-      const advancedCount = materials.filter((m: any) => !coreIds.has(m.id)).length;
-      totalRatios += advancedCount / totalCount;
-      countConfigs += 1;
-    }
-  });
-  return countConfigs > 0 ? totalRatios / countConfigs : 0;
-}
+    this.state.allScopeConfigurations.forEach((config: any) => {
+      const mats = this.getMaterialsFromConfig(config);
+      // Filtrar para omitir materiales con BoM_level "Product (level 0)"
+      const filteredMats = mats.filter((m: any) => {
+        const bomProp = m.properties?.find((p: any) => p.name === "BoM_level");
+        return !(bomProp && bomProp.value && bomProp.value.includes("Product (level 0)"));
+      });
+      const matIds = filteredMats.map((m: any) => m.id);
+      const localSet = new Set<string>();
+      filteredMats.forEach((m: any) => {
+        localSet.add(m.id);
+        if (!allMaterialsMap.has(m.id)) {
+          allMaterialsMap.set(m.id, m);
+        }
+      });
+      localSet.forEach((id) => {
+        appearCount.set(id, (appearCount.get(id) || 0) + 1);
+      });
+      for (let i = 0; i < matIds.length; i++) {
+        for (let j = i + 1; j < matIds.length; j++) {
+          const key = matIds[i] + "," + matIds[j];
+          pairCooccurrence.set(key, (pairCooccurrence.get(key) || 0) + 1);
+          // Guardar de forma simétrica
+          pairCooccurrence.set(matIds[j] + "," + matIds[i], (pairCooccurrence.get(matIds[j] + "," + matIds[i]) || 0) + 1);
+        }
+      }
+    });
 
-/**
- * Analiza las métricas del scope global comparando los valores esperados (calculados
- * a partir del promedio de funcionalidades avanzadas) con los valores definidos en el scope.
- * Se generan mensajes que muestran tanto el valor esperado como el real, junto con advertencias
- * si la discrepancia es significativa.
- */
+    const allMaterials = Array.from(allMaterialsMap.values());
+    const coreIds = this.getCoreMaterialIds();
 
-convertComplexity(num: number): string {
-  if (num <= 2) return "Low";
-  if (num === 3) return "Medium";
-  return "High";
-}
+    // 2. Recorrer pares (A, B) (evitando duplicados, i < j)
+    for (let i = 0; i < allMaterials.length; i++) {
+      for (let j = i + 1; j < allMaterials.length; j++) {
+        const matA = allMaterials[i];
+        const matB = allMaterials[j];
 
+        // Excluir el par si alguno es core (para evitar relaciones triviales)
+        if (coreIds.has(matA.id) || coreIds.has(matB.id)) {
+          continue;
+        }
+        // Excluir pares que ya tengan una relación estructural "Contains"
+        if (this.hasStructuralRelationship(matA, matB)) {
+          continue;
+        }
 
-analyzeScopeMetrics(): string[] {
-  // const messages: string[] = [];
-  // // Se calcula el ratio promedio de funcionalidades avanzadas
-  // const avgAdvancedRatio = this.calculateAverageAdvancedRatio();
-  // const foundTC_numeric = Math.round(1 + 4 * avgAdvancedRatio);
-  // const foundTechnicalComplexity = this.convertComplexity(foundTC_numeric);
-  // const foundMarketImpact = Math.round(100 * avgAdvancedRatio); // Escala de 0 a 100
-  // let foundRisk = "Low";
-  // if (avgAdvancedRatio > 0.7) {
-  //   foundRisk = "High";
-  // } else if (avgAdvancedRatio > 0.3) {
-  //   foundRisk = "Medium";
-  // }
+        const countA = appearCount.get(matA.id) || 0;
+        const countB = appearCount.get(matB.id) || 0;
+        const coAB = pairCooccurrence.get(matA.id + "," + matB.id) || 0;
 
-  // // Se obtiene el scope global (los valores ingresados por el usuario)
-  // const currentScope = this.props.projectService.getScope();
-  // if (currentScope) {
-  //   const expectedTechnicalComplexity = currentScope.technicalComplexity || "Low";
-  //   const expectedMarketImpact = currentScope.marketImpact || 0;
-  //   const expectedRisk = currentScope.risk || "Medium";
-  //   const expectedStrategicPriority = currentScope.strategicPriority || "Medium";
+        // Calcula el ratio: de las configuraciones en que A aparece, cuántas veces aparece B
+        const ratioAtoB = countA > 0 ? (coAB / countA) : 0;
+        // De B hacia A
+        const ratioBtoA = countB > 0 ? (coAB / countB) : 0;
 
-  //   // Mostrar siempre los valores del scope (Expected) y los calculados (Found)
-  //   messages.push(`Technical Complexity: Expected ≈ ${expectedTechnicalComplexity}, Found ${foundTechnicalComplexity}.`);
-  //   messages.push(`Market Impact: Expected ≈ ${expectedMarketImpact}, Found ${foundMarketImpact}.`);
-  //   messages.push(`Risk: Expected "${expectedRisk}", Found "${foundRisk}".`);
+        // Solo se consideran relaciones si el material de origen aparece al menos minOccurrence veces
+        let aImpliesB = (ratioAtoB >= threshold_dep) && (countA >= minOccurrence);
+        let bImpliesA = (ratioBtoA >= threshold_dep) && (countB >= minOccurrence);
 
-  //   const mapCat = { "Low": 1, "Medium": 2, "High": 3 };
-  //   if (Math.abs(mapCat[foundTechnicalComplexity] - mapCat[expectedTechnicalComplexity]) >= 1) {
-  //     messages.push(`Warning: Technical Complexity discrepancy is high.`);
-  //   }
-  //   if (Math.abs(foundMarketImpact - expectedMarketImpact) >= 20) {
-  //     messages.push(`Warning: Market Impact discrepancy is high.`);
-  //   }
-  //   if (expectedRisk !== foundRisk) {
-  //     messages.push(`Warning: Risk level discrepancy detected.`);
-  //   }
-  // } else {
-  //   messages.push("No scope metrics found in the current product line.");
-  // }
-  // return messages;
-  return [];
-}
-
-// DENTRO de tu componente, EJEMPLO:
-renderScopeMetricsAnalysis(scopeWarnings: string[]) {
-  // 1) Dividir en líneas principales vs warnings
-  const mainLines: string[] = [];
-  const warningLines: string[] = [];
-
-  scopeWarnings.forEach((line) => {
-    if (
-      line.startsWith("Technical Complexity") ||
-      line.startsWith("Market Impact") ||
-      line.startsWith("Risk")
-    ) {
-      mainLines.push(line);
-    } else if (line.startsWith("Warning:")) {
-      warningLines.push(line);
-    } else {
-      // o ignorar / meter en un fallback
-    }
-  });
-
-  // 2) Función de parseo, parecido a la de per-product
-  const parseScopeLine = (line: string) => {
-    // Ejemplo: "Technical Complexity: Expected ≈ 3, Found 1."
-    const colonIndex = line.indexOf(":");
-    const metricName = (colonIndex > 0) ? line.substring(0, colonIndex).trim() : "Unknown Metric";
-
-    const regex = /Expected.*?([\w\d".]+).*?Found.*?([\w\d".]+)/i;
-    let expected = "N/A";
-    let found = "N/A";
-    const match = line.match(regex);
-    if (match && match[1] && match[2]) {
-      expected = match[1].replace(/[".]/g, "");
-      found = match[2].replace(/[".]/g, "");
+        if (aImpliesB || bImpliesA) {
+          dependencies.push({
+            matA,
+            matB,
+            aImpliesB,
+            bImpliesA,
+            ratioAtoB,
+            ratioBtoA,
+            countA,
+            countB
+          });
+        }
+      }
     }
 
-    return { metricName, expected, found };
-  };
+    return dependencies;
+  }
 
-  const checkStatusIcon = (expected: string, found: string) => {
-    if (expected === found) {
-      return <span style={{ color: "green" }}>✓</span>;
+
+  limitDependencies(dependencies: any[], limitPerMaterial: number = 3) {
+    const grouped = new Map();
+    // Agrupar por matA.id (puedes elegir otra forma de agrupar, según el contexto)
+    dependencies.forEach((dep) => {
+      const key = dep.matA.id;
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key).push(dep);
+    });
+    const limitedDeps = [];
+    grouped.forEach((depsGroup, key) => {
+      // Ordenar el grupo por la "fuerza" de la asociación, por ejemplo,
+      // usando la suma de ratioAtoB y ratioBtoA.
+      depsGroup.sort((a, b) => {
+        const strengthA = (a.aImpliesB ? a.ratioAtoB : 0) + (a.bImpliesA ? a.ratioBtoA : 0);
+        const strengthB = (b.aImpliesB ? b.ratioAtoB : 0) + (b.bImpliesA ? b.ratioBtoA : 0);
+        return strengthB - strengthA;
+      });
+      limitedDeps.push(...depsGroup.slice(0, limitPerMaterial));
+    });
+    return limitedDeps;
+  }
+
+
+
+
+
+  hasStructuralRelationship(matA: any, matB: any): boolean {
+    const structure = this.props.projectService.getStructureAndRelationships();
+    const rels = structure.relationships || [];
+    return rels.some((rel: any) => {
+      // Se asume que la propiedad "Type" en rel.properties determina el tipo de relación.
+      const typeProp = rel.properties?.find((p: any) => p.name === "Type");
+      if (!typeProp || typeProp.value !== "Contains") {
+        return false;
+      }
+      return (
+        (rel.sourceId === matA.id && rel.targetId === matB.id) ||
+        (rel.sourceId === matB.id && rel.targetId === matA.id)
+      );
+    });
+  }
+
+
+
+
+  renderPartialDependenciesTable(deps: any[]) {
+    if (!deps || deps.length === 0) {
+      return <p>No dependencies found.</p>;
     }
-    return <span style={{ color: "red" }}>⚠</span>;
-  };
 
-  // 3) Parsear las 4 líneas principales
-  const parsedMetrics = mainLines.map((ml) => parseScopeLine(ml));
+    const getLabel = (mat: any) => this.getBoMLabel(mat);
 
-  // 4) Renderizar
-  return (
-    <div>
-      {/* Tabla de métricas (si las hay) */}
-      {parsedMetrics.length > 0 && (
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: "14px",
-            marginBottom: "10px",
-          }}
-        >
-          <thead>
-            <tr style={{ backgroundColor: "#f2f2f2" }}>
-              <th style={{ border: "1px solid #ddd", padding: "6px" }}>Metric</th>
-              <th style={{ border: "1px solid #ddd", padding: "6px" }}>Expected</th>
-              <th style={{ border: "1px solid #ddd", padding: "6px" }}>Found</th>
-              <th style={{ border: "1px solid #ddd", padding: "6px" }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {parsedMetrics.map((pm, idx) => {
-              const statusIcon = checkStatusIcon(pm.expected, pm.found);
+    return (
+      <table
+        style={{
+          borderCollapse: "collapse",
+          width: "100%",
+          marginTop: "10px",
+        }}
+      >
+        <thead>
+          <tr style={{ backgroundColor: "#f8f8f8", border: "1px solid #ccc" }}>
+            <th
+              style={{
+                padding: "8px",
+                border: "1px solid #ccc",
+                fontWeight: "bold",
+                textAlign: "left",
+              }}
+            >
+              Material Dependencies (Threshold-based)
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {deps.map((pair: any, idx: number) => {
+            const labelA = getLabel(pair.matA);
+            const labelB = getLabel(pair.matB);
+            if (pair.aImpliesB && pair.bImpliesA) {
               return (
-                <tr key={idx}>
-                  <td style={{ border: "1px solid #ddd", padding: "6px" }}>{pm.metricName}</td>
-                  <td style={{ border: "1px solid #ddd", padding: "6px", textAlign: "center" }}>
-                    {pm.expected}
-                  </td>
-                  <td style={{ border: "1px solid #ddd", padding: "6px", textAlign: "center" }}>
-                    {pm.found}
-                  </td>
-                  <td style={{ border: "1px solid #ddd", padding: "6px" }}>
-                    {statusIcon}
+                <tr key={idx} style={{ border: "1px solid #ccc" }}>
+                  <td style={{ padding: "8px" }}>
+                    {`${labelA} "${pair.matA.name}" ⇔ ${labelB} "${pair.matB.name}" (always appear together under threshold)`}
                   </td>
                 </tr>
               );
-            })}
-          </tbody>
-        </table>
-      )}
-
-      {/* Lista de warnings (si hay) */}
-      {warningLines.length > 0 && (
-        <ul style={{ paddingLeft: "20px", margin: 0, color: "red", fontSize: "13px" }}>
-          {warningLines.map((w, i) => (
-            <li key={i}>{w.replace("Warning: ", "")}</li>
-          ))}
-        </ul>
-      )}
-      {parsedMetrics.length === 0 && warningLines.length === 0 && (
-        <p>No scope metric warnings found.</p>
-      )}
-    </div>
-  );
-}
-
-/**
- * Analiza las métricas de cada producto potencial (configuración) individualmente.
- * Para cada configuración, calcula los valores esperados en función del ratio de funcionalidades avanzadas
- * y los compara con los valores reales definidos en la configuración.
- * Retorna un arreglo de objetos con el nombre del producto y los mensajes resultantes.
- */
-analyzeScopeMetricsByProduct(): { productName: string; warnings: string[] }[] {
-  // const results: { productName: string; warnings: string[] }[] = [];
-  // const coreIds = this.getCoreMaterialIds();
-
-  // this.state.allScopeConfigurations.forEach((config: any) => {
-  //   const productName = config.name || "Unnamed Product";
-  //   const materials = this.getMaterialsFromConfig(config);
-  //   const totalCount = materials.length;
-  //   const advancedCount = materials.filter((m: any) => !coreIds.has(m.id)).length;
-  //   const ratio = totalCount > 0 ? advancedCount / totalCount : 0;
-
-  //   // Valores esperados basados en el ratio
-  //   const foundTC_numeric = Math.round(1 + 4 * ratio);
-  //   const actualTechnicalComplexity = this.convertComplexity(foundTC_numeric);
-  //   const actualMarketImpact = Math.round(100 * ratio); // Escala 0-100
-  //   let actualRisk = "Low";
-  //   if (ratio > 0.7) {
-  //     actualRisk = "High";
-  //   } else if (ratio > 0.3) {
-  //     actualRisk = "Medium";
-  //   }
-
-  //   // Se extraen los valores reales asignados a la configuración
+            } else if (pair.aImpliesB) {
+              return (
+                <tr key={idx} style={{ border: "1px solid #ccc" }}>
+                  <td style={{ padding: "8px" }}>
+                    {`If ${labelA} "${pair.matA.name}" is selected ⇒ ${labelB} "${pair.matB.name}" must also be selected.`}
+                  </td>
+                </tr>
+              );
+            } else if (pair.bImpliesA) {
+              return (
+                <tr key={idx} style={{ border: "1px solid #ccc" }}>
+                  <td style={{ padding: "8px" }}>
+                    {`If ${labelB} "${pair.matB.name}" is selected ⇒ ${labelA} "${pair.matA.name}" must also be selected.`}
+                  </td>
+                </tr>
+              );
+            }
+            return null;
+          })}
+        </tbody>
+      </table>
+    );
+  }
 
 
-  //   const currentScope = this.props.projectService.getScope();
-  //   const expectedTechnicalComplexity = currentScope.technicalComplexity || 1;
-  //   const expectedMarketImpact = currentScope.marketImpact || 0;
-  //   const expectedRisk = currentScope.risk || "Medium";
-    
+  /**
+   * Calcula el ratio promedio de funcionalidades avanzadas en todas las configuraciones.
+   * Se consideran avanzadas aquellas funcionalidades que NO sean core (según getCoreMaterialIds).
+   */
+  calculateAverageAdvancedRatio(): number {
+    let totalRatios = 0;
+    let countConfigs = 0;
+    const coreIds = this.getCoreMaterialIds();
+    this.state.allScopeConfigurations.forEach((config: any) => {
+      const materials = this.getMaterialsFromConfig(config);
+      const totalCount = materials.length;
+      if (totalCount > 0) {
+        const advancedCount = materials.filter((m: any) => !coreIds.has(m.id)).length;
+        totalRatios += advancedCount / totalCount;
+        countConfigs += 1;
+      }
+    });
+    return countConfigs > 0 ? totalRatios / countConfigs : 0;
+  }
+
+  /**
+   * Analiza las métricas del scope global comparando los valores esperados (calculados
+   * a partir del promedio de funcionalidades avanzadas) con los valores definidos en el scope.
+   * Se generan mensajes que muestran tanto el valor esperado como el real, junto con advertencias
+   * si la discrepancia es significativa.
+   */
+
+  convertComplexity(num: number): string {
+    if (num <= 2) return "Low";
+    if (num === 3) return "Medium";
+    return "High";
+  }
 
 
-  //   const warnings: string[] = [];
-  //   warnings.push(`Technical Complexity: Expected ≈ ${expectedTechnicalComplexity}, Found ${actualTechnicalComplexity}.`);
-  //   warnings.push(`Market Impact: Expected ≈ ${expectedMarketImpact}, Found ${actualMarketImpact}.`);
-  //   warnings.push(`Risk: Expected "${expectedRisk}", Found "${actualRisk}".`);
+  analyzeScopeMetrics(): string[] {
+    // const messages: string[] = [];
+    // // Se calcula el ratio promedio de funcionalidades avanzadas
+    // const avgAdvancedRatio = this.calculateAverageAdvancedRatio();
+    // const foundTC_numeric = Math.round(1 + 4 * avgAdvancedRatio);
+    // const foundTechnicalComplexity = this.convertComplexity(foundTC_numeric);
+    // const foundMarketImpact = Math.round(100 * avgAdvancedRatio); // Escala de 0 a 100
+    // let foundRisk = "Low";
+    // if (avgAdvancedRatio > 0.7) {
+    //   foundRisk = "High";
+    // } else if (avgAdvancedRatio > 0.3) {
+    //   foundRisk = "Medium";
+    // }
 
-  //   const mapCat = { "Low": 1, "Medium": 2, "High": 3 };
-  //   if (Math.abs(mapCat[expectedTechnicalComplexity] - mapCat[actualTechnicalComplexity]) >= 2) {
-  //     warnings.push(`Warning: Technical Complexity discrepancy is high.`);
-  //   }
-  //   if (Math.abs(expectedMarketImpact - actualMarketImpact) >= 20) {
-  //     warnings.push(`Warning: Market Impact discrepancy is high.`);
-  //   }
-  //   if (actualRisk !== expectedRisk) {
-  //     warnings.push(`Warning: Risk level discrepancy detected.`);
-  //   }
+    // // Se obtiene el scope global (los valores ingresados por el usuario)
+    // const currentScope = this.props.projectService.getScope();
+    // if (currentScope) {
+    //   const expectedTechnicalComplexity = currentScope.technicalComplexity || "Low";
+    //   const expectedMarketImpact = currentScope.marketImpact || 0;
+    //   const expectedRisk = currentScope.risk || "Medium";
+    //   const expectedStrategicPriority = currentScope.strategicPriority || "Medium";
 
-  //   results.push({ productName, warnings });
-  // });
+    //   // Mostrar siempre los valores del scope (Expected) y los calculados (Found)
+    //   messages.push(`Technical Complexity: Expected ≈ ${expectedTechnicalComplexity}, Found ${foundTechnicalComplexity}.`);
+    //   messages.push(`Market Impact: Expected ≈ ${expectedMarketImpact}, Found ${foundMarketImpact}.`);
+    //   messages.push(`Risk: Expected "${expectedRisk}", Found "${foundRisk}".`);
 
-  // return results;
-  return [];
-}
+    //   const mapCat = { "Low": 1, "Medium": 2, "High": 3 };
+    //   if (Math.abs(mapCat[foundTechnicalComplexity] - mapCat[expectedTechnicalComplexity]) >= 1) {
+    //     messages.push(`Warning: Technical Complexity discrepancy is high.`);
+    //   }
+    //   if (Math.abs(foundMarketImpact - expectedMarketImpact) >= 20) {
+    //     messages.push(`Warning: Market Impact discrepancy is high.`);
+    //   }
+    //   if (expectedRisk !== foundRisk) {
+    //     messages.push(`Warning: Risk level discrepancy detected.`);
+    //   }
+    // } else {
+    //   messages.push("No scope metrics found in the current product line.");
+    // }
+    // return messages;
+    return [];
+  }
+
+  // DENTRO de tu componente, EJEMPLO:
+  renderScopeMetricsAnalysis(scopeWarnings: string[]) {
+    // 1) Dividir en líneas principales vs warnings
+    const mainLines: string[] = [];
+    const warningLines: string[] = [];
+
+    scopeWarnings.forEach((line) => {
+      if (
+        line.startsWith("Technical Complexity") ||
+        line.startsWith("Market Impact") ||
+        line.startsWith("Risk")
+      ) {
+        mainLines.push(line);
+      } else if (line.startsWith("Warning:")) {
+        warningLines.push(line);
+      } else {
+        // o ignorar / meter en un fallback
+      }
+    });
+
+    // 2) Función de parseo, parecido a la de per-product
+    const parseScopeLine = (line: string) => {
+      // Ejemplo: "Technical Complexity: Expected ≈ 3, Found 1."
+      const colonIndex = line.indexOf(":");
+      const metricName = (colonIndex > 0) ? line.substring(0, colonIndex).trim() : "Unknown Metric";
+
+      const regex = /Expected.*?([\w\d".]+).*?Found.*?([\w\d".]+)/i;
+      let expected = "N/A";
+      let found = "N/A";
+      const match = line.match(regex);
+      if (match && match[1] && match[2]) {
+        expected = match[1].replace(/[".]/g, "");
+        found = match[2].replace(/[".]/g, "");
+      }
+
+      return { metricName, expected, found };
+    };
+
+    const checkStatusIcon = (expected: string, found: string) => {
+      if (expected === found) {
+        return <span style={{ color: "green" }}>✓</span>;
+      }
+      return <span style={{ color: "red" }}>⚠</span>;
+    };
+
+    // 3) Parsear las 4 líneas principales
+    const parsedMetrics = mainLines.map((ml) => parseScopeLine(ml));
+
+    // 4) Renderizar
+    return (
+      <div>
+        {/* Tabla de métricas (si las hay) */}
+        {parsedMetrics.length > 0 && (
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "14px",
+              marginBottom: "10px",
+            }}
+          >
+            <thead>
+              <tr style={{ backgroundColor: "#f2f2f2" }}>
+                <th style={{ border: "1px solid #ddd", padding: "6px" }}>Metric</th>
+                <th style={{ border: "1px solid #ddd", padding: "6px" }}>Expected</th>
+                <th style={{ border: "1px solid #ddd", padding: "6px" }}>Found</th>
+                <th style={{ border: "1px solid #ddd", padding: "6px" }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {parsedMetrics.map((pm, idx) => {
+                const statusIcon = checkStatusIcon(pm.expected, pm.found);
+                return (
+                  <tr key={idx}>
+                    <td style={{ border: "1px solid #ddd", padding: "6px" }}>{pm.metricName}</td>
+                    <td style={{ border: "1px solid #ddd", padding: "6px", textAlign: "center" }}>
+                      {pm.expected}
+                    </td>
+                    <td style={{ border: "1px solid #ddd", padding: "6px", textAlign: "center" }}>
+                      {pm.found}
+                    </td>
+                    <td style={{ border: "1px solid #ddd", padding: "6px" }}>
+                      {statusIcon}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+
+        {/* Lista de warnings (si hay) */}
+        {warningLines.length > 0 && (
+          <ul style={{ paddingLeft: "20px", margin: 0, color: "red", fontSize: "13px" }}>
+            {warningLines.map((w, i) => (
+              <li key={i}>{w.replace("Warning: ", "")}</li>
+            ))}
+          </ul>
+        )}
+        {parsedMetrics.length === 0 && warningLines.length === 0 && (
+          <p>No scope metric warnings found.</p>
+        )}
+      </div>
+    );
+  }
+
+  /**
+   * Analiza las métricas de cada producto potencial (configuración) individualmente.
+   * Para cada configuración, calcula los valores esperados en función del ratio de funcionalidades avanzadas
+   * y los compara con los valores reales definidos en la configuración.
+   * Retorna un arreglo de objetos con el nombre del producto y los mensajes resultantes.
+   */
+  analyzeScopeMetricsByProduct(): { productName: string; warnings: string[] }[] {
+    // const results: { productName: string; warnings: string[] }[] = [];
+    // const coreIds = this.getCoreMaterialIds();
+
+    // this.state.allScopeConfigurations.forEach((config: any) => {
+    //   const productName = config.name || "Unnamed Product";
+    //   const materials = this.getMaterialsFromConfig(config);
+    //   const totalCount = materials.length;
+    //   const advancedCount = materials.filter((m: any) => !coreIds.has(m.id)).length;
+    //   const ratio = totalCount > 0 ? advancedCount / totalCount : 0;
+
+    //   // Valores esperados basados en el ratio
+    //   const foundTC_numeric = Math.round(1 + 4 * ratio);
+    //   const actualTechnicalComplexity = this.convertComplexity(foundTC_numeric);
+    //   const actualMarketImpact = Math.round(100 * ratio); // Escala 0-100
+    //   let actualRisk = "Low";
+    //   if (ratio > 0.7) {
+    //     actualRisk = "High";
+    //   } else if (ratio > 0.3) {
+    //     actualRisk = "Medium";
+    //   }
+
+    //   // Se extraen los valores reales asignados a la configuración
 
 
-// ... dentro de tu clase o componente ...
+    //   const currentScope = this.props.projectService.getScope();
+    //   const expectedTechnicalComplexity = currentScope.technicalComplexity || 1;
+    //   const expectedMarketImpact = currentScope.marketImpact || 0;
+    //   const expectedRisk = currentScope.risk || "Medium";
 
-renderPerProductMetricsAnalysis() {
-  const analysisResults = this.analyzeScopeMetricsByProduct();
 
-  // Función local: identifica si la línea es de una métrica principal o una advertencia
-  // y extrae datos de "Expected" y "Found"
-  const parseMetricLine = (line: string) => {
-    const colonIndex = line.indexOf(":");
-    const metricName = (colonIndex > 0)
-      ? line.substring(0, colonIndex).trim() // "Technical Complexity" por ej.
-      : "Unknown Metric";
 
-    const regex = /Expected.*?([\w\d".]+).*?Found.*?([\w\d".]+)/i;
-    const match = line.match(regex);
-    let expected = "N/A";
-    let found = "N/A";
-    if (match && match[1] && match[2]) {
-      expected = match[1].replace(/[".]/g, ""); // quita comillas o punto final
-      found = match[2].replace(/[".]/g, "");
-    }
-    return { metricName, expected, found };
-  };
+    //   const warnings: string[] = [];
+    //   warnings.push(`Technical Complexity: Expected ≈ ${expectedTechnicalComplexity}, Found ${actualTechnicalComplexity}.`);
+    //   warnings.push(`Market Impact: Expected ≈ ${expectedMarketImpact}, Found ${actualMarketImpact}.`);
+    //   warnings.push(`Risk: Expected "${expectedRisk}", Found "${actualRisk}".`);
 
-  // Para ver si hay "OK" o "Warning"
-  const checkStatusIcon = (expected: string, found: string) => {
-    // Heurística super sencilla:
-    // Si son números y difieren un "poco", o si son strings distintos...
-    if (expected === found) {
+    //   const mapCat = { "Low": 1, "Medium": 2, "High": 3 };
+    //   if (Math.abs(mapCat[expectedTechnicalComplexity] - mapCat[actualTechnicalComplexity]) >= 2) {
+    //     warnings.push(`Warning: Technical Complexity discrepancy is high.`);
+    //   }
+    //   if (Math.abs(expectedMarketImpact - actualMarketImpact) >= 20) {
+    //     warnings.push(`Warning: Market Impact discrepancy is high.`);
+    //   }
+    //   if (actualRisk !== expectedRisk) {
+    //     warnings.push(`Warning: Risk level discrepancy detected.`);
+    //   }
+
+    //   results.push({ productName, warnings });
+    // });
+
+    // return results;
+    return [];
+  }
+
+
+  // ... dentro de tu clase o componente ...
+
+  renderPerProductMetricsAnalysis() {
+    const analysisResults = this.analyzeScopeMetricsByProduct();
+
+    // Función local: identifica si la línea es de una métrica principal o una advertencia
+    // y extrae datos de "Expected" y "Found"
+    const parseMetricLine = (line: string) => {
+      const colonIndex = line.indexOf(":");
+      const metricName = (colonIndex > 0)
+        ? line.substring(0, colonIndex).trim() // "Technical Complexity" por ej.
+        : "Unknown Metric";
+
+      const regex = /Expected.*?([\w\d".]+).*?Found.*?([\w\d".]+)/i;
+      const match = line.match(regex);
+      let expected = "N/A";
+      let found = "N/A";
+      if (match && match[1] && match[2]) {
+        expected = match[1].replace(/[".]/g, ""); // quita comillas o punto final
+        found = match[2].replace(/[".]/g, "");
+      }
+      return { metricName, expected, found };
+    };
+
+    // Para ver si hay "OK" o "Warning"
+    const checkStatusIcon = (expected: string, found: string) => {
+      // Heurística super sencilla:
+      // Si son números y difieren un "poco", o si son strings distintos...
+      if (expected === found) {
+        return (
+          <span style={{ color: "green" }}>
+            <FaCheckCircle style={{ marginRight: "4px" }} />
+            OK
+          </span>
+        );
+      }
+      // Caso contrario, discrepancia
       return (
-        <span style={{ color: "green" }}>
-          <FaCheckCircle style={{ marginRight: "4px" }} />
-          OK
+        <span style={{ color: "red" }}>
+          <FaExclamationTriangle style={{ marginRight: "4px" }} />
+          Discrepancy
         </span>
       );
-    }
-    // Caso contrario, discrepancia
+    };
+
     return (
-      <span style={{ color: "red" }}>
-        <FaExclamationTriangle style={{ marginRight: "4px" }} />
-        Discrepancy
-      </span>
+      <AccordionItem>
+        <AccordionHeader targetId="perProductMetrics">
+          Per-Product Metrics Analysis
+        </AccordionHeader>
+        <AccordionBody accordionId="perProductMetrics">
+          {analysisResults.length === 0 ? (
+            <p>No individual product metric warnings found.</p>
+          ) : (
+            analysisResults.map((result, idx) => {
+              // Separamos las líneas en "principales" y "warnings"
+              const mainLines: string[] = [];
+              const warningLines: string[] = [];
+
+              // Clasificar las líneas
+              result.warnings.forEach((line) => {
+                if (
+                  line.startsWith("Technical Complexity") ||
+                  line.startsWith("Market Impact") ||
+                  line.startsWith("Risk")
+                ) {
+                  mainLines.push(line);
+                } else if (line.startsWith("Warning:")) {
+                  warningLines.push(line);
+                }
+                else {
+                  // Si hubiera otras líneas sueltas, podrías agregarlo a un fallback
+                  // o ignorarlas
+                }
+              });
+
+              // Parsea los 4 mainLines
+              // (En tu caso, siempre deberían ser 4, pero podrías no asumirlo)
+              const parsedMetrics = mainLines.map((ml) => parseMetricLine(ml));
+
+              return (
+                <div key={idx} style={{ marginBottom: "20px" }}>
+                  <h5 style={{ marginBottom: "8px" }}>{result.productName}</h5>
+
+                  {/* Tabla con las 4 líneas principales */}
+                  {parsedMetrics.length > 0 && (
+                    <table
+                      style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        fontSize: "14px",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <thead>
+                        <tr style={{ backgroundColor: "#f2f2f2" }}>
+                          <th style={{ border: "1px solid #ddd", padding: "6px" }}>Metric</th>
+                          <th style={{ border: "1px solid #ddd", padding: "6px" }}>Expected</th>
+                          <th style={{ border: "1px solid #ddd", padding: "6px" }}>Found</th>
+                          <th style={{ border: "1px solid #ddd", padding: "6px" }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parsedMetrics.map((pm, i) => {
+                          const statusIcon = checkStatusIcon(pm.expected, pm.found);
+                          return (
+                            <tr key={i}>
+                              <td style={{ border: "1px solid #ddd", padding: "6px" }}>{pm.metricName}</td>
+                              <td style={{ border: "1px solid #ddd", padding: "6px", textAlign: "center" }}>
+                                {pm.expected}
+                              </td>
+                              <td style={{ border: "1px solid #ddd", padding: "6px", textAlign: "center" }}>
+                                {pm.found}
+                              </td>
+                              <td style={{ border: "1px solid #ddd", padding: "6px" }}>
+                                {statusIcon}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {/* Lista de Warnings (si existen) */}
+                  {warningLines.length > 0 && (
+                    <ul style={{ marginLeft: "15px", fontSize: "13px", color: "red" }}>
+                      {warningLines.map((wl, indexWL) => (
+                        <li key={indexWL}>
+                          <FaExclamationTriangle style={{ marginRight: "5px" }} />
+                          {wl.replace("Warning: ", "")}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </AccordionBody>
+      </AccordionItem>
     );
-  };
+  }
 
-  return (
-    <AccordionItem>
-      <AccordionHeader targetId="perProductMetrics">
-        Per-Product Metrics Analysis
-      </AccordionHeader>
-      <AccordionBody accordionId="perProductMetrics">
-        {analysisResults.length === 0 ? (
-          <p>No individual product metric warnings found.</p>
-        ) : (
-          analysisResults.map((result, idx) => {
-            // Separamos las líneas en "principales" y "warnings"
-            const mainLines: string[] = [];
-            const warningLines: string[] = [];
 
-            // Clasificar las líneas
-            result.warnings.forEach((line) => {
-              if (
-                line.startsWith("Technical Complexity") ||
-                line.startsWith("Market Impact") ||
-                line.startsWith("Risk")
-              ) {
-                mainLines.push(line);
-              } else if (line.startsWith("Warning:")) {
-                warningLines.push(line);
-              }
-              else {
-                // Si hubiera otras líneas sueltas, podrías agregarlo a un fallback
-                // o ignorarlas
-              }
-            });
 
-            // Parsea los 4 mainLines
-            // (En tu caso, siempre deberían ser 4, pero podrías no asumirlo)
-            const parsedMetrics = mainLines.map((ml) => parseMetricLine(ml));
 
-            return (
-              <div key={idx} style={{ marginBottom: "20px" }}>
-                <h5 style={{ marginBottom: "8px" }}>{result.productName}</h5>
 
-                {/* Tabla con las 4 líneas principales */}
-                {parsedMetrics.length > 0 && (
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                      fontSize: "14px",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    <thead>
-                      <tr style={{ backgroundColor: "#f2f2f2" }}>
-                        <th style={{ border: "1px solid #ddd", padding: "6px" }}>Metric</th>
-                        <th style={{ border: "1px solid #ddd", padding: "6px" }}>Expected</th>
-                        <th style={{ border: "1px solid #ddd", padding: "6px" }}>Found</th>
-                        <th style={{ border: "1px solid #ddd", padding: "6px" }}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {parsedMetrics.map((pm, i) => {
-                        const statusIcon = checkStatusIcon(pm.expected, pm.found);
+
+
+
+
+
+
+
+
+
+
+
+  renderRequirementsReport() {
+    const report = this.getRequirementsReport();
+
+    // Se prepara el array de datos para el gráfico
+    const allMaterials = [
+      ...report.requiredMaterials,
+      ...report.recommendedMaterials,
+      ...report.optionalMaterials,
+    ];
+    const chartData = allMaterials.map((mat: any) => ({
+      name: mat.name,
+      percentage:
+        report.totalConfigs > 0
+          ? Math.round((mat.count / report.totalConfigs) * 100)
+          : 0,
+    }));
+    const allDeps = this.getPartialDependencies(1.0); // Umbral de 1.0 (100% de coincidencia)
+    const limitedDeps = this.limitDependencies(allDeps, 3); // Limitar a 3 asociaciones por material
+
+    // Obtén las advertencias del análisis de scope basadas en las métricas definidas en el scope
+    const scopeWarnings = this.analyzeScopeMetrics();
+
+    return (
+      <div className="requirements-report" style={{ padding: "20px" }}>
+        <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
+          Requirements Report
+        </h3>
+
+        {/* Acordeón principal */}
+        <Accordion
+          flush
+          open={this.state.openAccordion}
+          toggle={this.toggleAccordion.bind(this)}
+        >
+          {/* Acordeón mayor: "Component Prioritization" */}
+          <AccordionItem>
+            <AccordionHeader targetId="componentPrioritization">
+              Component Prioritization
+            </AccordionHeader>
+            <AccordionBody accordionId="componentPrioritization">
+              {/* Acordeón interno con 3 secciones: High, Medium, Low Priority */}
+              <Accordion
+                flush
+                open={this.state.openAccordion}
+                toggle={this.toggleAccordion.bind(this)}
+              >
+                {/* Alta prioridad */}
+                <AccordionItem>
+                  <AccordionHeader targetId="highPriority">
+                    <span style={{ display: "flex", alignItems: "center" }}>
+                      <FcHighPriority style={{ marginRight: "8px" }} />
+                      High Priority
+                    </span>
+                  </AccordionHeader>
+                  <AccordionBody accordionId="highPriority">
+                    <p style={{ fontStyle: "italic", color: "#666", fontSize: "13px", marginBottom: "10px" }}>
+                      These materials are present in the entire product line.
+                    </p>
+                    {this.renderMaterialsGrouped(report.requiredMaterials)}
+                  </AccordionBody>
+                </AccordionItem>
+
+                {/* Prioridad media */}
+                <AccordionItem>
+                  <AccordionHeader targetId="mediumPriority">
+                    <span style={{ display: "flex", alignItems: "center" }}>
+                      <FcMediumPriority style={{ marginRight: "8px" }} />
+                      Medium Priority
+                    </span>
+                  </AccordionHeader>
+                  <AccordionBody accordionId="mediumPriority">
+                    <p style={{ fontStyle: "italic", color: "#666", fontSize: "13px", marginBottom: "10px" }}>
+                      These materials are present in at least 50% of potential products.
+                    </p>
+                    {this.renderMaterialsGrouped(report.recommendedMaterials)}
+                  </AccordionBody>
+                </AccordionItem>
+
+                {/* Baja prioridad */}
+                <AccordionItem>
+                  <AccordionHeader targetId="lowPriority">
+                    <span style={{ display: "flex", alignItems: "center" }}>
+                      <FcLowPriority style={{ marginRight: "8px" }} />
+                      Low Priority
+                    </span>
+                  </AccordionHeader>
+                  <AccordionBody accordionId="lowPriority">
+                    <p style={{ fontStyle: "italic", color: "#666", fontSize: "13px", marginBottom: "10px" }}>
+                      These materials specialize a particular product and do not belong to all potential products.
+                    </p>
+                    {this.renderMaterialsGrouped(report.optionalMaterials)}
+                  </AccordionBody>
+                </AccordionItem>
+              </Accordion>
+
+              {/* Contenido del gráfico, SIN acordeón adicional */}
+              <div style={{ marginTop: "20px" }}>
+                <p style={{ fontStyle: "italic", color: "#666", fontSize: "13px", marginBottom: "10px" }}>
+                  Below is a graph that summarizes the usage of each material in potential products.
+                </p>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="name"
+                      tick={(props) => {
+                        const { x, y, payload } = props;
                         return (
-                          <tr key={i}>
-                            <td style={{ border: "1px solid #ddd", padding: "6px" }}>{pm.metricName}</td>
-                            <td style={{ border: "1px solid #ddd", padding: "6px", textAlign: "center" }}>
-                              {pm.expected}
-                            </td>
-                            <td style={{ border: "1px solid #ddd", padding: "6px", textAlign: "center" }}>
-                              {pm.found}
-                            </td>
-                            <td style={{ border: "1px solid #ddd", padding: "6px" }}>
-                              {statusIcon}
-                            </td>
-                          </tr>
+                          <g transform={`translate(${x},${y})`}>
+                            <text x={0} y={0} dy={16} textAnchor="end" fill="#666" transform="rotate(-45)" style={{ fontSize: 12 }}>
+                              {payload.value}
+                            </text>
+                          </g>
                         );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-
-                {/* Lista de Warnings (si existen) */}
-                {warningLines.length > 0 && (
-                  <ul style={{ marginLeft: "15px", fontSize: "13px", color: "red" }}>
-                    {warningLines.map((wl, indexWL) => (
-                      <li key={indexWL}>
-                        <FaExclamationTriangle style={{ marginRight: "5px" }} />
-                        {wl.replace("Warning: ", "")}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                      }}
+                      interval={0}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="percentage" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            );
-          })
-        )}
-      </AccordionBody>
-    </AccordionItem>
-  );
-}
+            </AccordionBody>
+          </AccordionItem>
 
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-renderRequirementsReport() {
-  const report = this.getRequirementsReport();
-
-  // Se prepara el array de datos para el gráfico
-  const allMaterials = [
-    ...report.requiredMaterials,
-    ...report.recommendedMaterials,
-    ...report.optionalMaterials,
-  ];
-  const chartData = allMaterials.map((mat: any) => ({
-    name: mat.name,
-    percentage:
-      report.totalConfigs > 0
-        ? Math.round((mat.count / report.totalConfigs) * 100)
-        : 0,
-  }));
-  const allDeps = this.getPartialDependencies(1.0); // Umbral de 1.0 (100% de coincidencia)
-  const limitedDeps = this.limitDependencies(allDeps, 3); // Limitar a 3 asociaciones por material
-  
-  // Obtén las advertencias del análisis de scope basadas en las métricas definidas en el scope
-  const scopeWarnings = this.analyzeScopeMetrics();
-
-  return (
-    <div className="requirements-report" style={{ padding: "20px" }}>
-      <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-        Requirements Report
-      </h3>
-
-      {/* Acordeón principal */}
-      <Accordion
-        flush
-        open={this.state.openAccordion}
-        toggle={this.toggleAccordion.bind(this)}
-      >
-        {/* Acordeón mayor: "Component Prioritization" */}
-        <AccordionItem>
-          <AccordionHeader targetId="componentPrioritization">
-            Component Prioritization
-          </AccordionHeader>
-          <AccordionBody accordionId="componentPrioritization">
-            {/* Acordeón interno con 3 secciones: High, Medium, Low Priority */}
-            <Accordion
-              flush
-              open={this.state.openAccordion}
-              toggle={this.toggleAccordion.bind(this)}
-            >
-              {/* Alta prioridad */}
-              <AccordionItem>
-                <AccordionHeader targetId="highPriority">
-                  <span style={{ display: "flex", alignItems: "center" }}>
-                    <FcHighPriority style={{ marginRight: "8px" }} />
-                    High Priority
-                  </span>
-                </AccordionHeader>
-                <AccordionBody accordionId="highPriority">
-                  <p style={{ fontStyle: "italic", color: "#666", fontSize: "13px", marginBottom: "10px" }}>
-                    These materials are present in the entire product line.
-                  </p>
-                  {this.renderMaterialsGrouped(report.requiredMaterials)}
-                </AccordionBody>
-              </AccordionItem>
-
-              {/* Prioridad media */}
-              <AccordionItem>
-                <AccordionHeader targetId="mediumPriority">
-                  <span style={{ display: "flex", alignItems: "center" }}>
-                    <FcMediumPriority style={{ marginRight: "8px" }} />
-                    Medium Priority
-                  </span>
-                </AccordionHeader>
-                <AccordionBody accordionId="mediumPriority">
-                  <p style={{ fontStyle: "italic", color: "#666", fontSize: "13px", marginBottom: "10px" }}>
-                    These materials are present in at least 50% of potential products.
-                  </p>
-                  {this.renderMaterialsGrouped(report.recommendedMaterials)}
-                </AccordionBody>
-              </AccordionItem>
-
-              {/* Baja prioridad */}
-              <AccordionItem>
-                <AccordionHeader targetId="lowPriority">
-                  <span style={{ display: "flex", alignItems: "center" }}>
-                    <FcLowPriority style={{ marginRight: "8px" }} />
-                    Low Priority
-                  </span>
-                </AccordionHeader>
-                <AccordionBody accordionId="lowPriority">
-                  <p style={{ fontStyle: "italic", color: "#666", fontSize: "13px", marginBottom: "10px" }}>
-                    These materials specialize a particular product and do not belong to all potential products.
-                  </p>
-                  {this.renderMaterialsGrouped(report.optionalMaterials)}
-                </AccordionBody>
-              </AccordionItem>
-            </Accordion>
-
-            {/* Contenido del gráfico, SIN acordeón adicional */}
-            <div style={{ marginTop: "20px" }}>
-              <p style={{ fontStyle: "italic", color: "#666", fontSize: "13px", marginBottom: "10px" }}>
-                Below is a graph that summarizes the usage of each material in potential products.
+          {/* Acordeón para Potential Model Constraints */}
+          <AccordionItem>
+            <AccordionHeader targetId="modelConstraints">
+              Potential Model Constraints
+            </AccordionHeader>
+            <AccordionBody accordionId="modelConstraints">
+              <h5>Potential component exclusions</h5>
+              <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
+                The following restrictions indicate unidirectional or mutual exclusivity between certain materials. Symbols: “⇔” for mutual, “⇒” or “⇐” for one-way.
               </p>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="name"
-                    tick={(props) => {
-                      const { x, y, payload } = props;
-                      return (
-                        <g transform={`translate(${x},${y})`}>
-                          <text x={0} y={0} dy={16} textAnchor="end" fill="#666" transform="rotate(-45)" style={{ fontSize: 12 }}>
-                            {payload.value}
-                          </text>
-                        </g>
-                      );
-                    }}
-                    interval={0}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="percentage" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </AccordionBody>
-        </AccordionItem>
+              <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
+                These exclusions have been filtered to remove trivial cases involving core features or existing structural relationships (e.g., “Contains”). Additionally, each exclusion only appears if the source material is present in at least two configurations, ensuring that the restriction is consistently observed.
+              </p>
+              {this.renderPartialExclusionsTable(this.getPartialExclusions(1))}
 
-        {/* Acordeón para Potential Model Constraints */}
-        <AccordionItem>
-          <AccordionHeader targetId="modelConstraints">
-            Potential Model Constraints
-          </AccordionHeader>
-          <AccordionBody accordionId="modelConstraints">
-            <h5>Potential component exclusions</h5>
-            <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
-              The following restrictions indicate unidirectional or mutual exclusivity between certain materials. Symbols: “⇔” for mutual, “⇒” or “⇐” for one-way.
-            </p>
-            <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
-              These exclusions have been filtered to remove trivial cases involving core features or existing structural relationships (e.g., “Contains”). Additionally, each exclusion only appears if the source material is present in at least two configurations, ensuring that the restriction is consistently observed.
-            </p>
-            {this.renderPartialExclusionsTable(this.getPartialExclusions(1))}
+              {/* Nueva sección para Dependencies */}
+              <hr style={{ margin: "20px 0" }} />
+              {this.renderMaterialDependenciesPartition()}
+            </AccordionBody>
+          </AccordionItem>
 
-            {/* Nueva sección para Dependencies */}
-            <hr style={{ margin: "20px 0" }} />
-            {this.renderMaterialDependenciesPartition()}
-          </AccordionBody>
-        </AccordionItem>
-
-        {/* Nuevo acordeón: Scope Metrics Analysis */}
-        <AccordionItem>
-          <AccordionHeader targetId="scopeMetricsAnalysis">
-            Scope Metrics Analysis
-          </AccordionHeader>
-          <AccordionBody accordionId="scopeMetricsAnalysis">
-            <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
-              This section compares the expected Technical Complexity and Market Impact derived from the advanced functionalities with the values defined in the scope.
-            </p>
-            {this.renderScopeMetricsAnalysis(scopeWarnings)}
-            {this.renderPerProductMetricsAnalysis()}
-          </AccordionBody>
-        </AccordionItem>
-      </Accordion>
-    </div>
-  );
-}
+          {/* Nuevo acordeón: Scope Metrics Analysis */}
+          <AccordionItem>
+            <AccordionHeader targetId="scopeMetricsAnalysis">
+              Scope Metrics Analysis
+            </AccordionHeader>
+            <AccordionBody accordionId="scopeMetricsAnalysis">
+              <p style={{ fontStyle: "italic", color: "#666", marginBottom: "10px" }}>
+                This section compares the expected Technical Complexity and Market Impact derived from the advanced functionalities with the values defined in the scope.
+              </p>
+              {this.renderScopeMetricsAnalysis(scopeWarnings)}
+              {this.renderPerProductMetricsAnalysis()}
+            </AccordionBody>
+          </AccordionItem>
+        </Accordion>
+      </div>
+    );
+  }
 
 
 
@@ -3465,156 +3560,156 @@ renderRequirementsReport() {
   };
 
 
-//   NEW COLABORATIVE FUNCTIONALITY
+  //   NEW COLABORATIVE FUNCTIONALITY
 
-syncModelChanges() {
-  const projectId = this.props.projectService.getProject().id;
+  syncModelChanges() {
+    const projectId = this.props.projectService.getProject().id;
 
-  if (this.state.isCollaborative && projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
+    if (this.state.isCollaborative && projectId && this.currentModel && !this.isRemoteChange && !this.isInitialLoad) {
 
 
 
-    // Usar la nueva función incremental para mejor rendimiento
-    this.props.projectService.updateModelState(projectId, this.currentModel.id, (state) => {
-      state.set("data", {
-        elements: this.currentModel.elements,
-        relationships: this.currentModel.relationships,
-        timestamp: Date.now()
+      // Usar la nueva función incremental para mejor rendimiento
+      this.props.projectService.updateModelState(projectId, this.currentModel.id, (state) => {
+        state.set("data", {
+          elements: this.currentModel.elements,
+          relationships: this.currentModel.relationships,
+          timestamp: Date.now()
+        });
       });
-    });
 
-    // Actualizar snapshot local específico para este modelo
-    if (this.currentModel) {
-      const modelKey = `${this.currentModel.type}_${this.currentModel.id}`;
-      this.modelSnapshots.set(modelKey, {
-        elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
-        relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
-      });
+      // Actualizar snapshot local específico para este modelo
+      if (this.currentModel) {
+        const modelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+        this.modelSnapshots.set(modelKey, {
+          elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
+          relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
+        });
+      }
     }
   }
-}
 
-// Conjunto
+  // Conjunto
 
-observeModel(projectId: string, model: Model) {
-  // Eliminar el observador anterior si existe
-  if (this.currentModelObserver) {
-    this.currentModelObserver();
-    this.currentModelObserver = null;
-  }
+  observeModel(projectId: string, model: Model) {
+    // Eliminar el observador anterior si existe
+    if (this.currentModelObserver) {
+      this.currentModelObserver();
+      this.currentModelObserver = null;
+    }
 
-  this.unsuscribeModelAwareness(projectId, model.id);
+    this.unsuscribeModelAwareness(projectId, model.id);
 
-  // Limpiar recursos de modelos anteriores
-  this.cleanupUnusedModelResources();
+    // Limpiar recursos de modelos anteriores
+    this.cleanupUnusedModelResources();
 
-  // Obtener o crear el updater específico para este modelo
-  const modelKey = `${model.type}_${model.id}`;
-  if (!this.incrementalUpdaters.has(modelKey) && this.graph) {
-    this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
-  }
+    // Obtener o crear el updater específico para este modelo
+    const modelKey = `${model.type}_${model.id}`;
+    if (!this.incrementalUpdaters.has(modelKey) && this.graph) {
+      this.incrementalUpdaters.set(modelKey, new IncrementalGraphUpdater(this.graph, this.props.projectService));
+    }
 
-  // Asegurar que el modelo actual esté actualizado
-  this.currentModel = model;
+    // Asegurar que el modelo actual esté actualizado
+    this.currentModel = model;
 
-  // Configurar el nuevo observador con sincronización incremental
-  this.currentModelObserver = this.props.projectService.observeModelState(
-    projectId,
-    model.id,
-    (state) => {
+    // Configurar el nuevo observador con sincronización incremental
+    this.currentModelObserver = this.props.projectService.observeModelState(
+      projectId,
+      model.id,
+      (state) => {
 
-      // Solo procesar si el modelo actual coincide con el modelo observado
-      if (state && this.currentModel && this.currentModel.id === model.id && !this.isInitialLoad) {
-        this.isRemoteChange = true;
+        // Solo procesar si el modelo actual coincide con el modelo observado
+        if (state && this.currentModel && this.currentModel.id === model.id && !this.isInitialLoad) {
+          this.isRemoteChange = true;
 
-        const modelData = state.get("data");
-        if (modelData && this.currentModel) {
-          const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+          const modelData = state.get("data");
+          if (modelData && this.currentModel) {
+            const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
 
-          // Asegurar que tenemos un snapshot válido antes de calcular diferencias
-          if (!this.modelSnapshots.has(currentModelKey)) {
-            this.modelSnapshots.set(currentModelKey, {
-              elements: JSON.parse(JSON.stringify(this.currentModel.elements || [])),
-              relationships: JSON.parse(JSON.stringify(this.currentModel.relationships || []))
-            });
-          }
-
-          const snapshot = this.modelSnapshots.get(currentModelKey);
-          const snapshotAsModel = {
-            ...this.currentModel,
-            elements: snapshot.elements,
-            relationships: snapshot.relationships
-          };
-          
-          const diff = calculateModelDiff(snapshotAsModel, modelData);
-
-          if (hasMeaningfulChanges(diff)) {
-
-            // Actualizar el modelo actual
-            this.currentModel.elements = modelData.elements || this.currentModel.elements;
-            this.currentModel.relationships = modelData.relationships || this.currentModel.relationships;
-
-            // Aplicar cambios incrementales al grafo usando el updater específico
-            const updater = this.incrementalUpdaters.get(currentModelKey);
-            if (updater) {
-              updater.applyIncrementalChanges(this.currentModel, diff, {
-                refreshVertexLabel: this.refreshVertexLabel.bind(this),
-                refreshEdgeLabel: this.refreshEdgeLabel.bind(this),
-                refreshEdgeStyle: this.refreshEdgeStyle.bind(this),
-                createOverlays: this.createOverlays.bind(this),
-                getFontColorFromShape: this.getFontColorFromShape.bind(this)
+            // Asegurar que tenemos un snapshot válido antes de calcular diferencias
+            if (!this.modelSnapshots.has(currentModelKey)) {
+              this.modelSnapshots.set(currentModelKey, {
+                elements: JSON.parse(JSON.stringify(this.currentModel.elements || [])),
+                relationships: JSON.parse(JSON.stringify(this.currentModel.relationships || []))
               });
             }
 
-            // Actualizar snapshot específico después de aplicar cambios
-            this.modelSnapshots.set(currentModelKey, {
-              elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
-              relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
-            });
+            const snapshot = this.modelSnapshots.get(currentModelKey);
+            const snapshotAsModel = {
+              ...this.currentModel,
+              elements: snapshot.elements,
+              relationships: snapshot.relationships
+            };
+
+            const diff = calculateModelDiff(snapshotAsModel, modelData);
+
+            if (hasMeaningfulChanges(diff)) {
+
+              // Actualizar el modelo actual
+              this.currentModel.elements = modelData.elements || this.currentModel.elements;
+              this.currentModel.relationships = modelData.relationships || this.currentModel.relationships;
+
+              // Aplicar cambios incrementales al grafo usando el updater específico
+              const updater = this.incrementalUpdaters.get(currentModelKey);
+              if (updater) {
+                updater.applyIncrementalChanges(this.currentModel, diff, {
+                  refreshVertexLabel: this.refreshVertexLabel.bind(this),
+                  refreshEdgeLabel: this.refreshEdgeLabel.bind(this),
+                  refreshEdgeStyle: this.refreshEdgeStyle.bind(this),
+                  createOverlays: this.createOverlays.bind(this),
+                  getFontColorFromShape: this.getFontColorFromShape.bind(this)
+                });
+              }
+
+              // Actualizar snapshot específico después de aplicar cambios
+              this.modelSnapshots.set(currentModelKey, {
+                elements: JSON.parse(JSON.stringify(this.currentModel.elements)),
+                relationships: JSON.parse(JSON.stringify(this.currentModel.relationships))
+              });
+            }
           }
+
+          this.isRemoteChange = false;
         }
-
-        this.isRemoteChange = false;
       }
-    }
-  );
+    );
 
-  this.initNewModelAwarness(projectId, model.id);
-}
+    this.initNewModelAwarness(projectId, model.id);
+  }
 
-/**
- * Limpia los updaters y snapshots de modelos que ya no se están usando
- */
-private cleanupUnusedModelResources() {
-  // Mantener solo los recursos del modelo actual
-  if (this.currentModel) {
-    const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+  /**
+   * Limpia los updaters y snapshots de modelos que ya no se están usando
+   */
+  private cleanupUnusedModelResources() {
+    // Mantener solo los recursos del modelo actual
+    if (this.currentModel) {
+      const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
 
-    // Limpiar updaters no utilizados
-    for (const key of this.incrementalUpdaters.keys()) {
-      if (key !== currentModelKey) {
-        this.incrementalUpdaters.delete(key);
+      // Limpiar updaters no utilizados
+      for (const key of this.incrementalUpdaters.keys()) {
+        if (key !== currentModelKey) {
+          this.incrementalUpdaters.delete(key);
+        }
       }
-    }
 
-    // Limpiar snapshots no utilizados
-    for (const key of this.modelSnapshots.keys()) {
-      if (key !== currentModelKey) {
-        this.modelSnapshots.delete(key);
+      // Limpiar snapshots no utilizados
+      for (const key of this.modelSnapshots.keys()) {
+        if (key !== currentModelKey) {
+          this.modelSnapshots.delete(key);
+        }
       }
     }
   }
-}
 
 
-  unsuscribeModelAwareness(projectId : string, modelId: string) {
+  unsuscribeModelAwareness(projectId: string, modelId: string) {
 
-    if (this.awarenessUnsubscribe){
+    if (this.awarenessUnsubscribe) {
       this.awarenessUnsubscribe();
       this.awarenessUnsubscribe = null;
     }
 
-    if (modelId && projectId){
+    if (modelId && projectId) {
       destroyModelAwareness(projectId, modelId);
     }
   }
@@ -3630,7 +3725,7 @@ private cleanupUnusedModelResources() {
         color: "#" + Math.floor(Math.random() * 16777215).toString(16)
       });
 
-      this.awarenessUnsubscribe = onModelAwarenessChange(projectId, modelId , (state) => {
+      this.awarenessUnsubscribe = onModelAwarenessChange(projectId, modelId, (state) => {
         const awarenessStates = Array.from(state.values());
 
         // Procesar usuarios colaborativos para los indicadores visuales
@@ -3660,11 +3755,11 @@ private cleanupUnusedModelResources() {
         });
       })
 
-    } 
+    }
   }
   // Conjunto
 
-    
+
   // TODO: Ver que hacer con esto
   // changeProjectCollaborative() { 
   //   try {
@@ -3679,7 +3774,7 @@ private cleanupUnusedModelResources() {
   //         if (response) {
   //           const newCollaborativeState = response.collaborativeState;
   //           this.setState({ isCollaborative: newCollaborativeState }); 
-            
+
   //           // Manejar la conexión/desconexión del WebSocket
   //           if (newCollaborativeState) {
   //             await this.props.projectService.setupProjectSync(projectId);
@@ -3703,11 +3798,11 @@ private cleanupUnusedModelResources() {
   // }
 
   handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const isCollaborative  = this.state;
+    const isCollaborative = this.state;
     const projectId = this.props.projectService.getProject().id;
     let modelId = null;
     modelId = this.currentModel && this.currentModel.id === null ? 'none' : this.currentModel?.id;
-      
+
     if (isCollaborative && projectId && modelId) {
       const rect = this.graphContainerRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -3716,7 +3811,7 @@ private cleanupUnusedModelResources() {
     }
   };
 
-// END NEW COLABORATIVE FUNCTIONALITY
+  // END NEW COLABORATIVE FUNCTIONALITY
 
   render() {
     return (
@@ -3757,59 +3852,59 @@ private cleanupUnusedModelResources() {
 
         <div ref={this.graphContainerRef} className="GraphContainer" style={{ position: "relative" }} onMouseMove={this.handleMouseMove}>
 
-        {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => {
-          // Filtrar usuarios que tengan cursor, estén en el modelo actual y no sean el usuario actual
-          if (!user.user || !user.user.cursor || user.user.modelId !== this.currentModel?.id) {
-            return false;
-          }
+          {this.state.awarnessStates && this.state.awarnessStates.filter((user: any) => {
+            // Filtrar usuarios que tengan cursor, estén en el modelo actual y no sean el usuario actual
+            if (!user.user || !user.user.cursor || user.user.modelId !== this.currentModel?.id) {
+              return false;
+            }
 
-          // Excluir el usuario actual por nombre
-          const currentUserId = this.props.projectService.getUser();
-          const currentUserName = this.state.collaborators.find(c => c.id === currentUserId)?.name;
-          return user.user.name !== currentUserName;
-        })
-      .map((user: any, idx: number) => (
-        <div
-          key={idx}
-          style={{
-            position: "absolute",
-            left: user.user.cursor.x,
-            top: user.user.cursor.y,
-            pointerEvents: "none",
-            zIndex: 10,
-            color: user.user.color,
-            fontWeight: "bold",
-            fontSize: 12,
-            background: "#fff8",
-            borderRadius: 4,
-            padding: "2px 6px",
-            border: `1px solid ${user.user.color}`,
-            transform: "translate(-50%, -50%)"
-          }}
-        >
-          {user.user.name}
-          <span style={{
-            display: "inline-block",
-            width: 8,
-            height: 8,
-            background: user.user.color,
-            borderRadius: "50%",
-            marginLeft: 4,
-            verticalAlign: "middle"
-          }} />
+            // Excluir el usuario actual por nombre
+            const currentUserId = this.props.projectService.getUser();
+            const currentUserName = this.state.collaborators.find(c => c.id === currentUserId)?.name;
+            return user.user.name !== currentUserName;
+          })
+            .map((user: any, idx: number) => (
+              <div
+                key={idx}
+                style={{
+                  position: "absolute",
+                  left: user.user.cursor.x,
+                  top: user.user.cursor.y,
+                  pointerEvents: "none",
+                  zIndex: 10,
+                  color: user.user.color,
+                  fontWeight: "bold",
+                  fontSize: 12,
+                  background: "#fff8",
+                  borderRadius: 4,
+                  padding: "2px 6px",
+                  border: `1px solid ${user.user.color}`,
+                  transform: "translate(-50%, -50%)"
+                }}
+              >
+                {user.user.name}
+                <span style={{
+                  display: "inline-block",
+                  width: 8,
+                  height: 8,
+                  background: user.user.color,
+                  borderRadius: "50%",
+                  marginLeft: 4,
+                  verticalAlign: "middle"
+                }} />
+              </div>
+            ))}
+
+          {/* Indicadores colaborativos para acciones de usuario */}
+          <CollaborativeIndicators
+            users={this.state.collaborativeUsers}
+            currentUserId={this.props.projectService.getUser()}
+            currentUserName={this.state.collaborators.find(c => c.id === this.props.projectService.getUser())?.name || ''}
+            graph={this.graph}
+          />
+
         </div>
-        ))}
 
-        {/* Indicadores colaborativos para acciones de usuario */}
-        <CollaborativeIndicators
-          users={this.state.collaborativeUsers}
-          currentUserId={this.props.projectService.getUser()}
-          currentUserName={this.state.collaborators.find(c => c.id === this.props.projectService.getUser())?.name || ''}
-          graph={this.graph}
-        />
-
-        </div>
-        
         <div>
           <Modal
             show={this.state.showCatalogModal}
@@ -3907,7 +4002,7 @@ private cleanupUnusedModelResources() {
         <div>
           <Modal
             show={this.state.showPropertiesModal}
-            onHide={this.hidePropertiesModal}
+            onHide={this.cancelPropertiesModal}
             size="lg"
             centered
           >
@@ -3918,9 +4013,9 @@ private cleanupUnusedModelResources() {
             </Modal.Header>
             <Modal.Body>
               <div style={{ maxHeight: "65vh", overflow: "auto" }}>
-                <MxProperties 
-                  projectService={this.props.projectService} 
-                  model={this.currentModel} 
+                <MxProperties
+                  projectService={this.props.projectService}
+                  model={this.currentModel}
                   item={this.state.selectedObject}
                 />
               </div>
@@ -3934,7 +4029,7 @@ private cleanupUnusedModelResources() {
               </Button>
               <Button
                 variant="secondary"
-                onClick={this.hidePropertiesModal}
+                onClick={this.cancelPropertiesModal}
               >
                 Cancel
               </Button>

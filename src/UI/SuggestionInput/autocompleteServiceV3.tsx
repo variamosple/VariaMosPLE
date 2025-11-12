@@ -1,12 +1,13 @@
 import axios, { Method } from "axios";
-import secretGraph from './secretGraph.json';
 import Graph from "./graph";
 
 export default class AutocompleteService {
     graph: Graph;
     initialNodes: any[];
+    secretGraph: any;
 
-    constructor() {
+    constructor(secretGraph) {
+        this.secretGraph=secretGraph;
         this.graph = this.loadGraph();
         this.initialNodes = this.graph.findInitialNodes();
     }
@@ -37,13 +38,13 @@ export default class AutocompleteService {
         let graph = new Graph();
         if (true) {
             let dic = [];
-            for (let i = 0; i < secretGraph.nodes.length; i++) {
-                const node = secretGraph.nodes[i];
+            for (let i = 0; i < this.secretGraph.nodes.length; i++) {
+                const node = this.secretGraph.nodes[i];
                 graph.addVertex(i);
                 dic[node.id] = i;
             }
-            for (let i = 0; i < secretGraph.edges.length; i++) {
-                const edge = secretGraph.edges[i];
+            for (let i = 0; i < this.secretGraph.edges.length; i++) {
+                const edge = this.secretGraph.edges[i];
                 let sourceId = dic[edge.sourceNodeId];
                 let targetId = dic[edge.targetNodeId];
                 graph.addEdge(sourceId, targetId);
@@ -89,10 +90,11 @@ export default class AutocompleteService {
         if (indexes) {
         for (let i = 0; i < indexes.length; i++) {
             const index = indexes[i];
-            let node = secretGraph.nodes[index];
+            let node = this.secretGraph.nodes[index];
             if(node.name!="//"){
                 nodes.push(node.name);
-            }else{
+            }
+            else{
                let childIndexes = me.graph.findNextNodes(index);
                me.generateNodes(nodes, childIndexes);
             }
@@ -141,12 +143,12 @@ export default class AutocompleteService {
     }
 
     getTokenFromNode(id) {
-        let word = secretGraph.nodes[id].name;
+        let word = this.secretGraph.nodes[id].name;
         return word;
     }
 
     getTagFromNode(id) {
-        let tag = secretGraph.nodes[id].tag;
+        let tag = this.secretGraph.nodes[id].tag;
         return tag;
     }
 
@@ -238,7 +240,7 @@ export default class AutocompleteService {
                 }
                 t++;
             } else {
-                if (token.startsWith('<')) {
+                if (token.startsWith('[')) {
                     if (!candidateParts['_' + index]) {
                         let item = {
                             word: word,
@@ -278,7 +280,7 @@ export default class AutocompleteService {
         let words = [];
         for (let j = 0; j < path.length; j++) {
             const id = path[j];
-            let name = secretGraph.nodes[id].name;
+            let name = this.secretGraph.nodes[id].name;
             if (name != "//") {
                 words.push(name);
             }

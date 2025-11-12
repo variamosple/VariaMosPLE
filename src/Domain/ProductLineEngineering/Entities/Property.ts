@@ -16,6 +16,7 @@ export class Property {
   metadata?: any;
   constraint?: string; //[1..1];[2..4]
   defaultValue?:string;
+  autocompleteSource?:string;
 
   constructor(
     name: string,
@@ -32,7 +33,8 @@ export class Property {
     minCardinality: any,
     maxCardinality: any,
     constraint: any,
-    defaultValue: any
+    defaultValue: any,
+    autocompleteSource:any
   ) {
     this.id = generateId();
     this.name = name;
@@ -50,6 +52,7 @@ export class Property {
     this.maxCardinality = maxCardinality;
     this.constraint = constraint;
     this.defaultValue=defaultValue;
+    this.autocompleteSource=autocompleteSource;
   }
 }
 

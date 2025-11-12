@@ -55,7 +55,7 @@ export function buildSnapshot(model: Model): ModelSnapshot {
 function upsertProp(list: any[], name: string, value: any) {
   const found = list.find((p: any) => p.name === name);
   if (found) { found.value = value; }
-  else { list.push(new Property(name, value, "string", "", "", "", false, true, "", "", "", "", "", "", "")); }
+  else { list.push(new Property(name, value, "string", "", "", "", false, true, "", "", "", "", "", "", "", null)); }
 }
 function deleteProp(list: any[], name: string) {
   const idx = list.findIndex((p: any) => p.name === name);
@@ -86,7 +86,7 @@ function createElement(
   const el: any = {
     id, type, name: name ?? type, parentId: parentId ?? null,
     x: geometry?.x ?? 40, y: geometry?.y ?? 40, width: geometry?.width ?? 120, height: geometry?.height ?? 60,
-    properties: (properties ?? []).map(p => new Property(p.name, p.value, "string", "", "", "", false, true, "", "", "", "", "", "", ""))
+    properties: (properties ?? []).map(p => new Property(p.name, p.value, "string", "", "", "", false, true, "", "", "", "", "", "", "", null))
   };
   (model.elements as any[]).push(el);
   return el;
@@ -143,7 +143,7 @@ export function applyPatch(ps: ProjectService, model: Model, envelope: PatchEnve
           [],
           op.min ?? 0,
           op.max ?? 1,
-          (op.properties ?? []).map(p => new Property(p.name, p.value, "string", "", "", "", false, true, "", "", "", "", "", "", ""))
+          (op.properties ?? []).map(p => new Property(p.name, p.value, "string", "", "", "", false, true, "", "", "", "", "", "", "", null))
         );
         touched.rel.add(rel.id);
         break;

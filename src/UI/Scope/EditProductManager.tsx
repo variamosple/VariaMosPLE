@@ -83,7 +83,8 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
         0,                 // minCardinality
         0,                 // maxCardinality
         "",                // constraint
-        base64Data         // defaultValue
+        base64Data,         // defaultValue
+        null
       );
 
       // Buscar en el modelo (currentModel) si existe un elemento "Product"
@@ -376,7 +377,8 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
         p.minCardinality,
         p.maxCardinality,
         p.constraint,
-        defaultVal
+        defaultVal,
+        p.autocompleteSource
       );
     });
     const newElement: Element = {
@@ -426,7 +428,8 @@ const EditProductManager: React.FC<EditProductManagerProps> = ({ projectService,
           0,
           0,
           "",
-          "Contains"
+          "Contains",
+          null
         )
       ]
     };

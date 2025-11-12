@@ -19,13 +19,15 @@ export default class SuggestionInput extends Component<Props, State> {
     value: null,
     endPoint: null,
     projectService: null,
-    onSuggestionReceived: null
+    onSuggestionReceived: null,
+    textGraph: null
   };
 
   state = {
     text: null,
     showModal: false,
-    data: null
+    data: null,
+    highlightedIndex: -1
   };
 
   inputTextRef = null;
@@ -38,13 +40,13 @@ export default class SuggestionInput extends Component<Props, State> {
     this.state = {
       text: props["value"],
       showModal: false,
-      data: null
+      data: null,
+      highlightedIndex: -1
     }
 
     this.modalDialogRef = React.createRef();
     this.inputTextRef = React.createRef();
 
-    this.suggestionInputHelper = new SuggestionInputHelper();
   }
 
   raiseOnChange(value) {
@@ -56,8 +58,25 @@ export default class SuggestionInput extends Component<Props, State> {
     }
   }
 
+  updateHighlightFromLastWord(text) {
+    if (!this.state.data || !this.state.data.options || this.state.data.options.length === 0) {
+      this.setState({ highlightedIndex: -1 });
+      return;
+    }
+    const options = this.state.data.options;
+    const parts = (text || "").split(/\s+/);
+    const last = parts[parts.length - 1] || "";
+    let idx = -1;
+    if (last.length > 0) {
+      const lw = last.toLowerCase();
+      idx = options.findIndex(o => String(o).toLowerCase().startsWith(lw));
+    }
+    if (idx === -1) idx = 0;
+    this.setState({ highlightedIndex: idx });
+  }
+
   loadSuggestions() {
-    let me = this; 
+    let me = this;
     let input = this.state.text;
     if (!input) {
       input = "";
@@ -69,18 +88,30 @@ export default class SuggestionInput extends Component<Props, State> {
       input: input,
       domain: productLine.domain,
       type: productLine.type
-    }; 
+    };
 
     let data = me.suggestionInputHelper.getOptions(request);
     me.state.data = data;
     me.state.text = data.input;
     if (data.input.length > 0) {
-      if (!me.state.text.endsWith(" ")) {
-        me.state.text += " ";
+      if (data.options.length > 0) {
+        if (!me.state.text.endsWith(" ")) {
+          me.state.text += " ";
+        }
       }
     }
 
+    let highlightedIndex = -1;
+    if (data.options && data.options.length > 0) {
+      const base = (data.input || "").trim();
+      const last = base.split(/\s+/).pop() || "";
+      const lw = last.toLowerCase();
+      highlightedIndex = lw.length > 0 ? data.options.findIndex(o => String(o).toLowerCase().startsWith(lw)) : 0;
+      if (highlightedIndex === -1) highlightedIndex = 0;
+    }
+
     me.state.showModal = true;
+    me.state.highlightedIndex = highlightedIndex;
     me.modalDialogRef.current.classList.add("show");
     me.forceUpdate();
     if (me.props.onSuggestionReceived) {
@@ -89,97 +120,106 @@ export default class SuggestionInput extends Component<Props, State> {
         data: data
       })
     }
-
-
-
-
-
-
-
-
-    // try {
-    //   axios(config).then((res) => {
-    //     let data = res.data;
-    //     this.state.data = data;
-    //     this.state.text = data.input;
-    //     if (data.input.length > 0) {
-    //       if (!this.state.text.endsWith(" ")) {
-    //         this.state.text += " ";
-    //       }
-    //     }
-    //     this.state.showModal = true;
-    //     this.modalDialogRef.current.classList.add("show");
-    //     this.forceUpdate();
-    //     if (me.props.onSuggestionReceived) {
-    //       me.props.onSuggestionReceived({
-    //         target: this,
-    //         data: data
-    //       })
-    //     }
-    //   }).catch(function (error) {
-    //     let x = 0;
-    //     if (error.response) {
-    //       // Request made and server responded
-    //       console.log(error.response.data);
-    //       console.log(error.response.status);
-    //       console.log(error.response.headers);
-    //     } else if (error.request) {
-    //       // The request was made but no response was received
-    //       console.log(error.request);
-    //     } else {
-    //       // Something happened in setting up the request that triggered an Error
-    //       console.log('Error', error.message);
-    //     }
-
-    //   });
-    // } catch (error) {
-    //   console.log("Something wrong in getExternalFunctions Service: " + error);
-    // }
   }
-
 
   inputText_onKeyDown(e) {
     if (e.keyCode == 32) {
+      e.preventDefault();
       this.loadSuggestions();
+    }
+
+    if (this.state.showModal && this.state.data) {
+      const options = this.state.data.options || [];
+      if (options.length === 0) return;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        this.setState((prev: any) => ({
+          highlightedIndex: (prev.highlightedIndex + 1) % options.length
+        }));
+      }
+      else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        this.setState((prev: any) => ({
+          highlightedIndex: (prev.highlightedIndex - 1 + options.length) % options.length
+        }));
+      }
+      else if (e.key === "Enter" || e.key === "Tab") {
+        if (this.state.highlightedIndex >= 0 && this.state.highlightedIndex < options.length) {
+          e.preventDefault();
+          this.selectOption(options[this.state.highlightedIndex]);
+        }
+      }
     }
   }
 
   inputText_onChange(e) {
-    if (!e.target.value) {
-      this.state.text = e.target.value;
+    const value = e.target.value;
+    if (!value) {
+      this.state.text = value;
       this.forceUpdate();
       this.loadSuggestions();
     } else {
-      this.setState({
-        text: e.target.value
+      this.setState({ text: value }, () => {
+        if (this.state.showModal && this.state.data) {
+          this.updateHighlightFromLastWord(this.state.text);
+        }
       });
     }
-    this.raiseOnChange(e.target.value);
+    this.raiseOnChange(value);
   }
 
   inputText_onFocus(e) {
-    let me = this;
-    // if (!this.state.text) {
     this.loadSuggestions();
-    // }
   }
 
   inputOption_onClick(e) {
-    this.state.data = null;
     let value = e.target.attributes["data-value"].value;
-    let text = this.state.text
-    if (!value.startsWith("<")) {
-      text += value + " ";
-    }
-    this.state.text = text;
-    this.setState({
-      text: text
-    })
-    this.raiseOnChange(text);
-    this.inputTextRef.current.focus();
+    this.selectOption(value);
   }
 
-  componentDidMount() { }
+  selectOption(value) {
+    this.state.data = null;
+    let text = this.state.text || "";
+    if (value == ".") {
+      text += value + "";
+      text = text.replace(/ \./g, ".");
+    }
+    else if (value.startsWith("[")) {
+      text += " ";
+    }
+    else {
+      if (text.endsWith(" ")) {
+        text += value + " ";
+      }
+      else {
+        let parts = text.trimEnd().split(/\s+/);
+        if (parts.length > 0) {
+          parts[parts.length - 1] = value;
+        } else {
+          parts.push(value);
+        }
+        text = parts.join(" ") + " ";
+      }
+    }
+
+    this.setState(
+      {
+        text: text,
+        showModal: false,
+        highlightedIndex: -1
+      },
+      () => {
+        this.raiseOnChange(text);
+        this.inputTextRef.current.focus();
+        this.loadSuggestions();
+      }
+    );
+  }
+
+
+  componentDidMount() { 
+    this.suggestionInputHelper = new SuggestionInputHelper(this.props.textGraph);
+  }
 
   renderOptions() {
     if (!this.state.data) {
@@ -188,8 +228,16 @@ export default class SuggestionInput extends Component<Props, State> {
     let items = [];
     for (let i = 0; i < this.state.data.options.length; i++) {
       const option = this.state.data.options[i];
+      let className = "div-item";
+      if (i === this.state.highlightedIndex) {
+        className += " highlighted";
+      }
       items.push(
-        <div className="div-item" data-value={option} onClick={this.inputOption_onClick.bind(this)}>
+        <div
+          key={i}
+          className={className}
+          data-value={option}
+          onClick={this.inputOption_onClick.bind(this)}>
           {option}
         </div>
       )
@@ -205,7 +253,15 @@ export default class SuggestionInput extends Component<Props, State> {
     return (
       <span>
         <div className="autocomplete">
-          <textarea className="form-control" ref={this.inputTextRef} onKeyDown={this.inputText_onKeyDown.bind(this)} onChange={this.inputText_onChange.bind(this)} onFocus={this.inputText_onFocus.bind(this)} value={this.state.text} />
+          <textarea
+            className="form-control"
+            ref={this.inputTextRef}
+            onKeyDown={this.inputText_onKeyDown.bind(this)}
+            onChange={this.inputText_onChange.bind(this)}
+            onFocus={this.inputText_onFocus.bind(this)}
+            value={this.state.text}
+            autoComplete="new-item"
+          />
           <div ref={this.modalDialogRef} className="autocomplete-items" >
             {this.renderOptions()}
           </div>
@@ -213,4 +269,4 @@ export default class SuggestionInput extends Component<Props, State> {
       </span>
     );
   }
-} 
+}
