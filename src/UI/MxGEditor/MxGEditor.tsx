@@ -979,12 +979,20 @@ export default class MxGEditor extends Component<Props, State> {
         }
         else if (languageDefinition.concreteSyntax.relationships[relationship.type].label_property) {
           label_property = languageDefinition.concreteSyntax.relationships[relationship.type].label_property;
-          for (let p = 0; p < relationship.properties.length; p++) {
-            const property = relationship.properties[p];
-            if (property.name == label_property) {
-              edge.value.setAttribute("label", property.value);
-              return;
+          let property = this.findProperty(relationship, label_property);
+          if (property != null) {
+            let label = property.value;
+            if (label == "IndividualCardinality") {
+              let minProperty = this.findProperty(relationship, "MinValue");
+              let maxProperty = this.findProperty(relationship, "MaxValue");
+              if (minProperty != null && maxProperty != null) {
+                let minValue = minProperty.value;
+                let maxValue = maxProperty.value;
+                label = label + "\n[" + minValue + ", " + maxValue + "]";
+              }
             }
+            edge.value.setAttribute("label", label);
+            return;
           }
         }
       }
@@ -994,6 +1002,16 @@ export default class MxGEditor extends Component<Props, State> {
     } else {
       edge.value.setAttribute("label", "");
     }
+  }
+
+  findProperty(relationship, name) {
+    for (let p = 0; p < relationship.properties.length; p++) {
+      const property = relationship.properties[p];
+      if (property.name == name) {
+        return property;
+      }
+    }
+    return null;
   }
 
   refreshVertexLabel(vertice: any) {
@@ -1011,8 +1029,17 @@ export default class MxGEditor extends Component<Props, State> {
 
     vertice.value.setAttribute("Name", element.name);
     for (let i = 0; i < element.properties.length; i++) {
-      const p = element.properties[i];
+      const p: any = element.properties[i];
       vertice.value.setAttribute(p.name, p.value);
+      let typeDescription = "";
+      if (!p.possibleValues) { 
+          typeDescription = p.type;
+      } else if (p.possibleValues.startsWith("[")) {
+          typeDescription = p.type + " " + p.possibleValues;
+      } else {
+          typeDescription = "{" + p.possibleValues + "}";
+      } 
+      vertice.value.setAttribute(p.name + "_typeDescription", typeDescription);
     }
 
     if (languageDefinition.concreteSyntax.elements) {

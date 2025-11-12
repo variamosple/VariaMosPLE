@@ -326,7 +326,7 @@ export default class MxgraphUtils {
     }
 
     static modifyShape(ne: any) {
-        let foreground = ne.children[1];
+        let foreground = ne.children[1]; 
         for (let i = 0; i < foreground.children.length; i++) {
             const child = foreground.children[i];
             if (child.tagName == 'text') {
@@ -354,12 +354,17 @@ export default class MxgraphUtils {
                                     let strs=[];
                                     for (let i=0; i<keys.length; i++) {
                                         let key=keys[i]; 
+                                        if (key.endsWith("_typeDescription")) continue; 
                                         if (!attributes.hasOwnProperty(key)) continue; 
                                         if (!isNaN(key)) continue; 
                                         if (['uid', 'label', 'Name', 'Selected', 'type', 'title'].includes(key)) continue; 
                                         let name=key; 
                                         //alert(JSON.stringify(attributes[key]));
                                         let value=attributes[key].value;
+                                        let typeDescription=attributes[key + '_typeDescription'].value;
+                                        if(value=='Undefined'){
+                                          value=typeDescription;
+                                        }
                                         strs.push(name + ": " + value); 
                                     }  
                                     return strs.join('\\r\\n');
