@@ -988,7 +988,7 @@ export default class MxGEditor extends Component<Props, State> {
               if (minProperty != null && maxProperty != null) {
                 let minValue = minProperty.value;
                 let maxValue = maxProperty.value;
-                label = label + "\n[" + minValue + ", " + maxValue + "]";
+                label = label + "\n[" + minValue + ".." + maxValue + "]";
               }
             }
             edge.value.setAttribute("label", label);
@@ -1032,13 +1032,19 @@ export default class MxGEditor extends Component<Props, State> {
       const p: any = element.properties[i];
       vertice.value.setAttribute(p.name, p.value);
       let typeDescription = "";
-      if (!p.possibleValues) { 
-          typeDescription = p.type;
+      if (!p.possibleValues) {
+        typeDescription = p.type;
       } else if (p.possibleValues.startsWith("[")) {
-          typeDescription = p.type + " " + p.possibleValues;
+        let str = p.possibleValues;
+        if (str.length <= 2) {
+          str = "";
+        } else {
+          str = str.slice(1, -1);
+        }
+        typeDescription = p.type + " in " + str;
       } else {
-          typeDescription = "{" + p.possibleValues + "}";
-      } 
+        typeDescription = "{" + p.possibleValues + "}";
+      }
       vertice.value.setAttribute(p.name + "_typeDescription", typeDescription);
     }
 
