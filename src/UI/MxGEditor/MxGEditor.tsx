@@ -3465,8 +3465,6 @@ renderRequirementsReport() {
   };
 
 
-//   NEW COLABORATIVE FUNCTIONALITY
-
 syncModelChanges() {
   const projectId = this.props.projectService.getProject().id;
 
@@ -3582,9 +3580,7 @@ observeModel(projectId: string, model: Model) {
   this.initNewModelAwarness(projectId, model.id);
 }
 
-/**
- * Limpia los updaters y snapshots de modelos que ya no se están usando
- */
+// Limpia los updaters y snapshots de modelos que ya no se están usando
 private cleanupUnusedModelResources() {
   // Mantener solo los recursos del modelo actual
   if (this.currentModel) {
