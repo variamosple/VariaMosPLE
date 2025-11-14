@@ -3560,8 +3560,6 @@ export default class MxGEditor extends Component<Props, State> {
   };
 
 
-  //   NEW COLABORATIVE FUNCTIONALITY
-
   syncModelChanges() {
     const projectId = this.props.projectService.getProject().id;
 
@@ -3677,13 +3675,11 @@ export default class MxGEditor extends Component<Props, State> {
     this.initNewModelAwarness(projectId, model.id);
   }
 
-  /**
-   * Limpia los updaters y snapshots de modelos que ya no se están usando
-   */
-  private cleanupUnusedModelResources() {
-    // Mantener solo los recursos del modelo actual
-    if (this.currentModel) {
-      const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+// Limpia los updaters y snapshots de modelos que ya no se están usando
+private cleanupUnusedModelResources() {
+  // Mantener solo los recursos del modelo actual
+  if (this.currentModel) {
+    const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
 
       // Limpiar updaters no utilizados
       for (const key of this.incrementalUpdaters.keys()) {

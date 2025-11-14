@@ -155,7 +155,6 @@ export function applyPatch(ps: ProjectService, model: Model, envelope: PatchEnve
     }
   }
 
-  // 🔔 Una sola notificación para refrescar MxGEditor
   const anyTouched = [...touched.el, ...touched.rel];
   if (anyTouched.length > 0) {
     const anyId = anyTouched[0];
@@ -168,6 +167,25 @@ export function applyPatch(ps: ProjectService, model: Model, envelope: PatchEnve
     if ((ps as any).raiseEventUpdateProject) {
       (ps as any).raiseEventUpdateProject({ project: ps.project, modelSelectedId: model.id });
     }
+  }
+
+  syncCollaborativeChanges(ps, model);
+}
+
+// ---------- Sincronizar cambios colaborativos vía Yjs
+function syncCollaborativeChanges(ps: ProjectService, model: Model) {
+  const project = ps.getProject();
+  const projectInfo = ps.getProjectInformation();
+  
+  if (projectInfo?.is_collaborative && project?.id && model?.id) {    
+    ps.updateModelState(project.id, model.id, (state) => {
+      state.set("data", {
+        elements: model.elements,
+        relationships: model.relationships,
+        timestamp: Date.now(),
+        source: "chatbot"
+      });
+    });
   }
 }
 
