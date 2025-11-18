@@ -2442,6 +2442,60 @@ const normalizeRefsInOps = (
     }
   };
 
+  const autoSelectModelInTree = (ps: any, model: any, ph: Phase) => {
+  try {
+    const project = ps.project;
+    if (!project?.productLines?.length) return;
+
+
+    const idPl = ps.getIdCurrentProductLine?.() ?? 0;
+    const pl = project.productLines[idPl];
+    if (!pl) return;
+
+    if (ph === "DOMAIN") {
+      const models = pl.domainEngineering?.models || [];
+      let idx = models.findIndex((m: any) => m.id === model.id);
+      if (idx < 0) idx = models.length - 1;
+      if (idx < 0) return;
+
+      ps.modelDomainSelected?.(idPl, idx);
+    }
+
+    if (ph === "SCOPE") {
+      const models = pl.scope?.models || [];
+      let idx = models.findIndex((m: any) => m.id === model.id);
+      if (idx < 0) idx = models.length - 1;
+      if (idx < 0) return;
+
+      ps.modelScopeSelected?.(idPl, idx);
+    }
+
+    if (ph === "APPLICATION") {
+      const apps = pl.applicationEngineering?.applications || [];
+      let idApp = -1;
+      let idAppModel = -1;
+
+      outer: for (let i = 0; i < apps.length; i++) {
+        const ms = apps[i].models || [];
+        const j = ms.findIndex((m: any) => m.id === model.id);
+        if (j >= 0) {
+          idApp = i;
+          idAppModel = j;
+          break outer;
+        }
+      }
+
+      if (idApp >= 0 && idAppModel >= 0) {
+        ps.modelApplicationSelected?.(idPl, idApp, idAppModel);
+      }
+    }
+
+    ps.saveProject?.();
+  } catch (err) {
+    addLog(`[autoSelectModelInTree] warn: ${err}`);
+  }
+};
+
   /** 7) Inyección al proyecto */
   const injectIntoProject = (gp: PlanLLM, lang: Language, ph: Phase, abs: AbstractSyntax) => {
     try {
@@ -2463,6 +2517,15 @@ const normalizeRefsInOps = (
       APPLICATION: () => ps.raiseEventApplicationEngineeringModel(model)
     };
     raiseEventByPhase[ph]();
+    autoSelectModelInTree(ps, model, ph);
+    
+     try {
+      ps.raiseEventSelectedModel?.(model);  // marca el modelo como seleccionado
+      ps.requestRender?.();                 // fuerza render en React
+      ps.repaint?.();                       // fuerza repintado de mxGraph
+    } catch (err) {
+      addLog(`[inject] warn: no se pudo abrir en mxgEditor: ${err}`);
+    }
 
     const projectInfo = ps.getProjectInformation?.();
     if (projectInfo?.is_collaborative) {
