@@ -248,7 +248,10 @@ export default function OpenDialog({
             }
             </td>
             <td>
-              <a href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}>{project.name}</a>
+              <a href="#" className="link-project" data-id={project.id} data-template={false} onClick={btnProject_onClic}>
+                {project.name}
+                {project.template && <span style={{ marginLeft: '8px', fontWeight: 'bold' }}>(Public project, not collaborative allow)</span>}
+              </a>
             </td>
             <td>
               {new Date(project.date).toLocaleString()}

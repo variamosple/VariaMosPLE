@@ -327,7 +327,7 @@ class TreeExplorer extends Component<Props, State> {
     if (!projectInfo.project?.id) {
       this.setState({
         treeSyncStatus: 'error',
-        treeSyncMessage: 'Proyecto sin ID válido'
+        treeSyncMessage: 'Project ID is missing for collaboration'
       });
       return;
     }
@@ -340,7 +340,7 @@ class TreeExplorer extends Component<Props, State> {
     // Indicar que se está conectando
     this.setState({
       treeSyncStatus: 'connecting',
-      treeSyncMessage: 'Conectando con el servidor colaborativo...'
+      treeSyncMessage: 'Connecting to the collaboration server...'
     });
 
     // Esperar un poco para que YJS se inicialice
@@ -349,7 +349,7 @@ class TreeExplorer extends Component<Props, State> {
         // Indicar que se está sincronizando
         this.setState({
           treeSyncStatus: 'syncing',
-          treeSyncMessage: 'Sincronizando estado del árbol...'
+          treeSyncMessage: 'Synchronizing tree state...'
         });
 
         const success = await treeCollaborationService.initializeTreeSync(projectInfo.project.id);
@@ -387,7 +387,7 @@ class TreeExplorer extends Component<Props, State> {
             // Mostrar mensaje de éxito por 5 segundos y luego ocultar
             this.setState({
               treeSyncStatus: 'ready',
-              treeSyncMessage: `Sincronización completada. Es seguro usar los diagramas. (${connectionStatus.userCount} usuario${connectionStatus.userCount !== 1 ? 's' : ''} conectado${connectionStatus.userCount !== 1 ? 's' : ''})`
+              treeSyncMessage: `Synchronization completed. It is safe to use the diagrams. (${connectionStatus.userCount} user${connectionStatus.userCount !== 1 ? 's' : ''} connected)`
             });
 
             // Ocultar el indicador después de 5 segundos
@@ -401,7 +401,7 @@ class TreeExplorer extends Component<Props, State> {
             // Si no está completamente sincronizado, mostrar estado de espera
             this.setState({
               treeSyncStatus: 'syncing',
-              treeSyncMessage: 'Esperando sincronización completa...'
+              treeSyncMessage: 'Waiting for complete synchronization...'
             });
 
             // Verificar periódicamente hasta que esté sincronizado
@@ -411,7 +411,7 @@ class TreeExplorer extends Component<Props, State> {
                 clearInterval(checkSyncInterval);
                 this.setState({
                   treeSyncStatus: 'ready',
-                  treeSyncMessage: `Sincronización completada. Es seguro usar los diagramas.`
+                  treeSyncMessage: `Synchronization completed. It is safe to use the diagrams.`
                 });
 
                 // Ocultar después de 5 segundos
@@ -440,7 +440,7 @@ class TreeExplorer extends Component<Props, State> {
         } else {
           this.setState({
             treeSyncStatus: 'error',
-            treeSyncMessage: 'Error al inicializar la colaboración'
+            treeSyncMessage: 'Error initializing collaboration'
           });
 
           // Los errores se mantienen visibles por más tiempo
@@ -452,10 +452,9 @@ class TreeExplorer extends Component<Props, State> {
           }, 10000); // 10 segundos para errores
         }
       } catch (error) {
-        console.error(`[TreeExplorer] ❌ Error inicializando tree collaboration:`, error);
         this.setState({
           treeSyncStatus: 'error',
-          treeSyncMessage: 'Error de conexión con el servidor colaborativo'
+          treeSyncMessage: 'Error connecting to the collaboration server'
         });
 
         // Los errores se mantienen visibles por más tiempo
