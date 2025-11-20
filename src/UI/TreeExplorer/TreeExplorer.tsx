@@ -327,7 +327,7 @@ class TreeExplorer extends Component<Props, State> {
     if (!projectInfo.project?.id) {
       this.setState({
         treeSyncStatus: 'error',
-        treeSyncMessage: 'Proyecto sin ID válido'
+        treeSyncMessage: 'Project ID is missing for collaboration'
       });
       return;
     }
@@ -340,7 +340,7 @@ class TreeExplorer extends Component<Props, State> {
     // Indicar que se está conectando
     this.setState({
       treeSyncStatus: 'connecting',
-      treeSyncMessage: 'Conectando con el servidor colaborativo...'
+      treeSyncMessage: 'Connecting to the collaboration server...'
     });
 
     // Esperar un poco para que YJS se inicialice
@@ -349,7 +349,7 @@ class TreeExplorer extends Component<Props, State> {
         // Indicar que se está sincronizando
         this.setState({
           treeSyncStatus: 'syncing',
-          treeSyncMessage: 'Sincronizando estado del árbol...'
+          treeSyncMessage: 'Synchronizing tree state...'
         });
 
         const success = await treeCollaborationService.initializeTreeSync(projectInfo.project.id);
@@ -387,7 +387,7 @@ class TreeExplorer extends Component<Props, State> {
             // Mostrar mensaje de éxito por 5 segundos y luego ocultar
             this.setState({
               treeSyncStatus: 'ready',
-              treeSyncMessage: `Sincronización completada. Es seguro usar los diagramas. (${connectionStatus.userCount} usuario${connectionStatus.userCount !== 1 ? 's' : ''} conectado${connectionStatus.userCount !== 1 ? 's' : ''})`
+              treeSyncMessage: `Synchronization completed. It is safe to use the diagrams. (${connectionStatus.userCount} user${connectionStatus.userCount !== 1 ? 's' : ''} connected)`
             });
 
             // Ocultar el indicador después de 5 segundos
@@ -401,7 +401,7 @@ class TreeExplorer extends Component<Props, State> {
             // Si no está completamente sincronizado, mostrar estado de espera
             this.setState({
               treeSyncStatus: 'syncing',
-              treeSyncMessage: 'Esperando sincronización completa...'
+              treeSyncMessage: 'Waiting for complete synchronization...'
             });
 
             // Verificar periódicamente hasta que esté sincronizado
@@ -411,7 +411,7 @@ class TreeExplorer extends Component<Props, State> {
                 clearInterval(checkSyncInterval);
                 this.setState({
                   treeSyncStatus: 'ready',
-                  treeSyncMessage: `Sincronización completada. Es seguro usar los diagramas.`
+                  treeSyncMessage: `Synchronization completed. It is safe to use the diagrams.`
                 });
 
                 // Ocultar después de 5 segundos
@@ -440,7 +440,7 @@ class TreeExplorer extends Component<Props, State> {
         } else {
           this.setState({
             treeSyncStatus: 'error',
-            treeSyncMessage: 'Error al inicializar la colaboración'
+            treeSyncMessage: 'Error initializing collaboration'
           });
 
           // Los errores se mantienen visibles por más tiempo
@@ -452,10 +452,9 @@ class TreeExplorer extends Component<Props, State> {
           }, 10000); // 10 segundos para errores
         }
       } catch (error) {
-        console.error(`[TreeExplorer] ❌ Error inicializando tree collaboration:`, error);
         this.setState({
           treeSyncStatus: 'error',
-          treeSyncMessage: 'Error de conexión con el servidor colaborativo'
+          treeSyncMessage: 'Error connecting to the collaboration server'
         });
 
         // Los errores se mantienen visibles por más tiempo
@@ -1311,6 +1310,10 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   render() {
+    const isProjectLoaded = this.props.projectService.isProjectLoaded();
+    const isGuestUser = this.props.projectService.isGuessUser();
+    const shouldBlockTree = !isProjectLoaded && !isGuestUser;
+
     return (
       <div
         id="TreePannel"
@@ -1325,22 +1328,46 @@ class TreeExplorer extends Component<Props, State> {
         {/* Indicador de estado de sincronización */}
         {this.renderSyncStatusIndicator()}
 
-        <div
-          className="flex-grow-1 d-grid overflow-hidden"
-          style={{ gridTemplateRows: "max-content 1fr" }}
-        >
-          <Tab.Container defaultActiveKey="project" id="uncontrolled-tab">
-            <Nav variant="tabs" className="mb-2">
-              <Nav.Item>
-                <Nav.Link eventKey="project">Project</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="constraints">Constraints</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="queries">Queries</Nav.Link>
-              </Nav.Item>
-            </Nav>
+        {/* Mensaje de bloqueo cuando no hay proyecto cargado */}
+        {shouldBlockTree && (
+          <div
+            style={{
+              padding: '20px',
+              margin: '20px',
+              borderRadius: '8px',
+              border: '2px dashed #6c757d',
+              backgroundColor: '#f8f9fa',
+              color: '#495057',
+              textAlign: 'center',
+              fontSize: '14px'
+            }}
+          >
+            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+              No project loaded
+            </div>
+            <div style={{ fontSize: '12px', color: '#6c757d' }}>
+              Please create a new project or open an existing one to continue
+            </div>
+          </div>
+        )}
+
+        {!shouldBlockTree && (
+          <div
+            className="flex-grow-1 d-grid overflow-hidden"
+            style={{ gridTemplateRows: "max-content 1fr" }}
+          >
+            <Tab.Container defaultActiveKey="project" id="uncontrolled-tab">
+              <Nav variant="tabs" className="mb-2">
+                <Nav.Item>
+                  <Nav.Link eventKey="project">Project</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link eventKey="constraints">Constraints</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link eventKey="queries">Queries</Nav.Link>
+                </Nav.Item>
+              </Nav>
 
             <Tab.Content className="overflow-auto d-flex flex-column">
               <Tab.Pane className="" eventKey="project">
@@ -1390,9 +1417,12 @@ class TreeExplorer extends Component<Props, State> {
             </Tab.Content>
           </Tab.Container>
         </div>
+        )}
 
         {/* Panel de colaboración - al final del TreeExplorer */}
-        <CollaborationPanel projectService={this.props.projectService} />
+        {!shouldBlockTree && (
+          <CollaborationPanel projectService={this.props.projectService} />
+        )}
 
         {/* {this.state.showScopeModal && (
           <ScopeModal

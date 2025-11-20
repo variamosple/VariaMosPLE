@@ -173,6 +173,7 @@ class ProjectManagement extends Component<Props, State> {
       this.state.productLineDomain
     );
     this.props.projectService.raiseEventNewProductLine(productLine);
+    this.props.projectService.setProjectLoaded(true);
 
     this.props.projectService.saveProject();
 

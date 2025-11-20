@@ -20,15 +20,23 @@ const DashBoard: FC<unknown> = () => {
   useEffect(() => {
     const init = async () => {
       try{
-      await projectService.initUser();
-      let project = projectService.createProject("My project");
-      if (project.productLines.length == 0) {
-        projectService.createLPS(project, "My product line", "System", "Retail");
+        await projectService.initUser();
+        // Si es Guest, crear proyecto por defecto
+        if (projectService.isGuessUser()) {
+          let project = projectService.createProject("My project");
+          if (project.productLines.length == 0) {
+            projectService.createLPS(project, "My product line", "System", "Retail");
+          }
+          projectService.updateProject(project, null);
+          // Cambiar estado a cargado
+          projectService.setProjectLoaded(true);
+        } else {
+          // Si no es guest, mantener estado de no cargado (Por Defecto)
+          projectService.setProjectLoaded(false);
+        }
+      }catch(error){
+        console.error("Error initializing project service", error);
       }
-      projectService.updateProject(project, null);
-    }catch(error){
-      console.error("Error initializing project service", error);
-    }
     }
     init();
   }, [projectService]);

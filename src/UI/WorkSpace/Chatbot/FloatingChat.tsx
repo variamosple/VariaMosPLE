@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Chatbot from "./Chatbot";
 import { ReactComponent as ChatIcon } from "./support_agent.svg";
 import ProjectService from "../../../Application/Project/ProjectService";
@@ -17,8 +17,28 @@ const FloatingChat: React.FC<FloatingChatProps> = ({ projectService }) => {
 
   const [visible, setVisible] = useState(false);    // mostrar/ocultar panel
   const [minimized, setMinimized] = useState(false); // colapsar a header
+  const [projectLoaded, setProjectLoaded] = useState(projectService.isProjectLoaded());
 
+  const isGuestUser = projectService.isGuessUser();
+  const showChatbot = projectLoaded || isGuestUser;
   const openFull = () => { setVisible(true); setMinimized(false); };
+
+// LLamar para actualizar el estado de carga del proyecto
+  useEffect(() => {
+    const handleProjectUpdate = () => {
+      setProjectLoaded(projectService.isProjectLoaded());
+    };
+
+    projectService.addUpdateProjectListener(handleProjectUpdate);
+
+    return () => {
+      projectService.removeUpdateProjectListener(handleProjectUpdate);
+    };
+  }, [projectService]);
+
+  if (!showChatbot) {
+    return null;
+  }
 
   return (
     <>
