@@ -1310,6 +1310,10 @@ class TreeExplorer extends Component<Props, State> {
   }
 
   render() {
+    const isProjectLoaded = this.props.projectService.isProjectLoaded();
+    const isGuestUser = this.props.projectService.isGuessUser();
+    const shouldBlockTree = !isProjectLoaded && !isGuestUser;
+
     return (
       <div
         id="TreePannel"
@@ -1324,22 +1328,46 @@ class TreeExplorer extends Component<Props, State> {
         {/* Indicador de estado de sincronización */}
         {this.renderSyncStatusIndicator()}
 
-        <div
-          className="flex-grow-1 d-grid overflow-hidden"
-          style={{ gridTemplateRows: "max-content 1fr" }}
-        >
-          <Tab.Container defaultActiveKey="project" id="uncontrolled-tab">
-            <Nav variant="tabs" className="mb-2">
-              <Nav.Item>
-                <Nav.Link eventKey="project">Project</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="constraints">Constraints</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="queries">Queries</Nav.Link>
-              </Nav.Item>
-            </Nav>
+        {/* Mensaje de bloqueo cuando no hay proyecto cargado */}
+        {shouldBlockTree && (
+          <div
+            style={{
+              padding: '20px',
+              margin: '20px',
+              borderRadius: '8px',
+              border: '2px dashed #6c757d',
+              backgroundColor: '#f8f9fa',
+              color: '#495057',
+              textAlign: 'center',
+              fontSize: '14px'
+            }}
+          >
+            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+              No project loaded
+            </div>
+            <div style={{ fontSize: '12px', color: '#6c757d' }}>
+              Please create a new project or open an existing one to continue
+            </div>
+          </div>
+        )}
+
+        {!shouldBlockTree && (
+          <div
+            className="flex-grow-1 d-grid overflow-hidden"
+            style={{ gridTemplateRows: "max-content 1fr" }}
+          >
+            <Tab.Container defaultActiveKey="project" id="uncontrolled-tab">
+              <Nav variant="tabs" className="mb-2">
+                <Nav.Item>
+                  <Nav.Link eventKey="project">Project</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link eventKey="constraints">Constraints</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link eventKey="queries">Queries</Nav.Link>
+                </Nav.Item>
+              </Nav>
 
             <Tab.Content className="overflow-auto d-flex flex-column">
               <Tab.Pane className="" eventKey="project">
@@ -1389,9 +1417,12 @@ class TreeExplorer extends Component<Props, State> {
             </Tab.Content>
           </Tab.Container>
         </div>
+        )}
 
         {/* Panel de colaboración - al final del TreeExplorer */}
-        <CollaborationPanel projectService={this.props.projectService} />
+        {!shouldBlockTree && (
+          <CollaborationPanel projectService={this.props.projectService} />
+        )}
 
         {/* {this.state.showScopeModal && (
           <ScopeModal

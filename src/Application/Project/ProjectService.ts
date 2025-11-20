@@ -64,6 +64,7 @@ export default class ProjectService {
   private _externalFunctions: ExternalFuntion[] = [];
   private _project: Project = this.createProject("");
   private _projectInformation: ProjectInformation;
+  private _isProjectLoaded: boolean = true;
   private treeItemSelected: string = "";
   private treeIdItemSelected: string = "";
   private productLineSelected: number = 0;
@@ -108,6 +109,14 @@ export default class ProjectService {
 
   public get environment(): string {
     return this._environment;
+  }
+
+  public isProjectLoaded(): boolean {
+    return this._isProjectLoaded;
+  }
+
+  public setProjectLoaded(value: boolean): void {
+    this._isProjectLoaded = value;
   }
 
   public getProject(): Project {
@@ -743,6 +752,7 @@ export default class ProjectService {
   createNewProject(projectName: string, productLineName: string, type: string, domain: string) {
     let project = this.projectManager.createProject(projectName);
     this.createLPS(project, productLineName, type, domain);
+    this._isProjectLoaded = true;
     return project;
   }
 
@@ -761,6 +771,7 @@ export default class ProjectService {
     if (file) {
       this._project = Object.assign(this._project, JSON.parse(file));
       this._projectInformation = new ProjectInformation(null, null, this._project.name, null, false, null, null, null, new Date(), false);
+      this._isProjectLoaded = true;
     }
     this.raiseEventUpdateProject(this._project, null);
   }
@@ -791,6 +802,7 @@ export default class ProjectService {
       me._project = projectInformation.project;
       me._projectInformation = projectInformation;
       me._currentModel=null;
+      me._isProjectLoaded = true;
       
       if (projectInformation.id && me._project) {
         me._project.id = projectInformation.id;
