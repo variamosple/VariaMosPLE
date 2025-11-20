@@ -1944,6 +1944,12 @@ export default class MxGEditor extends Component<Props, State> {
   }
 
   cancelPropertiesModal = () => {
+    const projectId = this.props.projectService.getProject().id;
+    const modelId = this.currentModel?.id;
+    if (projectId && modelId) {
+      setUserIdle(projectId, modelId);
+    }
+
     Object.assign(this.state.selectedObject, this.modifiedObject);
     this.props.projectService.saveProject();
     this.props.projectService.raiseEventUpdatedElement(
