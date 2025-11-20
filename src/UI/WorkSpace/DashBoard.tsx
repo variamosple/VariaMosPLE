@@ -28,8 +28,10 @@ const DashBoard: FC<unknown> = () => {
             projectService.createLPS(project, "My product line", "System", "Retail");
           }
           projectService.updateProject(project, null);
+          // Cambiar estado a cargado
+          projectService.setProjectLoaded(true);
         } else {
-          // Si no es guest, no cargar proyecto automáticamente y setear estado de no cargado
+          // Si no es guest, mantener estado de no cargado (Por Defecto)
           projectService.setProjectLoaded(false);
         }
       }catch(error){

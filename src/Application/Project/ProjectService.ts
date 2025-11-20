@@ -64,7 +64,7 @@ export default class ProjectService {
   private _externalFunctions: ExternalFuntion[] = [];
   private _project: Project = this.createProject("");
   private _projectInformation: ProjectInformation;
-  private _isProjectLoaded: boolean = true;
+  private _isProjectLoaded: boolean = false;
   private treeItemSelected: string = "";
   private treeIdItemSelected: string = "";
   private productLineSelected: number = 0;
