@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./Chatbot.css";
 import ProjectService from "../../../Application/Project/ProjectService";
 import { Language as DomainLanguage } from "../../../Domain/ProductLineEngineering/Entities/Language";
+import { AIChatRequest, AIChatResult } from "../../../DataProvider/Services/projectPersistenceService";
+import { VariamosAIService } from "../../../DataProvider/Services/projectPersistenceService";
 
 import {
   buildSnapshot,
@@ -15,6 +17,18 @@ import { PatchEnvelope } from "./Patch";
 import treeCollaborationService from "../../../DataProvider/Services/collab/treeCollaborationService";
 
 /** ===== Tipos ===== */
+const aiService = new VariamosAIService();
+
+const chatBackend = (req: AIChatRequest) =>
+  new Promise<AIChatResult>((resolve, reject) => {
+    aiService.chat(
+      req,
+      (result: AIChatResult) => resolve(result),
+      (err: any) => reject(err)
+    );
+  });
+
+
 type ModePref = "AUTO" | "EDIT" | "CREATE";
 
 type Phase = "SCOPE" | "DOMAIN" | "APPLICATION";
@@ -63,15 +77,30 @@ type ModelOption = { id: string; label: string; free?: boolean };
 
 const getLanguageKey = (l: Language) => String(l.id ?? l.name);
 
+const resolveLanguageForModel = (all: Language[], model: any): Language | null => {
+  const mt = String(model?.type ?? "").trim();
+  if (!mt) return null;
+
+  return (
+    all.find(l => String(getLanguageKey(l)) === mt) ||
+    all.find(l => String(l.id ?? "") === mt) ||
+    all.find(l => String(l.name ?? "") === mt) ||
+    null
+  );
+};
+
+
 type ValueProp = { name: string; value: string };
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const MODEL_OPTIONS: ModelOption[] = [
-  { id: "deepseek/deepseek-chat-v3.1:free", label: "DeepSeek V3.1", free: true },
+  { id: "qwen/qwen3-next-80b-a3b-instruct:free", label: "Qwen3 Next 80B Instruct", free: true },
   { id: "qwen/qwen3-coder:free", label: "Qwen: Qwen3 Coder 480B", free: true },
-  { id: "x-ai/grok-4-fast:free", label: "xAI: Grok 4 Fast", free: true },
-  { id: "mistralai/mistral-small-3.2-24b-instruct:free", label: "Mistral: Mistral Small 3.2", free: true },
+   { id: "deepseek/deepseek-r1-0528:free", label: "DeepSeek R1", free: true },
+   { id: "meta-llama/llama-3.2-3b-instruct:free", label: "Meta: Llama 3.2 3B Instruct", free: true },
+   { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Meta: Llama 3.3 70B Instruct", free: true },
+  { id: "mistralai/mistral-small-3.1-24b-instruct:free", label: "Mistral: Mistral Small 3.1", free: true },
   { id: "openai/gpt-oss-120b:free", label: "OpenAI: gpt-oss-120b", free: true },
   { id: "openai/gpt-oss-20b:free", label: "OpenAI: gpt-oss-20b", free: true }
 ];
@@ -415,142 +444,77 @@ const harvestProductLineKnowledge = (ps: any, currentLanguage?: Language, maxIte
   }
 };
 
-
-
 type CascadeOpts = {
-  perModelRetries?: number;     // reintentos por modelo
+  perModelRetries?: number;     // reintentos (por request) si hay error temporal
   retryDelayMs?: number;        // backoff base
-  validate?: (content: string) => boolean; // validación del contenido; si falla, prueba siguiente modelo
+  validate?: (content: string) => boolean; // si falla, intenta con otro primary
 };
 
-// =======================
-// callOpenRouterCascade
-// =======================
-async function callOpenRouterCascade(
-  apiKey: string,
+async function callBackendCascade(
   primaryModelId: string,
   userContent: string,
   systemContent?: string,
   opts?: CascadeOpts
 ): Promise<{ text: string; usedModelId: string }> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${apiKey}`,
-    "HTTP-Referer": (typeof window !== "undefined" ? window.location.origin : ""),
-    "X-Title": (typeof document !== "undefined" ? (document.title || "Variamos") : "Variamos"),
-  };
-
   const {
     perModelRetries = 1,
     retryDelayMs = 600,
     validate,
   } = opts || {};
 
-  const FETCH_TIMEOUT_MS = 25000; // timeout defensivo (no añadimos nueva opción pública)
-  const order = buildCascadeOrder(primaryModelId); // SIEMPRE primero el modelo elegido por el usuario
+  const order = buildCascadeOrder(primaryModelId); // primero el seleccionado
   const errors: string[] = [];
 
-  const tryOnce = async (mdl: string) => {
-    // helper local para timeout (no crea nuevas funciones a nivel módulo)
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-    const body = {
-      model: mdl,
-      messages: systemContent
-        ? [{ role: "system", content: systemContent }, { role: "user", content: userContent }]
-        : [{ role: "user", content: userContent }],
-    };
+  const makeReq = (startIdx: number): AIChatRequest => ({
+    primaryModelId: order[startIdx],
+    fallbackModelIds: order.slice(startIdx + 1),
+    messages: systemContent
+      ? [
+        { role: "system", content: systemContent },
+        { role: "user", content: userContent }
+      ]
+      : [
+        { role: "user", content: userContent }
+      ]
+  });
 
-    let resp: Response;
-    try {
-      resp = await fetch(OPENROUTER_URL, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(t);
-    }
+  const isRetryableMsg = (msg: string) =>
+    /timeout|network|temporar|socket|ECONN|429|rate limit|Too Many/i.test(msg);
 
-    const rawText = await resp.text();
-    let data: any = null;
-    try { data = JSON.parse(rawText); } catch { /* ok, algunos 5xx devuelven HTML */ }
+  for (let i = 0; i < order.length; i++) {
+    const req = makeReq(i);
 
-    const mkErr = (status: number, msg: string) => {
-      const e: any = new Error(msg || `HTTP ${status}`);
-      e.status = status;
-      // Propaga Retry-After si existe
-      const ra = resp.headers?.get?.("retry-after");
-      if (ra) {
-        const n = Number(ra);
-        e.retryAfterMs = Number.isFinite(n) ? Math.max(0, n) * 1000 : 0;
-      }
-      return e;
-    };
-
-    if (!resp.ok) {
-      const msg = data?.error?.message || rawText || `HTTP ${resp.status}`;
-      throw mkErr(resp.status, msg);
-    }
-
-    // Anti-fallback si pediste :free, evita upgrades silenciosos a modelos de pago
-    const usedModel = data?.model || data?.choices?.[0]?.model || data?.choices?.[0]?.provider;
-    const requestedIsFree = MODEL_OPTIONS.some(m => m.id === mdl && m.free);
-    if (requestedIsFree && usedModel && !/:free(\b|$)/i.test(String(usedModel))) {
-      throw mkErr(460, `The free pool is not available. (used: ${usedModel})`);
-    }
-
-    const content = String(data?.choices?.[0]?.message?.content ?? "");
-    if (!content) {
-      throw mkErr(461, "Empty response from provider");
-    }
-    if (validate && !validate(content)) {
-      throw mkErr(462, "Validation failed for this model output");
-    }
-    return content;
-  };
-
-  // bucle de cascada (sin modelo por defecto; empieza por el elegido)
-  for (const mdl of order) {
     for (let attempt = 0; attempt <= perModelRetries; attempt++) {
       try {
-        const text = await tryOnce(mdl);
-        return { text, usedModelId: mdl };
-      } catch (err: any) {
-        const msg = String(err?.message || err);
-        const st = Number(err?.status || 0);
-        const retryAfterMs = Number(err?.retryAfterMs || 0);
+        const res = await chatBackend(req);
 
-        errors.push(`[${mdl}] ${st || "ERR"} ${msg}`);
+        const content = String(res?.content ?? "").trim();
+        const usedModelId = String(res?.usedModelId ?? req.primaryModelId).trim();
 
-        // Clasificación de error
-        const isRateLimit = st === 429 || /rate limit/i.test(msg);
-        const isServer = st >= 500 && st <= 599;
-        const isTimeoutOrNetwork = /aborted|timeout|network|Failed to fetch/i.test(msg);
-        const isNoEndpoint =
-          st === 404 ||
-          /no endpoints? found/i.test(msg) ||
-          /model not found/i.test(msg) ||
-          /not found/i.test(msg) ||
-          /free pool is not available/i.test(msg);
+        if (!content) throw new Error("Empty AI response from backend");
 
-        // ¿reintentar el MISMO modelo?
-        const canRetrySame =
-          (isRateLimit || isServer || isTimeoutOrNetwork) &&
-          attempt < perModelRetries &&
-          !isNoEndpoint;
-
-        if (canRetrySame) {
-          // backoff exponencial + jitter, respetando Retry-After si viene
-          const base = retryAfterMs > 0 ? retryAfterMs : retryDelayMs * Math.pow(2, attempt);
-          const jitter = base * (0.75 + Math.random() * 0.5);
-          await new Promise(r => setTimeout(r, Math.min(15000, Math.max(250, jitter))));
-          continue; // reintenta mismo modelo
+        if (validate && !validate(content)) {
+          throw new Error("Validation failed for this model output");
         }
 
-        // Si no conviene reintentar (o ya agotamos), pasamos al siguiente modelo de la lista
+        return { text: content, usedModelId };
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        errors.push(`[${req.primaryModelId}] ${msg}`);
+
+        const canRetrySame =
+          attempt < perModelRetries && isRetryableMsg(msg);
+
+        if (canRetrySame) {
+          const base = retryDelayMs * Math.pow(2, attempt);
+          const jitter = base * (0.75 + Math.random() * 0.5);
+          await sleep(Math.min(8000, Math.max(250, jitter)));
+          continue;
+        }
+
+        // si no reintenta, pasa al siguiente primary (el backend también intentará fallbacks)
         break;
       }
     }
@@ -560,145 +524,7 @@ async function callOpenRouterCascade(
 }
 
 
-// =======================
-// callOpenRouterOnce
-// =======================
-async function callOpenRouterOnce(
-  apiKey: string,
-  modelId: string,
-  userContent: string,
-  systemContent?: string,
-  opts?: {
-    maxRetries?: number;
-    retryDelayMs?: number;
-    fallbackModels?: string[];
-  }
-): Promise<string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${apiKey}`,
-    "HTTP-Referer": (typeof window !== "undefined" ? window.location.origin : ""),
-    "X-Title": (typeof document !== "undefined" ? (document.title || "Variamos") : "Variamos"),
-  };
 
-  const {
-    maxRetries = 2,
-    retryDelayMs = 600,
-    fallbackModels = MODEL_OPTIONS.filter(m => m.free && m.id !== modelId).map(m => m.id),
-  } = opts || {};
-
-  const FETCH_TIMEOUT_MS = 25000;
-
-  const tryOnce = async (mdl: string) => {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-    const body = {
-      model: mdl,
-      messages: systemContent
-        ? [{ role: "system", content: systemContent }, { role: "user", content: userContent }]
-        : [{ role: "user", content: userContent }],
-    };
-
-    let resp: Response;
-    try {
-      resp = await fetch(OPENROUTER_URL, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(t);
-    }
-
-    const rawText = await resp.text();
-    let data: any = null;
-    try { data = JSON.parse(rawText); } catch { }
-
-    const mkErr = (status: number, msg: string) => {
-      const e: any = new Error(msg || `HTTP ${status}`);
-      e.status = status;
-      const ra = resp.headers?.get?.("retry-after");
-      if (ra) {
-        const n = Number(ra);
-        e.retryAfterMs = Number.isFinite(n) ? Math.max(0, n) * 1000 : 0;
-      }
-      return e;
-    };
-
-    if (!resp.ok) {
-      const msg = data?.error?.message || rawText || `HTTP ${resp.status}`;
-      throw mkErr(resp.status, msg);
-    }
-
-    // Anti-fallback si pediste :free
-    const usedModel = data?.model || data?.choices?.[0]?.model || data?.choices?.[0]?.provider;
-    const requestedIsFree = MODEL_OPTIONS.some(m => m.id === mdl && m.free);
-    if (requestedIsFree && usedModel && !/:free(\b|$)/i.test(String(usedModel))) {
-      throw mkErr(460, `The free pool is not available. (used: ${usedModel})`);
-    }
-
-    const content = String(data?.choices?.[0]?.message?.content ?? "");
-    if (!content) throw mkErr(461, "Empty response from provider");
-    return content;
-  };
-
-  let attempt = 0;
-  let curModel = modelId;
-  let fallbackIdx = -1;
-
-  while (true) {
-    try {
-      // SIEMPRE intentamos primero el modelo elegido por el usuario
-      return await tryOnce(curModel);
-    } catch (err: any) {
-      const msg = String(err?.message || err);
-      const st = Number(err?.status || 0);
-      const retryAfterMs = Number(err?.retryAfterMs || 0);
-
-      const isRateLimit = st === 429 || /rate limit/i.test(msg);
-      const isServer = st >= 500 && st <= 599;
-      const isTimeoutOrNetwork = /aborted|timeout|network|Failed to fetch/i.test(msg);
-      const isNoEndpoint =
-        st === 404 ||
-        /no endpoints? found/i.test(msg) ||
-        /model not found/i.test(msg) ||
-        /not found/i.test(msg) ||
-        /free pool is not available/i.test(msg);
-
-      // Cambiar de modelo si no hay endpoint o si insistir ya no tiene sentido
-      if (isNoEndpoint) {
-        fallbackIdx++;
-        if (fallbackIdx < fallbackModels.length) {
-          curModel = fallbackModels[fallbackIdx];
-          continue;
-        }
-        // sin fallback → seguimos con reintentos del actual (caerá abajo)
-      }
-
-      const canRetrySame = (isRateLimit || isServer || isTimeoutOrNetwork) && attempt < maxRetries;
-      if (canRetrySame) {
-        attempt++;
-        const base = retryAfterMs > 0 ? retryAfterMs : retryDelayMs * Math.pow(2, attempt - 1);
-        const jitter = base * (0.75 + Math.random() * 0.5);
-        await new Promise(r => setTimeout(r, Math.min(15000, Math.max(250, jitter))));
-        continue;
-      }
-
-      // Si llegamos aquí: o no conviene reintentar o se agotaron los intentos
-      // Intentamos fallback como último recurso (si no lo probamos aún)
-      fallbackIdx++;
-      if (fallbackIdx < fallbackModels.length) {
-        curModel = fallbackModels[fallbackIdx];
-        attempt = 0; // reinicia ventana de reintentos para el nuevo modelo
-        continue;
-      }
-
-      throw err;
-    }
-  }
-}
 
 type ChatbotProps = {
   projectService?: ProjectService;
@@ -714,8 +540,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   const [languageId, setLanguageId] = useState<string>("");
   const [stage, setStage] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>(MODEL_OPTIONS[0].id);
-  const [apiKey] = useState<string>(() => process.env.REACT_APP_OPENROUTER_API_KEY || "");
-  useEffect(() => { localStorage.setItem("openrouter_api_key", apiKey); }, [apiKey]);
+
 
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1219,166 +1044,166 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
 
 
 
-const sanitizePatchForCreateStrictLocal = (
-  patch: PatchEnvelope,
-  abs: AbstractSyntax
-): PatchEnvelope => {
-  // Reuse the edit sanitizer against an empty model to validate types/props/rel-types
-  const emptyModel = { elements: [], relationships: [] };
-  const cleaned = sanitizePatchForEditStrict(patch, emptyModel, abs);
+  const sanitizePatchForCreateStrictLocal = (
+    patch: PatchEnvelope,
+    abs: AbstractSyntax
+  ): PatchEnvelope => {
+    // Reuse the edit sanitizer against an empty model to validate types/props/rel-types
+    const emptyModel = { elements: [], relationships: [] };
+    const cleaned = sanitizePatchForEditStrict(patch, emptyModel, abs);
 
-  // For CREATE, keep only creates/connects and strip geometry/ids from creates
-  const outOps = [];
-  for (const raw of cleaned.ops || []) {
-    const op: any = raw;
-    if (op?.op === "createElement") {
-      const c = { ...op };
-      delete c.id;
-      delete c.geometry;
-      delete c.x;
-      delete c.y;
-      delete c.width;
-      delete c.height;
-      outOps.push(c);
-    } else if (op?.op === "connect") {
-      outOps.push(op);
+    // For CREATE, keep only creates/connects and strip geometry/ids from creates
+    const outOps = [];
+    for (const raw of cleaned.ops || []) {
+      const op: any = raw;
+      if (op?.op === "createElement") {
+        const c = { ...op };
+        delete c.id;
+        delete c.geometry;
+        delete c.x;
+        delete c.y;
+        delete c.width;
+        delete c.height;
+        outOps.push(c);
+      } else if (op?.op === "connect") {
+        outOps.push(op);
+      }
+      // drop other ops in CREATE context
     }
-    // drop other ops in CREATE context
-  }
-  return { ops: outOps };
-};
+    return { ops: outOps };
+  };
 
-/** Rellena propiedades faltantes en creates/updates y normaliza props de connects
- *  - createElement: agrega defaults según meta (defaultValue o primer possibleValues; si nada, "")
- *  - updateElement con changes.type y sin props: puede agregar defaults del nuevo tipo (sin sobreescribir existentes)
- *  - connect: mantiene sólo props declaradas en el meta del rel y aplica defaultValue
- */
-const addMissingRequiredPropsLocal = (
-  patch: PatchEnvelope,
-  abs: AbstractSyntax,
-  _userText?: string
-): PatchEnvelope => {
-  const out: PatchEnvelope = { ops: [] };
+  /** Rellena propiedades faltantes en creates/updates y normaliza props de connects
+   *  - createElement: agrega defaults según meta (defaultValue o primer possibleValues; si nada, "")
+   *  - updateElement con changes.type y sin props: puede agregar defaults del nuevo tipo (sin sobreescribir existentes)
+   *  - connect: mantiene sólo props declaradas en el meta del rel y aplica defaultValue
+   */
+  const addMissingRequiredPropsLocal = (
+    patch: PatchEnvelope,
+    abs: AbstractSyntax,
+    _userText?: string
+  ): PatchEnvelope => {
+    const out: PatchEnvelope = { ops: [] };
 
-  const normPropsArray = (arr: any[]): ValueProp[] =>
-    Array.isArray(arr)
-      ? arr.map(p => ({ name: String(p?.name ?? ""), value: String(p?.value ?? "") }))
+    const normPropsArray = (arr: any[]): ValueProp[] =>
+      Array.isArray(arr)
+        ? arr.map(p => ({ name: String(p?.name ?? ""), value: String(p?.value ?? "") }))
           .filter(p => p.name)
-      : [];
+        : [];
 
-  const ensureElementProps = (type: string, incoming?: ValueProp[]): ValueProp[] => {
-    const meta = (abs.elements?.[type]?.properties || []) as MetaProp[];
-    if (!meta.length) return incoming || [];
+    const ensureElementProps = (type: string, incoming?: ValueProp[]): ValueProp[] => {
+      const meta = (abs.elements?.[type]?.properties || []) as MetaProp[];
+      if (!meta.length) return incoming || [];
 
-    const byName = new Map<string, string>((incoming || []).map(p => [p.name, p.value]));
-    for (const pm of meta) {
-      if (byName.has(pm.name)) continue;
-      if (pm.defaultValue !== undefined) {
-        byName.set(pm.name, String(pm.defaultValue));
-      } else if (typeof pm.possibleValues === "string" && pm.possibleValues.trim()) {
-        // Para elementos, alineamos con materializeIntoModel: primer valor de possibleValues
-        const first = pm.possibleValues.split(",").map(s => s.trim()).filter(Boolean)[0] ?? "";
-        byName.set(pm.name, first);
-      } else {
-        byName.set(pm.name, "");
+      const byName = new Map<string, string>((incoming || []).map(p => [p.name, p.value]));
+      for (const pm of meta) {
+        if (byName.has(pm.name)) continue;
+        if (pm.defaultValue !== undefined) {
+          byName.set(pm.name, String(pm.defaultValue));
+        } else if (typeof pm.possibleValues === "string" && pm.possibleValues.trim()) {
+          // Para elementos, alineamos con materializeIntoModel: primer valor de possibleValues
+          const first = pm.possibleValues.split(",").map(s => s.trim()).filter(Boolean)[0] ?? "";
+          byName.set(pm.name, first);
+        } else {
+          byName.set(pm.name, "");
+        }
       }
+      return Array.from(byName.entries()).map(([name, value]) => ({ name, value }));
+    };
+
+    for (const raw of (patch?.ops || [])) {
+      const op: any = raw ? { ...raw } : raw;
+      if (!op || !op.op) { out.ops.push(raw); continue; }
+
+      if (op.op === "createElement") {
+        const t = String(op.type || "");
+        op.properties = ensureElementProps(t, normPropsArray(op.properties));
+        out.ops.push(op);
+        continue;
+      }
+
+      if (op.op === "updateElement") {
+        const ch = op.changes || {};
+        if (ch && typeof ch === "object" && "type" in ch) {
+          const t = String(ch.type || "");
+          const incoming = normPropsArray(ch.properties);
+          // NO sobreescribimos las que ya vienen; sólo completamos faltantes
+          ch.properties = ensureElementProps(t, incoming);
+          op.changes = ch;
+        }
+        out.ops.push(op);
+        continue;
+      }
+
+      if (op.op === "connect") {
+        const rType = String(op.type || "");
+        if (rType) {
+          const props = finalizeConnectProps(abs, rType, op);
+          if (props.length) op.properties = props;
+          else delete op.properties; // limpia props no meta
+        }
+        out.ops.push(op);
+        continue;
+      }
+
+      out.ops.push(op);
     }
-    return Array.from(byName.entries()).map(([name, value]) => ({ name, value }));
+
+    return out;
   };
 
-  for (const raw of (patch?.ops || [])) {
-    const op: any = raw ? { ...raw } : raw;
-    if (!op || !op.op) { out.ops.push(raw); continue; }
+  /** Convierte un PATCH (creates/connects) en un PLAN "liviano".
+   *  Ignora ops que no sean createElement/connect. Convierte arrays de {name,value} a props {k:v}.
+   */
+  const patchToPlanLiteLocal = (patch: PatchEnvelope): PlanLLM => {
+    const elementsMap = new Map<string, PlanElement>();
+    const relationships: PlanRelationship[] = [];
 
-    if (op.op === "createElement") {
-      const t = String(op.type || "");
-      op.properties = ensureElementProps(t, normPropsArray(op.properties));
-      out.ops.push(op);
-      continue;
-    }
-
-    if (op.op === "updateElement") {
-      const ch = op.changes || {};
-      if (ch && typeof ch === "object" && "type" in ch) {
-        const t = String(ch.type || "");
-        const incoming = normPropsArray(ch.properties);
-        // NO sobreescribimos las que ya vienen; sólo completamos faltantes
-        ch.properties = ensureElementProps(t, incoming);
-        op.changes = ch;
+    const propsArrayToObj = (arr?: any[]): Record<string, any> => {
+      const o: Record<string, any> = {};
+      for (const p of arr || []) {
+        if (p && p.name != null) o[String(p.name)] = String(p.value ?? "");
       }
-      out.ops.push(op);
-      continue;
-    }
+      return o;
+    };
 
-    if (op.op === "connect") {
-      const rType = String(op.type || "");
-      if (rType) {
-        const props = finalizeConnectProps(abs, rType, op);
-        if (props.length) op.properties = props;
-        else delete op.properties; // limpia props no meta
+    for (const raw of (patch?.ops || [])) {
+      const op: any = raw;
+      if (!op || !op.op) continue;
+
+      if (op.op === "createElement") {
+        const name = String(op.name || "");
+        const type = String(op.type || "");
+        if (!name || !type) continue;
+        elementsMap.set(name, {
+          name,
+          type,
+          ...(op.properties ? { props: propsArrayToObj(op.properties) } : {})
+        });
+        continue;
       }
-      out.ops.push(op);
-      continue;
+
+      if (op.op === "connect") {
+        const s = String(op?.source?.name ?? "");
+        const t = String(op?.target?.name ?? "");
+        const type = String(op?.type ?? "");
+        if (!s || !t || !type) continue;
+        relationships.push({
+          type,
+          source: s,
+          target: t,
+          ...(op.properties ? { props: propsArrayToObj(op.properties) } : {})
+        });
+        continue;
+      }
     }
 
-    out.ops.push(op);
-  }
-
-  return out;
-};
-
-/** Convierte un PATCH (creates/connects) en un PLAN "liviano".
- *  Ignora ops que no sean createElement/connect. Convierte arrays de {name,value} a props {k:v}.
- */
-const patchToPlanLiteLocal = (patch: PatchEnvelope): PlanLLM => {
-  const elementsMap = new Map<string, PlanElement>();
-  const relationships: PlanRelationship[] = [];
-
-  const propsArrayToObj = (arr?: any[]): Record<string, any> => {
-    const o: Record<string, any> = {};
-    for (const p of arr || []) {
-      if (p && p.name != null) o[String(p.name)] = String(p.value ?? "");
-    }
-    return o;
+    return {
+      name: "Generated Model",
+      elements: Array.from(elementsMap.values()),
+      relationships
+    };
   };
-
-  for (const raw of (patch?.ops || [])) {
-    const op: any = raw;
-    if (!op || !op.op) continue;
-
-    if (op.op === "createElement") {
-      const name = String(op.name || "");
-      const type = String(op.type || "");
-      if (!name || !type) continue;
-      elementsMap.set(name, {
-        name,
-        type,
-        ...(op.properties ? { props: propsArrayToObj(op.properties) } : {})
-      });
-      continue;
-    }
-
-    if (op.op === "connect") {
-      const s = String(op?.source?.name ?? "");
-      const t = String(op?.target?.name ?? "");
-      const type = String(op?.type ?? "");
-      if (!s || !t || !type) continue;
-      relationships.push({
-        type,
-        source: s,
-        target: t,
-        ...(op.properties ? { props: propsArrayToObj(op.properties) } : {})
-      });
-      continue;
-    }
-  }
-
-  return {
-    name: "Generated Model",
-    elements: Array.from(elementsMap.values()),
-    relationships
-  };
-};
 
 
 
@@ -1447,94 +1272,94 @@ const patchToPlanLiteLocal = (patch: PatchEnvelope): PlanLLM => {
 
   // Helpers internos para re-tipear “a mano” si applyPatch ignora el updateElement { type: ... }
 
-const buildPropsForType = (abs: AbstractSyntax, newType: string, prevProps: any[] = []) => {
-  const meta = ((abs.elements || {})[newType]?.properties || []) as MetaProp[];
-  const prevByName = new Map<string, any>(
-    (Array.isArray(prevProps) ? prevProps : []).map(p => [String(p?.name || ""), p])
-  );
+  const buildPropsForType = (abs: AbstractSyntax, newType: string, prevProps: any[] = []) => {
+    const meta = ((abs.elements || {})[newType]?.properties || []) as MetaProp[];
+    const prevByName = new Map<string, any>(
+      (Array.isArray(prevProps) ? prevProps : []).map(p => [String(p?.name || ""), p])
+    );
 
-  const out: any[] = [];
-  for (const m of meta) {
-    const old = prevByName.get(m.name);
-    // Mantén valor previo si existía; si no, default o primer possibleValue; si nada, ""
-    const value =
-      old?.value !== undefined ? String(old.value) :
-      m.defaultValue !== undefined ? String(m.defaultValue) :
-      (typeof m.possibleValues === "string" && m.possibleValues.trim()
-        ? m.possibleValues.split(",").map(s => s.trim()).filter(Boolean)[0] ?? ""
-        : "");
+    const out: any[] = [];
+    for (const m of meta) {
+      const old = prevByName.get(m.name);
+      // Mantén valor previo si existía; si no, default o primer possibleValue; si nada, ""
+      const value =
+        old?.value !== undefined ? String(old.value) :
+          m.defaultValue !== undefined ? String(m.defaultValue) :
+            (typeof m.possibleValues === "string" && m.possibleValues.trim()
+              ? m.possibleValues.split(",").map(s => s.trim()).filter(Boolean)[0] ?? ""
+              : "");
 
-    out.push({
-      id: old?.id || uuid(),
-      name: m.name,
-      type: m.type || "String",
-      value,
-      custom: Boolean(old?.custom),
-      display: true,
-      comment: m.comment || "",
-      possibleValues: m.possibleValues || "",
-      linked_property: m.linked_property || null,
-      linked_value: m.linked_value || null,
-      options: (m as any).options || null,
-      minCardinality: (m as any).minCardinality || "",
-      maxCardinality: (m as any).maxCardinality || ""
-    });
-  }
-
-  // Conserva propiedades “custom” que no estén en el meta del tipo nuevo
-  for (const p of prevProps) {
-    const nm = String(p?.name || "");
-    if (!nm) continue;
-    if (!meta.find(m => m.name === nm)) {
-      out.push({ ...p, id: p?.id || uuid(), custom: true, display: true });
+      out.push({
+        id: old?.id || uuid(),
+        name: m.name,
+        type: m.type || "String",
+        value,
+        custom: Boolean(old?.custom),
+        display: true,
+        comment: m.comment || "",
+        possibleValues: m.possibleValues || "",
+        linked_property: m.linked_property || null,
+        linked_value: m.linked_value || null,
+        options: (m as any).options || null,
+        minCardinality: (m as any).minCardinality || "",
+        maxCardinality: (m as any).maxCardinality || ""
+      });
     }
-  }
-  return out;
-};
 
-const findElementByToken = (model: any, token: string) => {
-  const t = String(token || "").trim();
-  if (!t) return null;
-  // por id
-  const byId = (model?.elements || []).find((e: any) => String(e.id) === t);
-  if (byId) return byId;
-  // por nombre (case-insensitive)
-  const key = t.toLowerCase();
-  return (model?.elements || []).find((e: any) => String(e.name || "").toLowerCase() === key) || null;
-};
+    // Conserva propiedades “custom” que no estén en el meta del tipo nuevo
+    for (const p of prevProps) {
+      const nm = String(p?.name || "");
+      if (!nm) continue;
+      if (!meta.find(m => m.name === nm)) {
+        out.push({ ...p, id: p?.id || uuid(), custom: true, display: true });
+      }
+    }
+    return out;
+  };
 
-const forceRetypeElementInModel = (model: any, selector: any, newType: string, abs: AbstractSyntax) => {
-  const token = String((selector?.id ?? selector?.name ?? "") || "");
-  const el = findElementByToken(model, token);
-  if (!el) return false;
+  const findElementByToken = (model: any, token: string) => {
+    const t = String(token || "").trim();
+    if (!t) return null;
+    // por id
+    const byId = (model?.elements || []).find((e: any) => String(e.id) === t);
+    if (byId) return byId;
+    // por nombre (case-insensitive)
+    const key = t.toLowerCase();
+    return (model?.elements || []).find((e: any) => String(e.name || "").toLowerCase() === key) || null;
+  };
 
-  if (String(el.type) === String(newType)) return false; // ya está
+  const forceRetypeElementInModel = (model: any, selector: any, newType: string, abs: AbstractSyntax) => {
+    const token = String((selector?.id ?? selector?.name ?? "") || "");
+    const el = findElementByToken(model, token);
+    if (!el) return false;
 
-  el.type = String(newType);
-  el.properties = buildPropsForType(abs, newType, Array.isArray(el.properties) ? el.properties : []);
-  return true;
-};
+    if (String(el.type) === String(newType)) return false; // ya está
 
-/** Recorre un PATCH ya aplicado y garantiza que los updateElement{type} realmente cambiaron el tipo.
- *  Si no, fuerza el cambio directamente en el modelo (preserva id/posiciones/relaciones).
- *  Devuelve true si hizo al menos un re-tipado forzado.
- */
-const ensureTypeChangeApplied = (patchApplied: PatchEnvelope, model: any, abs: AbstractSyntax): boolean => {
-  let changed = false;
-  for (const raw of patchApplied?.ops || []) {
-    const op: any = raw;
-    if (op?.op !== "updateElement") continue;
-    const nextType = String(op?.changes?.type || "");
-    if (!nextType) continue;
+    el.type = String(newType);
+    el.properties = buildPropsForType(abs, newType, Array.isArray(el.properties) ? el.properties : []);
+    return true;
+  };
 
-    // Intenta por id o por name
-    const sel = op.selector || {};
-    // Si selector viene en {id}, úsalo; si viene {name}, úsalo también
-    const ok = forceRetypeElementInModel(model, sel, nextType, abs);
-    if (ok) changed = true;
-  }
-  return changed;
-};
+  /** Recorre un PATCH ya aplicado y garantiza que los updateElement{type} realmente cambiaron el tipo.
+   *  Si no, fuerza el cambio directamente en el modelo (preserva id/posiciones/relaciones).
+   *  Devuelve true si hizo al menos un re-tipado forzado.
+   */
+  const ensureTypeChangeApplied = (patchApplied: PatchEnvelope, model: any, abs: AbstractSyntax): boolean => {
+    let changed = false;
+    for (const raw of patchApplied?.ops || []) {
+      const op: any = raw;
+      if (op?.op !== "updateElement") continue;
+      const nextType = String(op?.changes?.type || "");
+      if (!nextType) continue;
+
+      // Intenta por id o por name
+      const sel = op.selector || {};
+      // Si selector viene en {id}, úsalo; si viene {name}, úsalo también
+      const ok = forceRetypeElementInModel(model, sel, nextType, abs);
+      if (ok) changed = true;
+    }
+    return changed;
+  };
 
 
   const chooseDefaultElementType = (abs: AbstractSyntax) => {
@@ -1587,90 +1412,90 @@ const ensureTypeChangeApplied = (patchApplied: PatchEnvelope, model: any, abs: A
     return { name, type, ...(Object.keys(props).length ? { props } : {}) };
   };
 
-const buildUnifiedSystemPrompt = (
-  abs: AbstractSyntax,
-  hasSelection: boolean = false,
-  patchSchemaText: string = PATCH_SCHEMA_TEXT
-) => {
-  const elEntries = Object.entries(abs.elements || {});
-  const relEntries = Object.entries(abs.relationships || {});
-  const restr = abs.restrictions || {};
+  const buildUnifiedSystemPrompt = (
+    abs: AbstractSyntax,
+    hasSelection: boolean = false,
+    patchSchemaText: string = PATCH_SCHEMA_TEXT
+  ) => {
+    const elEntries = Object.entries(abs.elements || {});
+    const relEntries = Object.entries(abs.relationships || {});
+    const restr = abs.restrictions || {};
 
-  const elementsDesc = elEntries.map(([ename, edef]) => {
-    const props = (edef.properties || []).map(p => {
-      const pv = typeof p.possibleValues === "string" && p.possibleValues.trim()
-        ? ` (possibleValues: ${p.possibleValues})` : "";
-      const df = p.defaultValue !== undefined ? ` (default: ${p.defaultValue})` : "";
-      return `- ${p.name}: ${p.type}${pv}${df}`;
+    const elementsDesc = elEntries.map(([ename, edef]) => {
+      const props = (edef.properties || []).map(p => {
+        const pv = typeof p.possibleValues === "string" && p.possibleValues.trim()
+          ? ` (possibleValues: ${p.possibleValues})` : "";
+        const df = p.defaultValue !== undefined ? ` (default: ${p.defaultValue})` : "";
+        return `- ${p.name}: ${p.type}${pv}${df}`;
+      }).join("\n");
+      return `* ${ename}${props ? `\n${props}` : ""}`;
     }).join("\n");
-    return `* ${ename}${props ? `\n${props}` : ""}`;
-  }).join("\n");
 
-  const relsDesc = relEntries.map(([rname, rdef]) => {
-    const props = (rdef.properties || []).map(p => {
-      const pv = typeof p.possibleValues === "string" && p.possibleValues.trim()
-        ? ` (possibleValues: ${p.possibleValues})` : "";
-      const df = p.defaultValue !== undefined ? ` (default: ${p.defaultValue})` : "";
-      return `- ${p.name}: ${p.type}${pv}${df}`;
+    const relsDesc = relEntries.map(([rname, rdef]) => {
+      const props = (rdef.properties || []).map(p => {
+        const pv = typeof p.possibleValues === "string" && p.possibleValues.trim()
+          ? ` (possibleValues: ${p.possibleValues})` : "";
+        const df = p.defaultValue !== undefined ? ` (default: ${p.defaultValue})` : "";
+        return `- ${p.name}: ${p.type}${pv}${df}`;
+      }).join("\n");
+      return [
+        `* ${rname}`,
+        `  source: ${rdef.source}`,
+        `  targets permitidos: [${rdef.target.join(", ")}]`,
+        props ? `  properties:\n${props}` : `  properties: none`
+      ].join("\n");
     }).join("\n");
+
+    const restrLines: string[] = [];
+    if (restr.quantity_element?.length)
+      for (const q of restr.quantity_element)
+        restrLines.push(`- quantity_element: element=${q.element}, min=${q.min}, max=${q.max}`);
+    if (restr.unique_name?.elements?.length)
+      restrLines.push(`- unique_name over groups: ${JSON.stringify(restr.unique_name.elements)}`);
+    if (restr.parent_child?.length)
+      for (const pc of restr.parent_child)
+        restrLines.push(`- parent_child: child=${pc.childElement}, parent in [${pc.parentElement.join(", ")}]`);
+
+    const allowedTypes = Object.keys(abs.elements || {}).join(", ") || "(none)";
+
     return [
-      `* ${rname}`,
-      `  source: ${rdef.source}`,
-      `  targets permitidos: [${rdef.target.join(", ")}]`,
-      props ? `  properties:\n${props}` : `  properties: none`
+      "You are a modeling assistant operating STRICTLY in the CURRENT LANGUAGE (abstract syntax below).",
+      "You MUST NOT create elements or relationships that are not declared in this abstract syntax.",
+      "",
+      "Return exactly ONE valid JSON object, no backticks, in ONE of these formats:",
+      "A) PATCH (to modify the selected model):",
+      patchSchemaText,
+      "",
+      "B) PLAN (to create a new model):",
+      "{\"name\": string, \"elements\":[{\"name\": string, \"type\": string, \"props\"?: object}], \"relationships\":[{\"type\": string, \"source\": string, \"target\": string, \"props\"?: object}]}",
+      "",
+      hasSelection
+        ? "- A model is selected → return PATCH only."
+        : "- No model is selected → prefer PLAN; PATCH is also accepted.",
+      "",
+      "Hard rules:",
+      "- Use ONLY element/relationship TYPES that exist in this language. Allowed element types:",
+      `  [ ${allowedTypes} ]`,
+      "- Use only element NAMES (not ids) in refs (source/target/selectors).",
+      "- Never include internal 'id' fields; the tool generates them.",
+      "- To change an element’s classification/kind (e.g., AbstractFeature↔ConcreteFeature within this language), emit:",
+      "  {\"op\":\"updateElement\",\"selector\":{\"name\":\"X\"},\"changes\":{\"type\":\"NewType\"}}",
+      "- If the user mentions concepts from OTHER languages (e.g., features/bundles) you MUST NOT create those elements here.",
+      "- Instead, MAP those concepts into valid elements of this language (e.g., Functional/NonFunctional/Security requirements, UseCases, etc.).",
+      "- If the current language defines cross-language/trace relationships in its meta, you MAY create those relationships",
+      "  from the new elements to EXISTING names in the project (names only; do NOT create foreign-language elements).",
+      "- If a relationship type is not specified and there is exactly ONE valid candidate in the meta for source/target types, use it.",
+      "",
+      "Elements:",
+      elementsDesc || "(none)",
+      "",
+      "Relationships:",
+      relsDesc || "(none)",
+      "",
+      "Restrictions:",
+      restrLines.length ? restrLines.join("\n") : "(none)"
     ].join("\n");
-  }).join("\n");
-
-  const restrLines: string[] = [];
-  if (restr.quantity_element?.length)
-    for (const q of restr.quantity_element)
-      restrLines.push(`- quantity_element: element=${q.element}, min=${q.min}, max=${q.max}`);
-  if (restr.unique_name?.elements?.length)
-    restrLines.push(`- unique_name over groups: ${JSON.stringify(restr.unique_name.elements)}`);
-  if (restr.parent_child?.length)
-    for (const pc of restr.parent_child)
-      restrLines.push(`- parent_child: child=${pc.childElement}, parent in [${pc.parentElement.join(", ")}]`);
-
-  const allowedTypes = Object.keys(abs.elements || {}).join(", ") || "(none)";
-
-  return [
-    "You are a modeling assistant operating STRICTLY in the CURRENT LANGUAGE (abstract syntax below).",
-    "You MUST NOT create elements or relationships that are not declared in this abstract syntax.",
-    "",
-    "Return exactly ONE valid JSON object, no backticks, in ONE of these formats:",
-    "A) PATCH (to modify the selected model):",
-    patchSchemaText,
-    "",
-    "B) PLAN (to create a new model):",
-    "{\"name\": string, \"elements\":[{\"name\": string, \"type\": string, \"props\"?: object}], \"relationships\":[{\"type\": string, \"source\": string, \"target\": string, \"props\"?: object}]}",
-    "",
-    hasSelection
-      ? "- A model is selected → return PATCH only."
-      : "- No model is selected → prefer PLAN; PATCH is also accepted.",
-    "",
-    "Hard rules:",
-    "- Use ONLY element/relationship TYPES that exist in this language. Allowed element types:",
-    `  [ ${allowedTypes} ]`,
-    "- Use only element NAMES (not ids) in refs (source/target/selectors).",
-    "- Never include internal 'id' fields; the tool generates them.",
-    "- To change an element’s classification/kind (e.g., AbstractFeature↔ConcreteFeature within this language), emit:",
-    "  {\"op\":\"updateElement\",\"selector\":{\"name\":\"X\"},\"changes\":{\"type\":\"NewType\"}}",
-    "- If the user mentions concepts from OTHER languages (e.g., features/bundles) you MUST NOT create those elements here.",
-    "- Instead, MAP those concepts into valid elements of this language (e.g., Functional/NonFunctional/Security requirements, UseCases, etc.).",
-    "- If the current language defines cross-language/trace relationships in its meta, you MAY create those relationships",
-    "  from the new elements to EXISTING names in the project (names only; do NOT create foreign-language elements).",
-    "- If a relationship type is not specified and there is exactly ONE valid candidate in the meta for source/target types, use it.",
-    "",
-    "Elements:",
-    elementsDesc || "(none)",
-    "",
-    "Relationships:",
-    relsDesc || "(none)",
-    "",
-    "Restrictions:",
-    restrLines.length ? restrLines.join("\n") : "(none)"
-  ].join("\n");
-};
+  };
 
 
 
@@ -1754,121 +1579,121 @@ const buildUnifiedSystemPrompt = (
     return !!(model?.relationships || []).find((r: any) => r.type === type && r.sourceId === s && r.targetId === t);
   };
 
-// Sustituye tu normalizeRefsInOps actual por ESTA versión (misma firma + userText opcional)
-const normalizeRefsInOps = (
-  ops: any[],
-  model?: any,
-  patchForCreate?: PatchEnvelope,
-  userText?: string
-) => {
-  // Índices del modelo
-  const nameIdxCI = new Map<string, { name: string; id: string; type: string }>();
-  const internalIdIdx = new Map<string, { name: string; id: string; type: string }>();
-  const bizIdIdxModel = new Map<string, string>(); // biz-id (lc) -> canonical name
+  // Sustituye tu normalizeRefsInOps actual por ESTA versión (misma firma + userText opcional)
+  const normalizeRefsInOps = (
+    ops: any[],
+    model?: any,
+    patchForCreate?: PatchEnvelope,
+    userText?: string
+  ) => {
+    // Índices del modelo
+    const nameIdxCI = new Map<string, { name: string; id: string; type: string }>();
+    const internalIdIdx = new Map<string, { name: string; id: string; type: string }>();
+    const bizIdIdxModel = new Map<string, string>(); // biz-id (lc) -> canonical name
 
-  if (model?.elements?.length) {
-    for (const e of model.elements) {
-      const nm = String(e?.name || "").trim();
-      const id = String(e?.id || "").trim();
-      const tp = String(e?.type || "").trim();
-      if (!nm) continue;
-      nameIdxCI.set(nm.toLowerCase(), { name: nm, id, type: tp });
-      internalIdIdx.set(id, { name: nm, id, type: tp });
+    if (model?.elements?.length) {
+      for (const e of model.elements) {
+        const nm = String(e?.name || "").trim();
+        const id = String(e?.id || "").trim();
+        const tp = String(e?.type || "").trim();
+        if (!nm) continue;
+        nameIdxCI.set(nm.toLowerCase(), { name: nm, id, type: tp });
+        internalIdIdx.set(id, { name: nm, id, type: tp });
 
-      const props = Array.isArray(e.properties) ? e.properties : [];
-      const biz = props.find((p: any) => String(p?.name || "").toLowerCase() === "id");
-      const bizVal = String(biz?.value || "").trim();
-      if (bizVal) bizIdIdxModel.set(bizVal.toLowerCase(), nm);
+        const props = Array.isArray(e.properties) ? e.properties : [];
+        const biz = props.find((p: any) => String(p?.name || "").toLowerCase() === "id");
+        const bizVal = String(biz?.value || "").trim();
+        if (bizVal) bizIdIdxModel.set(bizVal.toLowerCase(), nm);
+      }
     }
-  }
 
-  // Índices del patch (creates) para permitir referencias “adelante”
-  const bizIdIdxPatch = new Map<string, string>();
-  const createdNamesLC = new Map<string, string>();
-  if (patchForCreate?.ops?.length) {
-    for (const raw of patchForCreate.ops) {
-      const op: any = raw;
-      if (op?.op !== "createElement") continue;
-      const nm = String(op?.name || "").trim();
-      if (nm) createdNamesLC.set(nm.toLowerCase(), nm);
-      const props = Array.isArray(op?.properties) ? op.properties : [];
-      const biz = props.find((p: any) => String(p?.name || "").toLowerCase() === "id");
-      const bizVal = String(biz?.value || "").trim();
-      if (bizVal && nm) bizIdIdxPatch.set(bizVal.toLowerCase(), nm);
+    // Índices del patch (creates) para permitir referencias “adelante”
+    const bizIdIdxPatch = new Map<string, string>();
+    const createdNamesLC = new Map<string, string>();
+    if (patchForCreate?.ops?.length) {
+      for (const raw of patchForCreate.ops) {
+        const op: any = raw;
+        if (op?.op !== "createElement") continue;
+        const nm = String(op?.name || "").trim();
+        if (nm) createdNamesLC.set(nm.toLowerCase(), nm);
+        const props = Array.isArray(op?.properties) ? op.properties : [];
+        const biz = props.find((p: any) => String(p?.name || "").toLowerCase() === "id");
+        const bizVal = String(biz?.value || "").trim();
+        if (bizVal && nm) bizIdIdxPatch.set(bizVal.toLowerCase(), nm);
+      }
     }
-  }
 
-  // Menciones por texto del usuario (para reparar selectores desconocidos)
-  const t = String(userText || "").toLowerCase();
-  const mentionedNames = Array.from(nameIdxCI.keys()).filter(k => t.includes(k));
-  const uniqueMention = mentionedNames.length === 1 ? nameIdxCI.get(mentionedNames[0])?.name ?? null : null;
+    // Menciones por texto del usuario (para reparar selectores desconocidos)
+    const t = String(userText || "").toLowerCase();
+    const mentionedNames = Array.from(nameIdxCI.keys()).filter(k => t.includes(k));
+    const uniqueMention = mentionedNames.length === 1 ? nameIdxCI.get(mentionedNames[0])?.name ?? null : null;
 
-  const toCanonicalName = (token: string): string | null => {
-    const tok = String(token || "").trim();
-    if (!tok) return null;
+    const toCanonicalName = (token: string): string | null => {
+      const tok = String(token || "").trim();
+      if (!tok) return null;
 
-    // 1) id interno
-    if (internalIdIdx.has(tok)) return internalIdIdx.get(tok)!.name;
+      // 1) id interno
+      if (internalIdIdx.has(tok)) return internalIdIdx.get(tok)!.name;
 
-    const tl = tok.toLowerCase();
-    // 2) nombre (modelo)
-    if (nameIdxCI.has(tl)) return nameIdxCI.get(tl)!.name;
-    // 3) nombre creado en este patch
-    if (createdNamesLC.has(tl)) return createdNamesLC.get(tl)!;
-    // 4) id negocio del patch
-    if (bizIdIdxPatch.has(tl)) return bizIdIdxPatch.get(tl)!;
-    // 5) id negocio del modelo
-    if (bizIdIdxModel.has(tl)) return bizIdIdxModel.get(tl)!;
+      const tl = tok.toLowerCase();
+      // 2) nombre (modelo)
+      if (nameIdxCI.has(tl)) return nameIdxCI.get(tl)!.name;
+      // 3) nombre creado en este patch
+      if (createdNamesLC.has(tl)) return createdNamesLC.get(tl)!;
+      // 4) id negocio del patch
+      if (bizIdIdxPatch.has(tl)) return bizIdIdxPatch.get(tl)!;
+      // 5) id negocio del modelo
+      if (bizIdIdxModel.has(tl)) return bizIdIdxModel.get(tl)!;
 
-    // 6) fallback por mención ÚNICA en el prompt (sólo si no resolvimos nada)
-    if (uniqueMention) return uniqueMention;
+      // 6) fallback por mención ÚNICA en el prompt (sólo si no resolvimos nada)
+      if (uniqueMention) return uniqueMention;
 
-    return null;
+      return null;
+    };
+
+    const fixElemRef = (ref: any) => {
+      if (ref == null) return ref;
+      if (typeof ref === "string") {
+        const c = toCanonicalName(ref);
+        return c ? { name: c } : { name: ref }; // deja name crudo si no resolvió; lo arreglará el reparador de más adelante
+      }
+      if (typeof ref === "object") {
+        const token = String((ref.name ?? ref.id ?? "") || "").trim();
+        if (!token) return ref;
+        const c = toCanonicalName(token);
+        return c ? { name: c } : ref;
+      }
+      return ref;
+    };
+
+    const isElementSelectorOp = (op: any) =>
+      (op?.op === "setProp" && String(op?.on || "").toLowerCase() === "element") ||
+      op?.op === "deleteElement" ||
+      op?.op === "updateElement" ||
+      op?.op === "renameElement";
+
+    for (const op of ops) {
+      if (!op || typeof op !== "object") continue;
+
+
+      if (op.op === "createElement") delete (op as any).id;
+
+      if (op.op === "connect") {
+        if (op.source) op.source = fixElemRef(op.source);
+        if (op.target) op.target = fixElemRef(op.target);
+        continue;
+      }
+      if (op.op === "deleteRelationship" && op.selector && typeof op.selector === "object") {
+        if (op.selector.source) op.selector.source = fixElemRef(op.selector.source);
+        if (op.selector.target) op.selector.target = fixElemRef(op.selector.target);
+        continue;
+      }
+      if (isElementSelectorOp(op) && op.selector) {
+        op.selector = fixElemRef(op.selector);
+        continue;
+      }
+    }
   };
-
-  const fixElemRef = (ref: any) => {
-    if (ref == null) return ref;
-    if (typeof ref === "string") {
-      const c = toCanonicalName(ref);
-      return c ? { name: c } : { name: ref }; // deja name crudo si no resolvió; lo arreglará el reparador de más adelante
-    }
-    if (typeof ref === "object") {
-      const token = String((ref.name ?? ref.id ?? "") || "").trim();
-      if (!token) return ref;
-      const c = toCanonicalName(token);
-      return c ? { name: c } : ref;
-    }
-    return ref;
-  };
-
-  const isElementSelectorOp = (op: any) =>
-    (op?.op === "setProp" && String(op?.on || "").toLowerCase() === "element") ||
-    op?.op === "deleteElement" ||
-    op?.op === "updateElement" ||
-    op?.op === "renameElement";
-
-  for (const op of ops) {
-    if (!op || typeof op !== "object") continue;
-
-
-    if (op.op === "createElement") delete (op as any).id;
-
-    if (op.op === "connect") {
-      if (op.source) op.source = fixElemRef(op.source);
-      if (op.target) op.target = fixElemRef(op.target);
-      continue;
-    }
-    if (op.op === "deleteRelationship" && op.selector && typeof op.selector === "object") {
-      if (op.selector.source) op.selector.source = fixElemRef(op.selector.source);
-      if (op.selector.target) op.selector.target = fixElemRef(op.selector.target);
-      continue;
-    }
-    if (isElementSelectorOp(op) && op.selector) {
-      op.selector = fixElemRef(op.selector);
-      continue;
-    }
-  }
-};
 
 
 
@@ -2443,58 +2268,58 @@ const normalizeRefsInOps = (
   };
 
   const autoSelectModelInTree = (ps: any, model: any, ph: Phase) => {
-  try {
-    const project = ps.project;
-    if (!project?.productLines?.length) return;
+    try {
+      const project = ps.project;
+      if (!project?.productLines?.length) return;
 
 
-    const idPl = ps.getIdCurrentProductLine?.() ?? 0;
-    const pl = project.productLines[idPl];
-    if (!pl) return;
+      const idPl = ps.getIdCurrentProductLine?.() ?? 0;
+      const pl = project.productLines[idPl];
+      if (!pl) return;
 
-    if (ph === "DOMAIN") {
-      const models = pl.domainEngineering?.models || [];
-      let idx = models.findIndex((m: any) => m.id === model.id);
-      if (idx < 0) idx = models.length - 1;
-      if (idx < 0) return;
+      if (ph === "DOMAIN") {
+        const models = pl.domainEngineering?.models || [];
+        let idx = models.findIndex((m: any) => m.id === model.id);
+        if (idx < 0) idx = models.length - 1;
+        if (idx < 0) return;
 
-      ps.modelDomainSelected?.(idPl, idx);
-    }
+        ps.modelDomainSelected?.(idPl, idx);
+      }
 
-    if (ph === "SCOPE") {
-      const models = pl.scope?.models || [];
-      let idx = models.findIndex((m: any) => m.id === model.id);
-      if (idx < 0) idx = models.length - 1;
-      if (idx < 0) return;
+      if (ph === "SCOPE") {
+        const models = pl.scope?.models || [];
+        let idx = models.findIndex((m: any) => m.id === model.id);
+        if (idx < 0) idx = models.length - 1;
+        if (idx < 0) return;
 
-      ps.modelScopeSelected?.(idPl, idx);
-    }
+        ps.modelScopeSelected?.(idPl, idx);
+      }
 
-    if (ph === "APPLICATION") {
-      const apps = pl.applicationEngineering?.applications || [];
-      let idApp = -1;
-      let idAppModel = -1;
+      if (ph === "APPLICATION") {
+        const apps = pl.applicationEngineering?.applications || [];
+        let idApp = -1;
+        let idAppModel = -1;
 
-      outer: for (let i = 0; i < apps.length; i++) {
-        const ms = apps[i].models || [];
-        const j = ms.findIndex((m: any) => m.id === model.id);
-        if (j >= 0) {
-          idApp = i;
-          idAppModel = j;
-          break outer;
+        outer: for (let i = 0; i < apps.length; i++) {
+          const ms = apps[i].models || [];
+          const j = ms.findIndex((m: any) => m.id === model.id);
+          if (j >= 0) {
+            idApp = i;
+            idAppModel = j;
+            break outer;
+          }
+        }
+
+        if (idApp >= 0 && idAppModel >= 0) {
+          ps.modelApplicationSelected?.(idPl, idApp, idAppModel);
         }
       }
 
-      if (idApp >= 0 && idAppModel >= 0) {
-        ps.modelApplicationSelected?.(idPl, idApp, idAppModel);
-      }
+      ps.saveProject?.();
+    } catch (err) {
+      addLog(`[autoSelectModelInTree] warn: ${err}`);
     }
-
-    ps.saveProject?.();
-  } catch (err) {
-    addLog(`[autoSelectModelInTree] warn: ${err}`);
-  }
-};
+  };
 
   /** 7) Inyección al proyecto */
   const injectIntoProject = (gp: PlanLLM, lang: Language, ph: Phase, abs: AbstractSyntax) => {
@@ -2509,52 +2334,52 @@ const normalizeRefsInOps = (
           : ps.createApplicationModel(ps.project, langName, langIdStr, gp.name, "", "", ""))
       };
 
-    const model = createByPhase[ph]();
-    materializeIntoModel(model, gp, abs);
-    const raiseEventByPhase: Record<Phase, () => void> = {
-      SCOPE: () => ps.raiseEventScopeModel(model),
-      DOMAIN: () => ps.raiseEventDomainEngineeringModel(model),
-      APPLICATION: () => ps.raiseEventApplicationEngineeringModel(model)
-    };
-    raiseEventByPhase[ph]();
-    autoSelectModelInTree(ps, model, ph);
-    
-     try {
-      ps.raiseEventSelectedModel?.(model);  // marca el modelo como seleccionado
-      ps.requestRender?.();                 // fuerza render en React
-      ps.repaint?.();                       // fuerza repintado de mxGraph
-    } catch (err) {
-      addLog(`[inject] warn: no se pudo abrir en mxgEditor: ${err}`);
-    }
-
-    const projectInfo = ps.getProjectInformation?.();
-    if (projectInfo?.is_collaborative) {
-      const modelTypeByPhase: Record<Phase, string> = {
-        SCOPE: 'scope',
-        DOMAIN: 'domainEngineering',
-        APPLICATION: 'applicationEngineering'
+      const model = createByPhase[ph]();
+      materializeIntoModel(model, gp, abs);
+      const raiseEventByPhase: Record<Phase, () => void> = {
+        SCOPE: () => ps.raiseEventScopeModel(model),
+        DOMAIN: () => ps.raiseEventDomainEngineeringModel(model),
+        APPLICATION: () => ps.raiseEventApplicationEngineeringModel(model)
       };
-      
-      const modelDataForSync = {
-        ...model,
-        type: modelTypeByPhase[ph],
-        languageName: langName,
-        languageId: langIdStr
-      };
+      raiseEventByPhase[ph]();
+      autoSelectModelInTree(ps, model, ph);
 
-      treeCollaborationService.syncAddModelOperation(modelDataForSync, ps);
-    
-      const projectId = ps.project?.id;
-      if (projectId && model.id) {
-        ps.updateModelState(projectId, model.id, (state: any) => {
-          state.set("data", {
-            elements: model.elements || [],
-            relationships: model.relationships || [],
-            timestamp: Date.now()
-          });
-        });
+      try {
+        ps.raiseEventSelectedModel?.(model);  // marca el modelo como seleccionado
+        ps.requestRender?.();                 // fuerza render en React
+        ps.repaint?.();                       // fuerza repintado de mxGraph
+      } catch (err) {
+        addLog(`[inject] warn: no se pudo abrir en mxgEditor: ${err}`);
       }
-    }
+
+      const projectInfo = ps.getProjectInformation?.();
+      if (projectInfo?.is_collaborative) {
+        const modelTypeByPhase: Record<Phase, string> = {
+          SCOPE: 'scope',
+          DOMAIN: 'domainEngineering',
+          APPLICATION: 'applicationEngineering'
+        };
+
+        const modelDataForSync = {
+          ...model,
+          type: modelTypeByPhase[ph],
+          languageName: langName,
+          languageId: langIdStr
+        };
+
+        treeCollaborationService.syncAddModelOperation(modelDataForSync, ps);
+
+        const projectId = ps.project?.id;
+        if (projectId && model.id) {
+          ps.updateModelState(projectId, model.id, (state: any) => {
+            state.set("data", {
+              elements: model.elements || [],
+              relationships: model.relationships || [],
+              timestamp: Date.now()
+            });
+          });
+        }
+      }
 
       ps.saveProject?.();
       addLog(`[inject] ok → ${model.name}`);
@@ -2583,72 +2408,77 @@ const normalizeRefsInOps = (
     ];
     return cuesEdit.some(p => t.includes(p));
   };
-/** Repara selectores de elemento que vienen con id/nombre inválido.
- * Si el usuario mencionó EXACTAMENTE un nombre de elemento del modelo en su texto,
- * reescribe el selector a ese nombre.
- */
-const repairUnknownSelectorsByMentions = (
-  env: PatchEnvelope,
-  model: any,
-  userText: string
-): PatchEnvelope => {
-  if (!env?.ops?.length || !model?.elements?.length) return env;
+  /** Repara selectores de elemento que vienen con id/nombre inválido.
+   * Si el usuario mencionó EXACTAMENTE un nombre de elemento del modelo en su texto,
+   * reescribe el selector a ese nombre.
+   */
+  const repairUnknownSelectorsByMentions = (
+    env: PatchEnvelope,
+    model: any,
+    userText: string
+  ): PatchEnvelope => {
+    if (!env?.ops?.length || !model?.elements?.length) return env;
 
-  const t = String(userText || "").toLowerCase();
-  const nameIdxLC = new Map<string, string>();
-  const idSet = new Set<string>();
+    const t = String(userText || "").toLowerCase();
+    const nameIdxLC = new Map<string, string>();
+    const idSet = new Set<string>();
 
-  for (const e of model.elements) {
-    const nm = String(e?.name || "");
-    const id = String(e?.id || "");
-    if (nm) nameIdxLC.set(nm.toLowerCase(), nm);
-    if (id) idSet.add(id);
-  }
-
-  // nombres del modelo que aparecen textual en el prompt del usuario
-  const mentions = Array.from(nameIdxLC.keys()).filter(n => t.includes(n));
-  const only = mentions.length === 1 ? nameIdxLC.get(mentions[0]) || null : null;
-
-  const mustFixSelector = (sel: any): boolean => {
-    const tok = String((sel?.name ?? sel?.id ?? "") || "");
-    if (!tok) return true;
-    if (idSet.has(tok)) return false;                      // id real
-    if (nameIdxLC.has(tok.toLowerCase())) return false;    // nombre real
-    return true; // id/nombre inválido → candidato a reparar
-  };
-
-  const fix = (sel: any) => (only ? { name: only } : sel);
-
-  const out: PatchEnvelope = { ops: [] };
-  for (const raw of (env.ops || [])) {
-    const op: any = raw && typeof raw === "object" ? { ...raw } : raw;
-    if (!op || !op.op) { out.ops.push(raw); continue; }
-
-    if (
-      (op.op === "updateElement" || op.op === "deleteElement" || op.op === "renameElement" ||
-       (op.op === "setProp" && String(op.on || "").toLowerCase() === "element"))
-      && op.selector && mustFixSelector(op.selector)
-    ) {
-      op.selector = fix(op.selector);
-    } else if (op.op === "deleteRelationship" && op.selector) {
-      if (op.selector.source && mustFixSelector(op.selector.source)) op.selector.source = fix(op.selector.source);
-      if (op.selector.target && mustFixSelector(op.selector.target)) op.selector.target = fix(op.selector.target);
-    } else if (op.op === "connect") {
-      if (op.source && mustFixSelector(op.source)) op.source = fix(op.source);
-      if (op.target && mustFixSelector(op.target)) op.target = fix(op.target);
+    for (const e of model.elements) {
+      const nm = String(e?.name || "");
+      const id = String(e?.id || "");
+      if (nm) nameIdxLC.set(nm.toLowerCase(), nm);
+      if (id) idSet.add(id);
     }
 
-    out.ops.push(op);
-  }
-  return out;
-};
+    // nombres del modelo que aparecen textual en el prompt del usuario
+    const mentions = Array.from(nameIdxLC.keys()).filter(n => t.includes(n));
+    const only = mentions.length === 1 ? nameIdxLC.get(mentions[0]) || null : null;
+
+    const mustFixSelector = (sel: any): boolean => {
+      const tok = String((sel?.name ?? sel?.id ?? "") || "");
+      if (!tok) return true;
+      if (idSet.has(tok)) return false;                      // id real
+      if (nameIdxLC.has(tok.toLowerCase())) return false;    // nombre real
+      return true; // id/nombre inválido → candidato a reparar
+    };
+
+    const fix = (sel: any) => (only ? { name: only } : sel);
+
+    const out: PatchEnvelope = { ops: [] };
+    for (const raw of (env.ops || [])) {
+      const op: any = raw && typeof raw === "object" ? { ...raw } : raw;
+      if (!op || !op.op) { out.ops.push(raw); continue; }
+
+      if (
+        (op.op === "updateElement" || op.op === "deleteElement" || op.op === "renameElement" ||
+          (op.op === "setProp" && String(op.on || "").toLowerCase() === "element"))
+        && op.selector && mustFixSelector(op.selector)
+      ) {
+        op.selector = fix(op.selector);
+      } else if (op.op === "deleteRelationship" && op.selector) {
+        if (op.selector.source && mustFixSelector(op.selector.source)) op.selector.source = fix(op.selector.source);
+        if (op.selector.target && mustFixSelector(op.selector.target)) op.selector.target = fix(op.selector.target);
+      } else if (op.op === "connect") {
+        if (op.source && mustFixSelector(op.source)) op.source = fix(op.source);
+        if (op.target && mustFixSelector(op.target)) op.target = fix(op.target);
+      }
+
+      out.ops.push(op);
+    }
+    return out;
+  };
 
 
-const send = async (userText: string) => {
+  const send = async (userText: string) => {
   if (busy) return;
   setBusy(true);
 
-  // ---------- HELPERS LOCALES ----------
+  // ===== helpers locales (solo para esta función) =====
+  const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
+
+  const strip = (t: string) => stripCodeFences(t);
+  const parse = (t: string) => safeParseJSON(strip(t));
+
   const dedupeConnects = (env: PatchEnvelope): PatchEnvelope => {
     const seen = new Set<string>();
     const out: PatchEnvelope = { ops: [] };
@@ -2686,13 +2516,16 @@ const send = async (userText: string) => {
     const names = new Set<string>();
     for (const op of base.ops || [])
       if ((op as any).op === "createElement") names.add(String((op as any).name || ""));
+
     const out: PatchEnvelope = { ops: [...(base.ops || [])] };
     const seen = new Set<string>();
+
     for (const raw of extra.ops || []) {
       const op: any = raw;
       const key = JSON.stringify(op);
       if (seen.has(key)) continue;
       seen.add(key);
+
       if (op.op === "createElement") {
         const nm = String(op.name || "");
         if (!nm || names.has(nm)) continue;
@@ -2705,74 +2538,20 @@ const send = async (userText: string) => {
     return out;
   };
 
-  // suprime alert durante applyPatch
+  // suprime alert durante applyPatch (para que no interrumpa el flujo)
   const withNoAlert = async <T,>(fn: () => T | Promise<T>): Promise<T> => {
     const prev = window.alert;
-    window.alert = (...args: any[]) => { try { addLog(`[alert suppressed] ${args.map(a => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")}`); } catch { } };
+    window.alert = (...args: any[]) => {
+      try {
+        addLog(`[alert suppressed] ${args.map(a => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")}`);
+      } catch { }
+    };
     try { return await fn(); } finally { window.alert = prev; }
   };
 
-  // Verificador/completador LLM reutilizable para EDIT/CREATE (NUEVO)
-  const llmCompleteMissingOpsLocal = async (
-    mode: "EDIT" | "CREATE",
-    userGoal: string,
-    currentPatch: PatchEnvelope,
-    modelSnapshot?: unknown
-  ): Promise<PatchEnvelope> => {
-    const abs = getAbstract();
-    const summarizeAbs = (a: AbstractSyntax) => {
-      const els = Object.keys(a.elements || {}).join(", ") || "(none)";
-      const rels = Object.entries(a.relationships || {}).map(([k, v]) => `${k}: ${v.source}→[${v.target.join(", ")}]`).join("; ") || "(none)";
-      return `Elements: [${els}]\nRelationships: ${rels}`;
-    };
-
-    const sys = [
-      "You are a strict patch verifier for a modeling tool. The user may write in ANY language.",
-      "Task: Compare the user's instruction with the CURRENT PATCH. If anything is missing, return ONLY the missing operations to fully satisfy the instruction.",
-      'Output MUST be a single valid JSON object: {"ops": [...]} (PATCH schema).',
-      "Do NOT repeat operations already covered. Use only element names in refs.",
-      "Use ONLY element/relationship types allowed by the abstract syntax below.",
-      "If a relationship type is not provided and exactly one candidate fits the meta, use it.",
-      "Expand lists/conjunctions in the user's instruction.",
-      'If nothing is missing, return {"ops":[]}."',
-      "",
-      "Abstract syntax (strict):",
-      summarizeAbs(abs)
-    ].join("\n");
-
-    const payload = {
-      mode,
-      userInstruction: userGoal,
-      currentPatch,
-      ...(modelSnapshot ? { modelSnapshot } : {})
-    };
-
-    const { text } = await callOpenRouterCascade(
-      apiKey,
-      selectedModel,
-      JSON.stringify(payload),
-      sys,
-      { perModelRetries: 1, validate: (out) => !!safeParseJSON(stripCodeFences(out)) }
-    );
-
-    const extra = safeParseJSON(stripCodeFences(text));
-    if (extra && Array.isArray(extra.ops)) return extra as PatchEnvelope;
-    return { ops: [] };
-  };
-
-  const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
-  const strip = (t: string) => stripCodeFences(t);
-  const parse = (t: string) => safeParseJSON(strip(t));
-
   const getSelectedModel = () => {
     const selectedId = ps.getTreeIdItemSelected?.();
-    let m = selectedId ? ps.findModelById(ps.project, selectedId) : null;
-    if (!m) return null;
-    const currentLangKey = String(currentLanguage?.name || currentLanguage?.id || "");
-    if (String(m.type) !== currentLangKey) {
-      addLog(`[warn] Selected model type "${m.type}" ≠ dropdown "${currentLanguage?.name}". Usaré el lenguaje del modelo seleccionado para EDIT.`);
-    }
-    return m;
+    return selectedId ? ps.findModelById(ps.project, selectedId) : null;
   };
 
   const forceRefresh = (model?: any) => {
@@ -2780,38 +2559,81 @@ const send = async (userText: string) => {
     ps.requestRender?.();
     ps.repaint?.();
   };
-  // ---------- FIN HELPERS ----------
 
+  const getLanguageForSelectedModel = (m: any): Language | null => {
+    const lang = resolveLanguageForModel(allLanguages, m);
+    if (!lang) return null;
+
+    const dropdownKey = String(getLanguageKey(currentLanguage as any));
+    const modelKey = String(getLanguageKey(lang));
+    if (dropdownKey && modelKey && dropdownKey !== modelKey) {
+      addLog(`[warn] Selected model language "${lang.name}" differs from dropdown "${currentLanguage?.name}". Using model language for EDIT.`);
+    }
+    return lang;
+  };
+
+  // ===== guardas =====
   if (!ps || !currentLanguage) {
     addLog("ps/language not available");
     setBusy(false);
     return;
   }
 
-  // ------------------ FAST-PATH JSON (igual) ------------------
+  // ===== UI: agrega mensaje del usuario + placeholder del bot (para fast-path y LLM) =====
+  let placeholderIdx = -1;
+  setThread(prev => {
+    const next: Message[] = [
+      ...prev,
+      { role: "user", content: String(userText) },
+      { role: "assistant", content: "__typing__" }
+    ];
+    placeholderIdx = next.length - 1;
+    return next;
+  });
+
+  const setAssistantText = (text: string) => {
+    setThread(prev => {
+      const copy = [...prev];
+      if (placeholderIdx >= 0 && copy[placeholderIdx]?.content === "__typing__") {
+        copy[placeholderIdx] = { role: "assistant", content: text };
+      } else {
+        const idx = copy.findIndex(m => m.content === "__typing__");
+        if (idx >= 0) copy[idx] = { role: "assistant", content: text };
+        else copy.push({ role: "assistant", content: text });
+      }
+      return copy;
+    });
+  };
+
   try {
-    const rawCandidate = stripCodeFences(userText);
-    const userObj = safeParseJSON(rawCandidate);
-
+    // ============================================================
+    // 1) FAST-PATH: si el usuario pegó JSON (PATCH o PLAN), NO llamamos LLM
+    // ============================================================
+    const userObj = parse(userText);
     if (userObj && (looksLikePatch(userObj) || looksLikePlan(userObj))) {
-      const abs = getAbstract();
-      if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
-
-      setThread(prev => [...prev, { role: "assistant", content: "Recibí JSON. Ejecutándolo sin LLM…" }]);
-
+      // ---------- PATCH directo ----------
       if (looksLikePatch(userObj)) {
         let targetModel = getSelectedModel();
         if (!targetModel) throw new Error("No hay modelo seleccionado para aplicar el PATCH.");
 
+        const langForModel = getLanguageForSelectedModel(targetModel) || currentLanguage;
+        const abs = getAbstract(langForModel);
+        if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
+
+        setAssistantText("Recibí un PATCH JSON. Ejecutándolo sin LLM…");
+
         let patch: PatchEnvelope = userObj as PatchEnvelope;
+
         patch = upgradeDeleteCreateToUpdate(patch, targetModel, abs);
         patch = addMissingRequiredPropsLocal(patch, abs, userText);
         patch = dedupeConnects(patch);
-        normalizeRefsInOps(patch.ops as any[], targetModel, patch);
+
+        normalizeRefsInOps(patch.ops as any[], targetModel, patch, userText);
         patch = repairUnknownSelectorsByMentions(patch, targetModel, userText);
+
         const { creates, connects, others } = splitCreateConnect(patch);
 
-        // 1) create
+        // 1) creates
         let createsSan = sanitizePatchForEditStrict(creates, targetModel, abs);
         createsSan = assignPositionsToCreates(createsSan, targetModel);
         if (createsSan.ops.length) {
@@ -2822,14 +2644,16 @@ const send = async (userText: string) => {
           ps.saveProject?.();
         }
 
-        // 2) otros
+        // 2) otros ops (update/delete/rename/etc.)
         let othersSan = sanitizePatchForEditStrict(others, targetModel, abs);
         if (othersSan.ops.length) {
           stageStep(`Applying other ops (${othersSan.ops.length})…`);
           othersSan = bindNameRefsToIds(othersSan, targetModel);
           othersSan = scopeRelationshipDeletesToDeletedElements(othersSan, targetModel);
+
           await withNoAlert(() => applyPatch(ps, targetModel!, othersSan));
 
+          // por si applyPatch no aplica updateElement{type} correctamente
           if (ensureTypeChangeApplied(othersSan, targetModel, abs)) {
             forceRefresh(targetModel);
             ps.saveProject?.();
@@ -2840,11 +2664,12 @@ const send = async (userText: string) => {
           ps.saveProject?.();
         }
 
-        // 3) relaciones
+        // 3) connects
         let connectsHealed = fixDanglingConnectsUsingTypes(connects, targetModel, abs, userText, createsSan);
         let connectsSan = sanitizePatchForEditStrict(connectsHealed, targetModel, abs);
         connectsSan = filterConnectsForEdit(connectsSan, createsSan, targetModel, userText);
         connectsSan = bindNameRefsToIds(connectsSan, targetModel);
+
         if (connectsSan.ops.length) {
           stageStep(`Applying relationships (${connectsSan.ops.length})…`);
           await withNoAlert(() => applyPatch(ps, targetModel!, connectsSan));
@@ -2855,116 +2680,154 @@ const send = async (userText: string) => {
         }
 
         stageStep("Done ✅");
-        setBusy(false);
-        setTimeout(() => setStage(""), 800);
+        setAssistantText("PATCH aplicado ✅");
         return;
       }
 
-      // PLAN directo → crear modelo nuevo
+      // ---------- PLAN directo ----------
       if (looksLikePlan(userObj)) {
         const plan0 = userObj.nodes || userObj.edges ? nodesEdgesToPlan(userObj) : userObj;
-        const absPlan = getAbstract();
-        const plan = validatePlanStrict(plan0, absPlan);
+        const abs = getAbstract(currentLanguage);
+        if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
+
+        setAssistantText("Recibí un PLAN JSON. Creando modelo sin LLM…");
+
+        const plan = validatePlanStrict(plan0, abs);
         if (!plan.elements.length) throw new Error("PLAN vacío o inválido.");
 
-        let patch = planToPatch(plan, { elements: [], relationships: [] }, absPlan);
-        patch = sanitizePatchForCreateStrictLocal(dedupeConnects(patch), absPlan);
-        normalizeRefsInOps(patch.ops as any[], undefined, patch);
+        let patch = planToPatch(plan, { elements: [], relationships: [] }, abs);
+        patch = sanitizePatchForCreateStrictLocal(dedupeConnects(patch), abs);
+        normalizeRefsInOps(patch.ops as any[], undefined, patch, userText);
 
         const planLite = patchToPlanLiteLocal(patch);
 
         stageStep("Injecting model…");
         await withNoAlert(() => {
-          const created = injectIntoProject(planLite, currentLanguage as Language, phase, absPlan);
+          const created = injectIntoProject(planLite, currentLanguage as Language, phase, abs);
           if (created?.id) lastModelIdRef.current = created.id;
         });
 
         stageStep("Listo ✅");
-        setBusy(false);
-        setTimeout(() => setStage(""), 800);
+        setAssistantText("Modelo creado ✅");
         return;
       }
     }
-  } catch (err: any) {
-    setThread(prev => [...prev, { role: "assistant", content: "Error (fast-path JSON): " + (err?.message || err) }]);
-    setBusy(false);
-    return;
-  }
-  // ------------------ FIN FAST-PATH ------------------
 
-  // ============ LLM PATH ============
-  const abs = getAbstract();
-  if (!Object.keys(abs.elements || {}).length) { addLog("abstractSyntax vacío"); setBusy(false); return; }
+    // ============================================================
+    // 2) LLM PATH
+    // ============================================================
 
-  // (1) Memoria del proyecto
-  const plk = harvestProductLineKnowledge(ps, currentLanguage, 40);
+    // selección actual (si hay)
+    let targetModel = getSelectedModel();
+    const hasSelection = !!targetModel;
 
-  const summarizeAbs = (a: AbstractSyntax) => {
-    const els = Object.keys(a.elements || {}).join(", ") || "(none)";
-    const rels = Object.entries(a.relationships || {}).map(([k, v]) => `${k}: ${v.source}→[${v.target.join(", ")}]`).join("; ") || "(none)";
-    return `Elements: [${els}]\nRelationships: ${rels}`;
-  };
+    // comando inline /create o /edit (si viene)
+    const { clean: cleanUserText, forced } = extractInlineMode(userText);
+    const effectiveMode: "EDIT" | "CREATE" = forced ?? (hasSelection ? "EDIT" : "CREATE");
 
-  const sysBase = (hasSel: boolean, plkArg?: PLKnowledge) => {
-    const absSummary = summarizeAbs(abs);
-    const memory = renderProjectMemory(plkArg, currentLanguage as Language);
-    return [
-      "You are a modeling assistant. Output MUST be one valid JSON (no backticks).",
-      hasSel
-        ? 'Return a PATCH only: {"ops":[...]}'
-        : 'Prefer a PLAN: {"name":...,"elements":[...],"relationships":[...]}. PATCH is also accepted.',
-      "CRITICAL: cover ALL instructions in one response. Use only element NAMES in refs.",
-      "To change classification (AbstractFeature↔ConcreteFeature) use updateElement with changes.type.",
-      "",
-      "Abstract syntax (strict):",
-      absSummary,
-      "",
-      memory
-    ].join("\n");
-  };
+    // idioma/meta para esta operación:
+    const opLanguage: Language =
+      (effectiveMode === "EDIT" && targetModel)
+        ? (getLanguageForSelectedModel(targetModel) || currentLanguage)
+        : currentLanguage;
 
-  // selección actual (para modo)
-  const selectedId = ps.getTreeIdItemSelected?.();
-  let targetModel = selectedId ? ps.findModelById(ps.project, selectedId) : null;
-  const currentLangKey = String(currentLanguage?.name || currentLanguage?.id || "");
-  if (targetModel && String(targetModel.type) !== currentLangKey) targetModel = null;
-  const hasSelection = !!targetModel;
+    const abs = getAbstract(opLanguage);
+    if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
 
-  const { clean: cleanUserText, forced } = extractInlineMode(userText);
-  const effectiveMode: "EDIT" | "CREATE" = forced ?? (hasSelection ? "EDIT" : "CREATE");
+    // memoria (por lenguaje de operación)
+    const plk = harvestProductLineKnowledge(ps, opLanguage, 40);
 
-  let placeholderIdx = -1;
-  setThread((prev) => {
-    const next: Message[] = [...prev, { role: "user", content: String(userText) }, { role: "assistant", content: "__typing__" }];
-    placeholderIdx = next.length - 1;
-    return next;
-  });
+    const summarizeAbs = (a: AbstractSyntax) => {
+      const els = Object.keys(a.elements || {}).join(", ") || "(none)";
+      const rels = Object.entries(a.relationships || {})
+        .map(([k, v]) => `${k}: ${v.source}→[${v.target.join(", ")}]`)
+        .join("; ") || "(none)";
+      return `Elements: [${els}]\nRelationships: ${rels}`;
+    };
 
-  if (!apiKey) {
-    setThread(prev => [...prev, { role: "assistant", content: "Missing OpenRouter API Key." }]);
-    setBusy(false);
-    return;
-  }
+    const sysBase = (hasSel: boolean, plkArg?: PLKnowledge) => {
+      const absSummary = summarizeAbs(abs);
+      const memory = renderProjectMemory(plkArg, opLanguage as Language);
+      return [
+        "You are a modeling assistant. Output MUST be one valid JSON (no backticks).",
+        hasSel
+          ? 'Return a PATCH only: {"ops":[...]}'
+          : 'Prefer a PLAN: {"name":...,"elements":[...],"relationships":[...]}. PATCH is also accepted.',
+        "CRITICAL: cover ALL instructions in one response. Use only element NAMES in refs.",
+        "To change classification/kind use updateElement with changes.type.",
+        "",
+        "Abstract syntax (strict):",
+        absSummary,
+        "",
+        memory
+      ].join("\n");
+    };
 
-  try {
-    const langName = currentLanguage?.name || ps.getSelectedLanguage?.() || "Language";
+    // Verificador de completitud (2 pasadas). Ojo: usa el ABS de la operación.
+    const llmCompleteMissingOpsLocal = async (
+      mode: "EDIT" | "CREATE",
+      userGoal: string,
+      currentPatch: PatchEnvelope,
+      modelSnapshot?: unknown
+    ): Promise<PatchEnvelope> => {
+      const summarizeAbsLite = (a: AbstractSyntax) => {
+        const els = Object.keys(a.elements || {}).join(", ") || "(none)";
+        const rels =
+          Object.entries(a.relationships || {})
+            .map(([k, v]) => `${k}: ${v.source}→[${v.target.join(", ")}]`)
+            .join("; ") || "(none)";
+        return `Elements: [${els}]\nRelationships: ${rels}`;
+      };
+
+      const sys = [
+        "You are a strict patch verifier for a modeling tool. The user may write in ANY language.",
+        "Task: Compare the user's instruction with the CURRENT PATCH. If anything is missing, return ONLY the missing operations to fully satisfy the instruction.",
+        'Output MUST be a single valid JSON object: {"ops": [...]} (PATCH schema).',
+        "Do NOT repeat operations already covered. Use only element names in refs.",
+        "Use ONLY element/relationship types allowed by the abstract syntax below.",
+        "If a relationship type is not provided and exactly one candidate fits the meta, use it.",
+        "Expand lists/conjunctions in the user's instruction.",
+        'If nothing is missing, return {"ops":[]}."',
+        "",
+        "Abstract syntax (strict):",
+        summarizeAbsLite(abs)
+      ].join("\n");
+
+      const payload = {
+        mode,
+        userInstruction: userGoal,
+        currentPatch,
+        ...(modelSnapshot ? { modelSnapshot } : {})
+      };
+
+      const { text } = await callBackendCascade(
+        selectedModel,
+        JSON.stringify(payload),
+        sys,
+        { perModelRetries: 1, validate: (out) => !!safeParseJSON(stripCodeFences(out)) }
+      );
+
+      const extra = safeParseJSON(stripCodeFences(text));
+      if (extra && Array.isArray(extra.ops)) return extra as PatchEnvelope;
+      return { ops: [] };
+    };
 
     // ========= EDIT =========
-    if (effectiveMode === "EDIT" && hasSelection) {
+    if (effectiveMode === "EDIT") {
+      if (!targetModel) throw new Error("No hay modelo seleccionado para editar. Selecciona uno en el árbol o usa /create.");
+
       const snapshot = buildSnapshot(targetModel);
       const prompt = buildEditPrompt({ snapshot, userGoal: cleanUserText, patchSchema: PATCH_SCHEMA_TEXT });
-      stageStep("Calling API… (edit)");
 
-      const { text: botText, usedModelId } = await callOpenRouterCascade(
-        apiKey, selectedModel, prompt, sysBase(true, plk),
+      stageStep("Calling API… (edit)");
+      const { text: botText, usedModelId } = await callBackendCascade(
+        selectedModel,
+        prompt,
+        sysBase(true, plk),
         { perModelRetries: 1, validate: (raw) => !!parse(raw) }
       );
 
-      setThread((prev) => {
-        const copy = [...prev];
-        copy[placeholderIdx] = { role: "assistant", content: (botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}` };
-        return copy;
-      });
+      setAssistantText((botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`);
 
       const parsed = parse(botText || "");
       if (!parsed) throw new Error("La respuesta no es JSON válido.");
@@ -2972,7 +2835,7 @@ const send = async (userText: string) => {
         ? (parsed as PatchEnvelope)
         : (() => { throw new Error("Esperaba PATCH en modo EDIT."); })();
 
-      // 2 pasadas de completitud
+      // 2 pasadas para “completar” instrucciones faltantes
       for (let pass = 0; pass < 2; pass++) {
         const extra = await llmCompleteMissingOpsLocal("EDIT", cleanUserText, patch, snapshot);
         if (!extra?.ops?.length) break;
@@ -2983,11 +2846,13 @@ const send = async (userText: string) => {
       patch = upgradeDeleteCreateToUpdate(patch, targetModel, abs);
       patch = addMissingRequiredPropsLocal(patch, abs, cleanUserText);
       patch = dedupeConnects(patch);
-      normalizeRefsInOps(patch.ops as any[], targetModel, patch);
+
+      normalizeRefsInOps(patch.ops as any[], targetModel, patch, cleanUserText);
       patch = repairUnknownSelectorsByMentions(patch, targetModel, cleanUserText);
+
       const { creates, connects, others } = splitCreateConnect(patch);
 
-      // 1) create
+      // 1) creates
       let createsSan = sanitizePatchForEditStrict(creates, targetModel, abs);
       createsSan = assignPositionsToCreates(createsSan, targetModel);
       if (createsSan.ops.length) {
@@ -3004,6 +2869,7 @@ const send = async (userText: string) => {
         stageStep(`Applying other ops (${othersSan.ops.length})…`);
         othersSan = bindNameRefsToIds(othersSan, targetModel);
         othersSan = scopeRelationshipDeletesToDeletedElements(othersSan, targetModel);
+
         await withNoAlert(() => applyPatch(ps, targetModel!, othersSan));
 
         if (ensureTypeChangeApplied(othersSan, targetModel, abs)) {
@@ -3021,6 +2887,7 @@ const send = async (userText: string) => {
       let connectsSan = sanitizePatchForEditStrict(connectsHealed, targetModel, abs);
       connectsSan = filterConnectsForEdit(connectsSan, createsSan, targetModel, cleanUserText);
       connectsSan = bindNameRefsToIds(connectsSan, targetModel);
+
       if (connectsSan.ops.length) {
         stageStep(`Applying relationships (${connectsSan.ops.length})…`);
         await withNoAlert(() => applyPatch(ps, targetModel!, connectsSan));
@@ -3032,14 +2899,13 @@ const send = async (userText: string) => {
       }
 
       stageStep("Done ✅");
-      setBusy(false);
-      setTimeout(() => setStage(""), 800);
       return;
     }
 
     // ========= CREATE =========
     stageStep("Calling API… (create)");
 
+    const langName = opLanguage?.name || ps.getSelectedLanguage?.() || "Language";
     const memoryHint = plk ? [
       `[Contexto del proyecto]`,
       `Raíces comunes (mismo lenguaje): {${(plk.sameLang.rootNames || []).join(", ")}}`,
@@ -3056,33 +2922,34 @@ const send = async (userText: string) => {
       patchSchema: PATCH_SCHEMA_TEXT
     });
 
-    const { text: botText, usedModelId } = await callOpenRouterCascade(
-      apiKey, selectedModel, userPromptCreate, sysBase(false, plk),
+    const { text: botText, usedModelId } = await callBackendCascade(
+      selectedModel,
+      userPromptCreate,
+      sysBase(false, plk),
       { perModelRetries: 1, validate: (raw) => !!parse(raw) }
     );
 
-    setThread((prev) => {
-      const copy = [...prev];
-      copy[placeholderIdx] = { role: "assistant", content: (botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}` };
-      return copy;
-    });
+    setAssistantText((botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`);
 
     const parsed = parse(botText || "");
     if (!parsed) throw new Error("La respuesta del modelo no es JSON válido.");
 
-    // Normalizamos a PLAN sin salirnos del lenguaje
+    // Normalizar salida a PLAN “dentro del lenguaje”
     let originalCreatesCount = 0;
     let planNormalized: PlanLLM;
+
     if (Array.isArray((parsed as any)?.ops)) {
       const patchLLM = parsed as PatchEnvelope;
       originalCreatesCount = (patchLLM.ops || []).filter(o => (o as any).op === "createElement").length;
-      const absCreate = getAbstract();
+
       const patchSan1 = sanitizePatchForCreateStrictLocal(
-        dedupeConnects(addMissingRequiredPropsLocal(patchLLM, absCreate, cleanUserText)),
-        absCreate
+        dedupeConnects(addMissingRequiredPropsLocal(patchLLM, abs, cleanUserText)),
+        abs
       );
+      normalizeRefsInOps(patchSan1.ops as any[], undefined, patchSan1, cleanUserText);
+
       const planLite = patchToPlanLiteLocal(patchSan1);
-      planNormalized = validatePlanStrict(planLite, absCreate);
+      planNormalized = validatePlanStrict(planLite, abs);
     } else {
       const plan0 = (parsed as any).nodes || (parsed as any).edges ? nodesEdgesToPlan(parsed) : (parsed as any);
       planNormalized = validatePlanStrict(plan0, abs);
@@ -3091,33 +2958,31 @@ const send = async (userText: string) => {
 
     if (!planNormalized.elements.length) throw new Error("PLAN vacío tras sanitizar.");
 
-    // PLAN → PATCH inicial
+    // PLAN → PATCH base
     let patch = planToPatch(planNormalized, { elements: [], relationships: [] }, abs);
     patch = sanitizePatchForCreateStrictLocal(dedupeConnects(patch), abs);
-    normalizeRefsInOps(patch.ops as any[], /*model*/ undefined, /*patchForCreate*/ patch);
+    normalizeRefsInOps(patch.ops as any[], undefined, patch, cleanUserText);
 
-    // ===== PASADAS DE COMPLETITUD EN CREATE (NUEVO) =====
+    // 2 pasadas de completitud también en CREATE
     for (let pass = 0; pass < 2; pass++) {
-      const extra = await llmCompleteMissingOpsLocal("CREATE", cleanUserText, patch /* no snapshot */);
+      const extra = await llmCompleteMissingOpsLocal("CREATE", cleanUserText, patch);
       if (!extra?.ops?.length) break;
 
-      // Sanitizar el extra y fusionar
       let extraSan = sanitizePatchForCreateStrictLocal(
         dedupeConnects(addMissingRequiredPropsLocal(extra, abs, cleanUserText)),
         abs
       );
-      normalizeRefsInOps(extraSan.ops as any[], undefined, extraSan);
+      normalizeRefsInOps(extraSan.ops as any[], undefined, extraSan, cleanUserText);
       patch = mergePatches(patch, extraSan);
     }
 
-    // Si el LLM propuso muchos elementos pero la sanitización dejó muy pocos → recast dentro del lenguaje
+    // Si se “cayeron” demasiados elementos por tipos inválidos → recast
     const keptCreates = (patch.ops || []).filter(o => (o as any).op === "createElement").length;
     const heavyDrop = originalCreatesCount > 0 && keptCreates < Math.max(3, Math.ceil(originalCreatesCount / 2));
     if (heavyDrop) {
       addLog(`[create] Heavy drop detected (${keptCreates}/${originalCreatesCount}). Recasting within language…`);
 
       const allowed = Object.keys(abs.elements || {}).join(", ");
-      const recastSys = sysBase(false, plk);
       const recastUser = [
         "Your previous output used types outside the current language.",
         "Re-issue a complete PLAN strictly using ONLY these element types:",
@@ -3128,21 +2993,25 @@ const send = async (userText: string) => {
         cleanUserText
       ].join("\n");
 
-      const { text: recastText } = await callOpenRouterCascade(
-        apiKey, selectedModel, recastUser, recastSys,
+      const { text: recastText } = await callBackendCascade(
+        selectedModel,
+        recastUser,
+        sysBase(false, plk),
         { perModelRetries: 1, validate: (raw) => !!parse(raw) }
       );
 
       const recParsed = parse(recastText || "");
       if (recParsed) {
         let recPlan: PlanLLM;
+
         if (Array.isArray((recParsed as any)?.ops)) {
           const patchLLM = recParsed as PatchEnvelope;
           const patchSan1 = sanitizePatchForCreateStrictLocal(
             dedupeConnects(addMissingRequiredPropsLocal(patchLLM, abs, cleanUserText)),
             abs
           );
-          normalizeRefsInOps(patchSan1.ops as any[], undefined, patchSan1);
+          normalizeRefsInOps(patchSan1.ops as any[], undefined, patchSan1, cleanUserText);
+
           const planLite = patchToPlanLiteLocal(patchSan1);
           recPlan = validatePlanStrict(planLite, abs);
         } else {
@@ -3153,14 +3022,14 @@ const send = async (userText: string) => {
         if (recPlan.elements.length) {
           let recPatch = planToPatch(recPlan, { elements: [], relationships: [] }, abs);
           recPatch = sanitizePatchForCreateStrictLocal(dedupeConnects(recPatch), abs);
-          normalizeRefsInOps(recPatch.ops as any[], undefined, recPatch);
-          patch = mergePatches({ ops: [] }, recPatch); // reemplaza por la versión recasteada
+          normalizeRefsInOps(recPatch.ops as any[], undefined, recPatch, cleanUserText);
+          patch = { ops: [...recPatch.ops] }; // reemplaza
         }
       }
     }
 
-    // Descarta connects con ids en CREATE
-    patch.ops = patch.ops.filter(op =>
+    // CREATE: descarta connects que vengan con ids (deben ser name-only)
+    patch.ops = (patch.ops || []).filter(op =>
       op.op !== "connect" || (!op.source?.id && !op.target?.id)
     );
 
@@ -3168,39 +3037,35 @@ const send = async (userText: string) => {
 
     stageStep("Injecting model…");
     await withNoAlert(() => {
-      const created = injectIntoProject(planLiteFinal, currentLanguage as Language, phase, abs);
+      const created = injectIntoProject(planLiteFinal, opLanguage as Language, phase, abs);
       if (created?.id) lastModelIdRef.current = created.id;
     });
 
     stageStep("Listo ✅");
-    setBusy(false);
-    setTimeout(() => setStage(""), 800);
     return;
 
   } catch (e: any) {
     addLog(`[error] ${e?.message || e}`);
-    const msg = String(e?.message || "");
+    const msg = String(e?.message || e);
+
     let hint = "";
-    if (/free model publication/i.test(msg)) {
-      hint = "\nAjusta tu privacidad en OpenRouter (Settings → Privacy → habilita Free model publication) o usa un modelo no-free.";
-    } else if (/404/i.test(msg)) {
-      hint = "\nEl endpoint del proveedor no está disponible ahora (404). Prueba de nuevo o selecciona otro modelo.";
-    } else if (/429/i.test(msg)) {
-      hint = "\nHas alcanzado el rate limit (429). Espera un poco o cambia de modelo.";
+    if (/Empty AI response/i.test(msg)) {
+      hint = "\nEl backend respondió vacío. Revisa el handler /ai/chat y que esté retornando {content, usedModelId}.";
+    } else if (/404|not found/i.test(msg)) {
+      hint = "\nRevisa que exista el endpoint POST /ai/chat en tu backend y que PROJECTS_CLIENT apunte al baseURL correcto.";
+    } else if (/429|rate limit/i.test(msg)) {
+      hint = "\nRate limit. Prueba otro modelo o configura throttling/caching en el backend.";
+    } else if (/timeout|network/i.test(msg)) {
+      hint = "\nError de red/timeout. Revisa CORS, baseURL del axios client y logs del backend.";
     }
-    setThread((prev) => {
-      const copy = [...prev];
-      const idx = copy.findIndex((m) => m.content === "__typing__");
-      const text = "Error: " + msg + hint;
-      if (idx >= 0) copy[idx] = { role: "assistant", content: text };
-      else copy.push({ role: "assistant", content: text });
-      return copy;
-    });
+
+    setAssistantText("Error: " + msg + hint);
   } finally {
     setBusy(false);
     setTimeout(() => setStage(""), 800);
   }
 };
+
 
 
 
