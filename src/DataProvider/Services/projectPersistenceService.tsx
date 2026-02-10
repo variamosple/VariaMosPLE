@@ -2,6 +2,20 @@ import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/En
 import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
 import { PROJECTS_CLIENT } from "../../Infraestructure/AxiosConfig";
 
+export type ChatRole = "system" | "user" | "assistant";
+export type ChatMessage = { role: ChatRole; content: string };
+
+export type AIChatRequest = {
+  primaryModelId: string;
+  fallbackModelIds?: string[];
+  messages: ChatMessage[];
+};
+
+export type AIChatResult = {
+  content: string;
+  usedModelId: string;
+};
+
 export default class ProjectPersistenceService {
   getProjectsByUser(user: string, successCallback: any, errorCallback: any) {
     try {
@@ -12,7 +26,8 @@ export default class ProjectPersistenceService {
         }
         successCallback({
           owned_projects: owned_projects,
-          shared_projects: shared_projects});
+          shared_projects: shared_projects
+        });
       });
     } catch (error) {
       console.log("Something wrong in getProjectsByUser Service: " + error);
@@ -244,16 +259,16 @@ export default class ProjectPersistenceService {
     }
   }
   // ADDED SHARE FUNCTIONS
-  async shareProject(  projectId: string,  toUserEmail: string,  role: string): Promise<any> {
+  async shareProject(projectId: string, toUserEmail: string, role: string): Promise<any> {
     if (!projectId || !toUserEmail || !role) {
       throw new Error("Invalid input parameters");
     }
-    
+
 
     let project_id = projectId;
     let user_email = toUserEmail;
     let user_role = role;
-    
+
     try {
       const res = await PROJECTS_CLIENT.post("/shareProject", {
         user_email,
@@ -276,7 +291,7 @@ export default class ProjectPersistenceService {
     projectId: string,
     successCallback: any,
     errorCallback: any
-  ):void {
+  ): void {
     try {
       PROJECTS_CLIENT.post("/changeProjectCollaborative", {
         project_id: projectId,
@@ -290,12 +305,12 @@ export default class ProjectPersistenceService {
           successCallback(responseAPISuccess.data);
         }
       })
-      .catch((error) => {
-        console.error("Error:", error);
-        if (errorCallback) {
-          errorCallback(error);
-        }
-      });
+        .catch((error) => {
+          console.error("Error:", error);
+          if (errorCallback) {
+            errorCallback(error);
+          }
+        });
     } catch (error) {
       console.error("Something wrong in changeProjectCollaborationState Service:", error);
       if (errorCallback) {
@@ -304,26 +319,26 @@ export default class ProjectPersistenceService {
     }
   }
 
-  async getProjectCollaborators(projectId: string):Promise<any> {
+  async getProjectCollaborators(projectId: string): Promise<any> {
     try {
       const res = await PROJECTS_CLIENT.get("/usersProject", {
         params: { project_id: projectId },
       });
-  
+
       let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
       responseAPISuccess = Object.assign(responseAPISuccess, res.data);
       if (responseAPISuccess.message?.includes("Error")) {
         throw new Error(JSON.stringify(res.data));
       }
       return responseAPISuccess.data?.["users"];
-  
-    }catch (error) {
+
+    } catch (error) {
       console.error("Error in getProjectCollaborators Service:", error);
       throw error;
     }
-}
+  }
 
-  async removeCollaborator(projectId:string, collaboratorId:string): Promise<any> {
+  async removeCollaborator(projectId: string, collaboratorId: string): Promise<any> {
     try {
       const res = await PROJECTS_CLIENT.delete("/removeCollaborator", {
         params: { project_id: projectId, collaborator_id: collaboratorId },
@@ -342,7 +357,7 @@ export default class ProjectPersistenceService {
     }
   }
 
-  async changeCollaboratorRole(projectId :string, collaboratorId:string, role:string): Promise<any> {
+  async changeCollaboratorRole(projectId: string, collaboratorId: string, role: string): Promise<any> {
     try {
 
       const res = await PROJECTS_CLIENT.post("/changeUserRole", {
@@ -364,28 +379,28 @@ export default class ProjectPersistenceService {
 
   async initUser(): Promise<any> {
     try {
-        const res = await PROJECTS_CLIENT.get("/getUser");
-        const responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
+      const res = await PROJECTS_CLIENT.get("/getUser");
+      const responseAPISuccess: ResponseAPISuccess = Object.assign(new ResponseAPISuccess(), res.data);
 
-        if (responseAPISuccess.message?.includes("Error")) {
-            throw new Error(JSON.stringify(res.data));
-        }
-        
-    return responseAPISuccess.data?.["user"];
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess.data?.["user"];
 
     } catch (error) {
-        console.error("Error in getActualUser Service:", error);
-        throw error;
+      console.error("Error in getActualUser Service:", error);
+      throw error;
     }
   }
 
 
-  async getUserRole(projectId:string): Promise<any> {
-    try{
+  async getUserRole(projectId: string): Promise<any> {
+    try {
       const res = await PROJECTS_CLIENT.get("/getUserRole", {
         params: { project_id: projectId },
       });
-  
+
       let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
       responseAPISuccess = Object.assign(responseAPISuccess, res.data);
       if (responseAPISuccess.message?.includes("Error")) {
@@ -393,7 +408,7 @@ export default class ProjectPersistenceService {
       }
       return responseAPISuccess.data?.["role"];
 
-    }catch (error) {
+    } catch (error) {
       console.error("Error in getUserRole Service:", error);
       throw error;
 
@@ -428,3 +443,42 @@ export class ResponseAPIError {
     this.data = data;
   }
 }
+
+export class VariamosAIService {
+  chat(
+    req: AIChatRequest,
+    successCallback: (result: AIChatResult) => void,
+    errorCallback?: (error: any) => void
+  ): void {
+    PROJECTS_CLIENT.post("/api/ai/chat", req)
+      .then((res) => {
+        const raw: any = res.data ?? {};
+        const content = String(raw?.content ?? "").trim();
+        const usedModelId = String(raw?.usedModelId ?? req.primaryModelId ?? "").trim();
+
+        if (!content) throw new Error("Empty AI response from backend");
+        successCallback({ content, usedModelId });
+      })
+      .catch((error) => {
+        const status = error?.response?.status;
+        const data = error?.response?.data;
+
+        // intenta extraer un mensaje útil del backend
+        const detail = data?.detail ?? data;
+        const msg =
+          detail?.error?.message ??
+          detail?.error ??
+          (typeof detail === "string" ? detail : JSON.stringify(detail));
+
+        const wrapped = new Error(msg || error?.message || "AI backend error");
+        (wrapped as any).status = status;
+        (wrapped as any).detail = detail;
+
+        console.error("Error in VariamosAIService.chat:", wrapped);
+        if (errorCallback) errorCallback(wrapped);
+      });
+  }
+}
+
+
+
