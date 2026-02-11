@@ -445,40 +445,64 @@ export class ResponseAPIError {
 }
 
 export class VariamosAIService {
-  chat(
-    req: AIChatRequest,
-    successCallback: (result: AIChatResult) => void,
-    errorCallback?: (error: any) => void
-  ): void {
-    PROJECTS_CLIENT.post("/api/ai/chat", req)
-      .then((res) => {
-        const raw: any = res.data ?? {};
-        const content = String(raw?.content ?? "").trim();
-        const usedModelId = String(raw?.usedModelId ?? req.primaryModelId ?? "").trim();
-
-        if (!content) throw new Error("Empty AI response from backend");
-        successCallback({ content, usedModelId });
-      })
-      .catch((error) => {
-        const status = error?.response?.status;
-        const data = error?.response?.data;
-
-        // intenta extraer un mensaje útil del backend
-        const detail = data?.detail ?? data;
-        const msg =
-          detail?.error?.message ??
-          detail?.error ??
-          (typeof detail === "string" ? detail : JSON.stringify(detail));
-
-        const wrapped = new Error(msg || error?.message || "AI backend error");
-        (wrapped as any).status = status;
-        (wrapped as any).detail = detail;
-
-        console.error("Error in VariamosAIService.chat:", wrapped);
-        if (errorCallback) errorCallback(wrapped);
+  async chat(req: AIChatRequest): Promise<AIChatResult> {
+    try {
+      const res = await PROJECTS_CLIENT.post("/api/ai/chat", req, {
+        timeout: 60000,
+        // importante si hay cookies/sesión cross-origin
+        withCredentials: true,
+        headers: { "Content-Type": "application/json" }
       });
+
+      const raw: any = res.data ?? {};
+
+      const content =
+        String(raw?.content ?? raw?.text ?? raw?.message ?? "").trim();
+
+      const usedModelId =
+        String(raw?.usedModelId ?? raw?.model ?? req.primaryModelId ?? "").trim();
+
+      if (!content) {
+        // Esto te dice “respondió pero no con el schema esperado”
+        throw new Error(
+          `AI backend returned no content. Keys=${Object.keys(raw).join(",")}`
+        );
+      }
+
+      return { content, usedModelId };
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+      const cfg = error?.config;
+
+      // 👇 súper útil para encontrar /api/api, baseURL incorrecto, etc.
+      console.error("[AI chat] request:", {
+        baseURL: cfg?.baseURL,
+        url: cfg?.url,
+        method: cfg?.method,
+        withCredentials: cfg?.withCredentials,
+        timeout: cfg?.timeout
+      });
+
+      const detail = data?.detail ?? data;
+      const msg =
+        detail?.error?.message ??
+        detail?.message ??
+        detail?.error ??
+        (typeof detail === "string" ? detail : null) ??
+        error?.message ??
+        "AI backend error";
+
+      const wrapped = new Error(msg);
+      (wrapped as any).status = status;
+      (wrapped as any).detail = detail;
+
+      console.error("[AI chat] response:", { status, data: detail });
+      throw wrapped;
+    }
   }
 }
+
 
 
 

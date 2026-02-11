@@ -19,15 +19,7 @@ import treeCollaborationService from "../../../DataProvider/Services/collab/tree
 /** ===== Tipos ===== */
 const aiService = new VariamosAIService();
 
-const chatBackend = (req: AIChatRequest) =>
-  new Promise<AIChatResult>((resolve, reject) => {
-    aiService.chat(
-      req,
-      (result: AIChatResult) => resolve(result),
-      (err: any) => reject(err)
-    );
-  });
-
+const chatBackend = (req: AIChatRequest) => aiService.chat(req);
 
 type ModePref = "AUTO" | "EDIT" | "CREATE";
 
@@ -92,14 +84,13 @@ const resolveLanguageForModel = (all: Language[], model: any): Language | null =
 
 type ValueProp = { name: string; value: string };
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const MODEL_OPTIONS: ModelOption[] = [
   { id: "qwen/qwen3-next-80b-a3b-instruct:free", label: "Qwen3 Next 80B Instruct", free: true },
   { id: "qwen/qwen3-coder:free", label: "Qwen: Qwen3 Coder 480B", free: true },
-   { id: "deepseek/deepseek-r1-0528:free", label: "DeepSeek R1", free: true },
-   { id: "meta-llama/llama-3.2-3b-instruct:free", label: "Meta: Llama 3.2 3B Instruct", free: true },
-   { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Meta: Llama 3.3 70B Instruct", free: true },
+  { id: "deepseek/deepseek-r1-0528:free", label: "DeepSeek R1", free: true },
+  { id: "meta-llama/llama-3.2-3b-instruct:free", label: "Meta: Llama 3.2 3B Instruct", free: true },
+  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Meta: Llama 3.3 70B Instruct", free: true },
   { id: "mistralai/mistral-small-3.1-24b-instruct:free", label: "Mistral: Mistral Small 3.1", free: true },
   { id: "openai/gpt-oss-120b:free", label: "OpenAI: gpt-oss-120b", free: true },
   { id: "openai/gpt-oss-20b:free", label: "OpenAI: gpt-oss-20b", free: true }
@@ -469,15 +460,13 @@ async function callBackendCascade(
 
   const makeReq = (startIdx: number): AIChatRequest => ({
     primaryModelId: order[startIdx],
-    fallbackModelIds: order.slice(startIdx + 1),
+    fallbackModelIds: order.slice(startIdx + 1, startIdx + 3),
     messages: systemContent
       ? [
         { role: "system", content: systemContent },
-        { role: "user", content: userContent }
+        { role: "user", content: userContent },
       ]
-      : [
-        { role: "user", content: userContent }
-      ]
+      : [{ role: "user", content: userContent }],
   });
 
   const isRetryableMsg = (msg: string) =>
@@ -2470,166 +2459,385 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
 
 
   const send = async (userText: string) => {
-  if (busy) return;
-  setBusy(true);
+    if (busy) return;
+    setBusy(true);
 
-  // ===== helpers locales (solo para esta función) =====
-  const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
+    // ===== helpers locales (solo para esta función) =====
+    const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
 
-  const strip = (t: string) => stripCodeFences(t);
-  const parse = (t: string) => safeParseJSON(strip(t));
+    const strip = (t: string) => stripCodeFences(t);
+    const parse = (t: string) => safeParseJSON(strip(t));
 
-  const dedupeConnects = (env: PatchEnvelope): PatchEnvelope => {
-    const seen = new Set<string>();
-    const out: PatchEnvelope = { ops: [] };
-    for (const raw of env.ops || []) {
-      const op: any = raw;
-      if (op?.op !== "connect") { out.ops.push(op); continue; }
-      const sTok = String(op.source?.name ?? op.source?.id ?? "");
-      const tTok = String(op.target?.name ?? op.target?.id ?? "");
-      const rTyp = String(op.type ?? "");
-      const key = `${rTyp}|${sTok}|${tTok}|${JSON.stringify(op.properties || [])}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.ops.push(op);
-    }
-    return out;
-  };
-
-  const splitCreateConnect = (env: PatchEnvelope) => {
-    const creates: any[] = [], connects: any[] = [], others: any[] = [];
-    for (const raw of env.ops || []) {
-      const op: any = raw;
-      if (!op || !op.op) continue;
-      if (op.op === "createElement") creates.push(op);
-      else if (op.op === "connect") connects.push(op);
-      else others.push(op);
-    }
-    return {
-      creates: { ops: creates } as PatchEnvelope,
-      connects: { ops: connects } as PatchEnvelope,
-      others: { ops: others } as PatchEnvelope
-    };
-  };
-
-  const mergePatches = (base: PatchEnvelope, extra: PatchEnvelope): PatchEnvelope => {
-    const names = new Set<string>();
-    for (const op of base.ops || [])
-      if ((op as any).op === "createElement") names.add(String((op as any).name || ""));
-
-    const out: PatchEnvelope = { ops: [...(base.ops || [])] };
-    const seen = new Set<string>();
-
-    for (const raw of extra.ops || []) {
-      const op: any = raw;
-      const key = JSON.stringify(op);
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      if (op.op === "createElement") {
-        const nm = String(op.name || "");
-        if (!nm || names.has(nm)) continue;
-        names.add(nm);
-        out.ops.push(op);
-      } else {
+    const dedupeConnects = (env: PatchEnvelope): PatchEnvelope => {
+      const seen = new Set<string>();
+      const out: PatchEnvelope = { ops: [] };
+      for (const raw of env.ops || []) {
+        const op: any = raw;
+        if (op?.op !== "connect") { out.ops.push(op); continue; }
+        const sTok = String(op.source?.name ?? op.source?.id ?? "");
+        const tTok = String(op.target?.name ?? op.target?.id ?? "");
+        const rTyp = String(op.type ?? "");
+        const key = `${rTyp}|${sTok}|${tTok}|${JSON.stringify(op.properties || [])}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
         out.ops.push(op);
       }
-    }
-    return out;
-  };
-
-  // suprime alert durante applyPatch (para que no interrumpa el flujo)
-  const withNoAlert = async <T,>(fn: () => T | Promise<T>): Promise<T> => {
-    const prev = window.alert;
-    window.alert = (...args: any[]) => {
-      try {
-        addLog(`[alert suppressed] ${args.map(a => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")}`);
-      } catch { }
+      return out;
     };
-    try { return await fn(); } finally { window.alert = prev; }
-  };
 
-  const getSelectedModel = () => {
-    const selectedId = ps.getTreeIdItemSelected?.();
-    return selectedId ? ps.findModelById(ps.project, selectedId) : null;
-  };
+    const splitCreateConnect = (env: PatchEnvelope) => {
+      const creates: any[] = [], connects: any[] = [], others: any[] = [];
+      for (const raw of env.ops || []) {
+        const op: any = raw;
+        if (!op || !op.op) continue;
+        if (op.op === "createElement") creates.push(op);
+        else if (op.op === "connect") connects.push(op);
+        else others.push(op);
+      }
+      return {
+        creates: { ops: creates } as PatchEnvelope,
+        connects: { ops: connects } as PatchEnvelope,
+        others: { ops: others } as PatchEnvelope
+      };
+    };
 
-  const forceRefresh = (model?: any) => {
-    if (model) ps.raiseEventSelectedModel?.(model);
-    ps.requestRender?.();
-    ps.repaint?.();
-  };
+    const mergePatches = (base: PatchEnvelope, extra: PatchEnvelope): PatchEnvelope => {
+      const names = new Set<string>();
+      for (const op of base.ops || [])
+        if ((op as any).op === "createElement") names.add(String((op as any).name || ""));
 
-  const getLanguageForSelectedModel = (m: any): Language | null => {
-    const lang = resolveLanguageForModel(allLanguages, m);
-    if (!lang) return null;
+      const out: PatchEnvelope = { ops: [...(base.ops || [])] };
+      const seen = new Set<string>();
 
-    const dropdownKey = String(getLanguageKey(currentLanguage as any));
-    const modelKey = String(getLanguageKey(lang));
-    if (dropdownKey && modelKey && dropdownKey !== modelKey) {
-      addLog(`[warn] Selected model language "${lang.name}" differs from dropdown "${currentLanguage?.name}". Using model language for EDIT.`);
+      for (const raw of extra.ops || []) {
+        const op: any = raw;
+        const key = JSON.stringify(op);
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        if (op.op === "createElement") {
+          const nm = String(op.name || "");
+          if (!nm || names.has(nm)) continue;
+          names.add(nm);
+          out.ops.push(op);
+        } else {
+          out.ops.push(op);
+        }
+      }
+      return out;
+    };
+
+    // suprime alert durante applyPatch (para que no interrumpa el flujo)
+    const withNoAlert = async <T,>(fn: () => T | Promise<T>): Promise<T> => {
+      const prev = window.alert;
+      window.alert = (...args: any[]) => {
+        try {
+          addLog(`[alert suppressed] ${args.map(a => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")}`);
+        } catch { }
+      };
+      try { return await fn(); } finally { window.alert = prev; }
+    };
+
+    const getSelectedModel = () => {
+      const selectedId = ps.getTreeIdItemSelected?.();
+      return selectedId ? ps.findModelById(ps.project, selectedId) : null;
+    };
+
+    const forceRefresh = (model?: any) => {
+      if (model) ps.raiseEventSelectedModel?.(model);
+      ps.requestRender?.();
+      ps.repaint?.();
+    };
+
+    const getLanguageForSelectedModel = (m: any): Language | null => {
+      const lang = resolveLanguageForModel(allLanguages, m);
+      if (!lang) return null;
+
+      const dropdownKey = String(getLanguageKey(currentLanguage as any));
+      const modelKey = String(getLanguageKey(lang));
+      if (dropdownKey && modelKey && dropdownKey !== modelKey) {
+        addLog(`[warn] Selected model language "${lang.name}" differs from dropdown "${currentLanguage?.name}". Using model language for EDIT.`);
+      }
+      return lang;
+    };
+
+    // ===== guardas =====
+    if (!ps || !currentLanguage) {
+      addLog("ps/language not available");
+      setBusy(false);
+      return;
     }
-    return lang;
-  };
 
-  // ===== guardas =====
-  if (!ps || !currentLanguage) {
-    addLog("ps/language not available");
-    setBusy(false);
-    return;
-  }
-
-  // ===== UI: agrega mensaje del usuario + placeholder del bot (para fast-path y LLM) =====
-  let placeholderIdx = -1;
-  setThread(prev => {
-    const next: Message[] = [
-      ...prev,
-      { role: "user", content: String(userText) },
-      { role: "assistant", content: "__typing__" }
-    ];
-    placeholderIdx = next.length - 1;
-    return next;
-  });
-
-  const setAssistantText = (text: string) => {
+    // ===== UI: agrega mensaje del usuario + placeholder del bot (para fast-path y LLM) =====
+    let placeholderIdx = -1;
     setThread(prev => {
-      const copy = [...prev];
-      if (placeholderIdx >= 0 && copy[placeholderIdx]?.content === "__typing__") {
-        copy[placeholderIdx] = { role: "assistant", content: text };
-      } else {
-        const idx = copy.findIndex(m => m.content === "__typing__");
-        if (idx >= 0) copy[idx] = { role: "assistant", content: text };
-        else copy.push({ role: "assistant", content: text });
-      }
-      return copy;
+      const next: Message[] = [
+        ...prev,
+        { role: "user", content: String(userText) },
+        { role: "assistant", content: "__typing__" }
+      ];
+      placeholderIdx = next.length - 1;
+      return next;
     });
-  };
 
-  try {
-    // ============================================================
-    // 1) FAST-PATH: si el usuario pegó JSON (PATCH o PLAN), NO llamamos LLM
-    // ============================================================
-    const userObj = parse(userText);
-    if (userObj && (looksLikePatch(userObj) || looksLikePlan(userObj))) {
-      // ---------- PATCH directo ----------
-      if (looksLikePatch(userObj)) {
-        let targetModel = getSelectedModel();
-        if (!targetModel) throw new Error("No hay modelo seleccionado para aplicar el PATCH.");
+    const setAssistantText = (text: string) => {
+      setThread(prev => {
+        const copy = [...prev];
+        if (placeholderIdx >= 0 && copy[placeholderIdx]?.content === "__typing__") {
+          copy[placeholderIdx] = { role: "assistant", content: text };
+        } else {
+          const idx = copy.findIndex(m => m.content === "__typing__");
+          if (idx >= 0) copy[idx] = { role: "assistant", content: text };
+          else copy.push({ role: "assistant", content: text });
+        }
+        return copy;
+      });
+    };
 
-        const langForModel = getLanguageForSelectedModel(targetModel) || currentLanguage;
-        const abs = getAbstract(langForModel);
-        if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
+    try {
+      // ============================================================
+      // 1) FAST-PATH: si el usuario pegó JSON (PATCH o PLAN), NO llamamos LLM
+      // ============================================================
+      const userObj = parse(userText);
+      if (userObj && (looksLikePatch(userObj) || looksLikePlan(userObj))) {
+        // ---------- PATCH directo ----------
+        if (looksLikePatch(userObj)) {
+          let targetModel = getSelectedModel();
+          if (!targetModel) throw new Error("No hay modelo seleccionado para aplicar el PATCH.");
 
-        setAssistantText("Recibí un PATCH JSON. Ejecutándolo sin LLM…");
+          const langForModel = getLanguageForSelectedModel(targetModel) || currentLanguage;
+          const abs = getAbstract(langForModel);
+          if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
 
-        let patch: PatchEnvelope = userObj as PatchEnvelope;
+          setAssistantText("Recibí un PATCH JSON. Ejecutándolo sin LLM…");
 
+          let patch: PatchEnvelope = userObj as PatchEnvelope;
+
+          patch = upgradeDeleteCreateToUpdate(patch, targetModel, abs);
+          patch = addMissingRequiredPropsLocal(patch, abs, userText);
+          patch = dedupeConnects(patch);
+
+          normalizeRefsInOps(patch.ops as any[], targetModel, patch, userText);
+          patch = repairUnknownSelectorsByMentions(patch, targetModel, userText);
+
+          const { creates, connects, others } = splitCreateConnect(patch);
+
+          // 1) creates
+          let createsSan = sanitizePatchForEditStrict(creates, targetModel, abs);
+          createsSan = assignPositionsToCreates(createsSan, targetModel);
+          if (createsSan.ops.length) {
+            stageStep(`Creating elements (${createsSan.ops.length})…`);
+            await withNoAlert(() => applyPatch(ps, targetModel!, createsSan));
+            targetModel = ps.findModelById(ps.project, targetModel!.id) || targetModel;
+            forceRefresh(targetModel);
+            ps.saveProject?.();
+          }
+
+          // 2) otros ops (update/delete/rename/etc.)
+          let othersSan = sanitizePatchForEditStrict(others, targetModel, abs);
+          if (othersSan.ops.length) {
+            stageStep(`Applying other ops (${othersSan.ops.length})…`);
+            othersSan = bindNameRefsToIds(othersSan, targetModel);
+            othersSan = scopeRelationshipDeletesToDeletedElements(othersSan, targetModel);
+
+            await withNoAlert(() => applyPatch(ps, targetModel!, othersSan));
+
+            // por si applyPatch no aplica updateElement{type} correctamente
+            if (ensureTypeChangeApplied(othersSan, targetModel, abs)) {
+              forceRefresh(targetModel);
+              ps.saveProject?.();
+            }
+
+            targetModel = ps.findModelById(ps.project, targetModel!.id) || targetModel;
+            forceRefresh(targetModel);
+            ps.saveProject?.();
+          }
+
+          // 3) connects
+          let connectsHealed = fixDanglingConnectsUsingTypes(connects, targetModel, abs, userText, createsSan);
+          let connectsSan = sanitizePatchForEditStrict(connectsHealed, targetModel, abs);
+          connectsSan = filterConnectsForEdit(connectsSan, createsSan, targetModel, userText);
+          connectsSan = bindNameRefsToIds(connectsSan, targetModel);
+
+          if (connectsSan.ops.length) {
+            stageStep(`Applying relationships (${connectsSan.ops.length})…`);
+            await withNoAlert(() => applyPatch(ps, targetModel!, connectsSan));
+            forceRefresh(targetModel);
+            ps.saveProject?.();
+          } else {
+            addLog("[edit] No quedaron relaciones válidas tras sanitizar/bind.");
+          }
+
+          stageStep("Done ✅");
+          setAssistantText("PATCH aplicado ✅");
+          return;
+        }
+
+        // ---------- PLAN directo ----------
+        if (looksLikePlan(userObj)) {
+          const plan0 = userObj.nodes || userObj.edges ? nodesEdgesToPlan(userObj) : userObj;
+          const abs = getAbstract(currentLanguage);
+          if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
+
+          setAssistantText("Recibí un PLAN JSON. Creando modelo sin LLM…");
+
+          const plan = validatePlanStrict(plan0, abs);
+          if (!plan.elements.length) throw new Error("PLAN vacío o inválido.");
+
+          let patch = planToPatch(plan, { elements: [], relationships: [] }, abs);
+          patch = sanitizePatchForCreateStrictLocal(dedupeConnects(patch), abs);
+          normalizeRefsInOps(patch.ops as any[], undefined, patch, userText);
+
+          const planLite = patchToPlanLiteLocal(patch);
+
+          stageStep("Injecting model…");
+          await withNoAlert(() => {
+            const created = injectIntoProject(planLite, currentLanguage as Language, phase, abs);
+            if (created?.id) lastModelIdRef.current = created.id;
+          });
+
+          stageStep("Listo ✅");
+          setAssistantText("Modelo creado ✅");
+          return;
+        }
+      }
+
+      // ============================================================
+      // 2) LLM PATH
+      // ============================================================
+
+      // selección actual (si hay)
+      let targetModel = getSelectedModel();
+      const hasSelection = !!targetModel;
+
+      // comando inline /create o /edit (si viene)
+      const { clean: cleanUserText, forced } = extractInlineMode(userText);
+      const effectiveMode: "EDIT" | "CREATE" = forced ?? (hasSelection ? "EDIT" : "CREATE");
+
+      // idioma/meta para esta operación:
+      const opLanguage: Language =
+        (effectiveMode === "EDIT" && targetModel)
+          ? (getLanguageForSelectedModel(targetModel) || currentLanguage)
+          : currentLanguage;
+
+      const abs = getAbstract(opLanguage);
+      if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
+
+      // memoria (por lenguaje de operación)
+      const plk = harvestProductLineKnowledge(ps, opLanguage, 40);
+
+      const summarizeAbs = (a: AbstractSyntax) => {
+        const els = Object.keys(a.elements || {}).join(", ") || "(none)";
+        const rels = Object.entries(a.relationships || {})
+          .map(([k, v]) => `${k}: ${v.source}→[${v.target.join(", ")}]`)
+          .join("; ") || "(none)";
+        return `Elements: [${els}]\nRelationships: ${rels}`;
+      };
+
+      const sysBase = (hasSel: boolean, plkArg?: PLKnowledge) => {
+        const absSummary = summarizeAbs(abs);
+        const memory = renderProjectMemory(plkArg, opLanguage as Language);
+        return [
+          "You are a modeling assistant. Output MUST be one valid JSON (no backticks).",
+          hasSel
+            ? 'Return a PATCH only: {"ops":[...]}'
+            : 'Prefer a PLAN: {"name":...,"elements":[...],"relationships":[...]}. PATCH is also accepted.',
+          "CRITICAL: cover ALL instructions in one response. Use only element NAMES in refs.",
+          "To change classification/kind use updateElement with changes.type.",
+          "",
+          "Abstract syntax (strict):",
+          absSummary,
+          "",
+          memory
+        ].join("\n");
+      };
+
+      // Verificador de completitud (2 pasadas). Ojo: usa el ABS de la operación.
+      const llmCompleteMissingOpsLocal = async (
+        mode: "EDIT" | "CREATE",
+        userGoal: string,
+        currentPatch: PatchEnvelope,
+        modelSnapshot?: unknown
+      ): Promise<PatchEnvelope> => {
+        const summarizeAbsLite = (a: AbstractSyntax) => {
+          const els = Object.keys(a.elements || {}).join(", ") || "(none)";
+          const rels =
+            Object.entries(a.relationships || {})
+              .map(([k, v]) => `${k}: ${v.source}→[${v.target.join(", ")}]`)
+              .join("; ") || "(none)";
+          return `Elements: [${els}]\nRelationships: ${rels}`;
+        };
+
+        const sys = [
+          "You are a strict patch verifier for a modeling tool. The user may write in ANY language.",
+          "Task: Compare the user's instruction with the CURRENT PATCH. If anything is missing, return ONLY the missing operations to fully satisfy the instruction.",
+          'Output MUST be a single valid JSON object: {"ops": [...]} (PATCH schema).',
+          "Do NOT repeat operations already covered. Use only element names in refs.",
+          "Use ONLY element/relationship types allowed by the abstract syntax below.",
+          "If a relationship type is not provided and exactly one candidate fits the meta, use it.",
+          "Expand lists/conjunctions in the user's instruction.",
+          'If nothing is missing, return {"ops":[]}."',
+          "",
+          "Abstract syntax (strict):",
+          summarizeAbsLite(abs)
+        ].join("\n");
+
+        const payload = {
+          mode,
+          userInstruction: userGoal,
+          currentPatch,
+          ...(modelSnapshot ? { modelSnapshot } : {})
+        };
+
+        const { text } = await callBackendCascade(
+          selectedModel,
+          JSON.stringify(payload),
+          sys,
+          { perModelRetries: 1, validate: (out) => !!safeParseJSON(stripCodeFences(out)) }
+        );
+
+        const extra = safeParseJSON(stripCodeFences(text));
+        if (extra && Array.isArray(extra.ops)) return extra as PatchEnvelope;
+        return { ops: [] };
+      };
+
+      // ========= EDIT =========
+      if (effectiveMode === "EDIT") {
+        if (!targetModel) throw new Error("No hay modelo seleccionado para editar. Selecciona uno en el árbol o usa /create.");
+
+        const snapshot = buildSnapshot(targetModel);
+        const prompt = buildEditPrompt({ snapshot, userGoal: cleanUserText, patchSchema: PATCH_SCHEMA_TEXT });
+
+        stageStep("Calling API… (edit)");
+        const { text: botText, usedModelId } = await callBackendCascade(
+          selectedModel,
+          prompt,
+          sysBase(true, plk),
+          { perModelRetries: 1, validate: (raw) => !!parse(raw) }
+        );
+
+        setAssistantText((botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`);
+
+        const parsed = parse(botText || "");
+        if (!parsed) throw new Error("La respuesta no es JSON válido.");
+        let patch: PatchEnvelope = Array.isArray((parsed as any)?.ops)
+          ? (parsed as PatchEnvelope)
+          : (() => { throw new Error("Esperaba PATCH en modo EDIT."); })();
+
+        // 2 pasadas para “completar” instrucciones faltantes
+        for (let pass = 0; pass < 2; pass++) {
+          const extra = await llmCompleteMissingOpsLocal("EDIT", cleanUserText, patch, snapshot);
+          if (!extra?.ops?.length) break;
+          patch = mergePatches(patch, extra);
+        }
+
+        // Saneos + normalización
         patch = upgradeDeleteCreateToUpdate(patch, targetModel, abs);
-        patch = addMissingRequiredPropsLocal(patch, abs, userText);
+        patch = addMissingRequiredPropsLocal(patch, abs, cleanUserText);
         patch = dedupeConnects(patch);
 
-        normalizeRefsInOps(patch.ops as any[], targetModel, patch, userText);
-        patch = repairUnknownSelectorsByMentions(patch, targetModel, userText);
+        normalizeRefsInOps(patch.ops as any[], targetModel, patch, cleanUserText);
+        patch = repairUnknownSelectorsByMentions(patch, targetModel, cleanUserText);
 
         const { creates, connects, others } = splitCreateConnect(patch);
 
@@ -2644,7 +2852,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
           ps.saveProject?.();
         }
 
-        // 2) otros ops (update/delete/rename/etc.)
+        // 2) otros
         let othersSan = sanitizePatchForEditStrict(others, targetModel, abs);
         if (othersSan.ops.length) {
           stageStep(`Applying other ops (${othersSan.ops.length})…`);
@@ -2653,7 +2861,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
 
           await withNoAlert(() => applyPatch(ps, targetModel!, othersSan));
 
-          // por si applyPatch no aplica updateElement{type} correctamente
           if (ensureTypeChangeApplied(othersSan, targetModel, abs)) {
             forceRefresh(targetModel);
             ps.saveProject?.();
@@ -2664,15 +2871,16 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
           ps.saveProject?.();
         }
 
-        // 3) connects
-        let connectsHealed = fixDanglingConnectsUsingTypes(connects, targetModel, abs, userText, createsSan);
+        // 3) relaciones
+        let connectsHealed = fixDanglingConnectsUsingTypes(connects, targetModel, abs, cleanUserText, createsSan);
         let connectsSan = sanitizePatchForEditStrict(connectsHealed, targetModel, abs);
-        connectsSan = filterConnectsForEdit(connectsSan, createsSan, targetModel, userText);
+        connectsSan = filterConnectsForEdit(connectsSan, createsSan, targetModel, cleanUserText);
         connectsSan = bindNameRefsToIds(connectsSan, targetModel);
 
         if (connectsSan.ops.length) {
           stageStep(`Applying relationships (${connectsSan.ops.length})…`);
           await withNoAlert(() => applyPatch(ps, targetModel!, connectsSan));
+          lastModelIdRef.current = targetModel!.id;
           forceRefresh(targetModel);
           ps.saveProject?.();
         } else {
@@ -2680,391 +2888,172 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
         }
 
         stageStep("Done ✅");
-        setAssistantText("PATCH aplicado ✅");
         return;
       }
 
-      // ---------- PLAN directo ----------
-      if (looksLikePlan(userObj)) {
-        const plan0 = userObj.nodes || userObj.edges ? nodesEdgesToPlan(userObj) : userObj;
-        const abs = getAbstract(currentLanguage);
-        if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
+      // ========= CREATE =========
+      stageStep("Calling API… (create)");
 
-        setAssistantText("Recibí un PLAN JSON. Creando modelo sin LLM…");
+      const langName = opLanguage?.name || ps.getSelectedLanguage?.() || "Language";
+      const memoryHint = plk ? [
+        `[Contexto del proyecto]`,
+        `Raíces comunes (mismo lenguaje): {${(plk.sameLang.rootNames || []).join(", ")}}`,
+        `Conceptos frecuentes (mismo lenguaje): ${plk.sameLang.knownElementNames.slice(0, 15).join(", ")}`,
+        `Conceptos frecuentes (global PL): ${plk.knownElementNames.slice(0, 20).join(", ")}`,
+        `Directiva: si el usuario menciona conceptos de OTRO lenguaje (p.ej., Features/Bundles),`,
+        `- MAPEAR a elementos válidos de este lenguaje (no crees elementos de otros lenguajes).`,
+        `- Si la meta define relaciones para trazabilidad, úsalas hacia NOMBRES existentes.`,
+      ].join("\n") : "";
 
-        const plan = validatePlanStrict(plan0, abs);
-        if (!plan.elements.length) throw new Error("PLAN vacío o inválido.");
+      const userPromptCreate = buildCreatePrompt({
+        languageName: langName,
+        userGoal: `${memoryHint}\n\n${cleanUserText}`,
+        patchSchema: PATCH_SCHEMA_TEXT
+      });
 
-        let patch = planToPatch(plan, { elements: [], relationships: [] }, abs);
-        patch = sanitizePatchForCreateStrictLocal(dedupeConnects(patch), abs);
-        normalizeRefsInOps(patch.ops as any[], undefined, patch, userText);
-
-        const planLite = patchToPlanLiteLocal(patch);
-
-        stageStep("Injecting model…");
-        await withNoAlert(() => {
-          const created = injectIntoProject(planLite, currentLanguage as Language, phase, abs);
-          if (created?.id) lastModelIdRef.current = created.id;
-        });
-
-        stageStep("Listo ✅");
-        setAssistantText("Modelo creado ✅");
-        return;
-      }
-    }
-
-    // ============================================================
-    // 2) LLM PATH
-    // ============================================================
-
-    // selección actual (si hay)
-    let targetModel = getSelectedModel();
-    const hasSelection = !!targetModel;
-
-    // comando inline /create o /edit (si viene)
-    const { clean: cleanUserText, forced } = extractInlineMode(userText);
-    const effectiveMode: "EDIT" | "CREATE" = forced ?? (hasSelection ? "EDIT" : "CREATE");
-
-    // idioma/meta para esta operación:
-    const opLanguage: Language =
-      (effectiveMode === "EDIT" && targetModel)
-        ? (getLanguageForSelectedModel(targetModel) || currentLanguage)
-        : currentLanguage;
-
-    const abs = getAbstract(opLanguage);
-    if (!Object.keys(abs.elements || {}).length) throw new Error("abstractSyntax vacío");
-
-    // memoria (por lenguaje de operación)
-    const plk = harvestProductLineKnowledge(ps, opLanguage, 40);
-
-    const summarizeAbs = (a: AbstractSyntax) => {
-      const els = Object.keys(a.elements || {}).join(", ") || "(none)";
-      const rels = Object.entries(a.relationships || {})
-        .map(([k, v]) => `${k}: ${v.source}→[${v.target.join(", ")}]`)
-        .join("; ") || "(none)";
-      return `Elements: [${els}]\nRelationships: ${rels}`;
-    };
-
-    const sysBase = (hasSel: boolean, plkArg?: PLKnowledge) => {
-      const absSummary = summarizeAbs(abs);
-      const memory = renderProjectMemory(plkArg, opLanguage as Language);
-      return [
-        "You are a modeling assistant. Output MUST be one valid JSON (no backticks).",
-        hasSel
-          ? 'Return a PATCH only: {"ops":[...]}'
-          : 'Prefer a PLAN: {"name":...,"elements":[...],"relationships":[...]}. PATCH is also accepted.',
-        "CRITICAL: cover ALL instructions in one response. Use only element NAMES in refs.",
-        "To change classification/kind use updateElement with changes.type.",
-        "",
-        "Abstract syntax (strict):",
-        absSummary,
-        "",
-        memory
-      ].join("\n");
-    };
-
-    // Verificador de completitud (2 pasadas). Ojo: usa el ABS de la operación.
-    const llmCompleteMissingOpsLocal = async (
-      mode: "EDIT" | "CREATE",
-      userGoal: string,
-      currentPatch: PatchEnvelope,
-      modelSnapshot?: unknown
-    ): Promise<PatchEnvelope> => {
-      const summarizeAbsLite = (a: AbstractSyntax) => {
-        const els = Object.keys(a.elements || {}).join(", ") || "(none)";
-        const rels =
-          Object.entries(a.relationships || {})
-            .map(([k, v]) => `${k}: ${v.source}→[${v.target.join(", ")}]`)
-            .join("; ") || "(none)";
-        return `Elements: [${els}]\nRelationships: ${rels}`;
-      };
-
-      const sys = [
-        "You are a strict patch verifier for a modeling tool. The user may write in ANY language.",
-        "Task: Compare the user's instruction with the CURRENT PATCH. If anything is missing, return ONLY the missing operations to fully satisfy the instruction.",
-        'Output MUST be a single valid JSON object: {"ops": [...]} (PATCH schema).',
-        "Do NOT repeat operations already covered. Use only element names in refs.",
-        "Use ONLY element/relationship types allowed by the abstract syntax below.",
-        "If a relationship type is not provided and exactly one candidate fits the meta, use it.",
-        "Expand lists/conjunctions in the user's instruction.",
-        'If nothing is missing, return {"ops":[]}."',
-        "",
-        "Abstract syntax (strict):",
-        summarizeAbsLite(abs)
-      ].join("\n");
-
-      const payload = {
-        mode,
-        userInstruction: userGoal,
-        currentPatch,
-        ...(modelSnapshot ? { modelSnapshot } : {})
-      };
-
-      const { text } = await callBackendCascade(
-        selectedModel,
-        JSON.stringify(payload),
-        sys,
-        { perModelRetries: 1, validate: (out) => !!safeParseJSON(stripCodeFences(out)) }
-      );
-
-      const extra = safeParseJSON(stripCodeFences(text));
-      if (extra && Array.isArray(extra.ops)) return extra as PatchEnvelope;
-      return { ops: [] };
-    };
-
-    // ========= EDIT =========
-    if (effectiveMode === "EDIT") {
-      if (!targetModel) throw new Error("No hay modelo seleccionado para editar. Selecciona uno en el árbol o usa /create.");
-
-      const snapshot = buildSnapshot(targetModel);
-      const prompt = buildEditPrompt({ snapshot, userGoal: cleanUserText, patchSchema: PATCH_SCHEMA_TEXT });
-
-      stageStep("Calling API… (edit)");
       const { text: botText, usedModelId } = await callBackendCascade(
         selectedModel,
-        prompt,
-        sysBase(true, plk),
+        userPromptCreate,
+        sysBase(false, plk),
         { perModelRetries: 1, validate: (raw) => !!parse(raw) }
       );
 
       setAssistantText((botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`);
 
       const parsed = parse(botText || "");
-      if (!parsed) throw new Error("La respuesta no es JSON válido.");
-      let patch: PatchEnvelope = Array.isArray((parsed as any)?.ops)
-        ? (parsed as PatchEnvelope)
-        : (() => { throw new Error("Esperaba PATCH en modo EDIT."); })();
+      if (!parsed) throw new Error("La respuesta del modelo no es JSON válido.");
 
-      // 2 pasadas para “completar” instrucciones faltantes
-      for (let pass = 0; pass < 2; pass++) {
-        const extra = await llmCompleteMissingOpsLocal("EDIT", cleanUserText, patch, snapshot);
-        if (!extra?.ops?.length) break;
-        patch = mergePatches(patch, extra);
-      }
+      // Normalizar salida a PLAN “dentro del lenguaje”
+      let originalCreatesCount = 0;
+      let planNormalized: PlanLLM;
 
-      // Saneos + normalización
-      patch = upgradeDeleteCreateToUpdate(patch, targetModel, abs);
-      patch = addMissingRequiredPropsLocal(patch, abs, cleanUserText);
-      patch = dedupeConnects(patch);
+      if (Array.isArray((parsed as any)?.ops)) {
+        const patchLLM = parsed as PatchEnvelope;
+        originalCreatesCount = (patchLLM.ops || []).filter(o => (o as any).op === "createElement").length;
 
-      normalizeRefsInOps(patch.ops as any[], targetModel, patch, cleanUserText);
-      patch = repairUnknownSelectorsByMentions(patch, targetModel, cleanUserText);
+        const patchSan1 = sanitizePatchForCreateStrictLocal(
+          dedupeConnects(addMissingRequiredPropsLocal(patchLLM, abs, cleanUserText)),
+          abs
+        );
+        normalizeRefsInOps(patchSan1.ops as any[], undefined, patchSan1, cleanUserText);
 
-      const { creates, connects, others } = splitCreateConnect(patch);
-
-      // 1) creates
-      let createsSan = sanitizePatchForEditStrict(creates, targetModel, abs);
-      createsSan = assignPositionsToCreates(createsSan, targetModel);
-      if (createsSan.ops.length) {
-        stageStep(`Creating elements (${createsSan.ops.length})…`);
-        await withNoAlert(() => applyPatch(ps, targetModel!, createsSan));
-        targetModel = ps.findModelById(ps.project, targetModel!.id) || targetModel;
-        forceRefresh(targetModel);
-        ps.saveProject?.();
-      }
-
-      // 2) otros
-      let othersSan = sanitizePatchForEditStrict(others, targetModel, abs);
-      if (othersSan.ops.length) {
-        stageStep(`Applying other ops (${othersSan.ops.length})…`);
-        othersSan = bindNameRefsToIds(othersSan, targetModel);
-        othersSan = scopeRelationshipDeletesToDeletedElements(othersSan, targetModel);
-
-        await withNoAlert(() => applyPatch(ps, targetModel!, othersSan));
-
-        if (ensureTypeChangeApplied(othersSan, targetModel, abs)) {
-          forceRefresh(targetModel);
-          ps.saveProject?.();
-        }
-
-        targetModel = ps.findModelById(ps.project, targetModel!.id) || targetModel;
-        forceRefresh(targetModel);
-        ps.saveProject?.();
-      }
-
-      // 3) relaciones
-      let connectsHealed = fixDanglingConnectsUsingTypes(connects, targetModel, abs, cleanUserText, createsSan);
-      let connectsSan = sanitizePatchForEditStrict(connectsHealed, targetModel, abs);
-      connectsSan = filterConnectsForEdit(connectsSan, createsSan, targetModel, cleanUserText);
-      connectsSan = bindNameRefsToIds(connectsSan, targetModel);
-
-      if (connectsSan.ops.length) {
-        stageStep(`Applying relationships (${connectsSan.ops.length})…`);
-        await withNoAlert(() => applyPatch(ps, targetModel!, connectsSan));
-        lastModelIdRef.current = targetModel!.id;
-        forceRefresh(targetModel);
-        ps.saveProject?.();
+        const planLite = patchToPlanLiteLocal(patchSan1);
+        planNormalized = validatePlanStrict(planLite, abs);
       } else {
-        addLog("[edit] No quedaron relaciones válidas tras sanitizar/bind.");
+        const plan0 = (parsed as any).nodes || (parsed as any).edges ? nodesEdgesToPlan(parsed) : (parsed as any);
+        planNormalized = validatePlanStrict(plan0, abs);
+        originalCreatesCount = (planNormalized.elements || []).length;
       }
 
-      stageStep("Done ✅");
+      if (!planNormalized.elements.length) throw new Error("PLAN vacío tras sanitizar.");
+
+      // PLAN → PATCH base
+      let patch = planToPatch(planNormalized, { elements: [], relationships: [] }, abs);
+      patch = sanitizePatchForCreateStrictLocal(dedupeConnects(patch), abs);
+      normalizeRefsInOps(patch.ops as any[], undefined, patch, cleanUserText);
+
+      // 2 pasadas de completitud también en CREATE
+      for (let pass = 0; pass < 2; pass++) {
+        const extra = await llmCompleteMissingOpsLocal("CREATE", cleanUserText, patch);
+        if (!extra?.ops?.length) break;
+
+        let extraSan = sanitizePatchForCreateStrictLocal(
+          dedupeConnects(addMissingRequiredPropsLocal(extra, abs, cleanUserText)),
+          abs
+        );
+        normalizeRefsInOps(extraSan.ops as any[], undefined, extraSan, cleanUserText);
+        patch = mergePatches(patch, extraSan);
+      }
+
+      // Si se “cayeron” demasiados elementos por tipos inválidos → recast
+      const keptCreates = (patch.ops || []).filter(o => (o as any).op === "createElement").length;
+      const heavyDrop = originalCreatesCount > 0 && keptCreates < Math.max(3, Math.ceil(originalCreatesCount / 2));
+      if (heavyDrop) {
+        addLog(`[create] Heavy drop detected (${keptCreates}/${originalCreatesCount}). Recasting within language…`);
+
+        const allowed = Object.keys(abs.elements || {}).join(", ");
+        const recastUser = [
+          "Your previous output used types outside the current language.",
+          "Re-issue a complete PLAN strictly using ONLY these element types:",
+          `[ ${allowed} ]`,
+          "Map any foreign-language concepts (e.g., Features/Bundles) into valid elements of this language.",
+          "Prefer relationships where exactly one valid type exists for the chosen source/target.",
+          "",
+          cleanUserText
+        ].join("\n");
+
+        const { text: recastText } = await callBackendCascade(
+          selectedModel,
+          recastUser,
+          sysBase(false, plk),
+          { perModelRetries: 1, validate: (raw) => !!parse(raw) }
+        );
+
+        const recParsed = parse(recastText || "");
+        if (recParsed) {
+          let recPlan: PlanLLM;
+
+          if (Array.isArray((recParsed as any)?.ops)) {
+            const patchLLM = recParsed as PatchEnvelope;
+            const patchSan1 = sanitizePatchForCreateStrictLocal(
+              dedupeConnects(addMissingRequiredPropsLocal(patchLLM, abs, cleanUserText)),
+              abs
+            );
+            normalizeRefsInOps(patchSan1.ops as any[], undefined, patchSan1, cleanUserText);
+
+            const planLite = patchToPlanLiteLocal(patchSan1);
+            recPlan = validatePlanStrict(planLite, abs);
+          } else {
+            const plan0 = (recParsed as any).nodes || (recParsed as any).edges ? nodesEdgesToPlan(recParsed) : (recParsed as any);
+            recPlan = validatePlanStrict(plan0, abs);
+          }
+
+          if (recPlan.elements.length) {
+            let recPatch = planToPatch(recPlan, { elements: [], relationships: [] }, abs);
+            recPatch = sanitizePatchForCreateStrictLocal(dedupeConnects(recPatch), abs);
+            normalizeRefsInOps(recPatch.ops as any[], undefined, recPatch, cleanUserText);
+            patch = { ops: [...recPatch.ops] }; // reemplaza
+          }
+        }
+      }
+
+      // CREATE: descarta connects que vengan con ids (deben ser name-only)
+      patch.ops = (patch.ops || []).filter(op =>
+        op.op !== "connect" || (!op.source?.id && !op.target?.id)
+      );
+
+      const planLiteFinal = patchToPlanLiteLocal(patch);
+
+      stageStep("Injecting model…");
+      await withNoAlert(() => {
+        const created = injectIntoProject(planLiteFinal, opLanguage as Language, phase, abs);
+        if (created?.id) lastModelIdRef.current = created.id;
+      });
+
+      stageStep("Listo ✅");
       return;
-    }
 
-    // ========= CREATE =========
-    stageStep("Calling API… (create)");
+    } catch (e: any) {
+      addLog(`[error] ${e?.message || e}`);
+      const msg = String(e?.message || e);
 
-    const langName = opLanguage?.name || ps.getSelectedLanguage?.() || "Language";
-    const memoryHint = plk ? [
-      `[Contexto del proyecto]`,
-      `Raíces comunes (mismo lenguaje): {${(plk.sameLang.rootNames || []).join(", ")}}`,
-      `Conceptos frecuentes (mismo lenguaje): ${plk.sameLang.knownElementNames.slice(0, 15).join(", ")}`,
-      `Conceptos frecuentes (global PL): ${plk.knownElementNames.slice(0, 20).join(", ")}`,
-      `Directiva: si el usuario menciona conceptos de OTRO lenguaje (p.ej., Features/Bundles),`,
-      `- MAPEAR a elementos válidos de este lenguaje (no crees elementos de otros lenguajes).`,
-      `- Si la meta define relaciones para trazabilidad, úsalas hacia NOMBRES existentes.`,
-    ].join("\n") : "";
-
-    const userPromptCreate = buildCreatePrompt({
-      languageName: langName,
-      userGoal: `${memoryHint}\n\n${cleanUserText}`,
-      patchSchema: PATCH_SCHEMA_TEXT
-    });
-
-    const { text: botText, usedModelId } = await callBackendCascade(
-      selectedModel,
-      userPromptCreate,
-      sysBase(false, plk),
-      { perModelRetries: 1, validate: (raw) => !!parse(raw) }
-    );
-
-    setAssistantText((botText || "(no content)") + `\n\n— Modelo: ${modelLabel(usedModelId)}`);
-
-    const parsed = parse(botText || "");
-    if (!parsed) throw new Error("La respuesta del modelo no es JSON válido.");
-
-    // Normalizar salida a PLAN “dentro del lenguaje”
-    let originalCreatesCount = 0;
-    let planNormalized: PlanLLM;
-
-    if (Array.isArray((parsed as any)?.ops)) {
-      const patchLLM = parsed as PatchEnvelope;
-      originalCreatesCount = (patchLLM.ops || []).filter(o => (o as any).op === "createElement").length;
-
-      const patchSan1 = sanitizePatchForCreateStrictLocal(
-        dedupeConnects(addMissingRequiredPropsLocal(patchLLM, abs, cleanUserText)),
-        abs
-      );
-      normalizeRefsInOps(patchSan1.ops as any[], undefined, patchSan1, cleanUserText);
-
-      const planLite = patchToPlanLiteLocal(patchSan1);
-      planNormalized = validatePlanStrict(planLite, abs);
-    } else {
-      const plan0 = (parsed as any).nodes || (parsed as any).edges ? nodesEdgesToPlan(parsed) : (parsed as any);
-      planNormalized = validatePlanStrict(plan0, abs);
-      originalCreatesCount = (planNormalized.elements || []).length;
-    }
-
-    if (!planNormalized.elements.length) throw new Error("PLAN vacío tras sanitizar.");
-
-    // PLAN → PATCH base
-    let patch = planToPatch(planNormalized, { elements: [], relationships: [] }, abs);
-    patch = sanitizePatchForCreateStrictLocal(dedupeConnects(patch), abs);
-    normalizeRefsInOps(patch.ops as any[], undefined, patch, cleanUserText);
-
-    // 2 pasadas de completitud también en CREATE
-    for (let pass = 0; pass < 2; pass++) {
-      const extra = await llmCompleteMissingOpsLocal("CREATE", cleanUserText, patch);
-      if (!extra?.ops?.length) break;
-
-      let extraSan = sanitizePatchForCreateStrictLocal(
-        dedupeConnects(addMissingRequiredPropsLocal(extra, abs, cleanUserText)),
-        abs
-      );
-      normalizeRefsInOps(extraSan.ops as any[], undefined, extraSan, cleanUserText);
-      patch = mergePatches(patch, extraSan);
-    }
-
-    // Si se “cayeron” demasiados elementos por tipos inválidos → recast
-    const keptCreates = (patch.ops || []).filter(o => (o as any).op === "createElement").length;
-    const heavyDrop = originalCreatesCount > 0 && keptCreates < Math.max(3, Math.ceil(originalCreatesCount / 2));
-    if (heavyDrop) {
-      addLog(`[create] Heavy drop detected (${keptCreates}/${originalCreatesCount}). Recasting within language…`);
-
-      const allowed = Object.keys(abs.elements || {}).join(", ");
-      const recastUser = [
-        "Your previous output used types outside the current language.",
-        "Re-issue a complete PLAN strictly using ONLY these element types:",
-        `[ ${allowed} ]`,
-        "Map any foreign-language concepts (e.g., Features/Bundles) into valid elements of this language.",
-        "Prefer relationships where exactly one valid type exists for the chosen source/target.",
-        "",
-        cleanUserText
-      ].join("\n");
-
-      const { text: recastText } = await callBackendCascade(
-        selectedModel,
-        recastUser,
-        sysBase(false, plk),
-        { perModelRetries: 1, validate: (raw) => !!parse(raw) }
-      );
-
-      const recParsed = parse(recastText || "");
-      if (recParsed) {
-        let recPlan: PlanLLM;
-
-        if (Array.isArray((recParsed as any)?.ops)) {
-          const patchLLM = recParsed as PatchEnvelope;
-          const patchSan1 = sanitizePatchForCreateStrictLocal(
-            dedupeConnects(addMissingRequiredPropsLocal(patchLLM, abs, cleanUserText)),
-            abs
-          );
-          normalizeRefsInOps(patchSan1.ops as any[], undefined, patchSan1, cleanUserText);
-
-          const planLite = patchToPlanLiteLocal(patchSan1);
-          recPlan = validatePlanStrict(planLite, abs);
-        } else {
-          const plan0 = (recParsed as any).nodes || (recParsed as any).edges ? nodesEdgesToPlan(recParsed) : (recParsed as any);
-          recPlan = validatePlanStrict(plan0, abs);
-        }
-
-        if (recPlan.elements.length) {
-          let recPatch = planToPatch(recPlan, { elements: [], relationships: [] }, abs);
-          recPatch = sanitizePatchForCreateStrictLocal(dedupeConnects(recPatch), abs);
-          normalizeRefsInOps(recPatch.ops as any[], undefined, recPatch, cleanUserText);
-          patch = { ops: [...recPatch.ops] }; // reemplaza
-        }
+      let hint = "";
+      if (/Empty AI response/i.test(msg)) {
+        hint = "\nEl backend respondió vacío. Revisa el handler /ai/chat y que esté retornando {content, usedModelId}.";
+      } else if (/404|not found/i.test(msg)) {
+        hint = "\nRevisa que exista el endpoint POST /ai/chat en tu backend y que PROJECTS_CLIENT apunte al baseURL correcto.";
+      } else if (/429|rate limit/i.test(msg)) {
+        hint = "\nRate limit. Prueba otro modelo o configura throttling/caching en el backend.";
+      } else if (/timeout|network/i.test(msg)) {
+        hint = "\nError de red/timeout. Revisa CORS, baseURL del axios client y logs del backend.";
       }
+
+      setAssistantText("Error: " + msg + hint);
+    } finally {
+      setBusy(false);
+      setTimeout(() => setStage(""), 800);
     }
-
-    // CREATE: descarta connects que vengan con ids (deben ser name-only)
-    patch.ops = (patch.ops || []).filter(op =>
-      op.op !== "connect" || (!op.source?.id && !op.target?.id)
-    );
-
-    const planLiteFinal = patchToPlanLiteLocal(patch);
-
-    stageStep("Injecting model…");
-    await withNoAlert(() => {
-      const created = injectIntoProject(planLiteFinal, opLanguage as Language, phase, abs);
-      if (created?.id) lastModelIdRef.current = created.id;
-    });
-
-    stageStep("Listo ✅");
-    return;
-
-  } catch (e: any) {
-    addLog(`[error] ${e?.message || e}`);
-    const msg = String(e?.message || e);
-
-    let hint = "";
-    if (/Empty AI response/i.test(msg)) {
-      hint = "\nEl backend respondió vacío. Revisa el handler /ai/chat y que esté retornando {content, usedModelId}.";
-    } else if (/404|not found/i.test(msg)) {
-      hint = "\nRevisa que exista el endpoint POST /ai/chat en tu backend y que PROJECTS_CLIENT apunte al baseURL correcto.";
-    } else if (/429|rate limit/i.test(msg)) {
-      hint = "\nRate limit. Prueba otro modelo o configura throttling/caching en el backend.";
-    } else if (/timeout|network/i.test(msg)) {
-      hint = "\nError de red/timeout. Revisa CORS, baseURL del axios client y logs del backend.";
-    }
-
-    setAssistantText("Error: " + msg + hint);
-  } finally {
-    setBusy(false);
-    setTimeout(() => setStage(""), 800);
-  }
-};
+  };
 
 
 
