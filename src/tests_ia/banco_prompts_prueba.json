@@ -1,0 +1,772 @@
+[
+  {
+    "id": "test_01_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un vehículo que tenga únicamente un motor.",
+    "expected_elements": [
+      "Vehículo",
+      "RootFeature",
+      "Motor",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_02_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un lámpara inteligente que tenga únicamente un bombilla.",
+    "expected_elements": [
+      "Lámpara Inteligente",
+      "RootFeature",
+      "Bombilla",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_03_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un reloj inteligente que tenga únicamente un pantalla táctil.",
+    "expected_elements": [
+      "Reloj Inteligente",
+      "RootFeature",
+      "Pantalla Táctil",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_04_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un silla ergonómica que tenga únicamente un respaldo.",
+    "expected_elements": [
+      "Silla Ergonómica",
+      "RootFeature",
+      "Respaldo",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_05_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un libro electrónico que tenga únicamente un pantalla de tinta.",
+    "expected_elements": [
+      "Libro Electrónico",
+      "RootFeature",
+      "Pantalla de Tinta",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_06_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un teléfono móvil que tenga únicamente un batería.",
+    "expected_elements": [
+      "Teléfono Móvil",
+      "RootFeature",
+      "Batería",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_07_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un guitarra eléctrica que tenga únicamente un cuerdas.",
+    "expected_elements": [
+      "Guitarra Eléctrica",
+      "RootFeature",
+      "Cuerdas",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_08_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un puerta de seguridad que tenga únicamente un cerradura biométrica.",
+    "expected_elements": [
+      "Puerta de Seguridad",
+      "RootFeature",
+      "Cerradura Biométrica",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_09_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un gafas de realidad virtual que tenga únicamente un lentes.",
+    "expected_elements": [
+      "Gafas de Realidad Virtual",
+      "RootFeature",
+      "Lentes",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_10_basic",
+    "complexity": "basica",
+    "prompt": "Crea un modelo de características para un taza térmica que tenga únicamente un tapa hermética.",
+    "expected_elements": [
+      "Taza Térmica",
+      "RootFeature",
+      "Tapa Hermética",
+      "ConcreteFeature",
+      "RootFeature_Feature"
+    ],
+    "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
+  },
+  {
+    "id": "test_11_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un sistema de autenticación. Debe tener contraseña de forma obligatoria, y de forma opcional puede incluir autenticación biométrica.",
+    "expected_elements": [
+      "Sistema de Autenticación",
+      "RootFeature",
+      "Contraseña",
+      "ConcreteFeature",
+      "Autenticación Biométrica",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_12_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un reproductor de música. Debe tener reproducción básica de forma obligatoria, y de forma opcional puede incluir ecualizador avanzado.",
+    "expected_elements": [
+      "Reproductor de Música",
+      "RootFeature",
+      "Reproducción Básica",
+      "ConcreteFeature",
+      "Ecualizador Avanzado",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_13_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un cajero automático. Debe tener retiro de efectivo de forma obligatoria, y de forma opcional puede incluir depósito de cheques.",
+    "expected_elements": [
+      "Cajero Automático",
+      "RootFeature",
+      "Retiro de Efectivo",
+      "ConcreteFeature",
+      "Depósito de Cheques",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_14_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un cámara digital. Debe tener lente principal de forma obligatoria, y de forma opcional puede incluir flash externo.",
+    "expected_elements": [
+      "Cámara Digital",
+      "RootFeature",
+      "Lente Principal",
+      "ConcreteFeature",
+      "Flash Externo",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_15_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un calculadora de software. Debe tener operaciones básicas de forma obligatoria, y de forma opcional puede incluir modo científico.",
+    "expected_elements": [
+      "Calculadora de Software",
+      "RootFeature",
+      "Operaciones Básicas",
+      "ConcreteFeature",
+      "Modo Científico",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_16_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un sistema de riego. Debe tener bomba de agua de forma obligatoria, y de forma opcional puede incluir sensor de lluvia.",
+    "expected_elements": [
+      "Sistema de Riego",
+      "RootFeature",
+      "Bomba de Agua",
+      "ConcreteFeature",
+      "Sensor de Lluvia",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_17_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un alarma de casa. Debe tener sirena sonora de forma obligatoria, y de forma opcional puede incluir notificación móvil.",
+    "expected_elements": [
+      "Alarma de Casa",
+      "RootFeature",
+      "Sirena Sonora",
+      "ConcreteFeature",
+      "Notificación Móvil",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_18_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un termostato inteligente. Debe tener control de temperatura de forma obligatoria, y de forma opcional puede incluir programación semanal.",
+    "expected_elements": [
+      "Termostato Inteligente",
+      "RootFeature",
+      "Control de Temperatura",
+      "ConcreteFeature",
+      "Programación Semanal",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_19_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un bicicleta de montaña. Debe tener ruedas de tracción de forma obligatoria, y de forma opcional puede incluir sistema de cambios.",
+    "expected_elements": [
+      "Bicicleta de Montaña",
+      "RootFeature",
+      "Ruedas de Tracción",
+      "ConcreteFeature",
+      "Sistema de Cambios",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_20_medium",
+    "complexity": "media",
+    "prompt": "Diseña un modelo de características para un lavadora automática. Debe tener motor de centrifugado de forma obligatoria, y de forma opcional puede incluir calentador de agua interno.",
+    "expected_elements": [
+      "Lavadora Automática",
+      "RootFeature",
+      "Motor de Centrifugado",
+      "ConcreteFeature",
+      "Calentador de Agua Interno",
+      "RootFeature_Feature"
+    ],
+    "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
+  },
+  {
+    "id": "test_21_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un aplicación de mensajería. Obligatoriamente tiene chats. Videollamadas es opcional, pero si se incluye videollamadas, el sistema requiere obligatoriamente el alta compresión de datos.",
+    "expected_elements": [
+      "Aplicación de Mensajería",
+      "RootFeature",
+      "Chats",
+      "ConcreteFeature",
+      "Videollamadas",
+      "Alta Compresión de Datos",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_22_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un editor de texto. Obligatoriamente tiene escritura básica. Corrector Ortográfico es opcional, pero si se incluye corrector ortográfico, el sistema requiere obligatoriamente el diccionario de idiomas.",
+    "expected_elements": [
+      "Editor de Texto",
+      "RootFeature",
+      "Escritura Básica",
+      "ConcreteFeature",
+      "Corrector Ortográfico",
+      "Diccionario de Idiomas",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_23_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un navegador web. Obligatoriamente tiene gestión de pestañas. Sistema de Extensiones es opcional, pero si se incluye sistema de extensiones, el sistema requiere obligatoriamente el aislamiento de memoria.",
+    "expected_elements": [
+      "Navegador Web",
+      "RootFeature",
+      "Gestión de Pestañas",
+      "ConcreteFeature",
+      "Sistema de Extensiones",
+      "Aislamiento de Memoria",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_24_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un app de clima. Obligatoriamente tiene pronóstico diario. Radar Meteorológico es opcional, pero si se incluye radar meteorológico, el sistema requiere obligatoriamente el módulo GPS.",
+    "expected_elements": [
+      "App de Clima",
+      "RootFeature",
+      "Pronóstico Diario",
+      "ConcreteFeature",
+      "Radar Meteorológico",
+      "Módulo GPS",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_25_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un sistema de gestión. Obligatoriamente tiene control de usuarios. Generación de Reportes es opcional, pero si se incluye generación de reportes, el sistema requiere obligatoriamente el motor de exportación PDF.",
+    "expected_elements": [
+      "Sistema de Gestión",
+      "RootFeature",
+      "Control de Usuarios",
+      "ConcreteFeature",
+      "Generación de Reportes",
+      "Motor de Exportación PDF",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_26_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un red social. Obligatoriamente tiene perfil de usuario. Publicación de Historias es opcional, pero si se incluye publicación de historias, el sistema requiere obligatoriamente el cámara integrada.",
+    "expected_elements": [
+      "Red Social",
+      "RootFeature",
+      "Perfil de Usuario",
+      "ConcreteFeature",
+      "Publicación de Historias",
+      "Cámara Integrada",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_27_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un app de tareas. Obligatoriamente tiene listas de quehaceres. Recordatorios por Tiempo es opcional, pero si se incluye recordatorios por tiempo, el sistema requiere obligatoriamente el notificaciones push.",
+    "expected_elements": [
+      "App de Tareas",
+      "RootFeature",
+      "Listas de Quehaceres",
+      "ConcreteFeature",
+      "Recordatorios por Tiempo",
+      "Notificaciones Push",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_28_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un sistema de vuelos. Obligatoriamente tiene búsqueda de boletos. Check-in Online es opcional, pero si se incluye check-in online, el sistema requiere obligatoriamente el generador de tarjeta de embarque.",
+    "expected_elements": [
+      "Sistema de Vuelos",
+      "RootFeature",
+      "Búsqueda de Boletos",
+      "ConcreteFeature",
+      "Check-in Online",
+      "Generador de Tarjeta de Embarque",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_29_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un app de dietas. Obligatoriamente tiene catálogo de recetas. Contador de Calorías es opcional, pero si se incluye contador de calorías, el sistema requiere obligatoriamente el base de datos nutricional.",
+    "expected_elements": [
+      "App de Dietas",
+      "RootFeature",
+      "Catálogo de Recetas",
+      "ConcreteFeature",
+      "Contador de Calorías",
+      "Base de Datos Nutricional",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_30_medium_complex",
+    "complexity": "media-alta",
+    "prompt": "Modela un gestor de proyectos. Obligatoriamente tiene tablero kanban. Gráfico de Gantt es opcional, pero si se incluye gráfico de gantt, el sistema requiere obligatoriamente el seguimiento de dependencias.",
+    "expected_elements": [
+      "Gestor de Proyectos",
+      "RootFeature",
+      "Tablero Kanban",
+      "ConcreteFeature",
+      "Gráfico de Gantt",
+      "Seguimiento de Dependencias",
+      "RootFeature_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
+  },
+  {
+    "id": "test_31_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un tienda e-commerce. Todo tienda e-commerce debe tener un carrito de compras y un sistema de pago. El sistema de pago debe ser al menos uno entre Tarjeta de Crédito o PayPal (relación OR). Además, se puede incluir criptomonedas de forma opcional, pero si se selecciona criptomonedas, el sistema excluye automáticamente el módulo de reembolsos rápidos.",
+    "expected_elements": [
+      "Tienda E-commerce",
+      "RootFeature",
+      "Carrito de Compras",
+      "ConcreteFeature",
+      "Sistema de Pago",
+      "Bundle",
+      "Tarjeta de Crédito",
+      "PayPal",
+      "Criptomonedas",
+      "Módulo de Reembolsos Rápidos",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_32_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un videojuego RPG. Todo videojuego RPG debe tener un inventario de objetos y un clase de personaje. El clase de personaje debe ser al menos uno entre Mago o Guerrero (relación OR). Además, se puede incluir mascota acompañante de forma opcional, pero si se selecciona mascota acompañante, el sistema excluye automáticamente el montura de transporte.",
+    "expected_elements": [
+      "Videojuego RPG",
+      "RootFeature",
+      "Inventario de Objetos",
+      "ConcreteFeature",
+      "Clase de Personaje",
+      "Bundle",
+      "Mago",
+      "Guerrero",
+      "Mascota Acompañante",
+      "Montura de Transporte",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_33_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un sistema ERP. Todo sistema ERP debe tener un módulo de contabilidad y un módulo de recursos humanos. El módulo de recursos humanos debe ser al menos uno entre Nómina o Reclutamiento (relación OR). Además, se puede incluir auditoría avanzada de forma opcional, pero si se selecciona auditoría avanzada, el sistema excluye automáticamente el borrado de logs.",
+    "expected_elements": [
+      "Sistema ERP",
+      "RootFeature",
+      "Módulo de Contabilidad",
+      "ConcreteFeature",
+      "Módulo de Recursos Humanos",
+      "Bundle",
+      "Nómina",
+      "Reclutamiento",
+      "Auditoría Avanzada",
+      "Borrado de Logs",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_34_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un plataforma de streaming. Todo plataforma de streaming debe tener un reproductor de video y un calidad de transmisión. El calidad de transmisión debe ser al menos uno entre Alta Definición o Resolución 4K (relación OR). Además, se puede incluir descargas offline de forma opcional, pero si se selecciona descargas offline, el sistema excluye automáticamente el modo ahorro de datos.",
+    "expected_elements": [
+      "Plataforma de Streaming",
+      "RootFeature",
+      "Reproductor de Video",
+      "ConcreteFeature",
+      "Calidad de Transmisión",
+      "Bundle",
+      "Alta Definición",
+      "Resolución 4K",
+      "Descargas Offline",
+      "Modo Ahorro de Datos",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_35_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un sistema smart home. Todo sistema smart home debe tener un hub central y un iluminación conectada. El iluminación conectada debe ser al menos uno entre Luces RGB o Luces Cálidas (relación OR). Además, se puede incluir cámaras de seguridad de forma opcional, pero si se selecciona cámaras de seguridad, el sistema excluye automáticamente el modo privacidad absoluta.",
+    "expected_elements": [
+      "Sistema Smart Home",
+      "RootFeature",
+      "Hub Central",
+      "ConcreteFeature",
+      "Iluminación Conectada",
+      "Bundle",
+      "Luces RGB",
+      "Luces Cálidas",
+      "Cámaras de Seguridad",
+      "Modo Privacidad Absoluta",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_36_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un plataforma médica. Todo plataforma médica debe tener un registro de pacientes y un herramienta de diagnóstico. El herramienta de diagnóstico debe ser al menos uno entre Diagnóstico Manual o Diagnóstico con IA (relación OR). Además, se puede incluir módulo de telemedicina de forma opcional, pero si se selecciona módulo de telemedicina, el sistema excluye automáticamente el agendamiento de consultas físicas.",
+    "expected_elements": [
+      "Plataforma Médica",
+      "RootFeature",
+      "Registro de Pacientes",
+      "ConcreteFeature",
+      "Herramienta de Diagnóstico",
+      "Bundle",
+      "Diagnóstico Manual",
+      "Diagnóstico con IA",
+      "Módulo de Telemedicina",
+      "Agendamiento de Consultas Físicas",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_37_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un app de fitness. Todo app de fitness debe tener un perfil del usuario y un rutina de ejercicios. El rutina de ejercicios debe ser al menos uno entre Entrenamiento de Cardio o Entrenamiento de Fuerza (relación OR). Además, se puede incluir dieta personalizada de forma opcional, pero si se selecciona dieta personalizada, el sistema excluye automáticamente el modo ayuno intermitente.",
+    "expected_elements": [
+      "App de Fitness",
+      "RootFeature",
+      "Perfil del Usuario",
+      "ConcreteFeature",
+      "Rutina de Ejercicios",
+      "Bundle",
+      "Entrenamiento de Cardio",
+      "Entrenamiento de Fuerza",
+      "Dieta Personalizada",
+      "Modo Ayuno Intermitente",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_38_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un plataforma educativa. Todo plataforma educativa debe tener un catálogo de cursos y un método de evaluación. El método de evaluación debe ser al menos uno entre Test de Opción Múltiple o Proyecto Práctico (relación OR). Además, se puede incluir clases en vivo de forma opcional, pero si se selecciona clases en vivo, el sistema excluye automáticamente el modalidad de estudio asíncrono.",
+    "expected_elements": [
+      "Plataforma Educativa",
+      "RootFeature",
+      "Catálogo de Cursos",
+      "ConcreteFeature",
+      "Método de Evaluación",
+      "Bundle",
+      "Test de Opción Múltiple",
+      "Proyecto Práctico",
+      "Clases en Vivo",
+      "Modalidad de Estudio Asíncrono",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_39_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un app de entregas. Todo app de entregas debe tener un gestor de pedidos y un vehículo de reparto. El vehículo de reparto debe ser al menos uno entre Motocicleta o Bicicleta (relación OR). Además, se puede incluir dron de entrega de forma opcional, pero si se selecciona dron de entrega, el sistema excluye automáticamente el asignación a repartidor humano.",
+    "expected_elements": [
+      "App de Entregas",
+      "RootFeature",
+      "Gestor de Pedidos",
+      "ConcreteFeature",
+      "Vehículo de Reparto",
+      "Bundle",
+      "Motocicleta",
+      "Bicicleta",
+      "Dron de Entrega",
+      "Asignación a Repartidor Humano",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_40_complex",
+    "complexity": "compleja",
+    "prompt": "Necesito un modelo para un gestor de finanzas. Todo gestor de finanzas debe tener un cuentas bancarias y un visualización de gráficos. El visualización de gráficos debe ser al menos uno entre Gráfico de Barras o Gráfico de Pastel (relación OR). Además, se puede incluir predicción de gastos con IA de forma opcional, pero si se selecciona predicción de gastos con IA, el sistema excluye automáticamente el funcionamiento offline.",
+    "expected_elements": [
+      "Gestor de Finanzas",
+      "RootFeature",
+      "Cuentas Bancarias",
+      "ConcreteFeature",
+      "Visualización de Gráficos",
+      "Bundle",
+      "Gráfico de Barras",
+      "Gráfico de Pastel",
+      "Predicción de Gastos con IA",
+      "Funcionamiento Offline",
+      "RootFeature_Feature",
+      "RootFeature_Bundle",
+      "Bundle_Feature",
+      "Annotation",
+      "ConcreteFeature_Annotation"
+    ],
+    "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
+  },
+  {
+    "id": "test_41_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un sistema de base de datos moderno que sea rápido y en la nube.",
+    "expected_elements": [
+      "Sistema de Base de Datos",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  },
+  {
+    "id": "test_42_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un motor de inteligencia artificial moderno que sea avanzado y autónomo.",
+    "expected_elements": [
+      "Motor de Inteligencia Artificial",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  },
+  {
+    "id": "test_43_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un red blockchain moderno que sea descentralizada y segura.",
+    "expected_elements": [
+      "Red Blockchain",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  },
+  {
+    "id": "test_44_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un sistema operativo moderno que sea ligero y para IoT.",
+    "expected_elements": [
+      "Sistema Operativo",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  },
+  {
+    "id": "test_45_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un nube computacional moderno que sea pública y escalable.",
+    "expected_elements": [
+      "Nube Computacional",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  },
+  {
+    "id": "test_46_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un metaverso moderno que sea interactivo y inmersivo.",
+    "expected_elements": [
+      "Metaverso",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  },
+  {
+    "id": "test_47_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un suite de ciberseguridad moderno que sea corporativa y proactiva.",
+    "expected_elements": [
+      "Suite de Ciberseguridad",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  },
+  {
+    "id": "test_48_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un computación cuántica moderno que sea estable y orientada a la investigación.",
+    "expected_elements": [
+      "Computación Cuántica",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  },
+  {
+    "id": "test_49_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un ciudad inteligente moderno que sea sostenible y conectada.",
+    "expected_elements": [
+      "Ciudad Inteligente",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  },
+  {
+    "id": "test_50_ambiguous",
+    "complexity": "ambigua",
+    "prompt": "Haz un modelo para un sistema de agricultura moderno que sea de precisión y automatizado.",
+    "expected_elements": [
+      "Sistema de Agricultura",
+      "RootFeature"
+    ],
+    "description": "Evalúa el comportamiento ante prompts abstractos."
+  }
+]
