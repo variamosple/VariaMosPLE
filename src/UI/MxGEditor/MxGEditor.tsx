@@ -47,6 +47,11 @@ import {
   setUserIdle
 } from "../../DataProvider/Services/collab/collaborationAwarenessService";
 import CollaborativeIndicators from "./CollaborativeIndicators";
+import { FaHistory } from "react-icons/fa";
+import HistoryPanel from "../HistoryProject/HistoryPanel";
+import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
+import { HistoryActionType, HistoryEntityType } from "../../Domain/ProductLineEngineering/Enums/historyEnum";
+import historyCollaborationService from "../../DataProvider/Services/collab/historyCollaborationService";
 
 interface Props {
   projectService: ProjectService;
@@ -71,6 +76,8 @@ interface State {
   openAccordion: string[];
   showRequirementsReportModal: boolean;
   pendingChanges: boolean;  // Nuevo estado para cambios pendientes
+  showHistoryPanel: boolean;
+  historyRecords: any[];
 
   //   Collab
   isCollaborative: boolean;
@@ -108,7 +115,7 @@ export default class MxGEditor extends Component<Props, State> {
   awarenessUnsubscribe: (() => void) | null = null;
   incrementalUpdaters: Map<string, IncrementalGraphUpdater> = new Map();
   modelSnapshots: Map<string, { elements: any[], relationships: any[] }> = new Map();
-
+  historyPreviewCell: any = null;
 
   constructor(props: Props) {
     super(props);
@@ -142,8 +149,9 @@ export default class MxGEditor extends Component<Props, State> {
       awarnessStates: [],
       collaborativeUsers: [],
       isMovingCell: false,
-      movingCellId: null
-
+      movingCellId: null,
+      showHistoryPanel: false,
+      historyRecords: [],
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
     this.getRequirementsReport = this.getRequirementsReport.bind(this);
@@ -336,6 +344,81 @@ export default class MxGEditor extends Component<Props, State> {
       });
 
     }
+
+    if (projectInfo?.project?.id) {
+      historyCollaborationService
+        .initializeHistorySync(projectInfo.project.id)
+        .then((initialized) => {
+          if (initialized) {
+            this.unsubscribeHistoryChanges =
+              historyCollaborationService.observeHistoryChanges((records) => {
+                this.setState((prevState) => {
+                  const merged = [...records, ...prevState.historyRecords];
+
+                  const unique = Array.from(
+                    new Map(merged.map((item) => [item.id, item])).values()
+                  );
+
+                  unique.sort((a, b) => {
+                    const dateA = new Date(a.createdAt || a.timestamp || 0).getTime();
+                    const dateB = new Date(b.createdAt || b.timestamp || 0).getTime();
+                    return dateB - dateA;
+                  });
+
+                  return {
+                    historyRecords: unique
+                  };
+                });
+              });
+          }
+        });
+    }
+  }
+
+  registerHistoryEvent(event: any) {
+    const projectInfo = this.props.projectService.getProjectInformation();
+
+    const projectId =
+      projectInfo?.id ||
+      projectInfo?.project?.id ||
+      this.props.projectService.getProject()?.id;
+
+    const historyEvent = new ProjectHistory(
+      undefined,
+      projectId,
+      event.modelId,
+      undefined,
+      undefined,
+      event.actionType,
+      event.entityType,
+      event.entityId,
+      event.entityName,
+      event.oldValue,
+      event.newValue,
+      event.description,
+      new Date()
+    );
+
+    this.props.projectService.createHistoryEvent(historyEvent)
+      .then((res) => {
+        console.log("[History] create response:", res.data);
+        historyCollaborationService.publishHistoryEvent({
+          ...historyEvent,
+          id: res.data?.id,
+          createdAt: res.data?.createdAt,
+          author: res.data?.author
+        });
+      })
+      .catch((err) => console.error("[History] mxgraph error", err));
+  }
+
+  componentWillUnmount() {
+    if (this.unsubscribeHistoryChanges) {
+      this.unsubscribeHistoryChanges();
+      this.unsubscribeHistoryChanges = null;
+    }
+
+    historyCollaborationService.cleanup();
   }
 
   LoadGraph(graph: mxGraph) {
@@ -666,6 +749,17 @@ export default class MxGEditor extends Component<Props, State> {
             properties
           );
 
+          me.registerHistoryEvent({
+            modelId: me.currentModel?.id,
+            actionType: HistoryActionType.ITEM_CREATED,
+            entityType: HistoryEntityType.RELATIONSHIP,
+            entityId: relationship.id,
+            entityName: relationship.name,
+            oldValue: null,
+            newValue: relationship,
+            description: `Created relationship "${relationship.name}"`
+          });
+
           node.setAttribute("uid", relationship.id);
           edge.style = "strokeColor=#446E79;strokeWidth=2;";
         }
@@ -829,28 +923,321 @@ export default class MxGEditor extends Component<Props, State> {
 
   deleteSelection() {
     let me = this;
+
     if (!window.confirm("do you really want to delete the items?")) {
       return;
     }
+
     let graph = this.graph;
+
     if (graph.isEnabled()) {
       let cells = graph.getSelectionCells();
+
       for (let i = 0; i < cells.length; i++) {
         const cell = cells[i];
+
         if (cell.value) {
           let uid = cell.value.getAttribute("uid");
+
           if (uid) {
             if (cell.edge) {
+              const relationship = me.props.projectService.findModelRelationshipById(
+                me.currentModel,
+                uid
+              );
+
+              if (relationship) {
+                me.registerHistoryEvent({
+                  modelId: me.currentModel?.id,
+                  actionType: HistoryActionType.ITEM_DELETED,
+                  entityType: HistoryEntityType.RELATIONSHIP,
+                  entityId: relationship.id,
+                  entityName: relationship.name,
+                  oldValue: JSON.parse(JSON.stringify(relationship)),
+                  newValue: null,
+                  description: `Deleted relationship "${relationship.name}"`
+                });
+              }
+
               me.props.projectService.removeModelRelationshipById(me.currentModel, uid);
             } else {
+              const element = me.props.projectService.findModelElementById(
+                me.currentModel,
+                uid
+              );
+
+              if (element) {
+                me.registerHistoryEvent({
+                  modelId: me.currentModel?.id,
+                  actionType: HistoryActionType.ITEM_DELETED,
+                  entityType: HistoryEntityType.ELEMENT,
+                  entityId: element.id,
+                  entityName: element.name,
+                  oldValue: JSON.parse(JSON.stringify(element)),
+                  newValue: null,
+                  description: `Deleted element "${element.name}"`
+                });
+              }
+
               me.props.projectService.removeModelElementById(me.currentModel, uid);
             }
           }
         }
       }
+
       graph.removeCells(cells, true);
+      this.syncModelChanges();
     }
     //MxgraphUtils.deleteSelection(this.graph, this.currentModel);
+  }
+
+  previewHistoryItem = (item: any) => {
+    if (!this.graph || !this.currentModel || !item.oldValue) return;
+    if (item.entityType !== HistoryEntityType.ELEMENT) return;
+
+    const oldElement = item.oldValue.element || item.oldValue;
+
+    if (
+      oldElement.x === undefined ||
+      oldElement.y === undefined ||
+      oldElement.width === undefined ||
+      oldElement.height === undefined
+    ) {
+      return;
+    }
+
+    this.clearHistoryPreview();
+
+    const languageDefinition: any =
+      this.props.projectService.getLanguageDefinition(
+        "" + this.currentModel.type
+      );
+
+    const elementDefinition =
+      languageDefinition?.concreteSyntax?.elements?.[oldElement.type];
+
+    if (!elementDefinition) {
+      console.warn("[History Preview] Element definition not found:", oldElement.type);
+      return;
+    }
+
+    let shape = null;
+
+    if (elementDefinition.styles) {
+      for (let s = 0; s < elementDefinition.styles.length; s++) {
+        const styleDef = elementDefinition.styles[s];
+
+        if (!styleDef.linked_property) {
+          shape = atob(styleDef.style);
+        } else if (oldElement.properties) {
+          for (let p = 0; p < oldElement.properties.length; p++) {
+            const property = oldElement.properties[p];
+
+            if (
+              property.name === styleDef.linked_property &&
+              "" + property.value === "" + styleDef.linked_value
+            ) {
+              shape = atob(styleDef.style);
+              s = elementDefinition.styles.length;
+              break;
+            }
+          }
+        }
+      }
+    } else if (elementDefinition.draw) {
+      shape = atob(elementDefinition.draw);
+    }
+
+    if (shape) {
+      const ne: any = mx.mxUtils.parseXml(shape).documentElement;
+      ne.setAttribute("name", oldElement.type);
+      MxgraphUtils.modifyShape(ne);
+
+      const stencil = new mx.mxStencil(ne);
+      mx.mxStencilRegistry.addStencil(oldElement.type, stencil);
+    }
+
+    const doc = mx.mxUtils.createXmlDocument();
+    const node = doc.createElement(oldElement.type);
+
+    node.setAttribute("uid", `preview_${oldElement.id}`);
+    node.setAttribute("label", "");
+    node.setAttribute("Name", oldElement.name || "Unnamed");
+    node.setAttribute("type", oldElement.type);
+
+    if (oldElement.properties && Array.isArray(oldElement.properties)) {
+      oldElement.properties.forEach((property: any) => {
+        if (property?.name) {
+          node.setAttribute(
+            property.name,
+            property.value !== undefined ? String(property.value) : ""
+          );
+        }
+      });
+    }
+
+    let fontcolor = "";
+
+    if (shape) {
+      const color = this.getFontColorFromShape(shape);
+      if (color) {
+        fontcolor = "fontColor=" + color + ";";
+      }
+    }
+
+    const design = elementDefinition.design || "";
+
+    let previewStyle =
+      "shape=" +
+      oldElement.type +
+      ";whiteSpace=wrap;" +
+      fontcolor +
+      design;
+
+    const resizable = elementDefinition.resizable;
+
+    if ("" + resizable === "false") {
+      previewStyle += ";resizable=0;";
+    }
+
+    previewStyle +=
+      ";dashed=1;" +
+      "opacity=65;" +
+      "strokeWidth=3;" +
+      "strokeColor=#ff9800;" +
+      "pointerEvents=0;";
+
+    const parent = this.graph.getDefaultParent();
+    const graphModel = this.graph.getModel();
+
+    graphModel.beginUpdate();
+
+    try {
+      this.historyPreviewCell = this.graph.insertVertex(
+        parent,
+        null,
+        node,
+        oldElement.x,
+        oldElement.y,
+        oldElement.width,
+        oldElement.height,
+        previewStyle
+      );
+
+      this.historyPreviewCell.preview = true;
+      this.historyPreviewCell.setConnectable(false);
+    } finally {
+      graphModel.endUpdate();
+    }
+  };
+
+  clearHistoryPreview = () => {
+    if (!this.graph || !this.historyPreviewCell) return;
+
+    const graphModel = this.graph.getModel();
+
+    graphModel.beginUpdate();
+
+    try {
+      this.graph.removeCells([this.historyPreviewCell], false);
+      this.historyPreviewCell = null;
+    } finally {
+      graphModel.endUpdate();
+    }
+  };
+
+  revertHistoryItem(item: any) {
+    if (!this.currentModel) return;
+
+    // Revertir creación: eliminar el elemento/relación creado
+    if (item.actionType === HistoryActionType.ITEM_CREATED) {
+      if (item.entityType === HistoryEntityType.ELEMENT) {
+        this.props.projectService.removeModelElementById(
+          this.currentModel,
+          item.entityId
+        );
+      }
+
+      if (item.entityType === HistoryEntityType.RELATIONSHIP) {
+        this.props.projectService.removeModelRelationshipById(
+          this.currentModel,
+          item.entityId
+        );
+      }
+
+      this.loadModel(this.currentModel);
+      this.syncModelChanges();
+      return;
+    }
+
+    // Revertir eliminación: volver a insertar el elemento/relación eliminado
+    if (item.actionType === HistoryActionType.ITEM_DELETED) {
+      if (item.entityType === HistoryEntityType.ELEMENT && item.oldValue) {
+        const exists = this.props.projectService.findModelElementById(
+          this.currentModel,
+          item.entityId
+        );
+
+        if (!exists) {
+          this.currentModel.elements.push(
+            JSON.parse(JSON.stringify(item.oldValue))
+          );
+        }
+      }
+
+      if (item.entityType === HistoryEntityType.RELATIONSHIP && item.oldValue) {
+        const exists = this.props.projectService.findModelRelationshipById(
+          this.currentModel,
+          item.entityId
+        );
+
+        if (!exists) {
+          this.currentModel.relationships.push(
+            JSON.parse(JSON.stringify(item.oldValue))
+          );
+        }
+      }
+
+      this.loadModel(this.currentModel);
+      this.syncModelChanges();
+      return;
+    }
+
+    // Revertir actualización: restaurar oldValue
+    if (item.actionType === HistoryActionType.ITEM_UPDATED && item.oldValue) {
+      if (item.entityType === HistoryEntityType.ELEMENT) {
+        const element = this.props.projectService.findModelElementById(
+          this.currentModel,
+          item.entityId
+        );
+
+        if (element) {
+          Object.assign(element, item.oldValue);
+          this.props.projectService.raiseEventUpdatedElement(
+            this.currentModel,
+            element
+          );
+        }
+      }
+
+      if (item.entityType === HistoryEntityType.RELATIONSHIP) {
+        const relationship = this.props.projectService.findModelRelationshipById(
+          this.currentModel,
+          item.entityId
+        );
+
+        if (relationship) {
+          Object.assign(relationship, item.oldValue);
+          this.props.projectService.raiseEventUpdatedElement(
+            this.currentModel,
+            relationship
+          );
+        }
+      }
+
+      this.loadModel(this.currentModel);
+      this.syncModelChanges();
+    }
   }
 
   refreshEdgeStyle(edge: any) {
@@ -2167,6 +2554,43 @@ export default class MxGEditor extends Component<Props, State> {
 
 
   savePropertiesModal() {
+    const oldValue = this.state.backupObject;
+    const newValue = this.state.selectedObject;
+    const isNewObject = !oldValue && newValue;
+
+    if (isNewObject) {
+      this.registerHistoryEvent({
+        modelId: this.currentModel?.id,
+        actionType: HistoryActionType.ITEM_CREATED,
+        entityType: newValue.sourceId && newValue.targetId
+          ? HistoryEntityType.RELATIONSHIP
+          : HistoryEntityType.ELEMENT,
+        entityId: newValue.id,
+        entityName: newValue.name,
+        oldValue: null,
+        newValue,
+        description: `Created ${newValue.sourceId && newValue.targetId ? "relationship" : "element"} "${newValue.name}"`
+      });
+    } else if (oldValue && newValue) {
+      const changedFields = Object.keys(newValue).filter(
+        (key) => JSON.stringify(oldValue[key]) !== JSON.stringify(newValue[key])
+      );
+
+      if (changedFields.length > 0) {
+        this.registerHistoryEvent({
+          modelId: this.currentModel?.id,
+          actionType: HistoryActionType.ITEM_UPDATED,
+          entityType: newValue.sourceId && newValue.targetId
+            ? HistoryEntityType.RELATIONSHIP
+            : HistoryEntityType.ELEMENT,
+          entityId: newValue.id,
+          entityName: newValue.name,
+          oldValue,
+          newValue,
+          description: `Updated ${newValue.sourceId && newValue.targetId ? "relationship" : "element"} "${newValue.name}": ${changedFields.join(", ")}`
+        });
+      }
+    }
     if (this.state.pendingChanges) {
       // Awareness colaborativo: Marcar que el usuario guardó los cambios
       const projectId = this.props.projectService.getProject().id;
@@ -3535,11 +3959,39 @@ export default class MxGEditor extends Component<Props, State> {
     );
   }
 
+  loadProjectHistory = async () => {
+    const projectInfo = this.props.projectService.getProjectInformation();
 
+    const projectId =
+      projectInfo?.id ||
+      projectInfo?.project?.id ||
+      this.props.projectService.getProject()?.id;
 
+    if (!projectId) {
+      console.warn("No project id found for history");
+      return;
+    }
 
+    const response = await this.props.projectService.getProjectHistory(projectId);
 
+    this.setState({
+      historyRecords: response.data || []
+    });
+  };
 
+  openHistoryPanel = async () => {
+    await this.loadProjectHistory();
+
+    this.setState({
+      showHistoryPanel: true
+    });
+  };
+
+  closeHistoryPanel = () => {
+    this.setState({
+      showHistoryPanel: false
+    });
+  };
 
   toggleRequirementsReportModal = () => {
     if (!this.state.showRequirementsReportModal) {
@@ -3681,11 +4133,11 @@ export default class MxGEditor extends Component<Props, State> {
     this.initNewModelAwarness(projectId, model.id);
   }
 
-// Limpia los updaters y snapshots de modelos que ya no se están usando
-private cleanupUnusedModelResources() {
-  // Mantener solo los recursos del modelo actual
-  if (this.currentModel) {
-    const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
+  // Limpia los updaters y snapshots de modelos que ya no se están usando
+  private cleanupUnusedModelResources() {
+    // Mantener solo los recursos del modelo actual
+    if (this.currentModel) {
+      const currentModelKey = `${this.currentModel.type}_${this.currentModel.id}`;
 
       // Limpiar updaters no utilizados
       for (const key of this.incrementalUpdaters.keys()) {
@@ -3716,6 +4168,7 @@ private cleanupUnusedModelResources() {
     }
   }
 
+  private unsubscribeHistoryChanges: (() => void) | null = null;
 
   initNewModelAwarness(projectId: string, modelId: string) {
     const provider = this.props.projectService.getProjectProvider(projectId);
@@ -3848,6 +4301,7 @@ private cleanupUnusedModelResources() {
           <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
           <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
           <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
+          <a title="History" onClick={this.openHistoryPanel}><span><FaHistory /></span></a>
         </div>
         {this.renderContexMenu()}
 
@@ -4061,6 +4515,17 @@ private cleanupUnusedModelResources() {
               </Button>
             </Modal.Footer>
           </Modal>
+          <HistoryPanel
+            show={this.state.showHistoryPanel}
+            onHide={() => this.setState({ showHistoryPanel: false })}
+            projectService={this.props.projectService}
+            historyRecords={this.state.historyRecords}
+            selectedModelId={this.currentModel?.id}
+            onRefresh={this.loadProjectHistory}
+            onRevertHistoryItem={this.revertHistoryItem.bind(this)}
+            onPreviewHistoryItem={this.previewHistoryItem}
+            onClearHistoryPreview={this.clearHistoryPreview}
+          />
         </div>
       </div>
     );

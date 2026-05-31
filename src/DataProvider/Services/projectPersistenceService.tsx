@@ -1,5 +1,6 @@
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
 import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
+import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
 import { PROJECTS_CLIENT } from "../../Infraestructure/AxiosConfig";
 
 export type ChatRole = "system" | "user" | "assistant";
@@ -412,6 +413,44 @@ export default class ProjectPersistenceService {
       console.error("Error in getUserRole Service:", error);
       throw error;
 
+    }
+  }
+
+  async createHistoryEvent(historyEvent: ProjectHistory): Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.post("/projectHistory", historyEvent);
+
+      let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+      responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.error("Error in createHistoryEvent Service:", error);
+      throw error;
+    }
+  }
+
+  async getProjectHistory(projectId: string): Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.get("/projectHistory", {
+        params: { project_id: projectId },
+      });
+
+      let responseAPISuccess: ResponseAPISuccess = new ResponseAPISuccess();
+      responseAPISuccess = Object.assign(responseAPISuccess, res.data);
+
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.error("Error in getProjectHistory Service:", error);
+      throw error;
     }
   }
 }

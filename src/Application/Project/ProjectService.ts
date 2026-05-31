@@ -18,6 +18,7 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
+import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
 import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectPersistenceUseCases";
 import {
   ModelLookupResult,
@@ -36,10 +37,12 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import { handleCollaborativeProject,
-         observeModelState,
-         updateModelState,
-         getProjectProvider} from "../../DataProvider/Services/collab/collaborationService";
+import {
+  handleCollaborativeProject,
+  observeModelState,
+  updateModelState,
+  getProjectProvider
+} from "../../DataProvider/Services/collab/collaborationService";
 
 
 export default class ProjectService {
@@ -242,10 +245,10 @@ export default class ProjectService {
     }
   }
 
-  getIdCurrentProductLine(){
-     for (let idProductLine = 0; idProductLine < this.project.productLines.length; idProductLine++) {
+  getIdCurrentProductLine() {
+    for (let idProductLine = 0; idProductLine < this.project.productLines.length; idProductLine++) {
       const productLine = this.project.productLines[idProductLine];
-      if (productLine.scope == this.getScope()){
+      if (productLine.scope == this.getScope()) {
         return idProductLine;
       }
     }
@@ -275,7 +278,7 @@ export default class ProjectService {
     console.warn("No scope model matches the selected ID");
     return null;
   }
-   getScope(){
+  getScope() {
     const selectedId = this.treeIdItemSelected;
     for (const productLine of this.project.productLines) {
       const scopeModels = productLine?.scope?.models || [];
@@ -417,7 +420,7 @@ export default class ProjectService {
   raiseEventSelectedModel(model: Model | undefined) {
     if (model) {
       let me = this;
-      me._currentModel=model;
+      me._currentModel = model;
       let e = new SelectedModelEventArg(me, model);
       for (let index = 0; index < me.selectedModelListeners.length; index++) {
         let callback = this.selectedModelListeners[index];
@@ -595,18 +598,18 @@ export default class ProjectService {
   }
 
   getUser() {
-    if(this.user){
+    if (this.user) {
       return this.user?.id;
-    }else{
+    } else {
       return '21cd2d82-1bbc-43e9-898a-d5a45abdeced'; //todo: comentariar al publicar
     }
   }
 
   isGuessUser() {
-    if(this.user){
-      const roles = this.user?.roles || [] 
+    if (this.user) {
+      const roles = this.user?.roles || []
       return !!roles.find((role) => role.toLowerCase() === "guest");
-    }else{ 
+    } else {
       return false; //todo: comentariar al publicar
     }
   }
@@ -801,19 +804,19 @@ export default class ProjectService {
     let openProjectInServerSuccessCallback = async (projectInformation: ProjectInformation) => {
       me._project = projectInformation.project;
       me._projectInformation = projectInformation;
-      me._currentModel=null;
+      me._currentModel = null;
       me._isProjectLoaded = true;
-      
+
       if (projectInformation.id && me._project) {
         me._project.id = projectInformation.id;
       }
-      
+
       if (template) {
         me._projectInformation.id = null;
         me._projectInformation.template = false;
-      }          
+      }
       me.raiseEventUpdateProject(me._project, null);
-      
+
       me.handleCollaborativeProject(me._project.id, projectInformation)
     }
 
@@ -870,7 +873,7 @@ export default class ProjectService {
     }
     this.projectPersistenceUseCases.addConfiguration(user, projectInformation, configurationInformation, sc, errorCallback);
   }
-  
+
 
   getProjectsByUser(successCallback: any, errorCallback: any) {
     let user = this.getUser();
@@ -1173,9 +1176,9 @@ export default class ProjectService {
     project: Project,
     languageType: string,
     languageId: string,
-    name: string, 
-    description: string, 
-    author: string, 
+    name: string,
+    description: string,
+    author: string,
     source: string
   ) {
     return this.projectManager.createDomainEngineeringModel(
@@ -1193,9 +1196,9 @@ export default class ProjectService {
     project: Project,
     languageType: string,
     languageId: string,
-    name: string, 
-    description: string, 
-    author: string, 
+    name: string,
+    description: string,
+    author: string,
     source: string
   ) {
     return this.projectManager.createScopeModel(
@@ -1209,7 +1212,7 @@ export default class ProjectService {
       source
     );
   }
- 
+
   addNewDomainEngineeringModelListener(listener: any) {
     this.newDomainEngineeringModelListeners.push(listener);
   }
@@ -1285,8 +1288,8 @@ export default class ProjectService {
   //createApplicationEngineeringModel functions_ END***********
 
   //createApplicationModel functions_ START***********
-  createApplicationModel(project: Project, 
-    languageType: string, 
+  createApplicationModel(project: Project,
+    languageType: string,
     languageId: string,
     name: string,
     description: string,
@@ -1329,9 +1332,9 @@ export default class ProjectService {
 
   //createAdaptationModel functions_ START***********
   createAdaptationModel(project: Project,
-     languageType: string, 
-     languageId: string,
-     name: string,
+    languageType: string,
+    languageId: string,
+    name: string,
     description: string,
     author: string,
     source: string) {
@@ -1900,46 +1903,53 @@ export default class ProjectService {
     this.raiseEventUpdateProject(this._project, this.getTreeIdItemSelected());
   }
 
-// COLLABORATIVE FUNCTIONS START***********
+  // COLLABORATIVE FUNCTIONS START***********
 
-    shareProject = (project: string, ToUserEmail: string, role:string) => {
-        return this.projectPersistenceUseCases.shareProject(project, ToUserEmail,role);
+  shareProject = (project: string, ToUserEmail: string, role: string) => {
+    return this.projectPersistenceUseCases.shareProject(project, ToUserEmail, role);
+  }
+
+  removeCollaborator = (projectId: string, collaboratorId: string) => {
+    return this.projectPersistenceUseCases.removeCollaborator(projectId, collaboratorId,);
+  }
+
+  changeCollaboratorRole = (projectId: string, collaboratorId: string, role: string) => {
+    return this.projectPersistenceUseCases.changeCollaboratorRole(projectId, collaboratorId, role,);
+  }
+
+  async initUser(): Promise<any> {
+    try {
+      const user = await this.projectPersistenceUseCases.initUser();
+      this.user = user;
+    } catch (error) {
+      console.error("Error initializing user:", error);
     }
+  }
 
-    removeCollaborator = (projectId: string, collaboratorId: string) => {
-      return this.projectPersistenceUseCases.removeCollaborator(projectId, collaboratorId,);
-    }
+  handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation) {
+    return handleCollaborativeProject(projectId, projectInfo);
+  }
 
-    changeCollaboratorRole = (projectId: string, collaboratorId: string, role: string) => {
-      return this.projectPersistenceUseCases.changeCollaboratorRole(projectId, collaboratorId, role,);
-    }
+  observeModelState(projectId: string, modelId: string, callback: (state: any, changes?: any) => void) {
+    return observeModelState(projectId, modelId, callback);
+  }
 
-    async initUser(): Promise<any> {
-        try{
-        const user = await this.projectPersistenceUseCases.initUser();
-        this.user = user;
-      }catch (error) {
-        console.error("Error initializing user:", error);
-      }
-    }
+  updateModelState(projectId: string, modelId: string, updateFn: (state: any) => void) {
+    return updateModelState(projectId, modelId, updateFn);
+  }
 
-    handleCollaborativeProject(projectId: string, projectInfo: ProjectInformation){
-      return handleCollaborativeProject(projectId, projectInfo);
-    }
-
-    observeModelState(projectId:string ,modelId: string, callback: (state: any, changes?: any) => void) {
-      return observeModelState(projectId, modelId, callback);
-    }
-
-    updateModelState(projectId: string, modelId: string, updateFn: (state: any) => void) {
-      return updateModelState(projectId, modelId, updateFn);
-    }
-
-    getProjectProvider(projectId: string): any {
-      return getProjectProvider(projectId);
+  getProjectProvider(projectId: string): any {
+    return getProjectProvider(projectId);
 
 
-    }
+  }
 
+  createHistoryEvent(historyEvent: ProjectHistory): Promise<any> {
+    return this.projectPersistenceUseCases.createHistoryEvent(historyEvent);
+  }
+
+  getProjectHistory(projectId: string): Promise<any> {
+    return this.projectPersistenceUseCases.getProjectHistory(projectId);
+  }
 
 }
