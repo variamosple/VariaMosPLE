@@ -30,7 +30,7 @@ function hasFailedIterationResult(
   );
 }
 
-export default function QueryResult({
+export default function QueryResultOld({
   index,
   result,
   projectService,

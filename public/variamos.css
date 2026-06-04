@@ -2,49 +2,6 @@
  * Copyright 2021 VariaMos PLE. 
  */
 
- :root {
-  --primary-color: #428DCF;
-  --primary-color-text: #ffffff;
-  --primary-color-constrast: #0f436d;
-  --primary-color-constrast-text: #ffffff;
-
-  /* --secondary-color: #8bc34a;
-  --secondary-color-text: #344b1b;
-  --secondary-color-constrast: #344b1b;
-  --secondary-color-constrast-text: #ffffff; */
-
-  --secondary-color: #428DCF;
-  --secondary-color-text: #ffffff;
-  --secondary-color-constrast: #0f436d;
-  --secondary-color-constrast-text: #ffffff;
-
-  
-  --header-color: #dcdcdc;
-  --dark-color-font: #212529;
-}
-
-html{
-  font-family: Arial, Helvetica, sans-serif;
-  color: var(--dark-color-font) !important;
-}
-
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  margin: 0px;
-  padding: 0px;
-}
-
-.bodyContent{ 
-  background-color: white;
-} 
-
 /* General design
 ---------------------------- */
 .distribution-variamos {
@@ -84,45 +41,9 @@ label {
 
 /* ---------------------------- */
 
-/* Variamos Botton - Primary Color
----------------------------- */
-.btn-Variamos {
-  color: var(--secondary-color-text);
-  background-color: var(--secondary-color);
-  border-color: var(--secondary-color);
-}
-.btn-Variamos:hover {
-  color: var(--secondary-color-constrast-text);
-  background-color: var(--secondary-color-constrast);
-  border-color: var(--secondary-color-constrast);
-}
-
-.btn-Variamos:active {
-  color: var(--secondary-color-constrast-text);
-  background-color: var(--secondary-color-constrast);
-  border-color: var(--secondary-color-constrast);
-}
-/* ---------------------------- */
-
-/* Variamos project management
----------------------------- */
-.border-title-darkblue-variamos {
-  border-bottom: 5px solid var(--primary-color-constrast);
-  border-right: 5px solid var(--primary-color-constrast);
-}
-
-.list-group-item.active {
-  color: var(--primary-color-text);
-  background-color: var(--primary-color) !important;
-  border-color: var(--primary-color-constrast);
-  border-bottom: 5px solid var(--primary-color-constrast);
-}
-
-/* ---------------------------- */
-
 /* Variamos Tree
 ---------------------------- */
-/* @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&display=swap"); */
+
 .outer {
   top: 30%;
   left: 40%;
@@ -162,43 +83,6 @@ ul {
 .fa-minus-square-o:active,
 .fa-plus-square:active {
   background-color: #b8daed3b;
-}
-
-.fa-minus-square-o:active,
-.fa-plus-square:active {
-  background-color: #b8daed3b;
-}
-/* ---------------------------- */
-
-/* Variamos navigate bar
----------------------------- */
-.nav-bar-variamos,
-a {
-  text-decoration: none !important;
-  color: var(--primary-color-text);
-  background-color: transparent !important;
-  border: none;
-  padding-top: 5px;
-  cursor: pointer;
-}
-
-.nav-bar-variamos:active {
-  color: var(--primary-color-constrast-text) !important;
-  text-decoration: none;
-  background-color: var(--primary-color-constrast) !important;
-  border-color: var(--primary-color-constrast);
-}
-
-.nav-bar-variamos:hover {
-  color: var(--primary-color-constrast-text) !important;
-  text-decoration: none;
-  background-color: var(--primary-color-constrast) !important;
-  border-color: var(--primary-color-constrast);
-}
-
-a:hover {
-  text-decoration: none;
-  color: var(--primary-color-text);
 }
 /* ---------------------------- */
 
@@ -276,9 +160,6 @@ footer .row {
   background-color: var(--primary-color) !important;
 }
 
-.ImageInput{
-}
-
 .ImageInput img{
    max-height: 5rem !important;
    border-radius: 0.25rem;
@@ -287,4 +168,205 @@ footer .row {
 .ImageInput p{
    font-size: 0.7rem;
 }
- 
+
+
+
+
+/* --- Colors --- */
+
+:root {
+  --color-background-primary: #fff;
+  --color-background-secondary: #f5f5f5;
+  --color-text-primary: #000;
+  --color-text-secondary: #999;
+  --color-accent-primary: #428DCF;
+  --color-accent-primary-text: #fff;
+  --color-accent-primary-hover: #357ab8;
+  --color-accent-primary-active: #2a6294;
+  --color-accent-primary-disabled: rgba(66, 141, 207, 0.5);
+  --color-accent-secondary: #aaa;
+  --color-accent-secondary-text: #fff;
+  --color-accent-secondary-hover: #999;
+  --color-accent-secondary-active: #888;
+  --color-accent-secondary-disabled: rgba(170, 170, 170, 0.5);
+  --color-state-success: #63cf42;
+  --color-state-warning: #cfc142;
+  --color-state-error: #cf4242;
+
+  /* Temporary for compatibility with old code */
+  --primary-color: #428DCF;
+  --primary-color-text: #ffffff;
+  --primary-color-constrast: #0f436d;
+  --primary-color-constrast-text: #ffffff;
+
+  --secondary-color: #428DCF;
+  --secondary-color-text: #ffffff;
+  --secondary-color-constrast: #0f436d;
+  --secondary-color-constrast-text: #ffffff;
+  
+  --header-color: #dcdcdc;
+  --dark-color-font: #212529;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-primary: #181818;
+    --color-background-secondary: #2d2d2d;
+    --color-text-primary: #fff;
+    --color-text-secondary: #bbb;
+  }
+}
+
+/* --- Body --- */
+
+body {
+  background-color: var(--color-background-primary);
+  color: var(--color-text-primary);
+}
+
+/* --- Button --- */
+
+.btn {
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.btn:hover, .btn:active, .btn:disabled {
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--color-accent-primary);
+  color: var(--color-accent-primary-text);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent-primary-hover);
+}
+
+.btn-primary:active {
+  background-color: var(--color-accent-primary-active);
+}
+
+.btn-primary:disabled {
+  background-color: var(--color-accent-primary-disabled);
+}
+
+.btn-secondary {
+  background-color: var(--color-accent-secondary);
+  color: var(--color-accent-secondary-text);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-accent-secondary-hover);
+}
+
+.btn-secondary:active {
+  background-color: var(--color-accent-secondary-active);
+}
+
+.btn-secondary:disabled {
+  background-color: var(--color-accent-secondary-disabled);
+}
+
+/* --- Navbar --- */
+
+.navbar {
+  flex: 0;
+  justify-content: start;
+  gap: 0.5rem;
+}
+
+.icon-btn, .navbar a {
+  background-color: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  width: 1.5rem;
+  vertical-align: middle;
+  align-content: center;
+}
+
+/* --- Inputs --- */
+
+input {
+  width: 100%;
+  background-color: var(--color-background-primary);
+  color: var(--color-text-primary);
+  border: solid 1px var(--color-accent-secondary);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+/* --- Icon --- */
+
+.svg-inline--fa {
+  vertical-align: middle;
+  height: 1.5rem;
+  width: auto;
+  color: var(--color-text-primary);
+  transition: color 0.2s ease;
+}
+
+.icon-btn:hover .svg-inline--fa,
+button:hover .svg-inline--fa {
+  color: var(--color-accent-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* --- Switch Selector --- */
+/* !important needed to override default styles that are inline */
+
+.react-switch-selector-wrapper {
+  background-color: var(--color-accent-secondary) !important;
+  border: none !important;
+  border-radius: 4px !important;
+}
+
+.react-switch-selector-wrapper::before {
+  height: calc(100% - 6px) !important;
+  width: calc(50% - 8px) !important;
+  margin-left: 4px !important;
+  background-color: var(--color-accent-primary) !important;
+  border: none !important;
+  border-radius: 4px !important;
+}
+
+.react-switch-selector-option-label {
+  color: var(--color-accent-secondary-text) !important;
+}
+
+.react-switch-selector-option-label::before {
+  color: var(--color-accent-primary-text) !important;
+}
+
+/* --- Nav & Tabs --- */
+
+.nav-tabs {
+  border-bottom: 1px solid var(--color-accent-secondary);
+}
+
+.nav-tabs .nav-link {
+  color: var(--color-text-primary);
+  font-weight: bold;
+  background-color: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-tabs .nav-link:hover {
+  color: var(--color-accent-secondary);
+  background-color: transparent;
+  border-bottom-color: var(--color-accent-secondary);
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--color-accent-primary);
+  background-color: transparent;
+  border-bottom-color: var(--color-accent-primary);
+}

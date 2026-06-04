@@ -1,18 +1,7 @@
 .GraphContainer {
-  /* overflow-block: scroll;
-    overflow-x: scroll;
-    overflow-y: auto;
-    height: 75vh;
-    cursor: default;
-    padding-right: 0px;
-    padding-left: 0px; */
-  /* background: url("../../Infraestructure/Images/grid.gif"); */
-  /* border: solid 1px red; */
   height: 100%;
-  overflow: auto;
-  width: 74.5vw;
-  max-width: 74.5vw; 
   width: 100%;
+  overflow: auto;
 }
 
 .MxGEditor {
@@ -26,6 +15,7 @@
   height: 1rem;
   margin-right: 0.25rem;
 }
+
 /* Contenedor del modal */
 .domain-catalog-modal-custom .modal-dialog {
   width: 80%; /* Usar todo el ancho disponible */
@@ -116,5 +106,29 @@
   padding: 30px;
 }
 
+/* --- Toolbar --- */
 
+.MxGEditor .header {
+  width: max-content;
+  max-width: 100%;
+  position: absolute;
+  bottom: 1vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  border: var(--primary-color-constrast) 0.1em solid;
+  border-radius: 1em;
+  padding: 0.5vw;
+}
+
+.MxGEditor .header svg {
+  height: 2vw;
+  width: 2vw;
+}
+
+.MxGEditor .header a {
+  margin-left: 0.5vw;
+  margin-right: 0.5vw;
+  font-size: 1.2vw;
+}
 

@@ -1,21 +1,33 @@
-import { FC, useEffect, useMemo } from "react";
-import { Pane, ResizablePanes } from "resizable-panes-react";
+import { useEffect, useMemo, useState } from "react";
 import ProjectService from "../../Application/Project/ProjectService";
 import Layout from "../../core/components/Layout";
-import useWindowDimensions from "../../core/hooks/useWindowDimensions ";
 import DiagramEditor from "../DiagramEditor/DiagramEditor";
 import ElementsPannel from "../DiagramEditor/ElementsPannel";
 import ProjectManagement from "../ProjectManagement/ProjectManagement";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
+import NavBar from "./NavBar";
 import "./DashBoard.css";
-import ModelRenderer from "./ModelRenderer";
+import ReasoningPanel from "../Reasoning/ReasoningPanel";
+import SwitchSelector from "react-switch-selector";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faAnglesDown } from "@fortawesome/free-solid-svg-icons";
 
-const DashBoard: FC<unknown> = () => {
+function DashBoard() {
+
   const projectService: ProjectService = useMemo(
     () => new ProjectService(),
     []
   );
-  const { width } = useWindowDimensions();
+
+  const [selectedModel, setSelectedModel] = useState(null);
+
+  useEffect(() => {
+    const updateModel = (e: { model: any; }) => {
+      setSelectedModel(e.model);
+    };
+    projectService.addSelectedModelListener(updateModel);
+    return () => projectService.removeSelectedModelListener(updateModel);
+  }, [projectService]);
 
   useEffect(() => {
     const init = async () => {
@@ -41,13 +53,47 @@ const DashBoard: FC<unknown> = () => {
     init();
   }, [projectService]);
 
+  const [mode, setMode] = useState("edition");
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
 
   return (
     <Layout>
       <ProjectManagement projectService={projectService}/>
-      {/* <NavBar projectService={projectService} /> */}
-      <div className="w-100 h-100">
-      <ModelRenderer projectService={projectService} />
+      <div className="main">
+        <button id="left-panel-collapse-btn" className={`${leftPanelCollapsed ? 'collapsed' : ''}`} onClick={() => setLeftPanelCollapsed(!leftPanelCollapsed)}>
+          <FontAwesomeIcon icon={faAnglesDown} rotation={ leftPanelCollapsed ? 270 : 90} />
+        </button>
+        {!leftPanelCollapsed && <div id="left-panel" className="panel">
+          <NavBar projectService={projectService} />
+          <TreeExplorer projectService={projectService} />
+        </div>}
+        <div id="central-canvas">
+          {!selectedModel && "Select a model first"}
+          {selectedModel && <div id="mode-switch-selector">
+            <SwitchSelector
+              onChange={(value) => setMode(value as string)}
+              options={[
+                {
+                  label: "Edition",
+                  value: "edition",
+                  selectedBackgroundColor: "#000000",
+                },
+                {
+                  label: "Reasoning",
+                  value: "reasoning",
+                  selectedBackgroundColor: "#000000",
+                },
+              ]}
+              initialSelectedIndex={0}
+              name="mode"
+            />
+          </div>}
+          {selectedModel && <DiagramEditor projectService={projectService} />}
+        </div>
+        {selectedModel && <div id="right-panel" className="panel">
+          {mode === "edition" && <ElementsPannel projectService={projectService} />}
+          {mode === "reasoning" && <ReasoningPanel projectService={projectService} />}
+        </div>}
       </div>
     </Layout>
   );

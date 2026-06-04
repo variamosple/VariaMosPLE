@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import Accordion from "react-bootstrap/Accordion";
@@ -52,7 +52,7 @@ interface QueryBuilderProps {
   setKey: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export default function QueryBuilder({
+export default function QueryBuilderOld({
   projectService,
   setQuery,
   setKey,
@@ -66,8 +66,6 @@ export default function QueryBuilder({
     useState<string>("min");
   const [newIterationModelObject, setNewIterationModelObject] =
     useState<ModelObject>(ModelObject.ELEMENT);
-  // const [isRelationshipElement, setIsRelationshipElement] =
-  //   useState<boolean>(false);
   const [newIterationRelationshipElement, setNewIterationRelationshipElement] =
     useState<RelationshipElement>(RelationshipElement.SOURCE);
   const [withValue, setWithValue] = useState<number>(0);

@@ -4,6 +4,7 @@
   width: 100%;
 }
 
+/*
 input {
   border: 1px solid transparent;
   background-color: #f1f1f1;
@@ -21,6 +22,7 @@ input[type=submit] {
   color: #fff;
   cursor: pointer;
 }
+*/
 
 .autocomplete-items {
   padding: 0px;

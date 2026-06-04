@@ -1,3 +1,10 @@
+.TreeExplorer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
 .TreeExplorer img{
   width: 1rem;
   height: 1rem;
@@ -10,9 +17,11 @@
   white-space: nowrap;
 }
 
-.TreeExplorer .treeView{
-  /* border: solid 1px red; */
+.TreeExplorer .treeView {
+  height: 100%;
   overflow: auto;
+  padding-left: 4%;
+  padding-right: 4%;
 }
 
 /* Animación para el indicador de sincronización */

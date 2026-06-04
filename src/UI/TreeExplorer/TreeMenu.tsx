@@ -1240,7 +1240,7 @@ class TreeMenu extends Component<Props, State> {
 
   render() {
     return (
-      <div className="treeMenu pb-2">
+      <div className="treeMenu">
         {this.renderContexMenu()}
 
         <Modal id="modelInformationEditorModal" show={this.state.showModelInformationEditorModal} onHide={this.hideModelInformationEditorModal.bind(this)} size="lg" centered>

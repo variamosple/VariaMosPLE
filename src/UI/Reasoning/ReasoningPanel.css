@@ -1,0 +1,45 @@
+#reasoning-panel {
+  width: 35vw;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#reasoning-panel .tab-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+}
+
+#reasoning-panel .tab-pane.active {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+#query-mode-selector {
+  height: 2rem;
+  width: 10rem;
+}
+
+#save-query-input {
+  height: 2rem;
+  flex: 1;
+}
+
+#query-builder, #query-writer {
+  flex: 1;
+  overflow: auto;
+}
+
+#query-writer .cm-editor {
+  height: 100%;
+  width: 100%;
+  border: solid 1px #ccc;
+}
+
+#query-writer .cm-scroller {
+  overflow: auto;
+}

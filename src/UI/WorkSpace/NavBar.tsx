@@ -6,8 +6,9 @@ import OpenDialog from "../OpenDialog/openDialog";
 import SaveDialog from "../SaveDialog/saveDialog";
 
 import { SessionUser } from "@variamosple/variamos-components";
-import "./NavBar.css";
 import { RoleEnum } from "../../Domain/ProductLineEngineering/Enums/roleEnum";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faClone, faDownload, faFileCirclePlus, faFloppyDisk, faFolderOpen, faGear } from "@fortawesome/free-solid-svg-icons";
 
 interface Props {
   projectService: ProjectService;
@@ -20,7 +21,7 @@ interface State {
   user?: SessionUser;
 }
 
-class navBar extends Component<Props, State> {
+class NavBar extends Component<Props, State> {
   constructor(props: any) {
     super(props);
     this.state = {
@@ -34,9 +35,6 @@ class navBar extends Component<Props, State> {
     this.refreshNavBar = this.refreshNavBar.bind(this);
   }
 
-  componentDidMount() {
-  }
-
   saveProject() {
     if (this.props.projectService.isGuessUser()) {
       this.exportProject();
@@ -45,7 +43,7 @@ class navBar extends Component<Props, State> {
     const projectInfo = this.props.projectService.getProjectInformation();
     const currentUser = this.props.projectService.getUser();
 
-    if (!projectInfo || !projectInfo.id || !currentUser) {
+    if (!projectInfo?.id || !currentUser) {
       this.handleShowSaveModal();
       return;
     }
@@ -63,7 +61,6 @@ class navBar extends Component<Props, State> {
   }
 
   saveProjectAs() {
-    let me = this;
     if (this.props.projectService.isGuessUser()) {
       this.exportProject(); 
     }else{
@@ -72,14 +69,10 @@ class navBar extends Component<Props, State> {
   }
 
   newProject() {
-    let me = this;
-    let userId = this.props.projectService.getUser();
     this.handleShowNewModal();
   }
 
   openProject() {
-    let me = this;
-    let userId = this.props.projectService.getUser();
     this.handleShowOpenModal();
   }
 
@@ -119,15 +112,25 @@ class navBar extends Component<Props, State> {
   render() {
     return (
       <div className="NavBar">
-        <div className="header">
-          <a title="New project" onClick={this.newProject.bind(this)}><span><img src="/images/menuIcons/new.png"></img></span></a>{" "}
-          <a title="Open project" onClick={this.openProject.bind(this)}><span><img src="/images/menuIcons/open.png"></img></span></a>{" "}
-          <a title="Save project" onClick={this.saveProject.bind(this)}><span><img src="/images/menuIcons/save.png"></img></span></a>{" "}
-          <a title="Save project as ..." onClick={this.saveProjectAs.bind(this)}><span><img src="/images/menuIcons/saveas.png"></img></span></a>{" "}
-          <a title="Download project" onClick={this.exportProject.bind(this)}><span><img src="/images/menuIcons/download.png"></img></span></a>{" "}
-          <a title="Settings" onClick={() =>
-            document.getElementById("projectManagement").click()
-          }><span><img src="/images/menuIcons/settings.png"></img></span></a>{" "}
+        <div className="navbar">
+          <button className="icon-btn" title="New project" onClick={this.newProject.bind(this)}>
+            <FontAwesomeIcon icon={faFileCirclePlus} />
+          </button>
+          <button className="icon-btn" title="Open project" onClick={this.openProject.bind(this)}>
+            <FontAwesomeIcon icon={faFolderOpen} />
+          </button>
+          <button className="icon-btn" title="Save project" onClick={this.saveProject.bind(this)}>
+            <FontAwesomeIcon icon={faFloppyDisk} />
+          </button>
+          <button className="icon-btn" title="Save project as ..." onClick={this.saveProjectAs.bind(this)}>
+            <FontAwesomeIcon icon={faClone} />
+          </button>
+          <button className="icon-btn" title="Download project" onClick={this.exportProject.bind(this)}>
+            <FontAwesomeIcon icon={faDownload} />
+          </button>
+          <button className="icon-btn" title="Settings" onClick={() => document.getElementById("projectManagement").click()}>
+            <FontAwesomeIcon icon={faGear} />
+          </button>
 
           <button
             type="button"
@@ -143,24 +146,24 @@ class navBar extends Component<Props, State> {
         <div>
         </div>
         <div>
-          {!this.state.show_save_modal ? (
-            null
-          ) : (
+          {this.state.show_save_modal ? (
             <SaveDialog show={this.state.show_save_modal} handleCloseCallback={this.handleCloseSaveModal.bind(this)} projectService={this.props.projectService} />
+          ) : (
+            null
           )}
         </div>
         <div>
-          {!this.state.show_open_modal ? (
-            null
-          ) : (
+          {this.state.show_open_modal ? (
             <OpenDialog show={this.state.show_open_modal} handleCloseCallback={this.handleCloseOpenModal.bind(this)} projectService={this.props.projectService} />
+          ) : (
+            null
           )}
         </div>
         <div>
-          {!this.state.show_new_modal ? (
-            null
-          ) : (
+          {this.state.show_new_modal ? (
             <NewDialog show={this.state.show_new_modal} handleCloseCallback={this.handleCloseNewModal.bind(this)} projectService={this.props.projectService} />
+          ) : (
+            null
           )}
         </div>
       </div>
@@ -168,4 +171,4 @@ class navBar extends Component<Props, State> {
   }
 }
 
-export default navBar;
+export default NavBar;

@@ -1,7 +1,7 @@
 import {render, screen} from "@testing-library/react";
 import '@testing-library/jest-dom/extend-expect';
 import ProjectService from "../../Application/Project/ProjectService";
-import NavBar from "./navBar";
+import NavBar from "./NavBar";
 
 describe('The navbar should be displayed', ()=>{
 
