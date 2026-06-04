@@ -7,7 +7,7 @@ interface QueryLoaderModalProps {
     setQuery: (query: string) => void;
 }
 
-function QueryLoaderModal({show, onHide, savedQueries, setQuery}: QueryLoaderModalProps): JSX.Element {
+function QueryLoaderModal({show, onHide, savedQueries, setQuery}: Readonly<QueryLoaderModalProps>): JSX.Element {
     return (
         <Modal show={show} onHide={onHide}>
             <Modal.Header>
