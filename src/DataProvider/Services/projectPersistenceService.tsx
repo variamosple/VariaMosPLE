@@ -1,6 +1,7 @@
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
 import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
 import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
+import { ProjectAnnotation } from "../../Domain/ProductLineEngineering/Entities/ProjectAnnotation";
 import { PROJECTS_CLIENT } from "../../Infraestructure/AxiosConfig";
 
 export type ChatRole = "system" | "user" | "assistant";
@@ -450,6 +451,114 @@ export default class ProjectPersistenceService {
       return responseAPISuccess;
     } catch (error) {
       console.error("Error in getProjectHistory Service:", error);
+      throw error;
+    }
+  }
+
+  async createProjectAnnotation(annotation: ProjectAnnotation): Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.post("/projectAnnotation", annotation);
+
+      const responseAPISuccess: ResponseAPISuccess = Object.assign(
+        new ResponseAPISuccess(),
+        res.data
+      );
+
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.error("Error in createProjectAnnotation Service:", error);
+      throw error;
+    }
+  }
+
+  async getProjectAnnotations(modelId: string): Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.get("/projectAnnotation", {
+        params: { model_id: modelId },
+      });
+
+      const responseAPISuccess: ResponseAPISuccess = Object.assign(
+        new ResponseAPISuccess(),
+        res.data
+      );
+
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.error("Error in getProjectAnnotations Service:", error);
+      throw error;
+    }
+  }
+
+  async updateProjectAnnotation(annotationId: string, annotation: ProjectAnnotation): Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.put("/projectAnnotation", annotation, {
+        params: { annotation_id: annotationId },
+      });
+
+      const responseAPISuccess: ResponseAPISuccess = Object.assign(
+        new ResponseAPISuccess(),
+        res.data
+      );
+
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.error("Error in updateProjectAnnotation Service:", error);
+      throw error;
+    }
+  }
+
+  async deleteProjectAnnotation(annotationId: string): Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.delete("/projectAnnotation", {
+        params: { annotation_id: annotationId },
+      });
+
+      const responseAPISuccess: ResponseAPISuccess = Object.assign(
+        new ResponseAPISuccess(),
+        res.data
+      );
+
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.error("Error in deleteProjectAnnotation Service:", error);
+      throw error;
+    }
+  }
+
+  async resolveProjectAnnotation(annotationId: string): Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.put("/projectAnnotation/resolve", null, {
+        params: { annotation_id: annotationId },
+      });
+
+      const responseAPISuccess: ResponseAPISuccess = Object.assign(
+        new ResponseAPISuccess(),
+        res.data
+      );
+
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.error("Error in resolveProjectAnnotation Service:", error);
       throw error;
     }
   }

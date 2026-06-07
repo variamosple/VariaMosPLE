@@ -19,6 +19,7 @@ import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
 import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
+import { ProjectAnnotation } from "../../Domain/ProductLineEngineering/Entities/ProjectAnnotation";
 import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectPersistenceUseCases";
 import {
   ModelLookupResult,
@@ -1952,4 +1953,23 @@ export default class ProjectService {
     return this.projectPersistenceUseCases.getProjectHistory(projectId);
   }
 
+  createProjectAnnotation(annotation: ProjectAnnotation): Promise<any> {
+    return this.projectPersistenceUseCases.createProjectAnnotation(annotation);
+  }
+
+  getProjectAnnotations(modelId: string): Promise<any> {
+    return this.projectPersistenceUseCases.getProjectAnnotations(modelId);
+  }
+
+  updateProjectAnnotation(annotationId: string, annotation: ProjectAnnotation): Promise<any> {
+    return this.projectPersistenceUseCases.updateProjectAnnotation(annotationId, annotation);
+  }
+
+  deleteProjectAnnotation(annotationId: string): Promise<any> {
+    return this.projectPersistenceUseCases.deleteProjectAnnotation(annotationId);
+  }
+
+  resolveProjectAnnotation(annotationId: string): Promise<any> {
+    return this.projectPersistenceUseCases.resolveProjectAnnotation(annotationId);
+  }
 }

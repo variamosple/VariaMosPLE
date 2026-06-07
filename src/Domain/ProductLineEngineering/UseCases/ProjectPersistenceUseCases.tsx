@@ -5,6 +5,7 @@ import { Language } from "../Entities/Language";
 import { ProjectInformation } from "../Entities/ProjectInformation";
 import { Project } from "../Entities/Project";
 import { ProjectHistory } from "../Entities/ProjectHistory";
+import { ProjectAnnotation } from "../Entities/ProjectAnnotation";
 import { ConfigurationInformation } from "../Entities/ConfigurationInformation";
 
 export default class ProjectPersistenceUseCases {
@@ -90,5 +91,28 @@ export default class ProjectPersistenceUseCases {
 
   async getProjectHistory(projectId: string): Promise<any> {
     return this.projectPersistenceService.getProjectHistory(projectId);
+  }
+
+  async createProjectAnnotation(annotation: ProjectAnnotation): Promise<any> {
+    return this.projectPersistenceService.createProjectAnnotation(annotation);
+  }
+
+  async getProjectAnnotations(modelId: string): Promise<any> {
+    return this.projectPersistenceService.getProjectAnnotations(modelId);
+  }
+
+  async updateProjectAnnotation(annotationId: string, annotation: ProjectAnnotation): Promise<any> {
+    return this.projectPersistenceService.updateProjectAnnotation(
+      annotationId,
+      annotation
+    );
+  }
+  
+  async deleteProjectAnnotation(annotationId: string): Promise<any> {
+    return this.projectPersistenceService.deleteProjectAnnotation(annotationId);
+  }
+
+  async resolveProjectAnnotation(annotationId: string): Promise<any> {
+    return this.projectPersistenceService.resolveProjectAnnotation(annotationId);
   }
 }
