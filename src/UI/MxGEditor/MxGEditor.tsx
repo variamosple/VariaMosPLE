@@ -46,10 +46,13 @@ import {
 
   setUserIdle
 } from "../../DataProvider/Services/collab/collaborationAwarenessService";
+import { syncInitialAnnotations, publishAnnotation, removeAnnotation, observeAnnotations } from "../../DataProvider/Services/collab/annotationCollaborationService";
 import CollaborativeIndicators from "./CollaborativeIndicators";
 import { FaHistory } from "react-icons/fa";
 import HistoryPanel from "../HistoryProject/HistoryPanel";
 import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
+import AnnotationLayer from "../Annotation/AnnotationLayer";
+import { ProjectAnnotation } from "../../Domain/ProductLineEngineering/Entities/ProjectAnnotation";
 import { HistoryActionType, HistoryEntityType } from "../../Domain/ProductLineEngineering/Enums/historyEnum";
 import historyCollaborationService from "../../DataProvider/Services/collab/historyCollaborationService";
 
@@ -100,6 +103,13 @@ interface State {
   }>;
   isMovingCell: boolean;
   movingCellId: string | null;
+  annotationRecords: any[];
+  showAddCommentOption: boolean;
+  annotationContextX: number;
+  annotationContextY: number;
+  annotationGraphX: number;
+  annotationGraphY: number;
+  pendingAnnotation: any;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -116,6 +126,7 @@ export default class MxGEditor extends Component<Props, State> {
   incrementalUpdaters: Map<string, IncrementalGraphUpdater> = new Map();
   modelSnapshots: Map<string, { elements: any[], relationships: any[] }> = new Map();
   historyPreviewCell: any = null;
+  annotationObserver: (() => void) | null = null;
 
   constructor(props: Props) {
     super(props);
@@ -152,6 +163,13 @@ export default class MxGEditor extends Component<Props, State> {
       movingCellId: null,
       showHistoryPanel: false,
       historyRecords: [],
+      annotationRecords: [],
+      showAddCommentOption: false,
+      annotationContextX: 0,
+      annotationContextY: 0,
+      annotationGraphX: 0,
+      annotationGraphY: 0,
+      pendingAnnotation: null,
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
     this.getRequirementsReport = this.getRequirementsReport.bind(this);
@@ -912,11 +930,30 @@ export default class MxGEditor extends Component<Props, State> {
     });
 
     let keyHandler = new mx.mxKeyHandler(graph);
-    keyHandler.bindKey(46, function (evt) {
+
+    const isTypingInInput = () => {
+      const activeElement = document.activeElement as HTMLElement;
+
+      return (
+        activeElement &&
+        (
+          activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.isContentEditable ||
+          activeElement.closest(".annotation-panel")
+        )
+      );
+    };
+
+    keyHandler.bindKey(46, function () {
+      if (isTypingInInput()) return;
+
       me.deleteSelection();
     });
 
-    keyHandler.bindKey(8, function (evt) {
+    keyHandler.bindKey(8, function () {
+      if (isTypingInInput()) return;
+
       me.deleteSelection();
     });
   }
@@ -1525,7 +1562,6 @@ export default class MxGEditor extends Component<Props, State> {
         showContextMenuElement: false
       });
 
-
       this.isInitialLoad = true;
       let graph: mxGraph | undefined = this.graph;
       if (graph) {
@@ -1682,6 +1718,13 @@ export default class MxGEditor extends Component<Props, State> {
               elements: JSON.parse(JSON.stringify(model.elements || [])),
               relationships: JSON.parse(JSON.stringify(model.relationships || []))
             });
+          }
+          if (model) {
+            if (this.annotationObserver) {
+              this.annotationObserver();
+              this.annotationObserver = null;
+            }
+            this.loadAnnotations();
           }
         }
       }
@@ -2627,10 +2670,28 @@ export default class MxGEditor extends Component<Props, State> {
     this.setState({ showMessageModal: false });
   }
 
-  showContexMenu(e) {
-    let mx = e.clientX;
-    let my = e.clientY;
-    this.setState({ showContextMenuElement: true, contextMenuX: mx, contextMenuY: my });
+  showContexMenu(event: MouseEvent) {
+    const pt = mx.mxUtils.convertPoint(
+      this.graph.container,
+      event.clientX,
+      event.clientY
+    );
+
+    const view = this.graph.getView();
+
+    const graphX = pt.x / view.scale - view.translate.x;
+    const graphY = pt.y / view.scale - view.translate.y;
+
+    this.setState({
+      showContextMenuElement: true,
+      contextMenuX: event.clientX,
+      contextMenuY: event.clientY,
+      showAddCommentOption: true,
+      annotationContextX: event.clientX,
+      annotationContextY: event.clientY,
+      annotationGraphX: graphX,
+      annotationGraphY: graphY,
+    });
   }
 
   hideContexMenu() {
@@ -2651,6 +2712,19 @@ export default class MxGEditor extends Component<Props, State> {
       items.push(<Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command="Delete">Delete</Dropdown.Item>);
       items.push(<Dropdown.Item href="#" onClick={this.contexMenuElement_onClick.bind(this)} data-command="Properties">Properties</Dropdown.Item>);
     }
+
+    items.push(
+      <Dropdown.Item
+        key="add-comment"
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          this.createAnnotationFromContext();
+        }}
+      >
+        Add comment
+      </Dropdown.Item>
+    );
 
     if (this.props.projectService.externalFunctions) {
       for (let i = 0; i < this.props.projectService.externalFunctions.length; i++) {
@@ -3993,6 +4067,193 @@ export default class MxGEditor extends Component<Props, State> {
     });
   };
 
+  normalizeAnnotationRecord(item: any) {
+    if (!item) return null;
+
+    let annotation = item.annotation;
+
+    if (typeof annotation === "string") {
+      try {
+        annotation = JSON.parse(annotation);
+      } catch {
+        annotation = {};
+      }
+    }
+
+    return {
+      ...item,
+      id: item.id,
+      projectId: item.projectId || item.project_id,
+      modelId: item.modelId || item.model_id,
+      userId: item.userId || item.user_id,
+      userName: item.userName || item.user_name,
+      createdAt: item.createdAt || item.created_at,
+      updatedAt: item.updatedAt || item.updated_at,
+      annotation,
+    };
+  }
+
+  mergeAnnotations(records: any[]) {
+    return Array.from(
+      new Map(
+        records
+          .map((item) => this.normalizeAnnotationRecord(item))
+          .filter((item) => item?.id && item?.annotation?.position)
+          .map((item) => [item.id, item])
+      ).values()
+    );
+  }
+
+  loadAnnotations = async () => {
+    if (!this.currentModel) return;
+
+    const projectId = this.props.projectService.getProject()?.id;
+    const modelId = this.currentModel.id;
+
+    this.setState({
+      annotationRecords: [],
+      pendingAnnotation: null,
+    });
+
+    if (this.annotationObserver) {
+      this.annotationObserver();
+      this.annotationObserver = null;
+    }
+
+    if (!projectId || !modelId) return;
+
+    this.annotationObserver = observeAnnotations(projectId, modelId, (annotations) => {
+      if (this.currentModel?.id !== modelId) return;
+
+      this.setState({
+        annotationRecords: this.mergeAnnotations(annotations),
+      });
+    });
+
+    const response = await this.props.projectService.getProjectAnnotations(modelId);
+    const records = response.data?.data || response.data || [];
+
+    if (this.currentModel?.id !== modelId) return;
+
+    const normalized = this.mergeAnnotations(records);
+
+    syncInitialAnnotations(projectId, modelId, normalized);
+  };
+
+  createAnnotationFromContext = () => {
+    const projectId = this.props.projectService.getProject()?.id;
+    const modelId = this.currentModel?.id;
+
+    if (!projectId || !modelId) return;
+
+    this.setState({
+      showContextMenuElement: false,
+      pendingAnnotation: {
+        projectId,
+        modelId,
+        position: {
+          x: this.state.annotationGraphX,
+          y: this.state.annotationGraphY,
+        },
+        screenPosition: {
+          x: this.state.annotationContextX,
+          y: this.state.annotationContextY,
+        },
+      },
+    });
+  };
+
+  saveAnnotation = async (annotation: ProjectAnnotation) => {
+    const response = await this.props.projectService.createProjectAnnotation(annotation);
+
+    const savedAnnotation = {
+      ...annotation,
+      id: response.data?.data?.id || response.data?.id,
+      userName: response.data?.data?.userName || response.data?.userName,
+      createdAt: response.data?.data?.createdAt || new Date().toISOString(),
+    };
+
+    this.setState((prev) => ({
+      annotationRecords: this.mergeAnnotations([
+        ...prev.annotationRecords,
+        savedAnnotation,
+      ]),
+      pendingAnnotation: null,
+    }));
+
+    const projectId = this.props.projectService.getProject()?.id;
+    const modelId = this.currentModel?.id;
+
+    if (projectId && modelId && savedAnnotation.id) {
+      publishAnnotation(projectId, modelId, savedAnnotation);
+    }
+  };
+
+  updateAnnotation = async (annotationId: string, annotation: any) => {
+    await this.props.projectService.updateProjectAnnotation(annotationId, annotation);
+
+    this.setState((prev) => ({
+      annotationRecords: this.mergeAnnotations(
+        prev.annotationRecords.map((item) =>
+          item.id === annotationId ? annotation : item
+        )
+      ),
+    }));
+
+    const projectId = this.props.projectService.getProject()?.id;
+    const modelId = this.currentModel?.id;
+
+    if (projectId && modelId) {
+      publishAnnotation(projectId, modelId, {
+        ...annotation,
+        id: annotationId,
+      });
+    }
+  };
+
+  deleteAnnotation = async (annotationId: string) => {
+    await this.props.projectService.deleteProjectAnnotation(annotationId);
+
+    this.setState((prev) => ({
+      annotationRecords: prev.annotationRecords.filter(
+        (item) => item.id !== annotationId
+      ),
+    }));
+
+    const projectId = this.props.projectService.getProject()?.id;
+    const modelId = this.currentModel?.id;
+
+    if (projectId && modelId) {
+      removeAnnotation(projectId, modelId, annotationId);
+    }
+  };
+
+  resolveAnnotation = async (annotationId: string) => {
+    await this.props.projectService.resolveProjectAnnotation(annotationId);
+
+    const resolvedAnnotation = this.state.annotationRecords.find(
+      (item) => item.id === annotationId
+    );
+
+    const updated = {
+      ...resolvedAnnotation,
+      isResolved: true,
+    };
+
+    this.setState((prev) => ({
+      annotationRecords: prev.annotationRecords.map((item) =>
+        item.id === annotationId ? updated : item
+      ),
+    }));
+
+    const projectId = this.props.projectService.getProject()?.id;
+    const modelId = this.currentModel?.id;
+
+    if (projectId && modelId && updated) {
+      publishAnnotation(projectId, modelId, updated);
+    }
+  };
+
   toggleRequirementsReportModal = () => {
     if (!this.state.showRequirementsReportModal) {
       const selectedScope = this.props.projectService.getSelectedScope();
@@ -4359,6 +4620,27 @@ export default class MxGEditor extends Component<Props, State> {
             graph={this.graph}
           />
 
+          <AnnotationLayer
+            graph={this.graph}
+            projectId={this.props.projectService.getProject()?.id}
+            modelId={this.currentModel?.id}
+            projectService={this.props.projectService}
+            annotations={
+              this.graph && this.currentModel
+                ? this.state.annotationRecords.filter(
+                  (item) =>
+                    item.modelId === this.currentModel?.id ||
+                    item.model_id === this.currentModel?.id
+                )
+                : []
+            }
+            pendingAnnotation={this.state.pendingAnnotation}
+            onCreate={this.saveAnnotation}
+            onUpdate={this.updateAnnotation}
+            onDelete={this.deleteAnnotation}
+            onResolve={this.resolveAnnotation}
+            onCancelPending={() => this.setState({ pendingAnnotation: null })}
+          />
         </div>
 
         <div>
