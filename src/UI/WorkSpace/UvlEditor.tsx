@@ -80,7 +80,7 @@ const UVL_EXPORT_OPTIONS: Array<{ id: UvlExportFormat; label: string; extension:
   { id: "glencoe", label: "Glencoe", extension: "glencoe" },
   { id: "json", label: "JSON", extension: "json" },
   { id: "splot", label: "SPLOT", extension: "splot" },
-  { id: "uvl", label: "Download UVL", extension: "uvl" },
+  { id: "uvl", label: "UVL", extension: "uvl" },
 ];
 
 const UVL_TOP_LEVEL_KEYWORDS = ["namespace", "imports", "features", "constraints"];
