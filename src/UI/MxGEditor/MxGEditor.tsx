@@ -52,6 +52,7 @@ import { FaHistory } from "react-icons/fa";
 import HistoryPanel from "../HistoryProject/HistoryPanel";
 import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
 import AnnotationLayer from "../Annotation/AnnotationLayer";
+import AnnotationPanel from "../Annotation/AnnotationPanel";
 import { ProjectAnnotation } from "../../Domain/ProductLineEngineering/Entities/ProjectAnnotation";
 import { HistoryActionType, HistoryEntityType } from "../../Domain/ProductLineEngineering/Enums/historyEnum";
 import historyCollaborationService from "../../DataProvider/Services/collab/historyCollaborationService";
@@ -110,6 +111,7 @@ interface State {
   annotationGraphX: number;
   annotationGraphY: number;
   pendingAnnotation: any;
+  showAnnotationPanel: boolean;
 }
 
 export default class MxGEditor extends Component<Props, State> {
@@ -170,6 +172,7 @@ export default class MxGEditor extends Component<Props, State> {
       annotationGraphX: 0,
       annotationGraphY: 0,
       pendingAnnotation: null,
+      showAnnotationPanel: false,
     }
     this.getMaterialsFromConfig = this.getMaterialsFromConfig.bind(this);
     this.getRequirementsReport = this.getRequirementsReport.bind(this);
@@ -405,7 +408,6 @@ export default class MxGEditor extends Component<Props, State> {
       undefined,
       projectId,
       event.modelId,
-      undefined,
       undefined,
       event.actionType,
       event.entityType,
@@ -4067,6 +4069,18 @@ export default class MxGEditor extends Component<Props, State> {
     });
   };
 
+  openAnnotationPanel = () => {
+    this.setState({
+      showAnnotationPanel: true
+    });
+  };
+
+  closeAnnotationPanel = () => {
+    this.setState({
+      showAnnotationPanel: false
+    });
+  };
+
   normalizeAnnotationRecord(item: any) {
     if (!item) return null;
 
@@ -4250,6 +4264,35 @@ export default class MxGEditor extends Component<Props, State> {
     const modelId = this.currentModel?.id;
 
     if (projectId && modelId && updated) {
+      publishAnnotation(projectId, modelId, updated);
+    }
+  };
+
+  unresolveAnnotation = async (annotationId: string) => {
+    await this.props.projectService.unresolveProjectAnnotation(annotationId);
+
+    const unresolvedAnnotation = this.state.annotationRecords.find(
+      (item) => item.id === annotationId
+    );
+
+    if (!unresolvedAnnotation) return;
+
+    const updated = {
+      ...unresolvedAnnotation,
+      isResolved: false,
+      is_resolved: false,
+    };
+
+    this.setState((prev) => ({
+      annotationRecords: prev.annotationRecords.map((item) =>
+        item.id === annotationId ? updated : item
+      ),
+    }));
+
+    const projectId = this.props.projectService.getProject()?.id;
+    const modelId = this.currentModel?.id;
+
+    if (projectId && modelId) {
       publishAnnotation(projectId, modelId, updated);
     }
   };
@@ -4563,6 +4606,8 @@ export default class MxGEditor extends Component<Props, State> {
           <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
           <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
           <a title="History" onClick={this.openHistoryPanel}><span><FaHistory /></span></a>
+          <a title="Comments" onClick={this.openAnnotationPanel}><span><i className="bi bi-chat-left-text-fill"></i></span>
+          </a>
         </div>
         {this.renderContexMenu()}
 
@@ -4639,6 +4684,7 @@ export default class MxGEditor extends Component<Props, State> {
             onUpdate={this.updateAnnotation}
             onDelete={this.deleteAnnotation}
             onResolve={this.resolveAnnotation}
+            onUnresolve={this.unresolveAnnotation}
             onCancelPending={() => this.setState({ pendingAnnotation: null })}
           />
         </div>
@@ -4807,6 +4853,18 @@ export default class MxGEditor extends Component<Props, State> {
             onRevertHistoryItem={this.revertHistoryItem.bind(this)}
             onPreviewHistoryItem={this.previewHistoryItem}
             onClearHistoryPreview={this.clearHistoryPreview}
+          />
+          <AnnotationPanel
+            show={this.state.showAnnotationPanel}
+            onHide={() => this.setState({ showAnnotationPanel: false })}
+            annotations={this.state.annotationRecords}
+            currentUser={{
+              id: this.props.projectService.getUser(),
+              name:
+                this.state.collaborators.find(
+                  (c) => c.id === this.props.projectService.getUser()
+                )?.name || "User",
+            }}
           />
         </div>
       </div>

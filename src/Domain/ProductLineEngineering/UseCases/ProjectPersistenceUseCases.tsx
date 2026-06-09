@@ -107,12 +107,16 @@ export default class ProjectPersistenceUseCases {
       annotation
     );
   }
-  
+
   async deleteProjectAnnotation(annotationId: string): Promise<any> {
     return this.projectPersistenceService.deleteProjectAnnotation(annotationId);
   }
 
   async resolveProjectAnnotation(annotationId: string): Promise<any> {
     return this.projectPersistenceService.resolveProjectAnnotation(annotationId);
+  }
+
+  unresolveProjectAnnotation(annotationId: string): Promise<any> {
+    return this.projectPersistenceService.unresolveProjectAnnotation(annotationId);
   }
 }

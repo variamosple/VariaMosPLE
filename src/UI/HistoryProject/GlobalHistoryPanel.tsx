@@ -130,7 +130,7 @@ export default function GlobalHistoryPanel({
                                     </div>
 
                                     <div className="small text-muted mb-2">
-                                        {item.author || "Unknown user"} ·{" "}
+                                        {item.userName || "Unknown user"} ·{" "}
                                         {item.createdAt
                                             ? new Date(item.createdAt).toLocaleString()
                                             : "No date"}

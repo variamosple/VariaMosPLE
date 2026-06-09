@@ -9,6 +9,7 @@ interface Props {
     onUpdate: (annotationId: string, annotation: any) => void;
     onDelete: () => void;
     onResolve: () => void;
+    onUnresolve: () => void;
     onClose: () => void;
 }
 
@@ -20,6 +21,7 @@ export default function AnnotationThreadPanel({
     onUpdate,
     onDelete,
     onResolve,
+    onUnresolve,
     onClose,
 }: Props) {
     const [replyText, setReplyText] = useState("");
@@ -27,6 +29,8 @@ export default function AnnotationThreadPanel({
     const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
     const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
     const [editText, setEditText] = useState("");
+
+    const isResolved = item.isResolved || item.is_resolved;
 
     const userName =
         item.userName ||
@@ -38,12 +42,13 @@ export default function AnnotationThreadPanel({
     const isCurrentUser = (userId?: string) =>
         String(userId) === String(currentUser.id);
 
-    const canEditMainComment = isCurrentUser(
-        item.annotation?.comment?.userId ||
-        item.annotation?.comment?.user_id ||
-        item.userId ||
-        item.user_id
-    );
+    const canEditMainComment =
+        isCurrentUser(
+            item.annotation?.comment?.userId ||
+            item.annotation?.comment?.user_id ||
+            item.userId ||
+            item.user_id
+        ) && !isResolved;
 
     const cancelEdit = () => {
         setEditingCommentId(null);
@@ -52,6 +57,8 @@ export default function AnnotationThreadPanel({
     };
 
     const startEditComment = () => {
+        if (isResolved) return;
+
         setEditingCommentId(item.id);
         setEditingReplyId(null);
         setEditText(item.annotation?.comment?.text || "");
@@ -59,7 +66,7 @@ export default function AnnotationThreadPanel({
     };
 
     const saveCommentEdit = () => {
-        if (!editText.trim()) return;
+        if (isResolved || !editText.trim()) return;
 
         onUpdate(item.id, {
             ...item,
@@ -77,13 +84,15 @@ export default function AnnotationThreadPanel({
     };
 
     const startEditReply = (reply: any) => {
+        if (isResolved) return;
+
         setEditingReplyId(reply.id);
         setEditingCommentId(null);
         setEditText(reply.text || "");
     };
 
     const saveReplyEdit = (replyId: string) => {
-        if (!editText.trim()) return;
+        if (isResolved || !editText.trim()) return;
 
         onUpdate(item.id, {
             ...item,
@@ -105,7 +114,7 @@ export default function AnnotationThreadPanel({
     };
 
     const sendReply = () => {
-        if (!replyText.trim()) return;
+        if (isResolved || !replyText.trim()) return;
 
         const updated = {
             ...item,
@@ -135,7 +144,7 @@ export default function AnnotationThreadPanel({
             onClick={(e) => e.stopPropagation()}
         >
             <div className="annotation-header">
-                <strong>Comment</strong>
+                <strong>{isResolved ? "Resolved comment" : "Comment"}</strong>
 
                 <div className="annotation-actions">
                     <button
@@ -150,15 +159,31 @@ export default function AnnotationThreadPanel({
 
                     {menuOpen && (
                         <div className="annotation-menu">
-                            {canDeleteThread && (
-                                <button onClick={onDelete}>
-                                    Delete thread
-                                </button>
-                            )}
+                            {isResolved ? (
+                                <>
+                                    <button onClick={onUnresolve}>
+                                        Mark as active
+                                    </button>
 
-                            <button onClick={onResolve}>
-                                Mark as resolved
-                            </button>
+                                    {canDeleteThread && (
+                                        <button onClick={onDelete}>
+                                            Delete thread
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {canDeleteThread && (
+                                        <button onClick={onDelete}>
+                                            Delete thread
+                                        </button>
+                                    )}
+
+                                    <button onClick={onResolve}>
+                                        Mark as resolved
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
 
@@ -196,7 +221,8 @@ export default function AnnotationThreadPanel({
                         reply.user_name ||
                         "User";
 
-                    const canEditReply = isCurrentUser(reply.userId || reply.user_id);
+                    const canEditReply =
+                        isCurrentUser(reply.userId || reply.user_id) && !isResolved;
 
                     return (
                         <AnnotationComment
@@ -218,28 +244,30 @@ export default function AnnotationThreadPanel({
                     );
                 })}
 
-                <div className="annotation-reply-box">
-                    <div className="annotation-avatar small">
-                        {currentUser.name.charAt(0).toUpperCase()}
+                {!isResolved && (
+                    <div className="annotation-reply-box">
+                        <div className="annotation-avatar small">
+                            {currentUser.name.charAt(0).toUpperCase()}
+                        </div>
+
+                        <input
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            placeholder="Reply"
+                            onKeyDown={(e) => {
+                                e.stopPropagation();
+
+                                if (e.key === "Enter") {
+                                    sendReply();
+                                }
+                            }}
+                        />
+
+                        <button disabled={!replyText.trim()} onClick={sendReply}>
+                            ↑
+                        </button>
                     </div>
-
-                    <input
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Reply"
-                        onKeyDown={(e) => {
-                            e.stopPropagation();
-
-                            if (e.key === "Enter") {
-                                sendReply();
-                            }
-                        }}
-                    />
-
-                    <button disabled={!replyText.trim()} onClick={sendReply}>
-                        ↑
-                    </button>
-                </div>
+                )}
             </div>
         </div>
     );

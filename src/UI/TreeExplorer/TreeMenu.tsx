@@ -1321,7 +1321,6 @@ class TreeMenu extends Component<Props, State> {
       projectId,
       event.modelId,
       undefined,
-      undefined,
       event.actionType,
       event.entityType,
       event.entityId,

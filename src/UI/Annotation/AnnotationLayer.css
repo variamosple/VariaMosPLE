@@ -135,7 +135,7 @@
 }
 
 .annotation-bubble-content p {
-  margin: 6px 0 6px 0;
+  margin: 6px 0 2px 0;
   font-size: 13px;
   line-height: 1.25;
   max-height: 34px;
@@ -145,6 +145,8 @@
 .annotation-bubble-content small {
   color: #ccc;
   font-size: 12px;
+  display: block;
+  margin-top: -3px;
 }
 
 .annotation-bubble.pending {
@@ -507,4 +509,36 @@
   margin-left: 6px;
   color: #aaa;
   font-size: 12px;
+}
+
+.annotation-item.resolved {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+
+.annotation-item.resolved.selected-resolved {
+  opacity: 1;
+  filter: none;
+}
+
+.annotation-item.resolved .annotation-bubble {
+  background: #4a4a4a;
+  border-color: #777;
+}
+
+.annotation-item.resolved .annotation-bubble::after {
+  background: #4a4a4a;
+  border-right-color: #777;
+  border-bottom-color: #777;
+}
+
+.annotation-item.resolved.selected-resolved .annotation-bubble {
+  background: #2d2d2d;
+  border-color: #444;
+}
+
+.annotation-item.resolved.selected-resolved .annotation-bubble::after {
+  background: #2d2d2d;
+  border-right-color: #444;
+  border-bottom-color: #444;
 }

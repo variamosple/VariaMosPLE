@@ -1972,4 +1972,8 @@ export default class ProjectService {
   resolveProjectAnnotation(annotationId: string): Promise<any> {
     return this.projectPersistenceUseCases.resolveProjectAnnotation(annotationId);
   }
+
+  unresolveProjectAnnotation(annotationId: string): Promise<any> {
+    return this.projectPersistenceUseCases.unresolveProjectAnnotation(annotationId);
+  }
 }

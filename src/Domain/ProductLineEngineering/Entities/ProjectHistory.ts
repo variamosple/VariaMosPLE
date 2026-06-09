@@ -1,21 +1,14 @@
 export class ProjectHistory {
   id?: string;
-
   projectId?: string;
   modelId?: string;
-
   userId?: string;
-  author?: string;
-
   actionType?: string;
   entityType?: string;
-
   entityId?: string;
   entityName?: string;
-
   oldValue?: any;
   newValue?: any;
-
   description?: string;
   createdAt?: Date;
 
@@ -24,7 +17,6 @@ export class ProjectHistory {
     projectId?: string,
     modelId?: string,
     userId?: string,
-    author?: string,
     actionType?: string,
     entityType?: string,
     entityId?: string,
@@ -38,7 +30,6 @@ export class ProjectHistory {
     this.projectId = projectId;
     this.modelId = modelId;
     this.userId = userId;
-    this.author = author;
     this.actionType = actionType;
     this.entityType = entityType;
     this.entityId = entityId;

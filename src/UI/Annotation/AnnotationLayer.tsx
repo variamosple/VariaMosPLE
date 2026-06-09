@@ -16,6 +16,7 @@ interface Props {
     onUpdate: (annotationId: string, annotation: any) => void;
     onDelete: (annotationId: string) => void;
     onResolve: (annotationId: string) => void;
+    onUnresolve: (annotationId: string) => void;
     onCancelPending?: () => void;
 }
 
@@ -28,6 +29,7 @@ export default function AnnotationLayer({
     onUpdate,
     onDelete,
     onResolve,
+    onUnresolve,
     onCancelPending,
 }: Props) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -36,6 +38,9 @@ export default function AnnotationLayer({
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [annotationToDelete, setAnnotationToDelete] = useState<any | null>(null);
+
+    const [showResolvedPins, setShowResolvedPins] = useState(false);
+    const [selectedResolvedId, setSelectedResolvedId] = useState<string | null>(null);
 
     const markerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const dragFrameRef = useRef<number | null>(null);
@@ -113,7 +118,19 @@ export default function AnnotationLayer({
 
     const handleMarkerClick = (id: string) => {
         if (isDraggingRef.current) return;
-        setSelectedId(selectedId === id ? null : id);
+
+        const annotation = annotations.find((item) => item.id === id);
+        const isResolved = annotation?.isResolved || annotation?.is_resolved;
+
+        const isSameSelected = selectedId === id;
+
+        setSelectedId(isSameSelected ? null : id);
+
+        if (isResolved) {
+            setSelectedResolvedId(isSameSelected ? null : id);
+        } else {
+            setSelectedResolvedId(null);
+        }
     };
 
     const handleMouseDown = (e: React.MouseEvent, id: string) => {
@@ -244,12 +261,61 @@ export default function AnnotationLayer({
     useEffect(() => {
         const handleCloseAnnotations = () => {
             setSelectedId(null);
+            setSelectedResolvedId(null);
         };
 
         window.addEventListener("closeAnnotations", handleCloseAnnotations);
 
         return () => {
             window.removeEventListener("closeAnnotations", handleCloseAnnotations);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleOpenAnnotation = (event: any) => {
+            const annotationId = event.detail?.annotationId;
+            const isResolved = event.detail?.isResolved;
+
+            if (!annotationId) return;
+
+            setSelectedId(annotationId);
+
+            if (isResolved) {
+                setShowResolvedPins(true);
+                setSelectedResolvedId(annotationId);
+            } else {
+                setSelectedResolvedId(null);
+            }
+        };
+
+        window.addEventListener("openAnnotation", handleOpenAnnotation);
+
+        return () => {
+            window.removeEventListener("openAnnotation", handleOpenAnnotation);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleToggleResolvedAnnotations = (event: any) => {
+            const showResolved = event.detail?.showResolved;
+
+            setShowResolvedPins(Boolean(showResolved));
+
+            if (!showResolved) {
+                setSelectedResolvedId(null);
+            }
+        };
+
+        window.addEventListener(
+            "toggleResolvedAnnotations",
+            handleToggleResolvedAnnotations
+        );
+
+        return () => {
+            window.removeEventListener(
+                "toggleResolvedAnnotations",
+                handleToggleResolvedAnnotations
+            );
         };
     }, []);
 
@@ -290,6 +356,7 @@ export default function AnnotationLayer({
         setShowDeleteModal(false);
         setAnnotationToDelete(null);
         setSelectedId(null);
+        setSelectedResolvedId(null);
     };
 
     const cancelDeleteAnnotation = () => {
@@ -304,9 +371,7 @@ export default function AnnotationLayer({
         const diffSeconds = Math.floor(
             (now.getTime() - createdAt.getTime()) / 1000
         );
-        if (diffSeconds < 5) {
-            return "just now";
-        }
+        if (diffSeconds < 5) return "just now";
         if (diffSeconds < 60) {
             return `${diffSeconds} second${diffSeconds !== 1 ? "s" : ""} ago`;
         }
@@ -401,17 +466,28 @@ export default function AnnotationLayer({
             )}
 
             {annotations
-                .filter(
-                    (item) =>
-                        item?.annotation?.position &&
-                        !item?.isResolved &&
-                        !item?.is_resolved
-                )
+                .filter((item) => {
+                    const isResolved = item?.isResolved || item?.is_resolved;
+
+                    if (!item?.annotation?.position) {
+                        return false;
+                    }
+
+                    if (isResolved) {
+                        return showResolvedPins;
+                    }
+
+                    return true;
+                })
                 .map((item) => {
                     const position = getScreenPosition(item);
                     if (!position) return null;
 
                     const isSelected = selectedId === item.id;
+                    const isResolved = item.isResolved || item.is_resolved;
+                    const isSelectedResolved =
+                        isResolved && selectedResolvedId === item.id;
+
                     const repliesCount = (item.annotation.replies || []).length;
                     const initialComment = item.annotation.comment?.text || "";
                     const userName =
@@ -427,7 +503,8 @@ export default function AnnotationLayer({
                             ref={(el) => {
                                 markerRefs.current[item.id] = el;
                             }}
-                            className="annotation-item"
+                            className={`annotation-item ${isResolved ? "resolved" : ""
+                                } ${isSelectedResolved ? "selected-resolved" : ""}`}
                             style={{
                                 left: position.x,
                                 top: position.y,
@@ -454,8 +531,17 @@ export default function AnnotationLayer({
                                     onResolve={() => {
                                         onResolve(item.id);
                                         setSelectedId(null);
+                                        setSelectedResolvedId(null);
                                     }}
-                                    onClose={() => setSelectedId(null)}
+                                    onUnresolve={() => {
+                                        onUnresolve(item.id);
+                                        setSelectedId(null);
+                                        setSelectedResolvedId(null);
+                                    }}
+                                    onClose={() => {
+                                        setSelectedId(null);
+                                        setSelectedResolvedId(null);
+                                    }}
                                 />
                             )}
                         </div>

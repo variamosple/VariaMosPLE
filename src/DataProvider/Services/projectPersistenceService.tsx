@@ -562,6 +562,28 @@ export default class ProjectPersistenceService {
       throw error;
     }
   }
+
+  async unresolveProjectAnnotation(annotationId: string): Promise<any> {
+    try {
+      const res = await PROJECTS_CLIENT.put("/projectAnnotation/unresolve", null, {
+        params: { annotation_id: annotationId },
+      });
+
+      const responseAPISuccess: ResponseAPISuccess = Object.assign(
+        new ResponseAPISuccess(),
+        res.data
+      );
+
+      if (responseAPISuccess.message?.includes("Error")) {
+        throw new Error(JSON.stringify(res.data));
+      }
+
+      return responseAPISuccess;
+    } catch (error) {
+      console.error("Error in unresolveProjectAnnotation Service:", error);
+      throw error;
+    }
+  }
 }
 export class ResponseAPISuccess {
   transactionId?: string;
