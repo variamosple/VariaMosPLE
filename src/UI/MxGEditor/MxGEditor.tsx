@@ -24,7 +24,7 @@ import Dropdown from 'react-bootstrap/Dropdown';
 import Modal from "react-bootstrap/Modal";
 // import {Element}   from "../../Domain/ProductLineEngineering/Entities/Element";
 import * as alertify from "alertifyjs";
-import { BsFillClipboardFill, BsFillPencilFill } from "react-icons/bs";
+import { BsFillClipboardFill, BsFillPencilFill, BsChatLeftTextFill } from "react-icons/bs";
 import { FaBolt, FaBook, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
 import { FaRegFolderOpen } from "react-icons/fa6";
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from 'react-icons/fc';
@@ -4605,8 +4605,8 @@ export default class MxGEditor extends Component<Props, State> {
           <a title="Check consistency" onClick={this.btnCheckConsistency_onClick.bind(this)}><span><IoMdAlert /></span></a>
           <a title="Draw core" onClick={this.btnDrawCoreFeatureTree_onClick.bind(this)}><span>C</span></a>
           <a title="Copy model configuration" onClick={this.btnCopyModelConfiguration_onClick.bind(this)}><span><BsFillClipboardFill /></span></a>
-          <a title="History" onClick={this.openHistoryPanel}><span><FaHistory /></span></a>
-          <a title="Comments" onClick={this.openAnnotationPanel}><span><i className="bi bi-chat-left-text-fill"></i></span>
+          <a title="History" onClick={this.openHistoryPanel} style={{ marginLeft: "6px" }}><span><FaHistory /></span></a>
+          <a title="Comments" onClick={this.openAnnotationPanel} style={{ marginLeft: "6px" }}><span><BsChatLeftTextFill /></span>
           </a>
         </div>
         {this.renderContexMenu()}
