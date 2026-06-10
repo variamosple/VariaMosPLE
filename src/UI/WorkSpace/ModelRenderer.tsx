@@ -7,7 +7,7 @@ import BillOfMaterialsEditor from "../Scope/BillOfMaterialsEditor";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import FloatingChat from "./Chatbot/FloatingChat";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
-import UvlEditor from "./UvlEditor";
+import UvlEditor from "../UvlEditor/UvlEditor";
 
 interface ModelRendererProps {
     projectService: ProjectService;
@@ -47,23 +47,22 @@ renderEditor(): any {
   const isMxGraphModel = selectedModel.type == "Catalog of potential products";
   if (isMxGraphModel) {
     return [
-      <td key="uvl-editor" style={{ padding: 0, width: "100%", verticalAlign: "top" }}>
+      <td key="diagram" style={{ padding: 0, width: "85%", verticalAlign: "top" }}>
         <div style={{
-            width: "100%",
-            height: "calc(100vh - 100px)",
-            overflow: "auto",
+            width: "100%",           // llena el 100% de la celda
+            height: "calc(100vh - 100px)",          // idéntico para altura
+            overflow: "auto",        // scroll cuando ancho o alto se excedan
             boxSizing: "border-box",
           }}>
-          <UvlEditor
-            key={`uvl-${key}`}
-            projectService={this.props.projectService}
-            model={selectedModel}
-          />
-        </div>
+       <DiagramEditor projectService={this.props.projectService} />
+       </div>
       </td>,
+      <td key="panel" style={{ padding: 0, width: "15%", verticalAlign: "top" }}>
+        <ElementsPannel projectService={this.props.projectService} />
+      </td>
     ];
   } 
-  else if (selectedModel.type === "Feature Model UVL") {
+  else if (selectedModel.type === "Feature model UVL") {
     return [
       <td key="uvl-editor" style={{ padding: 0, width: "100%", verticalAlign: "top" }}>
         <div style={{
