@@ -95,6 +95,7 @@ if (selectedModel.type === "Feature model UVL") {
     </td>,
   ];
 }
+}
 
 
 
