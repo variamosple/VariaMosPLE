@@ -45,7 +45,7 @@ renderEditor(): any {
   if (!selectedModel) return [];
 
   const isMxGraphModel = selectedModel.type == "Catalog of potential products";
-  if (isMxGraphModel) {
+  if (!isMxGraphModel) {
     return [
       <td key="diagram" style={{ padding: 0, width: "85%", verticalAlign: "top" }}>
         <div style={{
