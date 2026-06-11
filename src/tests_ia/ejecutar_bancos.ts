@@ -51,6 +51,83 @@ function validateResponse(responseStr: string, expectedElements: string[]): { su
   return { success: missing.length === 0, missing };
 }
 
+interface ArchitecturalPattern {
+  id: string;
+  keywords: string[];
+  description: string;
+  exampleTopology: string;
+}
+
+const PATTERN_DICTIONARY: ArchitecturalPattern[] = [
+  {
+    id: "hierarchy_cardinality",
+    keywords: ["obligatorio", "opcional", "basico", "básico", "debe tener"],
+    description: "Jerarquía y Cardinalidad: Mostrar cómo se conecta RootFeature_Feature y la diferencia crucial entre obligatorio y opcional.",
+    exampleTopology: `{
+      "elements": [
+        { "name": "Sistema", "type": "RootFeature" },
+        { "name": "Opcional", "type": "AbstractFeature" },
+        { "name": "Obligatorio", "type": "ConcreteFeature" }
+      ],
+      "relationships": [
+        { "type": "RootFeature_Feature", "source": "Sistema", "target": "Opcional", "min": 0, "max": 1 },
+        { "type": "RootFeature_Feature", "source": "Sistema", "target": "Obligatorio", "min": 1, "max": 1 }
+      ]
+    }`
+  },
+  {
+    id: "variability_bundle",
+    keywords: ["variabilidad", "opciones", "alternativas", "o uno o el otro"],
+    description: "Variabilidad Agrupada (Bundle): Mostrar el uso del nodo Bundle y alternativas.",
+    exampleTopology: `{
+      "elements": [
+        { "name": "Pagos", "type": "RootFeature" },
+        { "name": "OpcionesPago", "type": "Bundle" },
+        { "name": "Tarjeta", "type": "ConcreteFeature" },
+        { "name": "PayPal", "type": "ConcreteFeature" }
+      ],
+      "relationships": [
+        { "type": "RootFeature_Bundle", "source": "Pagos", "target": "OpcionesPago", "min": 1, "max": 1 },
+        { "type": "Bundle_Feature", "source": "OpcionesPago", "target": "Tarjeta", "min": 1, "max": 1 },
+        { "type": "Bundle_Feature", "source": "OpcionesPago", "target": "PayPal", "min": 1, "max": 1 }
+      ]
+    }`
+  },
+  {
+    id: "cross_tree_constraint",
+    keywords: ["excluye", "requiere", "depende"],
+    description: "Restricciones Cruzadas: Mostrar la creación del nodo Annotation para exclusiones lógicas.",
+    exampleTopology: `{
+      "elements": [
+        { "name": "FeatureA", "type": "ConcreteFeature" },
+        { "name": "ReglaExclusion", "type": "Annotation" }
+      ],
+      "relationships": [
+        { "type": "ConcreteFeature_Annotation", "source": "FeatureA", "target": "ReglaExclusion" }
+      ]
+    }`
+  }
+];
+
+function retrievePatternsForPrompt(userGoal: string): string {
+  const normalizedGoal = normalizeText(userGoal);
+  
+  // Siempre incluimos la jerarquía básica como fundacional
+  const basePattern = PATTERN_DICTIONARY.find(p => p.id === "hierarchy_cardinality");
+  const selectedPatterns = basePattern ? [basePattern] : [];
+
+  // Añadimos patrones adicionales si hacen match en el prompt
+  const otherPatterns = PATTERN_DICTIONARY.filter(pattern => 
+    pattern.id !== "hierarchy_cardinality" && 
+    pattern.keywords.some(kw => normalizedGoal.includes(normalizeText(kw)))
+  );
+
+  selectedPatterns.push(...otherPatterns);
+
+  const memoryBlocks = selectedPatterns.map(p => p.exampleTopology).join("\n\n");
+  return `Relevant Architectural Patterns (Strict JSON format required):\n${memoryBlocks}`;
+}
+
 // Función aislada que puentea el backend y hace el request HTTP directamente al LLM
 async function callDirectLLM(userGoal: string): Promise<string> {
   // Soporta una variable custom para el test o usa la que ya exista para OpenRouter en .env
@@ -70,6 +147,8 @@ async function callDirectLLM(userGoal: string): Promise<string> {
   // Es posible usar "openai/gpt-4o-mini", "meta-llama/llama-3.2-3b-instruct:free", etc.
   const modelId = "openai/gpt-4o-mini";
 
+  const dynamicMemory = retrievePatternsForPrompt(userGoal);
+
   const systemPrompt = `You are a modeling assistant. Output MUST be one valid JSON (no backticks).
   Prefer a PLAN: {"name":...,"elements":[...],"relationships":[...]}. PATCH is also accepted.
   CRITICAL: cover ALL instructions in one response. Use only element NAMES in refs.
@@ -80,7 +159,7 @@ async function callDirectLLM(userGoal: string): Promise<string> {
   Relationships: Bundle_Feature: Bundle→[AbstractFeature, ConcreteFeature, MLBasedFeature]; Annotation_None: Annotation→[None]; Bundle_Annotation: Bundle→[Annotation]; RootFeature_Bundle: RootFeature→[Bundle]; RootFeature_Feature: RootFeature→[AbstractFeature, ConcreteFeature, MLBasedFeature]; MLBasedFeature_Bundle: MLBasedFeature→[Bundle]; AbstractFeature_Bundle: AbstractFeature→[Bundle]; ConcreteFeature_Bundle: ConcreteFeature→[Bundle]; MLBasedFeature_Feature: MLBasedFeature→[ConcreteFeature, AbstractFeature, MLBasedFeature]; RootFeature_Annotation: RootFeature→[Annotation]; AbstractFeature_Feature: AbstractFeature→[AbstractFeature, ConcreteFeature, MLBasedFeature]; ConcreteFeature_Feature: ConcreteFeature→[ConcreteFeature, AbstractFeature, MLBasedFeature]; MLBasedFeature_Annotation: MLBasedFeature→[Annotation]; AbstractFeature_Annotation: AbstractFeature→[Annotation]; ConcreteFeature_Annotation: ConcreteFeature→[Annotation]
 
   PROJECT MEMORY (traceability-aware):
-  (no models in this language yet)
+  ${dynamicMemory}
 
   Common root features: (none)
   Frequent element types (same language): (none)
@@ -127,8 +206,19 @@ async function runTests() {
   console.log(`${colors.cyan}${colors.bold}======================================================\n${colors.reset}`);
 
   const args = process.argv.slice(2);
-  // Usa el argumento pasado por consola, o por defecto el banco_prompts_prueba.json
-  const jsonFileName = args[0] || 'banco_prompts_prueba.json';
+  
+  let jsonFileName = 'banco_prompts_prueba.json';
+  let limit = 0;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--limit') {
+      limit = parseInt(args[i + 1], 10);
+      i++;
+    } else if (!args[i].startsWith('--')) {
+      jsonFileName = args[i];
+    }
+  }
+
   const filePath = path.isAbsolute(jsonFileName) ? jsonFileName : path.join(__dirname, jsonFileName);
 
   if (!fs.existsSync(filePath)) {
@@ -139,7 +229,12 @@ async function runTests() {
   console.log(`${colors.cyan}Cargando banco de pruebas desde: ${colors.yellow}${path.basename(filePath)}${colors.reset}\n`);
 
   const fileContent = fs.readFileSync(filePath, 'utf-8');
-  const testCases: TestCase[] = JSON.parse(fileContent);
+  let testCases: TestCase[] = JSON.parse(fileContent);
+
+  if (limit > 0) {
+    testCases = testCases.slice(0, limit);
+    console.log(`${colors.cyan}Ejecutando un máximo de ${colors.yellow}${limit}${colors.cyan} pruebas (modo smoke test).${colors.reset}\n`);
+  }
 
   const isMetamorphic = path.basename(filePath).includes('metamorfica');
 
