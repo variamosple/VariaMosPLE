@@ -51,81 +51,160 @@ function validateResponse(responseStr: string, expectedElements: string[]): { su
   return { success: missing.length === 0, missing };
 }
 
-interface ArchitecturalPattern {
-  id: string;
-  keywords: string[];
-  description: string;
-  exampleTopology: string;
+// Funciones de RAG Orgánico
+async function fetchTemplateProjectsMetadata() {
+  const url = process.env.REACT_APP_URLVMSPROJECTS + "/getTemplateProjects";
+  const token = process.env.VARIAMOS_TOKEN;
+  
+  if (!token) {
+    console.warn("⚠️ No VARIAMOS_TOKEN found in .env, no se podrán descargar proyectos públicos (RAG orgánico).");
+    return [];
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+    const data: any = await response.json();
+    return data.data?.projects || [];
+  } catch (error) {
+    console.error("Error fetching public projects:", error);
+    return [];
+  }
 }
 
-const PATTERN_DICTIONARY: ArchitecturalPattern[] = [
-  {
-    id: "hierarchy_cardinality",
-    keywords: ["obligatorio", "opcional", "basico", "básico", "debe tener"],
-    description: "Jerarquía y Cardinalidad: Mostrar cómo se conecta RootFeature_Feature y la diferencia crucial entre obligatorio y opcional.",
-    exampleTopology: `{
-      "elements": [
-        { "name": "Sistema", "type": "RootFeature" },
-        { "name": "Opcional", "type": "AbstractFeature" },
-        { "name": "Obligatorio", "type": "ConcreteFeature" }
-      ],
-      "relationships": [
-        { "type": "RootFeature_Feature", "source": "Sistema", "target": "Opcional", "min": 0, "max": 1 },
-        { "type": "RootFeature_Feature", "source": "Sistema", "target": "Obligatorio", "min": 1, "max": 1 }
-      ]
-    }`
-  },
-  {
-    id: "variability_bundle",
-    keywords: ["variabilidad", "opciones", "alternativas", "o uno o el otro"],
-    description: "Variabilidad Agrupada (Bundle): Mostrar el uso del nodo Bundle y alternativas.",
-    exampleTopology: `{
-      "elements": [
-        { "name": "Pagos", "type": "RootFeature" },
-        { "name": "OpcionesPago", "type": "Bundle" },
-        { "name": "Tarjeta", "type": "ConcreteFeature" },
-        { "name": "PayPal", "type": "ConcreteFeature" }
-      ],
-      "relationships": [
-        { "type": "RootFeature_Bundle", "source": "Pagos", "target": "OpcionesPago", "min": 1, "max": 1 },
-        { "type": "Bundle_Feature", "source": "OpcionesPago", "target": "Tarjeta", "min": 1, "max": 1 },
-        { "type": "Bundle_Feature", "source": "OpcionesPago", "target": "PayPal", "min": 1, "max": 1 }
-      ]
-    }`
-  },
-  {
-    id: "cross_tree_constraint",
-    keywords: ["excluye", "requiere", "depende"],
-    description: "Restricciones Cruzadas: Mostrar la creación del nodo Annotation para exclusiones lógicas.",
-    exampleTopology: `{
-      "elements": [
-        { "name": "FeatureA", "type": "ConcreteFeature" },
-        { "name": "ReglaExclusion", "type": "Annotation" }
-      ],
-      "relationships": [
-        { "type": "ConcreteFeature_Annotation", "source": "FeatureA", "target": "ReglaExclusion" }
-      ]
-    }`
-  }
-];
-
-function retrievePatternsForPrompt(userGoal: string): string {
-  const normalizedGoal = normalizeText(userGoal);
+async function fetchProjectFull(projectId: string) {
+  const url = process.env.REACT_APP_URLVMSPROJECTS + `/getProject?project_id=${projectId}`;
+  const token = process.env.VARIAMOS_TOKEN;
   
-  // Siempre incluimos la jerarquía básica como fundacional
-  const basePattern = PATTERN_DICTIONARY.find(p => p.id === "hierarchy_cardinality");
-  const selectedPatterns = basePattern ? [basePattern] : [];
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) return null;
+    const data: any = await response.json();
+    return data.data?.project || null;
+  } catch (error) {
+    return null;
+  }
+}
 
-  // Añadimos patrones adicionales si hacen match en el prompt
-  const otherPatterns = PATTERN_DICTIONARY.filter(pattern => 
-    pattern.id !== "hierarchy_cardinality" && 
-    pattern.keywords.some(kw => normalizedGoal.includes(normalizeText(kw)))
-  );
+function sanitizeModel(rawModel: any) {
+  const elements = (rawModel.elements || []).map((el: any) => {
+    let name = el.name;
+    if (!name && el.properties) {
+      const nameProp = el.properties.find((p: any) => p.name === 'name');
+      if (nameProp) name = nameProp.value;
+    }
+    return { name, type: el.type };
+  });
 
-  selectedPatterns.push(...otherPatterns);
+  const relationships = (rawModel.relationships || []).map((rel: any) => {
+    return {
+      source: rel.source,
+      target: rel.target,
+      type: rel.type,
+      min: rel.min,
+      max: rel.max
+    };
+  });
 
-  const memoryBlocks = selectedPatterns.map(p => p.exampleTopology).join("\n\n");
-  return `Relevant Architectural Patterns (Strict JSON format required):\n${memoryBlocks}`;
+  return { elements, relationships };
+}
+
+// Caché de metadatos
+let templateMetadataCache: any[] | null = null;
+
+async function retrieveOrganicPatterns(languageName: string): Promise<string> {
+  if (!templateMetadataCache) {
+    templateMetadataCache = await fetchTemplateProjectsMetadata();
+  }
+
+  const matchingModels: any[] = [];
+  let foundAnnotation = false;
+  let foundBundle = false;
+
+  for (const pMeta of templateMetadataCache) {
+    // Detener si ya encontramos diversidad sintáctica
+    if (matchingModels.length > 0 && foundAnnotation && foundBundle) break;
+
+    const fullProject = await fetchProjectFull(pMeta.id);
+    const productLines = fullProject?.project?.productLines;
+
+    if (productLines && productLines.length > 0) {
+      for (const pl of productLines) {
+        const allModels = [
+          ...(pl.domainEngineering?.models || []),
+          ...(pl.applicationEngineering?.models || []),
+          ...(pl.scope?.models || [])
+        ];
+
+        for (const model of allModels) {
+          // Buscamos si el modelo contiene nodos característicos de Feature Models
+          // ya que los nombres de lenguajes pueden estar codificados como IDs en la BD.
+          const isFeatureModel = model.elements?.some((e: any) => 
+            e.type === "RootFeature" || e.type === "ConcreteFeature" || e.type === "AbstractFeature"
+          );
+
+          if (isFeatureModel) {
+            const hasAnnotation = model.elements?.some((e: any) => e.type === "Annotation");
+            const hasBundle = model.elements?.some((e: any) => e.type === "Bundle");
+            
+            let shouldAdd = false;
+            
+            if (matchingModels.length === 0) {
+                shouldAdd = true; // Siempre agregamos al menos uno base
+            } else if (hasAnnotation && !foundAnnotation) {
+                shouldAdd = true;
+            } else if (hasBundle && !foundBundle) {
+                shouldAdd = true;
+            }
+
+            if (shouldAdd) {
+                matchingModels.push(sanitizeModel(model));
+                if (hasAnnotation) foundAnnotation = true;
+                if (hasBundle) foundBundle = true;
+            }
+            
+            if (matchingModels.length > 0 && foundAnnotation && foundBundle) break;
+          }
+        }
+        if (matchingModels.length > 0 && foundAnnotation && foundBundle) break;
+      }
+    }
+    if (matchingModels.length > 0 && foundAnnotation && foundBundle) break;
+  }
+
+  if (matchingModels.length === 0) {
+    console.log(`\n[RAG] No models found matching language "${languageName}" in templates.`);
+    return "(no models in this language yet)";
+  }
+
+  const injectedModels = matchingModels.map((m: any, i: number) => 
+    `Organic Example ${i+1}:\n${JSON.stringify(m, null, 2)}`
+  ).join("\n\n");
+
+  const semanticRules = `
+[SEMANTIC RULES FOR THIS LANGUAGE]
+- Hierarchical features are connected using 'RootFeature_Feature' or 'ConcreteFeature_Feature'.
+- To group features logically (e.g., OR, XOR groups), use a 'Bundle' node. Connect it to the parent feature, and connect its children using 'Bundle_Feature'.
+- To represent cross-tree constraints like 'requires' or 'excludes', you MUST create an 'Annotation' node.
+`;
+
+  const resultString = `
+${semanticRules}
+
+[ORGANIC RAG EXAMPLES]
+${injectedModels}
+`.trim();
+  
+  // Debug log:
+  console.log(`\n[RAG] Injecting ${matchingModels.length} organic patterns into the prompt.`);
+  
+  return resultString;
 }
 
 // Función aislada que puentea el backend y hace el request HTTP directamente al LLM
@@ -136,9 +215,11 @@ async function callDirectLLM(userGoal: string): Promise<string> {
     throw new Error("No se encontró la variable de entorno TEST_API_KEY ni REACT_APP_OPENROUTER_API_KEY.");
   }
 
+  const languageName = "Feature model with attributes (DOMAIN)";
+
   // Usamos el constructor de prompts genuino de VariaMosPLE
   const prompt = buildCreatePrompt({
-    languageName: "Feature model with attributes (DOMAIN)",
+    languageName: languageName,
     userGoal: userGoal + "\nImportante: Mantén los nombres de los elementos y atributos exactamente en el idioma original del requerimiento (español), no los traduzcas al inglés.",
     patchSchema: PATCH_SCHEMA_TEXT
   });
@@ -147,7 +228,7 @@ async function callDirectLLM(userGoal: string): Promise<string> {
   // Es posible usar "openai/gpt-4o-mini", "meta-llama/llama-3.2-3b-instruct:free", etc.
   const modelId = "openai/gpt-4o-mini";
 
-  const dynamicMemory = retrievePatternsForPrompt(userGoal);
+  const dynamicMemory = await retrieveOrganicPatterns(languageName);
 
   const systemPrompt = `You are a modeling assistant. Output MUST be one valid JSON (no backticks).
   Prefer a PLAN: {"name":...,"elements":[...],"relationships":[...]}. PATCH is also accepted.

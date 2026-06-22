@@ -281,8 +281,7 @@
       "Videollamadas",
       "Alta Compresión de Datos",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -298,8 +297,7 @@
       "Corrector Ortográfico",
       "Diccionario de Idiomas",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -315,8 +313,7 @@
       "Sistema de Extensiones",
       "Aislamiento de Memoria",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -332,8 +329,7 @@
       "Radar Meteorológico",
       "Módulo GPS",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -349,8 +345,7 @@
       "Generación de Reportes",
       "Motor de Exportación PDF",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -366,8 +361,7 @@
       "Publicación de Historias",
       "Cámara Integrada",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -383,8 +377,7 @@
       "Recordatorios por Tiempo",
       "Notificaciones Push",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -400,8 +393,7 @@
       "Check-in Online",
       "Generador de Tarjeta de Embarque",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -417,8 +409,7 @@
       "Contador de Calorías",
       "Base de Datos Nutricional",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -434,8 +425,7 @@
       "Gráfico de Gantt",
       "Seguimiento de Dependencias",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
   },
@@ -455,10 +445,8 @@
       "Criptomonedas",
       "Módulo de Reembolsos Rápidos",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },
@@ -478,10 +466,8 @@
       "Mascota Acompañante",
       "Montura de Transporte",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },
@@ -501,10 +487,8 @@
       "Auditoría Avanzada",
       "Borrado de Logs",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },
@@ -524,10 +508,8 @@
       "Descargas Offline",
       "Modo Ahorro de Datos",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },
@@ -547,10 +529,8 @@
       "Cámaras de Seguridad",
       "Modo Privacidad Absoluta",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },
@@ -570,10 +550,8 @@
       "Módulo de Telemedicina",
       "Agendamiento de Consultas Físicas",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },
@@ -593,10 +571,8 @@
       "Dieta Personalizada",
       "Modo Ayuno Intermitente",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },
@@ -616,10 +592,8 @@
       "Clases en Vivo",
       "Modalidad de Estudio Asíncrono",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },
@@ -639,10 +613,8 @@
       "Dron de Entrega",
       "Asignación a Repartidor Humano",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },
@@ -662,10 +634,8 @@
       "Predicción de Gastos con IA",
       "Funcionamiento Offline",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Evalúa agrupaciones lógicas complejas (Bundle) y exclusiones cruzadas (Annotation) simultáneamente."
   },

@@ -302,8 +302,7 @@
       "Videollamadas",
       "Alta Compresión de Datos",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -320,8 +319,7 @@
       "Corrector Ortográfico",
       "Diccionario de Idiomas",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -338,8 +336,7 @@
       "Sistema de Extensiones",
       "Aislamiento de Memoria",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -356,8 +353,7 @@
       "Radar Meteorológico",
       "Módulo GPS",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -374,8 +370,7 @@
       "Generación de Reportes",
       "Motor de Exportación PDF",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -392,8 +387,7 @@
       "Publicación de Historias",
       "Cámara Integrada",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -410,8 +404,7 @@
       "Recordatorios por Tiempo",
       "Notificaciones Push",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -428,8 +421,7 @@
       "Check-in Online",
       "Generador de Tarjeta de Embarque",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -446,8 +438,7 @@
       "Contador de Calorías",
       "Base de Datos Nutricional",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -464,8 +455,7 @@
       "Gráfico de Gantt",
       "Seguimiento de Dependencias",
       "RootFeature_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
   },
@@ -486,10 +476,8 @@
       "Criptomonedas",
       "Módulo de Reembolsos Rápidos",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
@@ -510,10 +498,8 @@
       "Mascota Acompañante",
       "Montura de Transporte",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
@@ -534,10 +520,8 @@
       "Auditoría Avanzada",
       "Borrado de Logs",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
@@ -558,10 +542,8 @@
       "Descargas Offline",
       "Modo Ahorro de Datos",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
@@ -582,10 +564,8 @@
       "Cámaras de Seguridad",
       "Modo Privacidad Absoluta",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
@@ -606,10 +586,8 @@
       "Módulo de Telemedicina",
       "Agendamiento de Consultas Físicas",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
@@ -630,10 +608,8 @@
       "Dieta Personalizada",
       "Modo Ayuno Intermitente",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
@@ -654,10 +630,8 @@
       "Clases en Vivo",
       "Modalidad de Estudio Asíncrono",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
@@ -678,10 +652,8 @@
       "Dron de Entrega",
       "Asignación a Repartidor Humano",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
@@ -702,10 +674,8 @@
       "Predicción de Gastos con IA",
       "Funcionamiento Offline",
       "RootFeature_Feature",
-      "RootFeature_Bundle",
       "Bundle_Feature",
-      "Annotation",
-      "ConcreteFeature_Annotation"
+      "Annotation"
     ],
     "description": "Transformación: Se presentan las restricciones cruzadas al principio."
   },
