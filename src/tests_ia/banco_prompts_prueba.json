@@ -7,8 +7,7 @@
       "Vehículo",
       "RootFeature",
       "Motor",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -20,8 +19,7 @@
       "Lámpara Inteligente",
       "RootFeature",
       "Bombilla",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -33,8 +31,7 @@
       "Reloj Inteligente",
       "RootFeature",
       "Pantalla Táctil",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -46,8 +43,7 @@
       "Silla Ergonómica",
       "RootFeature",
       "Respaldo",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -59,8 +55,7 @@
       "Libro Electrónico",
       "RootFeature",
       "Pantalla de Tinta",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -72,8 +67,7 @@
       "Teléfono Móvil",
       "RootFeature",
       "Batería",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -85,8 +79,7 @@
       "Guitarra Eléctrica",
       "RootFeature",
       "Cuerdas",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -98,8 +91,7 @@
       "Puerta de Seguridad",
       "RootFeature",
       "Cerradura Biométrica",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -111,8 +103,7 @@
       "Gafas de Realidad Virtual",
       "RootFeature",
       "Lentes",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -124,8 +115,7 @@
       "Taza Térmica",
       "RootFeature",
       "Tapa Hermética",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Prueba que el modelo puede generar un árbol simple con un nodo raíz y un hijo."
   },
@@ -138,8 +128,7 @@
       "RootFeature",
       "Contraseña",
       "ConcreteFeature",
-      "Autenticación Biométrica",
-      "RootFeature_Feature"
+      "Autenticación Biométrica"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -152,8 +141,7 @@
       "RootFeature",
       "Reproducción Básica",
       "ConcreteFeature",
-      "Ecualizador Avanzado",
-      "RootFeature_Feature"
+      "Ecualizador Avanzado"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -166,8 +154,7 @@
       "RootFeature",
       "Retiro de Efectivo",
       "ConcreteFeature",
-      "Depósito de Cheques",
-      "RootFeature_Feature"
+      "Depósito de Cheques"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -180,8 +167,7 @@
       "RootFeature",
       "Lente Principal",
       "ConcreteFeature",
-      "Flash Externo",
-      "RootFeature_Feature"
+      "Flash Externo"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -194,8 +180,7 @@
       "RootFeature",
       "Operaciones Básicas",
       "ConcreteFeature",
-      "Modo Científico",
-      "RootFeature_Feature"
+      "Modo Científico"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -208,8 +193,7 @@
       "RootFeature",
       "Bomba de Agua",
       "ConcreteFeature",
-      "Sensor de Lluvia",
-      "RootFeature_Feature"
+      "Sensor de Lluvia"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -222,8 +206,7 @@
       "RootFeature",
       "Sirena Sonora",
       "ConcreteFeature",
-      "Notificación Móvil",
-      "RootFeature_Feature"
+      "Notificación Móvil"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -236,8 +219,7 @@
       "RootFeature",
       "Control de Temperatura",
       "ConcreteFeature",
-      "Programación Semanal",
-      "RootFeature_Feature"
+      "Programación Semanal"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -250,8 +232,7 @@
       "RootFeature",
       "Ruedas de Tracción",
       "ConcreteFeature",
-      "Sistema de Cambios",
-      "RootFeature_Feature"
+      "Sistema de Cambios"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -264,8 +245,7 @@
       "RootFeature",
       "Motor de Centrifugado",
       "ConcreteFeature",
-      "Calentador de Agua Interno",
-      "RootFeature_Feature"
+      "Calentador de Agua Interno"
     ],
     "description": "Evalúa la correcta instanciación de conexiones RootFeature_Feature para características base."
   },
@@ -280,7 +260,6 @@
       "ConcreteFeature",
       "Videollamadas",
       "Alta Compresión de Datos",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -296,7 +275,6 @@
       "ConcreteFeature",
       "Corrector Ortográfico",
       "Diccionario de Idiomas",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -312,7 +290,6 @@
       "ConcreteFeature",
       "Sistema de Extensiones",
       "Aislamiento de Memoria",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -328,7 +305,6 @@
       "ConcreteFeature",
       "Radar Meteorológico",
       "Módulo GPS",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -344,7 +320,6 @@
       "ConcreteFeature",
       "Generación de Reportes",
       "Motor de Exportación PDF",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -360,7 +335,6 @@
       "ConcreteFeature",
       "Publicación de Historias",
       "Cámara Integrada",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -376,7 +350,6 @@
       "ConcreteFeature",
       "Recordatorios por Tiempo",
       "Notificaciones Push",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -392,7 +365,6 @@
       "ConcreteFeature",
       "Check-in Online",
       "Generador de Tarjeta de Embarque",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -408,7 +380,6 @@
       "ConcreteFeature",
       "Contador de Calorías",
       "Base de Datos Nutricional",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -424,7 +395,6 @@
       "ConcreteFeature",
       "Gráfico de Gantt",
       "Seguimiento de Dependencias",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Prueba la capacidad de establecer restricciones lógicas creando un nodo Annotation y conectándolo a los ConcreteFeatures."
@@ -444,7 +414,6 @@
       "PayPal",
       "Criptomonedas",
       "Módulo de Reembolsos Rápidos",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -465,7 +434,6 @@
       "Guerrero",
       "Mascota Acompañante",
       "Montura de Transporte",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -486,7 +454,6 @@
       "Reclutamiento",
       "Auditoría Avanzada",
       "Borrado de Logs",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -507,7 +474,6 @@
       "Resolución 4K",
       "Descargas Offline",
       "Modo Ahorro de Datos",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -528,7 +494,6 @@
       "Luces Cálidas",
       "Cámaras de Seguridad",
       "Modo Privacidad Absoluta",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -549,7 +514,6 @@
       "Diagnóstico con IA",
       "Módulo de Telemedicina",
       "Agendamiento de Consultas Físicas",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -570,7 +534,6 @@
       "Entrenamiento de Fuerza",
       "Dieta Personalizada",
       "Modo Ayuno Intermitente",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -591,7 +554,6 @@
       "Proyecto Práctico",
       "Clases en Vivo",
       "Modalidad de Estudio Asíncrono",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -612,7 +574,6 @@
       "Bicicleta",
       "Dron de Entrega",
       "Asignación a Repartidor Humano",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -633,7 +594,6 @@
       "Gráfico de Pastel",
       "Predicción de Gastos con IA",
       "Funcionamiento Offline",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],

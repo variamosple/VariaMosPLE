@@ -12,6 +12,17 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 // Importar la lógica original de VariaMos que construye los prompts
 import { buildCreatePrompt, PATCH_SCHEMA_TEXT } from '../UI/WorkSpace/Chatbot/ModelEditService';
 
+// Cargar diccionario semántico agnóstico
+const semanticDictionaryPath = path.join(__dirname, 'semantic_dictionary.json');
+let semanticDictionary: Record<string, string> = {};
+if (fs.existsSync(semanticDictionaryPath)) {
+  try {
+    semanticDictionary = JSON.parse(fs.readFileSync(semanticDictionaryPath, 'utf8'));
+  } catch (e) {
+    console.error("Error al cargar semantic_dictionary.json", e);
+  }
+}
+
 // Utilidades para la terminal
 const colors = {
   reset: "\x1b[0m",
@@ -122,14 +133,14 @@ async function retrieveOrganicPatterns(languageName: string): Promise<string> {
   if (!templateMetadataCache) {
     templateMetadataCache = await fetchTemplateProjectsMetadata();
   }
+  if (templateMetadataCache.length === 0) return "(no templates available)";
 
   const matchingModels: any[] = [];
-  let foundAnnotation = false;
-  let foundBundle = false;
+  const seenNodeTypes = new Set<string>();
 
   for (const pMeta of templateMetadataCache) {
-    // Detener si ya encontramos diversidad sintáctica
-    if (matchingModels.length > 0 && foundAnnotation && foundBundle) break;
+    // Detener si ya encontramos suficiente diversidad sintáctica (por ejemplo, 3 modelos máximo)
+    if (matchingModels.length >= 3) break;
 
     const fullProject = await fetchProjectFull(pMeta.id);
     const productLines = fullProject?.project?.productLines;
@@ -143,39 +154,42 @@ async function retrieveOrganicPatterns(languageName: string): Promise<string> {
         ];
 
         for (const model of allModels) {
-          // Buscamos si el modelo contiene nodos característicos de Feature Models
-          // ya que los nombres de lenguajes pueden estar codificados como IDs en la BD.
-          const isFeatureModel = model.elements?.some((e: any) => 
-            e.type === "RootFeature" || e.type === "ConcreteFeature" || e.type === "AbstractFeature"
-          );
+          // Strip phase suffix like (DOMAIN), (APPLICATION) for matching type
+          const baseLanguageName = languageName.replace(/\s*\((DOMAIN|APPLICATION|SCOPE)\)$/i, "").trim();
 
-          if (isFeatureModel) {
-            const hasAnnotation = model.elements?.some((e: any) => e.type === "Annotation");
-            const hasBundle = model.elements?.some((e: any) => e.type === "Bundle");
+          // Solución Agnóstica: Verificar si el modelo corresponde al lenguaje solicitado
+          if (model.type === baseLanguageName && model.elements) {
             
-            let shouldAdd = false;
+            // Extraer los tipos de nodos presentes en este modelo
+            const typesInModel = new Set<string>(model.elements.map((e: any) => e.type));
+            let isDiverse = false;
             
             if (matchingModels.length === 0) {
-                shouldAdd = true; // Siempre agregamos al menos uno base
-            } else if (hasAnnotation && !foundAnnotation) {
-                shouldAdd = true;
-            } else if (hasBundle && !foundBundle) {
-                shouldAdd = true;
+                isDiverse = true; // Siempre agregamos el primer modelo que encontramos
+            } else {
+                // Si este modelo tiene al menos un tipo de nodo que no hemos visto antes, aporta diversidad
+                for (const t of typesInModel) {
+                    if (!seenNodeTypes.has(t)) {
+                        isDiverse = true;
+                        break;
+                    }
+                }
             }
 
-            if (shouldAdd) {
+            if (isDiverse) {
                 matchingModels.push(sanitizeModel(model));
-                if (hasAnnotation) foundAnnotation = true;
-                if (hasBundle) foundBundle = true;
+                for (const t of typesInModel) {
+                    seenNodeTypes.add(t);
+                }
             }
             
-            if (matchingModels.length > 0 && foundAnnotation && foundBundle) break;
+            if (matchingModels.length >= 3) break;
           }
         }
-        if (matchingModels.length > 0 && foundAnnotation && foundBundle) break;
+        if (matchingModels.length >= 3) break;
       }
     }
-    if (matchingModels.length > 0 && foundAnnotation && foundBundle) break;
+    if (matchingModels.length >= 3) break;
   }
 
   if (matchingModels.length === 0) {
@@ -187,22 +201,19 @@ async function retrieveOrganicPatterns(languageName: string): Promise<string> {
     `Organic Example ${i+1}:\n${JSON.stringify(m, null, 2)}`
   ).join("\n\n");
 
-  const semanticRules = `
-[SEMANTIC RULES FOR THIS LANGUAGE]
-- Hierarchical features are connected using 'RootFeature_Feature' or 'ConcreteFeature_Feature'.
-- To group features logically (e.g., OR, XOR groups), use a 'Bundle' node. Connect it to the parent feature, and connect its children using 'Bundle_Feature'.
-- To represent cross-tree constraints like 'requires' or 'excludes', you MUST create an 'Annotation' node.
-`;
+  const baseLanguageName = languageName.replace(/\s*\((DOMAIN|APPLICATION|SCOPE)\)$/i, "").trim();
+  const semanticRulesText = semanticDictionary[baseLanguageName] 
+    ? `\n[SEMANTIC RULES FOR THIS LANGUAGE]\n${semanticDictionary[baseLanguageName]}\n` 
+    : "";
 
   const resultString = `
-${semanticRules}
-
+${semanticRulesText}
 [ORGANIC RAG EXAMPLES]
 ${injectedModels}
 `.trim();
   
   // Debug log:
-  console.log(`\n[RAG] Injecting ${matchingModels.length} organic patterns into the prompt.`);
+  console.log(`\n[RAG] Injecting ${matchingModels.length} diverse organic patterns for language '${languageName}'.`);
   
   return resultString;
 }

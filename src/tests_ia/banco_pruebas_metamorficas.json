@@ -8,8 +8,7 @@
       "Vehículo",
       "RootFeature",
       "Motor",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -22,8 +21,7 @@
       "Lámpara Inteligente",
       "RootFeature",
       "Bombilla",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -36,8 +34,7 @@
       "Reloj Inteligente",
       "RootFeature",
       "Pantalla Táctil",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -50,8 +47,7 @@
       "Silla Ergonómica",
       "RootFeature",
       "Respaldo",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -64,8 +60,7 @@
       "Libro Electrónico",
       "RootFeature",
       "Pantalla de Tinta",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -78,8 +73,7 @@
       "Teléfono Móvil",
       "RootFeature",
       "Batería",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -92,8 +86,7 @@
       "Guitarra Eléctrica",
       "RootFeature",
       "Cuerdas",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -106,8 +99,7 @@
       "Puerta de Seguridad",
       "RootFeature",
       "Cerradura Biométrica",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -120,8 +112,7 @@
       "Gafas de Realidad Virtual",
       "RootFeature",
       "Lentes",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -134,8 +125,7 @@
       "Taza Térmica",
       "RootFeature",
       "Tapa Hermética",
-      "ConcreteFeature",
-      "RootFeature_Feature"
+      "ConcreteFeature"
     ],
     "description": "Transformación: Se reescribe el prompt usando oraciones cortas."
   },
@@ -149,8 +139,7 @@
       "RootFeature",
       "Contraseña",
       "ConcreteFeature",
-      "Autenticación Biométrica",
-      "RootFeature_Feature"
+      "Autenticación Biométrica"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -164,8 +153,7 @@
       "RootFeature",
       "Reproducción Básica",
       "ConcreteFeature",
-      "Ecualizador Avanzado",
-      "RootFeature_Feature"
+      "Ecualizador Avanzado"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -179,8 +167,7 @@
       "RootFeature",
       "Retiro de Efectivo",
       "ConcreteFeature",
-      "Depósito de Cheques",
-      "RootFeature_Feature"
+      "Depósito de Cheques"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -194,8 +181,7 @@
       "RootFeature",
       "Lente Principal",
       "ConcreteFeature",
-      "Flash Externo",
-      "RootFeature_Feature"
+      "Flash Externo"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -209,8 +195,7 @@
       "RootFeature",
       "Operaciones Básicas",
       "ConcreteFeature",
-      "Modo Científico",
-      "RootFeature_Feature"
+      "Modo Científico"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -224,8 +209,7 @@
       "RootFeature",
       "Bomba de Agua",
       "ConcreteFeature",
-      "Sensor de Lluvia",
-      "RootFeature_Feature"
+      "Sensor de Lluvia"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -239,8 +223,7 @@
       "RootFeature",
       "Sirena Sonora",
       "ConcreteFeature",
-      "Notificación Móvil",
-      "RootFeature_Feature"
+      "Notificación Móvil"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -254,8 +237,7 @@
       "RootFeature",
       "Control de Temperatura",
       "ConcreteFeature",
-      "Programación Semanal",
-      "RootFeature_Feature"
+      "Programación Semanal"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -269,8 +251,7 @@
       "RootFeature",
       "Ruedas de Tracción",
       "ConcreteFeature",
-      "Sistema de Cambios",
-      "RootFeature_Feature"
+      "Sistema de Cambios"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -284,8 +265,7 @@
       "RootFeature",
       "Motor de Centrifugado",
       "ConcreteFeature",
-      "Calentador de Agua Interno",
-      "RootFeature_Feature"
+      "Calentador de Agua Interno"
     ],
     "description": "Transformación: Se cambia la redacción a viñetas."
   },
@@ -301,7 +281,6 @@
       "ConcreteFeature",
       "Videollamadas",
       "Alta Compresión de Datos",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -318,7 +297,6 @@
       "ConcreteFeature",
       "Corrector Ortográfico",
       "Diccionario de Idiomas",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -335,7 +313,6 @@
       "ConcreteFeature",
       "Sistema de Extensiones",
       "Aislamiento de Memoria",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -352,7 +329,6 @@
       "ConcreteFeature",
       "Radar Meteorológico",
       "Módulo GPS",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -369,7 +345,6 @@
       "ConcreteFeature",
       "Generación de Reportes",
       "Motor de Exportación PDF",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -386,7 +361,6 @@
       "ConcreteFeature",
       "Publicación de Historias",
       "Cámara Integrada",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -403,7 +377,6 @@
       "ConcreteFeature",
       "Recordatorios por Tiempo",
       "Notificaciones Push",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -420,7 +393,6 @@
       "ConcreteFeature",
       "Check-in Online",
       "Generador de Tarjeta de Embarque",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -437,7 +409,6 @@
       "ConcreteFeature",
       "Contador de Calorías",
       "Base de Datos Nutricional",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -454,7 +425,6 @@
       "ConcreteFeature",
       "Gráfico de Gantt",
       "Seguimiento de Dependencias",
-      "RootFeature_Feature",
       "Annotation"
     ],
     "description": "Transformación: Se añade texto conversacional y ruido de fondo."
@@ -475,7 +445,6 @@
       "PayPal",
       "Criptomonedas",
       "Módulo de Reembolsos Rápidos",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -497,7 +466,6 @@
       "Guerrero",
       "Mascota Acompañante",
       "Montura de Transporte",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -519,7 +487,6 @@
       "Reclutamiento",
       "Auditoría Avanzada",
       "Borrado de Logs",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -541,7 +508,6 @@
       "Resolución 4K",
       "Descargas Offline",
       "Modo Ahorro de Datos",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -563,7 +529,6 @@
       "Luces Cálidas",
       "Cámaras de Seguridad",
       "Modo Privacidad Absoluta",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -585,7 +550,6 @@
       "Diagnóstico con IA",
       "Módulo de Telemedicina",
       "Agendamiento de Consultas Físicas",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -607,7 +571,6 @@
       "Entrenamiento de Fuerza",
       "Dieta Personalizada",
       "Modo Ayuno Intermitente",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -629,7 +592,6 @@
       "Proyecto Práctico",
       "Clases en Vivo",
       "Modalidad de Estudio Asíncrono",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -651,7 +613,6 @@
       "Bicicleta",
       "Dron de Entrega",
       "Asignación a Repartidor Humano",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],
@@ -673,7 +634,6 @@
       "Gráfico de Pastel",
       "Predicción de Gastos con IA",
       "Funcionamiento Offline",
-      "RootFeature_Feature",
       "Bundle_Feature",
       "Annotation"
     ],

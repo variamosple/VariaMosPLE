@@ -1,0 +1,3 @@
+{
+  "Feature model with attributes": "- Hierarchical features are connected using 'RootFeature_Feature' or 'ConcreteFeature_Feature'.\n- To group features logically (e.g., OR, XOR groups), use a 'Bundle' node. Connect it to the parent feature, and connect its children using 'Bundle_Feature'.\n- To represent cross-tree constraints like 'requires' or 'excludes', you MUST create an 'Annotation' node."
+}
