@@ -9,10 +9,10 @@ const __dirname = path.dirname(__filename);
 // Cargar variables de entorno (desde .env en la raíz de VariaMosPLE)
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
-// Importar la lógica original de VariaMos que construye los prompts
+// Lógica original de VariaMos que construye los prompts
 import { buildCreatePrompt, PATCH_SCHEMA_TEXT } from '../UI/WorkSpace/Chatbot/ModelEditService';
 
-// Cargar diccionario semántico agnóstico
+// Cargar diccionario
 const semanticDictionaryPath = path.join(__dirname, 'semantic_dictionary.json');
 let semanticDictionary: Record<string, string> = {};
 if (fs.existsSync(semanticDictionaryPath)) {
@@ -41,11 +41,11 @@ interface TestCase {
   description: string;
 }
 
-// Función de espera (cooldown)
+// Cooldown
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 function normalizeText(text: string): string {
-  // Elimina tildes, diacríticos, convierte a minúsculas y quita cualquier caracter no alfanumérico (como espacios, guiones, etc.)
+  // Elimina tildes, diacríticos, convierte a minúsculas y quita cualquier caracter no alfanumérico
   return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
@@ -66,9 +66,9 @@ function validateResponse(responseStr: string, expectedElements: string[]): { su
 async function fetchTemplateProjectsMetadata() {
   const url = process.env.REACT_APP_URLVMSPROJECTS + "/getTemplateProjects";
   const token = process.env.VARIAMOS_TOKEN;
-  
+
   if (!token) {
-    console.warn("⚠️ No VARIAMOS_TOKEN found in .env, no se podrán descargar proyectos públicos (RAG orgánico).");
+    console.warn("No VARIAMOS_TOKEN found in .env, no se podrán descargar proyectos públicos (RAG orgánico).");
     return [];
   }
 
@@ -89,7 +89,7 @@ async function fetchTemplateProjectsMetadata() {
 async function fetchProjectFull(projectId: string) {
   const url = process.env.REACT_APP_URLVMSPROJECTS + `/getProject?project_id=${projectId}`;
   const token = process.env.VARIAMOS_TOKEN;
-  
+
   try {
     const response = await fetch(url, {
       method: "GET",
@@ -139,7 +139,7 @@ async function retrieveOrganicPatterns(languageName: string): Promise<string> {
   const seenNodeTypes = new Set<string>();
 
   for (const pMeta of templateMetadataCache) {
-    // Detener si ya encontramos suficiente diversidad sintáctica (por ejemplo, 3 modelos máximo)
+    // Detener si ya encontramos suficiente diversidad sintáctica, 3 modelos máximo
     if (matchingModels.length >= 3) break;
 
     const fullProject = await fetchProjectFull(pMeta.id);
@@ -154,35 +154,35 @@ async function retrieveOrganicPatterns(languageName: string): Promise<string> {
         ];
 
         for (const model of allModels) {
-          // Strip phase suffix like (DOMAIN), (APPLICATION) for matching type
+          // Quitar sufijo de base como DOMAIN, etc
           const baseLanguageName = languageName.replace(/\s*\((DOMAIN|APPLICATION|SCOPE)\)$/i, "").trim();
 
-          // Solución Agnóstica: Verificar si el modelo corresponde al lenguaje solicitado
+          // Solución Agnóstica: Verificar si el modelo corresponde al modelo solicitado
           if (model.type === baseLanguageName && model.elements) {
-            
+
             // Extraer los tipos de nodos presentes en este modelo
             const typesInModel = new Set<string>(model.elements.map((e: any) => e.type));
             let isDiverse = false;
-            
+
             if (matchingModels.length === 0) {
-                isDiverse = true; // Siempre agregamos el primer modelo que encontramos
+              isDiverse = true; // Siempre agregamos el primer modelo que encontramos
             } else {
-                // Si este modelo tiene al menos un tipo de nodo que no hemos visto antes, aporta diversidad
-                for (const t of typesInModel) {
-                    if (!seenNodeTypes.has(t)) {
-                        isDiverse = true;
-                        break;
-                    }
+              // Si este modelo tiene al menos un tipo de nodo que no hemos visto antes, aporta diversidad
+              for (const t of typesInModel) {
+                if (!seenNodeTypes.has(t)) {
+                  isDiverse = true;
+                  break;
                 }
+              }
             }
 
             if (isDiverse) {
-                matchingModels.push(sanitizeModel(model));
-                for (const t of typesInModel) {
-                    seenNodeTypes.add(t);
-                }
+              matchingModels.push(sanitizeModel(model));
+              for (const t of typesInModel) {
+                seenNodeTypes.add(t);
+              }
             }
-            
+
             if (matchingModels.length >= 3) break;
           }
         }
@@ -197,13 +197,13 @@ async function retrieveOrganicPatterns(languageName: string): Promise<string> {
     return "(no models in this language yet)";
   }
 
-  const injectedModels = matchingModels.map((m: any, i: number) => 
-    `Organic Example ${i+1}:\n${JSON.stringify(m, null, 2)}`
+  const injectedModels = matchingModels.map((m: any, i: number) =>
+    `Organic Example ${i + 1}:\n${JSON.stringify(m, null, 2)}`
   ).join("\n\n");
 
   const baseLanguageName = languageName.replace(/\s*\((DOMAIN|APPLICATION|SCOPE)\)$/i, "").trim();
-  const semanticRulesText = semanticDictionary[baseLanguageName] 
-    ? `\n[SEMANTIC RULES FOR THIS LANGUAGE]\n${semanticDictionary[baseLanguageName]}\n` 
+  const semanticRulesText = semanticDictionary[baseLanguageName]
+    ? `\n[SEMANTIC RULES FOR THIS LANGUAGE]\n${semanticDictionary[baseLanguageName]}\n`
     : "";
 
   const resultString = `
@@ -211,16 +211,16 @@ ${semanticRulesText}
 [ORGANIC RAG EXAMPLES]
 ${injectedModels}
 `.trim();
-  
+
   // Debug log:
   console.log(`\n[RAG] Injecting ${matchingModels.length} diverse organic patterns for language '${languageName}'.`);
-  
+
   return resultString;
 }
 
 // Función aislada que puentea el backend y hace el request HTTP directamente al LLM
 async function callDirectLLM(userGoal: string): Promise<string> {
-  // Soporta una variable custom para el test o usa la que ya exista para OpenRouter en .env
+  // Variable custom para el test o la que ya exista para OpenRouter en .env
   const apiKey = process.env.TEST_API_KEY || process.env.REACT_APP_OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error("No se encontró la variable de entorno TEST_API_KEY ni REACT_APP_OPENROUTER_API_KEY.");
@@ -228,7 +228,7 @@ async function callDirectLLM(userGoal: string): Promise<string> {
 
   const languageName = "Feature model with attributes (DOMAIN)";
 
-  // Usamos el constructor de prompts genuino de VariaMosPLE
+  // Constructor de prompts de VariaMosPLE
   const prompt = buildCreatePrompt({
     languageName: languageName,
     userGoal: userGoal + "\nImportante: Mantén los nombres de los elementos y atributos exactamente en el idioma original del requerimiento (español), no los traduzcas al inglés.",
@@ -236,7 +236,7 @@ async function callDirectLLM(userGoal: string): Promise<string> {
   });
 
   const url = "https://openrouter.ai/api/v1/chat/completions";
-  // Es posible usar "openai/gpt-4o-mini", "meta-llama/llama-3.2-3b-instruct:free", etc.
+  // Usar "openai/gpt-4o-mini", "meta-llama/llama-3.2-3b-instruct:free", etc.
   const modelId = "openai/gpt-4o-mini";
 
   const dynamicMemory = await retrieveOrganicPatterns(languageName);
@@ -293,12 +293,12 @@ async function callDirectLLM(userGoal: string): Promise<string> {
 }
 
 async function runTests() {
-  console.log(`\n${colors.cyan}${colors.bold}======================================================${colors.reset}`);
-  console.log(`${colors.cyan}${colors.bold}   Iniciando QA Chatbot (AISLAMIENTO COMPONENTE)   ${colors.reset}`);
-  console.log(`${colors.cyan}${colors.bold}======================================================\n${colors.reset}`);
+  console.log(`\n${colors.cyan}${colors.bold}-${colors.reset}`);
+  console.log(`${colors.cyan}${colors.bold}QA Chatbot${colors.reset}`);
+  console.log(`${colors.cyan}${colors.bold}-\n${colors.reset}`);
 
   const args = process.argv.slice(2);
-  
+
   let jsonFileName = 'banco_prompts_prueba.json';
   let limit = 0;
 
@@ -347,7 +347,7 @@ async function runTests() {
       llmResponseContent = "{}"; // Fallback seguro para evitar cuelgues
     }
 
-    // Validar los elementos en el JSON (como texto por practicidad en el POC)
+    // Validar los elementos en el JSON como texto por practicidad en el POC
     const validation = validateResponse(llmResponseContent, test.expected_elements);
 
     if (validation.success) {
@@ -361,19 +361,19 @@ async function runTests() {
       failed++;
     }
 
-    console.log(`   ${colors.yellow} Cooldown: Esperando 5 segundos antes del siguiente prompt...${colors.reset}`);
+    console.log(`   ${colors.yellow} Cooldown 5 segundos${colors.reset}`);
     await sleep(5000);
     console.log("");
   }
 
-  // Resumen y cálculo
+  // Resumen
   const total = passed + failed;
   const hallucinationRate = total > 0 ? (failed / total) * 100 : 0;
   const reproducibilityIndex = total > 0 ? (passed / total) * 100 : 0;
 
-  console.log(`${colors.cyan}${colors.bold}======================================================${colors.reset}`);
-  console.log(`${colors.cyan}${colors.bold}                  REPORTE FINAL QA                    ${colors.reset}`);
-  console.log(`${colors.cyan}${colors.bold}======================================================${colors.reset}`);
+  console.log(`${colors.cyan}${colors.bold}-${colors.reset}`);
+  console.log(`${colors.cyan}${colors.bold}QA REPORTE${colors.reset}`);
+  console.log(`${colors.cyan}${colors.bold}-${colors.reset}`);
   console.log(`  Total de prompts evaluados: ${colors.bold}${total}${colors.reset}`);
 
   if (isMetamorphic) {
@@ -382,11 +382,11 @@ async function runTests() {
     console.log(`\n  ${colors.bold}Índice de Reproducibilidad: ${reproducibilityIndex < 100 ? colors.red : colors.green}${reproducibilityIndex.toFixed(2)}%${colors.reset}`);
   } else {
     console.log(`  Pruebas Exitosas:           ${colors.green}${passed}${colors.reset}`);
-    console.log(`  Alucinaciones (Errores):    ${colors.red}${failed}${colors.reset}`);
+    console.log(`  Alucinaciones:    ${colors.red}${failed}${colors.reset}`);
     console.log(`\n  ${colors.bold}Tasa de Alucinación Estructural: ${hallucinationRate > 0 ? colors.red : colors.green}${hallucinationRate.toFixed(2)}%${colors.reset}`);
   }
 
-  console.log(`${colors.cyan}${colors.bold}======================================================${colors.reset}\n`);
+  console.log(`${colors.cyan}${colors.bold}-${colors.reset}\n`);
 }
 
 runTests().catch(console.error);
