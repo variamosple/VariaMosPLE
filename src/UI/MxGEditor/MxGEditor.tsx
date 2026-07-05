@@ -4850,7 +4850,11 @@ export default class MxGEditor extends Component<Props, State> {
             historyRecords={this.state.historyRecords}
             selectedModelId={this.currentModel?.id}
             onRefresh={this.loadProjectHistory}
-            onRevertHistoryItem={this.revertHistoryItem.bind(this)}
+            onRevertHistoryItem={
+              this.state.userRole !== RoleEnum.VIEWER
+                ? this.revertHistoryItem.bind(this)
+                : undefined
+            }
             onPreviewHistoryItem={this.previewHistoryItem}
             onClearHistoryPreview={this.clearHistoryPreview}
           />
