@@ -194,10 +194,29 @@ export default function SaveDialog({
     //setSavedQueries(savedQueries);
   };
 
+  const regenerateIds = (projectInformation: ProjectInformation) => {
+    projectInformation.project.productLines.forEach((productLine) => {
+      productLine.id = projectService.generateId();
+
+      productLine.scope.models.forEach((model) => {
+        model.id = projectService.generateId();
+      });
+
+      productLine.domainEngineering.models.forEach((model) => {
+        model.id = projectService.generateId();
+      });
+
+      productLine.applicationEngineering.models.forEach((model) => {
+        model.id = projectService.generateId();
+      });
+    });
+  };
+
   const handleSaveProject = () => {
     if (!projectInformation.name) {
       return;
     }
+    regenerateIds(projectInformation);
     projectService.saveProjectInServer(projectInformation, null, null);
     handleCloseCallback();
   };
