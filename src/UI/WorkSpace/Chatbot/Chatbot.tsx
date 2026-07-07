@@ -102,6 +102,7 @@ const MODEL_OPTIONS: ModelOption[] = [
   { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Meta: Llama 3.3 70B Instruct", free: true },
   { id: "mistralai/mistral-small-3.1-24b-instruct:free", label: "Mistral: Mistral Small 3.1", free: true },
   { id: "openai/gpt-oss-120b:free", label: "OpenAI: gpt-oss-120b", free: true },
+  { id: "deepseek/deepseek-v4-pro", label: "DeepSeek V4 Pro", free: false },
   { id: "openai/gpt-oss-20b:free", label: "OpenAI: gpt-oss-20b", free: true }
 ];
 
