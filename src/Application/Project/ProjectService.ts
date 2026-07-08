@@ -828,6 +828,24 @@ export default class ProjectService {
     this.projectPersistenceUseCases.openProject(user, projectId, openProjectInServerSuccessCallback, openProjectInServerErrorCallback);
   }
 
+  regenerateIds = () => {
+    this._project.productLines.forEach((productLine) => {
+      productLine.id = this.generateId();
+
+      productLine.scope.models.forEach((model) => {
+        model.id = this.generateId();
+      });
+
+      productLine.domainEngineering.models.forEach((model) => {
+        model.id = this.generateId();
+      });
+
+      productLine.applicationEngineering.models.forEach((model) => {
+        model.id = this.generateId();
+      });
+    });
+  };
+
   saveProjectInServer(projectInformation: ProjectInformation, successCallback: any, errorCallback: any): void {
     let me = this;
     let user = this.getUser();
