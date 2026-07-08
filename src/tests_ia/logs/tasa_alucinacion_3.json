@@ -1,0 +1,42 @@
+{
+  "archivo_log": "logs tasa alucinación 3.txt",
+  "archivo_banco": "banco_prompts_prueba.json",
+  "resumen": {
+    "total_pruebas": 50,
+    "exitos": 27,
+    "fallas": 23,
+    "tasa_alucinacion_estructural": 46.0
+  },
+  "estadisticas_por_categoria": {
+    "basica": {
+      "total": 10,
+      "exitos": 8,
+      "fallas": 2,
+      "tasa_alucinacion": 20.0
+    },
+    "media": {
+      "total": 10,
+      "exitos": 10,
+      "fallas": 0,
+      "tasa_alucinacion": 0.0
+    },
+    "media_alta": {
+      "total": 10,
+      "exitos": 0,
+      "fallas": 10,
+      "tasa_alucinacion": 100.0
+    },
+    "compleja": {
+      "total": 10,
+      "exitos": 0,
+      "fallas": 10,
+      "tasa_alucinacion": 100.0
+    },
+    "ambigua": {
+      "total": 10,
+      "exitos": 9,
+      "fallas": 1,
+      "tasa_alucinacion": 10.0
+    }
+  }
+}
