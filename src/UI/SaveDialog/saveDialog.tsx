@@ -24,6 +24,7 @@ import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import ProjectService from "../../Application/Project/ProjectService";
 import { set } from "immer/dist/internal";
 import { json } from "react-router-dom";
+import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 
 type SaveDialogProps = {
   show: boolean;
@@ -194,8 +195,8 @@ export default function SaveDialog({
     //setSavedQueries(savedQueries);
   };
 
-  const regenerateIds = (projectInformation: ProjectInformation) => {
-    projectInformation.project.productLines.forEach((productLine) => {
+  const regenerateIds = (project: Project) => {
+    project.productLines.forEach((productLine) => {
       productLine.id = projectService.generateId();
 
       productLine.scope.models.forEach((model) => {
@@ -216,7 +217,8 @@ export default function SaveDialog({
     if (!projectInformation.name) {
       return;
     }
-    regenerateIds(projectInformation);
+    console.log("Project:", projectService.getProject());
+    regenerateIds(projectService.getProject());
     projectService.saveProjectInServer(projectInformation, null, null);
     handleCloseCallback();
   };
