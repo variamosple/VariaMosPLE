@@ -24,7 +24,6 @@ import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import ProjectService from "../../Application/Project/ProjectService";
 import { set } from "immer/dist/internal";
 import { json } from "react-router-dom";
-import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
 
 type SaveDialogProps = {
   show: boolean;
