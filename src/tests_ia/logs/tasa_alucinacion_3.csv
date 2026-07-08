@@ -1,0 +1,51 @@
+id_prueba,categoria,resultado,elementos_faltantes
+test_01_basic,basica,FALLA,"RootFeature_Feature"
+test_02_basic,basica,EXITOSA,
+test_03_basic,basica,EXITOSA,
+test_04_basic,basica,EXITOSA,
+test_05_basic,basica,EXITOSA,
+test_06_basic,basica,EXITOSA,
+test_07_basic,basica,EXITOSA,
+test_08_basic,basica,FALLA,"Puerta de Seguridad"
+test_09_basic,basica,EXITOSA,
+test_10_basic,basica,EXITOSA,
+test_11_medium,media,EXITOSA,
+test_12_medium,media,EXITOSA,
+test_13_medium,media,EXITOSA,
+test_14_medium,media,EXITOSA,
+test_15_medium,media,EXITOSA,
+test_16_medium,media,EXITOSA,
+test_17_medium,media,EXITOSA,
+test_18_medium,media,EXITOSA,
+test_19_medium,media,EXITOSA,
+test_20_medium,media,EXITOSA,
+test_21_medium_complex,media_alta,FALLA,"Annotation; ConcreteFeature_Annotation"
+test_22_medium_complex,media_alta,FALLA,"Annotation; ConcreteFeature_Annotation"
+test_23_medium_complex,media_alta,FALLA,"Annotation; ConcreteFeature_Annotation"
+test_24_medium_complex,media_alta,FALLA,"Annotation; ConcreteFeature_Annotation"
+test_25_medium_complex,media_alta,FALLA,"RootFeature_Feature; Annotation; ConcreteFeature_Annotation"
+test_26_medium_complex,media_alta,FALLA,"Annotation; ConcreteFeature_Annotation"
+test_27_medium_complex,media_alta,FALLA,"App de Tareas; Annotation; ConcreteFeature_Annotation"
+test_28_medium_complex,media_alta,FALLA,"Annotation; ConcreteFeature_Annotation"
+test_29_medium_complex,media_alta,FALLA,"RootFeature_Feature; Annotation; ConcreteFeature_Annotation"
+test_30_medium_complex,media_alta,FALLA,"Annotation; ConcreteFeature_Annotation"
+test_31_complex,compleja,FALLA,"Módulo de Reembolsos Rápidos; RootFeature_Feature; RootFeature_Bundle; Annotation; ConcreteFeature_Annotation"
+test_32_complex,compleja,FALLA,"RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+test_33_complex,compleja,FALLA,"RootFeature_Feature; Annotation; ConcreteFeature_Annotation"
+test_34_complex,compleja,FALLA,"Bundle; RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+test_35_complex,compleja,FALLA,"RootFeature_Feature; RootFeature_Bundle; Annotation; ConcreteFeature_Annotation"
+test_36_complex,compleja,FALLA,"RootFeature_Bundle; Bundle_Feature"
+test_37_complex,compleja,FALLA,"RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+test_38_complex,compleja,FALLA,"Bundle; RootFeature_Feature; RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+test_39_complex,compleja,FALLA,"Bundle; Asignación a Repartidor Humano; RootFeature_Feature; RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+test_40_complex,compleja,FALLA,"RootFeature_Feature; RootFeature_Bundle; Annotation; ConcreteFeature_Annotation"
+test_41_ambiguous,ambigua,FALLA,"Sistema de Base de Datos"
+test_42_ambiguous,ambigua,EXITOSA,
+test_43_ambiguous,ambigua,EXITOSA,
+test_44_ambiguous,ambigua,EXITOSA,
+test_45_ambiguous,ambigua,EXITOSA,
+test_46_ambiguous,ambigua,EXITOSA,
+test_47_ambiguous,ambigua,EXITOSA,
+test_48_ambiguous,ambigua,EXITOSA,
+test_49_ambiguous,ambigua,EXITOSA,
+test_50_ambiguous,ambigua,EXITOSA,

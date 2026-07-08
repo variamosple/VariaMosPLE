@@ -4,6 +4,7 @@ import ProjectService from "../../../Application/Project/ProjectService";
 import { Language as DomainLanguage } from "../../../Domain/ProductLineEngineering/Entities/Language";
 import { AIChatRequest, AIChatResult } from "../../../DataProvider/Services/projectPersistenceService";
 import { VariamosAIService } from "../../../DataProvider/Services/projectPersistenceService";
+import { getOrganicRAG } from "./OrganicRAGService";
 
 import {
   buildSnapshot,
@@ -2905,8 +2906,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
       stageStep("Calling API… (create)");
 
       const langName = opLanguage?.name || ps.getSelectedLanguage?.() || "Language";
+      const dynamicRAG = await getOrganicRAG(langName);
+
       const memoryHint = plk ? [
-        `[Contexto del proyecto]`,
+        `[Contexto del proyecto local]`,
         `Raíces comunes (mismo lenguaje): {${(plk.sameLang.rootNames || []).join(", ")}}`,
         `Conceptos frecuentes (mismo lenguaje): ${plk.sameLang.knownElementNames.slice(0, 15).join(", ")}`,
         `Conceptos frecuentes (global PL): ${plk.knownElementNames.slice(0, 20).join(", ")}`,
@@ -2915,9 +2918,22 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
         `- Si la meta define relaciones para trazabilidad, úsalas hacia NOMBRES existentes.`,
       ].join("\n") : "";
 
+      const fullGoalWithRAG = `
+${memoryHint}
+
+[PROJECT MEMORY (traceability-aware and templates)]
+${dynamicRAG}
+
+[TRACEABILITY DIRECTIVES (STRICT)]
+- Reuse EXACT element NAMES from the lists above when the user asks for a new model in a different language.
+
+[USER REQUEST]
+${cleanUserText}
+      `.trim();
+
       const userPromptCreate = buildCreatePrompt({
         languageName: langName,
-        userGoal: `${memoryHint}\n\n${cleanUserText}`,
+        userGoal: fullGoalWithRAG,
         patchSchema: PATCH_SCHEMA_TEXT
       });
 
