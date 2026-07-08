@@ -1,0 +1,51 @@
+id_prueba,categoria,resultado,elementos_faltantes
+test_01,basica,Éxito,
+test_02,basica,Éxito,
+test_03,basica,Éxito,
+test_04,basica,Éxito,
+test_05,basica,Éxito,
+test_06,basica,Éxito,
+test_07,basica,Éxito,
+test_08,basica,Éxito,
+test_09,basica,Éxito,
+test_10,basica,Éxito,
+test_11,media,Éxito,
+test_12,media,Éxito,
+test_13,media,Éxito,
+test_14,media,Éxito,
+test_15,media,Error,Calculadora de Software
+test_16,media,Éxito,
+test_17,media,Éxito,
+test_18,media,Éxito,
+test_19,media,Éxito,
+test_20,media,Éxito,
+test_21,media-alta,Éxito,
+test_22,media-alta,Éxito,
+test_23,media-alta,Error,Annotation
+test_24,media-alta,Error,App de Clima
+test_25,media-alta,Error,Annotation
+test_26,media-alta,Éxito,
+test_27,media-alta,Éxito,
+test_28,media-alta,Éxito,
+test_29,media-alta,Éxito,
+test_30,media-alta,Éxito,
+test_31,compleja,Error,Módulo de Reembolsos Rápidos
+test_32,compleja,Error,Montura de Transporte
+test_33,compleja,Éxito,
+test_34,compleja,Éxito,
+test_35,compleja,Éxito,
+test_36,compleja,Éxito,
+test_37,compleja,Error,App de Fitness
+test_38,compleja,Error,Modalidad de Estudio Asíncrono
+test_39,compleja,Error,Asignación a Repartidor Humano
+test_40,compleja,Éxito,
+test_41,ambigua,Éxito,
+test_42,ambigua,Éxito,
+test_43,ambigua,Éxito,
+test_44,ambigua,Éxito,
+test_45,ambigua,Éxito,
+test_46,ambigua,Éxito,
+test_47,ambigua,Éxito,
+test_48,ambigua,Éxito,
+test_49,ambigua,Éxito,
+test_50,ambigua,Éxito,
