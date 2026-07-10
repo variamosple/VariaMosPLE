@@ -38,7 +38,7 @@ export default function QueryModal({
 }: QueryModalProps) {
   const [key, setKey] = useState("query");
   const [translatorEndpoint, setTranslatorEndpoint] = useState(
-    "https://app.variamos.com/semantic_translator"
+    "https://app.variamos.com/semantic_translator/query"
   );
   const [query, setQuery] = useState("");
   const [queryInProgress, setQueryInProgress] = useState(false);
@@ -249,7 +249,7 @@ export default function QueryModal({
           <TabPane
             eventKey="results"
             title="Results"
-            // disabled={!resultsReady}
+          // disabled={!resultsReady}
           >
             {results.map((result, index) => (
               <QueryResult
@@ -351,10 +351,10 @@ export default function QueryModal({
                     </Button>
                   </div>
                 ))) || (
-                <div>
-                  <p>No saved queries</p>
-                </div>
-              )}
+                  <div>
+                    <p>No saved queries</p>
+                  </div>
+                )}
             </Container>
           </TabPane>
         </TabContent>

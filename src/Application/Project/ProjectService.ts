@@ -3,6 +3,12 @@ import * as alertify from "alertifyjs";
 import { Buffer } from "buffer";
 import { Utils } from "../../Addons/Library/Utils/Utils";
 import { Config } from "../../Config";
+import {
+  getProjectProvider,
+  handleCollaborativeProject,
+  observeModelState,
+  updateModelState
+} from "../../DataProvider/Services/collab/collaborationService";
 import { Adaptation } from "../../Domain/ProductLineEngineering/Entities/Adaptation";
 import { Application } from "../../Domain/ProductLineEngineering/Entities/Application";
 import { ConfigurationInformation } from "../../Domain/ProductLineEngineering/Entities/ConfigurationInformation";
@@ -13,13 +19,13 @@ import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
 import { Point } from "../../Domain/ProductLineEngineering/Entities/Point";
 import { ProductLine } from "../../Domain/ProductLineEngineering/Entities/ProductLine";
 import { Project } from "../../Domain/ProductLineEngineering/Entities/Project";
+import { ProjectAnnotation } from "../../Domain/ProductLineEngineering/Entities/ProjectAnnotation";
+import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
 import { ProjectInformation } from "../../Domain/ProductLineEngineering/Entities/ProjectInformation";
 import { Property } from "../../Domain/ProductLineEngineering/Entities/Property";
 import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
-import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
-import { ProjectAnnotation } from "../../Domain/ProductLineEngineering/Entities/ProjectAnnotation";
 import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectPersistenceUseCases";
 import {
   ModelLookupResult,
@@ -38,12 +44,6 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
-import {
-  handleCollaborativeProject,
-  observeModelState,
-  updateModelState,
-  getProjectProvider
-} from "../../DataProvider/Services/collab/collaborationService";
 
 
 export default class ProjectService {
@@ -1698,7 +1698,7 @@ export default class ProjectService {
     });
     const result = await runQueryFromModel(
       this,
-      "https://app.variamos.com/semantic_translator",
+      "https://app.variamos.com/semantic_translator/query",
       query_object,
       applicationModel.sourceModelIds[0]
     );
@@ -1737,7 +1737,7 @@ export default class ProjectService {
     });
     const result = await runQueryFromModel(
       this,
-      "https://app.variamos.com/semantic_translator",
+      "https://app.variamos.com/semantic_translator/query",
       query_object,
       appModel.sourceModelIds[0]
     );
@@ -1779,7 +1779,7 @@ export default class ProjectService {
       });
       const result = await runQueryFromModel(
         this,
-        "https://app.variamos.com/semantic_translator",
+        "https://app.variamos.com/semantic_translator/query",
         query_object,
         appModel.sourceModelIds[0]
       );
@@ -1906,7 +1906,7 @@ export default class ProjectService {
     });
     const result = await runQuery(
       this,
-      "https://app.variamos.com/semantic_translator",
+      "https://app.variamos.com/semantic_translator/query",
       query_object,
     );
     const formattedResults = result.map((elem) => [
