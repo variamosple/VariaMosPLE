@@ -7,6 +7,7 @@ import BillOfMaterialsEditor from "../Scope/BillOfMaterialsEditor";
 import TreeExplorer from "../TreeExplorer/TreeExplorer";
 import FloatingChat from "./Chatbot/FloatingChat";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import UvlEditor from "../UvlEditor/UvlEditor";
 
 interface ModelRendererProps {
     projectService: ProjectService;
@@ -43,36 +44,57 @@ renderEditor(): any {
 
   if (!selectedModel) return [];
 
-  const isMxGraphModel = selectedModel.type !== "Catalog of potential products";
-  if (isMxGraphModel) {
-    return [
-      <td key="diagram" style={{ padding: 0, width: "85%", verticalAlign: "top" }}>
-        <div style={{
-            width: "100%",           // llena el 100% de la celda
-            height: "calc(100vh - 100px)",          // idéntico para altura
-            overflow: "auto",        // scroll cuando ancho o alto se excedan
-            boxSizing: "border-box",
-          }}>
-       <DiagramEditor projectService={this.props.projectService} />
-       </div>
-      </td>,
-      <td key="panel" style={{ padding: 0, width: "15%", verticalAlign: "top" }}>
-        <ElementsPannel projectService={this.props.projectService} />
-      </td>
-    ];
-  } else {
-    return [
-      <td key="bom">
-        <div>
+if (selectedModel.type === "Feature model UVL") {
+  return [
+    <td key="uvl-editor" style={{ padding: 0, width: "100%", verticalAlign: "top" }}>
+      <div
+        style={{
+          width: "100%",
+          height: "calc(100vh - 100px)",
+          overflow: "auto",
+          boxSizing: "border-box",
+        }}
+      >
+        <UvlEditor
+          key={`uvl-${key}`}
+          projectService={this.props.projectService}
+          model={selectedModel}
+        />
+      </div>
+    </td>,
+  ];
+} else if (selectedModel.type === "Catalog of potential products") {
+  return [
+    <td key="bom">
+      <div>
         <BillOfMaterialsEditor
           key={`bom-${key}`}
           projectService={this.props.projectService}
           onClose={() => {}}
         />
-        </div>
-      </td>
-    ];
-  }
+      </div>
+    </td>,
+  ];
+} else {
+  return [
+    <td key="diagram" style={{ padding: 0, width: "85%", verticalAlign: "top" }}>
+      <div
+        style={{
+          width: "100%",
+          height: "calc(100vh - 100px)",
+          overflow: "auto",
+          boxSizing: "border-box",
+        }}
+      >
+        <DiagramEditor projectService={this.props.projectService} />
+      </div>
+    </td>,
+
+    <td key="panel" style={{ padding: 0, width: "15%", verticalAlign: "top" }}>
+      <ElementsPannel projectService={this.props.projectService} />
+    </td>,
+  ];
+}
 }
 
 

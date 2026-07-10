@@ -1,0 +1,51 @@
+id_prueba,categoria,resultado,elementos_faltantes
+meta_01_paraphrase,paraphrase,EXITOSA,
+meta_02_paraphrase,paraphrase,EXITOSA,
+meta_03_paraphrase,paraphrase,EXITOSA,
+meta_04_paraphrase,paraphrase,EXITOSA,
+meta_05_paraphrase,paraphrase,EXITOSA,
+meta_06_paraphrase,paraphrase,EXITOSA,
+meta_07_paraphrase,paraphrase,EXITOSA,
+meta_08_paraphrase,paraphrase,EXITOSA,
+meta_09_paraphrase,paraphrase,EXITOSA,
+meta_10_paraphrase,paraphrase,EXITOSA,
+meta_11_format_change,format_change,EXITOSA,
+meta_12_format_change,format_change,EXITOSA,
+meta_13_format_change,format_change,EXITOSA,
+meta_14_format_change,format_change,EXITOSA,
+meta_15_format_change,format_change,EXITOSA,
+meta_16_format_change,format_change,EXITOSA,
+meta_17_format_change,format_change,EXITOSA,
+meta_18_format_change,format_change,EXITOSA,
+meta_19_format_change,format_change,EXITOSA,
+meta_20_format_change,format_change,EXITOSA,
+meta_21_noise_injection,noise_injection,FALLA,"Annotation; ConcreteFeature_Annotation"
+meta_22_noise_injection,noise_injection,FALLA,"Annotation; ConcreteFeature_Annotation"
+meta_23_noise_injection,noise_injection,FALLA,"Annotation; ConcreteFeature_Annotation"
+meta_24_noise_injection,noise_injection,FALLA,"App de Clima; Annotation; ConcreteFeature_Annotation"
+meta_25_noise_injection,noise_injection,FALLA,"Sistema de Gestión; Control de Usuarios; Generación de Reportes; Motor de Exportación PDF; Annotation; ConcreteFeature_Annotation"
+meta_26_noise_injection,noise_injection,FALLA,"Annotation; ConcreteFeature_Annotation"
+meta_27_noise_injection,noise_injection,FALLA,"App de Tareas; Annotation; ConcreteFeature_Annotation"
+meta_28_noise_injection,noise_injection,FALLA,"Sistema de Vuelos; Búsqueda de Boletos; Generador de Tarjeta de Embarque; Annotation; ConcreteFeature_Annotation"
+meta_29_noise_injection,noise_injection,FALLA,"App de Dietas; Annotation; ConcreteFeature_Annotation"
+meta_30_noise_injection,noise_injection,FALLA,"Annotation; ConcreteFeature_Annotation"
+meta_31_logical_inversion,logical_inversion,FALLA,"Bundle; Módulo de Reembolsos Rápidos; RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+meta_32_logical_inversion,logical_inversion,FALLA,"Bundle; RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+meta_33_logical_inversion,logical_inversion,FALLA,"Módulo de Contabilidad; Módulo de Recursos Humanos; Bundle; Borrado de Logs; RootFeature_Bundle; Bundle_Feature"
+meta_34_logical_inversion,logical_inversion,FALLA,"Plataforma de Streaming; Reproductor de Video; Calidad de Transmisión; Bundle; Modo Ahorro de Datos; RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+meta_35_logical_inversion,logical_inversion,FALLA,"Bundle; Cámaras de Seguridad; Modo Privacidad Absoluta; RootFeature_Bundle; Bundle_Feature; ConcreteFeature_Annotation"
+meta_36_logical_inversion,logical_inversion,FALLA,"Herramienta de Diagnóstico; Bundle; Agendamiento de Consultas Físicas; RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+meta_37_logical_inversion,logical_inversion,FALLA,"App de Fitness; Bundle; RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+meta_38_logical_inversion,logical_inversion,FALLA,"Catálogo de Cursos; Método de Evaluación; Bundle; Test de Opción Múltiple; Modalidad de Estudio Asíncrono; RootFeature_Bundle; Bundle_Feature; ConcreteFeature_Annotation"
+meta_39_logical_inversion,logical_inversion,FALLA,"Bundle; Asignación a Repartidor Humano; RootFeature_Bundle; Bundle_Feature; ConcreteFeature_Annotation"
+meta_40_logical_inversion,logical_inversion,FALLA,"Bundle; Predicción de Gastos con IA; Funcionamiento Offline; RootFeature_Bundle; Bundle_Feature; Annotation; ConcreteFeature_Annotation"
+meta_41_language_interference,language_interference,EXITOSA,
+meta_42_language_interference,language_interference,EXITOSA,
+meta_43_language_interference,language_interference,EXITOSA,
+meta_44_language_interference,language_interference,EXITOSA,
+meta_45_language_interference,language_interference,FALLA,"Nube Computacional"
+meta_46_language_interference,language_interference,EXITOSA,
+meta_47_language_interference,language_interference,EXITOSA,
+meta_48_language_interference,language_interference,EXITOSA,
+meta_49_language_interference,language_interference,EXITOSA,
+meta_50_language_interference,language_interference,FALLA,"Sistema de Agricultura"

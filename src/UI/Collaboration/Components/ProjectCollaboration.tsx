@@ -3,6 +3,8 @@ import { Modal, Dropdown, Form, FormGroup, Button } from 'react-bootstrap';
 import ProjectService from '../../../Application/Project/ProjectService';
 import { RoleEnum } from '../../../Domain/ProductLineEngineering/Enums/roleEnum';
 import './ProjectCollaboration.css';
+import CollaborationMessageModal from './CollaborationMessageModal';
+import RemoveCollaboratorConfirmationModal from './RemoveCollaboratorConfirmationModal';
 
 interface Props {
   projectService: ProjectService;
@@ -14,9 +16,15 @@ interface State {
   shareInput: string;
   shareRole: string;
   isCollaborative: boolean;
-  collaborators: Array<{id: string, name: string, email: string, role: string}>;
+  collaborators: Array<{ id: string, name: string, email: string, role: string }>;
   userRole: string;
   isLoading: boolean;
+  showMessageModal: boolean;
+  messageModalTitle: string;
+  messageModalText: string;
+  showRemoveModal: boolean;
+  collaboratorToRemove: any | null;
+  openCollaboratorsAfterMessage: boolean;
 }
 
 class ProjectCollaboration extends Component<Props, State> {
@@ -31,6 +39,12 @@ class ProjectCollaboration extends Component<Props, State> {
       collaborators: [],
       userRole: '',
       isLoading: false,
+      showMessageModal: false,
+      messageModalTitle: "",
+      messageModalText: "",
+      showRemoveModal: false,
+      collaboratorToRemove: null,
+      openCollaboratorsAfterMessage: false,
     };
   }
 
@@ -61,7 +75,7 @@ class ProjectCollaboration extends Component<Props, State> {
   };
 
   handleInviteModalToggle = () => {
-    this.setState({ 
+    this.setState({
       showInviteModal: !this.state.showInviteModal,
       shareInput: '',
       shareRole: RoleEnum.VIEWER
@@ -80,22 +94,40 @@ class ProjectCollaboration extends Component<Props, State> {
     this.setState({ shareRole: role });
   };
 
+  showMessage = (title: string, message: string) => {
+    this.setState({
+      showMessageModal: true,
+      messageModalTitle: title,
+      messageModalText: message,
+    });
+  };
+
+  closeMessage = () => {
+    this.setState((prev) => ({
+      showMessageModal: false,
+      messageModalTitle: "",
+      messageModalText: "",
+      showCollaboratorsModal: prev.openCollaboratorsAfterMessage,
+      openCollaboratorsAfterMessage: false,
+    }));
+  };
+
   handleInviteCollaborator = async () => {
     const { userRole, shareInput, shareRole } = this.state;
-    
+
     if (userRole !== RoleEnum.OWNER) {
-      alert("Only the owner can invite collaborators.");
+      this.showMessage("Error", "Only the owner can invite collaborators.");
       return;
     }
 
     if (!shareInput.trim()) {
-      alert("Please enter a valid email address.");
+      this.showMessage("Error", "Please enter a valid email address.");
       return;
     }
 
     const projectInfo = this.props.projectService.getProjectInformation();
     if (!projectInfo?.project?.id) {
-      alert("No project selected.");
+      this.showMessage("Error", "No project selected.");
       return;
     }
 
@@ -103,13 +135,13 @@ class ProjectCollaboration extends Component<Props, State> {
 
     try {
       const share = await this.props.projectService.shareProject(
-        projectInfo.id, 
-        shareInput.trim(), 
+        projectInfo.id,
+        shareInput.trim(),
         shareRole
       );
 
       console.log(`Project shared with ${shareInput} as ${shareRole}`);
-      alert(`Project successfully shared with ${shareInput} as ${shareRole}.`);
+      this.showMessage("Project shared", `Project successfully shared with ${shareInput} as ${shareRole}.`);
 
       const newCollaborator = {
         id: share.id,
@@ -126,49 +158,71 @@ class ProjectCollaboration extends Component<Props, State> {
       this.handleInviteModalToggle();
     } catch (error) {
       console.error("Error inviting collaborator:", error);
-      alert("An error occurred while inviting the collaborator. Please try again.");
+      this.showMessage("Error", "An error occurred while inviting the collaborator. Please try again.");
       this.setState({ isLoading: false });
     }
   };
 
   // Método para eliminar colaborador
-  removeCollaborator = async (collaboratorId: string) => {
+  RemoveCollaborator = async () => {
+    const collaborator = this.state.collaboratorToRemove;
     const { userRole } = this.state;
 
+    const showRemoveMessage = (
+      title: string,
+      message: string,
+      openCollaboratorsAfterMessage = true
+    ) => {
+      this.setState({
+        showRemoveModal: false,
+        collaboratorToRemove: null,
+        showMessageModal: true,
+        messageModalTitle: title,
+        messageModalText: message,
+        openCollaboratorsAfterMessage,
+      });
+    };
+
     if (userRole !== RoleEnum.OWNER) {
-      alert("Only the owner can remove collaborators.");
+      showRemoveMessage("Error", "Only the owner can change collaborator roles.");
       return;
     }
 
-    if (!window.confirm("Are you sure you want to remove this collaborator?")) {
+    if (!collaborator) {
       return;
     }
 
     const projectInfo = this.props.projectService.getProjectInformation();
+
     if (!projectInfo?.project?.id) {
-      alert("No project selected.");
+      showRemoveMessage("Error", "No project selected.");
       return;
     }
 
     try {
       const response = await this.props.projectService.removeCollaborator(
         projectInfo.id,
-        collaboratorId
+        collaborator.id
       );
 
-      if (response) {
-        alert(`Collaborator removed successfully.`);
-        this.setState((prevState) => ({
-          collaborators: prevState.collaborators.filter(
-            (collab) => collab.id !== collaboratorId
-          ),
-        }));
-      } else {
-        alert("Could not remove collaborator.");
+      if (!response) {
+        showRemoveMessage("Error", "Could not remove collaborator.");
+        return;
       }
+
+      this.setState((prevState) => ({
+        collaborators: prevState.collaborators.filter(
+          (collab) => collab.id !== collaborator.id
+        ),
+        showRemoveModal: false,
+        collaboratorToRemove: null,
+        showMessageModal: true,
+        messageModalTitle: "Collaborator removed",
+        messageModalText: "Collaborator removed successfully.",
+        openCollaboratorsAfterMessage: true,
+      }));
     } catch (error) {
-      console.error("Error removing collaborator:", error);
-      alert("An error occurred while removing the collaborator. Please try again.");
+      showRemoveMessage("Error", "An error occurred while removing the collaborator. Please try again.");
     }
   };
 
@@ -176,14 +230,25 @@ class ProjectCollaboration extends Component<Props, State> {
   changeCollaboratorRole = async (collaboratorId: string, newRole: string) => {
     const { userRole } = this.state;
 
+    const showRoleMessage = (title: string, message: string) => {
+      this.setState({
+        showCollaboratorsModal: false,
+        showMessageModal: true,
+        messageModalTitle: title,
+        messageModalText: message,
+        openCollaboratorsAfterMessage: true,
+      });
+    };
+
     if (userRole !== RoleEnum.OWNER) {
-      alert("Only the owner can change collaborator roles.");
+      showRoleMessage("Error", "Only the owner can change collaborator roles.");
       return;
     }
 
     const projectInfo = this.props.projectService.getProjectInformation();
+
     if (!projectInfo?.project?.id) {
-      alert("No project selected.");
+      showRoleMessage("Error", "No project selected.");
       return;
     }
 
@@ -194,19 +259,25 @@ class ProjectCollaboration extends Component<Props, State> {
         newRole
       );
 
-      if (response) {
-        alert(`Collaborator role changed to ${newRole} successfully.`);
-        this.setState((prevState) => ({
-          collaborators: prevState.collaborators.map((collab) =>
-            collab.id === collaboratorId ? { ...collab, role: newRole } : collab
-          ),
-        }));
-      } else {
-        alert("Could not change collaborator role.");
+      if (!response) {
+        showRoleMessage("Error", "Could not change collaborator role.");
+        return;
       }
+
+      this.setState((prevState) => ({
+        collaborators: prevState.collaborators.map((collab) =>
+          collab.id === collaboratorId
+            ? { ...collab, role: newRole }
+            : collab
+        ),
+        showCollaboratorsModal: false,
+        showMessageModal: true,
+        messageModalTitle: "Role updated",
+        messageModalText: `Collaborator role changed to ${newRole} successfully.`,
+        openCollaboratorsAfterMessage: true,
+      }));
     } catch (error) {
-      console.error("Error changing collaborator role:", error);
-      alert("An error occurred while changing the collaborator role. Please try again.");
+      showRoleMessage("Error", "An error occurred while changing the collaborator role. Please try again.");
     }
   };
 
@@ -242,8 +313,8 @@ class ProjectCollaboration extends Component<Props, State> {
               <label>User Role</label>
               <FormGroup>
                 <Dropdown>
-                  <Dropdown.Toggle 
-                    variant="outline-secondary" 
+                  <Dropdown.Toggle
+                    variant="outline-secondary"
                     id="dropdown-basic"
                     disabled={!isCurrentUserOwner || isLoading}
                   >
@@ -263,15 +334,15 @@ class ProjectCollaboration extends Component<Props, State> {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <button 
-            className="btn btn-secondary" 
+          <button
+            className="btn btn-secondary"
             onClick={this.handleInviteModalToggle}
             disabled={isLoading}
           >
             Cancel
           </button>
-          <button 
-            className="btn btn-primary" 
+          <button
+            className="btn btn-primary"
             onClick={this.handleInviteCollaborator}
             disabled={!isCurrentUserOwner || isLoading}
           >
@@ -361,7 +432,13 @@ class ProjectCollaboration extends Component<Props, State> {
                         variant="danger"
                         size="sm"
                         className="ms-2"
-                        onClick={() => this.removeCollaborator(collaborator.id)}
+                        onClick={() =>
+                          this.setState({
+                            showCollaboratorsModal: false,
+                            showRemoveModal: true,
+                            collaboratorToRemove: collaborator,
+                          })
+                        }
                         disabled={
                           !isCurrentUserOwner || // Deshabilitar si el usuario actual no es owner
                           isCollaboratorOwner || // Deshabilitar si el colaborador es owner
@@ -402,17 +479,17 @@ class ProjectCollaboration extends Component<Props, State> {
     return (
       <div className="project-collaboration">
         {isOwner && (
-          <a 
-            title="Invite collaborators" 
+          <a
+            title="Invite collaborators"
             onClick={this.handleInviteModalToggle}
             className="collaboration-button"
           >
             <span>👥 Invite</span>
           </a>
         )}
-        
-        <a 
-          title="View collaborators" 
+
+        <a
+          title="View collaborators"
           onClick={this.handleCollaboratorsModalToggle}
           className="collaboration-button"
         >
@@ -421,6 +498,24 @@ class ProjectCollaboration extends Component<Props, State> {
 
         {this.renderInviteModal()}
         {this.renderCollaboratorsModal()}
+        <CollaborationMessageModal
+          show={this.state.showMessageModal}
+          title={this.state.messageModalTitle}
+          message={this.state.messageModalText}
+          onClose={this.closeMessage}
+        />
+        <RemoveCollaboratorConfirmationModal
+          show={this.state.showRemoveModal}
+          collaboratorName={this.state.collaboratorToRemove?.name}
+          onCancel={() =>
+            this.setState({
+              showRemoveModal: false,
+              collaboratorToRemove: null,
+              showCollaboratorsModal: true,
+            })
+          }
+          onConfirm={this.RemoveCollaborator}
+        />
       </div>
     );
   }

@@ -1,0 +1,51 @@
+id_prueba,categoria,resultado,elementos_faltantes
+test_01,basica,Éxito,
+test_02,basica,Error,RootFeature_Feature
+test_03,basica,Éxito,
+test_04,basica,Éxito,
+test_05,basica,Error,Libro Electrónico
+test_06,basica,Éxito,
+test_07,basica,Éxito,
+test_08,basica,Éxito,
+test_09,basica,Éxito,
+test_10,basica,Éxito,
+test_11,media,Éxito,
+test_12,media,Error,RootFeature_Feature
+test_13,media,Éxito,
+test_14,media,Éxito,
+test_15,media,Error,Calculadora de Software
+test_16,media,Éxito,
+test_17,media,Éxito,
+test_18,media,Éxito,
+test_19,media,Éxito,
+test_20,media,Éxito,
+test_21,media-alta,Éxito,
+test_22,media-alta,Error,RootFeature_Feature
+test_23,media-alta,Error,"RootFeature_Feature, Annotation"
+test_24,media-alta,Error,App de Clima
+test_25,media-alta,Éxito,
+test_26,media-alta,Éxito,
+test_27,media-alta,Éxito,
+test_28,media-alta,Error,RootFeature_Feature
+test_29,media-alta,Error,App de Dietas
+test_30,media-alta,Error,RootFeature_Feature
+test_31,compleja,Error,"Módulo de Reembolsos Rápidos, RootFeature_Feature"
+test_32,compleja,Error,Montura de Transporte
+test_33,compleja,Error,RootFeature_Feature
+test_34,compleja,Error,RootFeature_Feature
+test_35,compleja,Error,RootFeature_Feature
+test_36,compleja,Error,RootFeature_Feature
+test_37,compleja,Error,RootFeature_Feature
+test_38,compleja,Error,"Modalidad de Estudio Asíncrono, RootFeature_Feature"
+test_39,compleja,Error,"Vehículo de Reparto, Asignación a Repartidor Humano, RootFeature_Feature"
+test_40,compleja,Error,"Funcionamiento Offline, RootFeature_Feature"
+test_41,ambigua,Éxito,
+test_42,ambigua,Éxito,
+test_43,ambigua,Éxito,
+test_44,ambigua,Éxito,
+test_45,ambigua,Éxito,
+test_46,ambigua,Éxito,
+test_47,ambigua,Éxito,
+test_48,ambigua,Éxito,
+test_49,ambigua,Éxito,
+test_50,ambigua,Éxito,

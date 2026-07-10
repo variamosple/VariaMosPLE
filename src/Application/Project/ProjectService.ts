@@ -24,6 +24,8 @@ import { Property } from "../../Domain/ProductLineEngineering/Entities/Property"
 import { Query } from "../../Domain/ProductLineEngineering/Entities/Query";
 import { Relationship } from "../../Domain/ProductLineEngineering/Entities/Relationship";
 import LanguageUseCases from "../../Domain/ProductLineEngineering/UseCases/LanguageUseCases";
+import { ProjectHistory } from "../../Domain/ProductLineEngineering/Entities/ProjectHistory";
+import { ProjectAnnotation } from "../../Domain/ProductLineEngineering/Entities/ProjectAnnotation";
 import ProjectPersistenceUseCases from "../../Domain/ProductLineEngineering/UseCases/ProjectPersistenceUseCases";
 import {
   ModelLookupResult,
@@ -42,6 +44,12 @@ import { ProjectEventArg } from "./Events/ProjectEventArg";
 import { SelectedElementEventArg } from "./Events/SelectedElementEventArg";
 import { SelectedModelEventArg } from "./Events/SelectedModelEventArg";
 import { UpdatedElementEventArg } from "./Events/UpdatedElementEventArg";
+import {
+  handleCollaborativeProject,
+  observeModelState,
+  updateModelState,
+  getProjectProvider
+} from "../../DataProvider/Services/collab/collaborationService";
 
 
 export default class ProjectService {
@@ -825,6 +833,24 @@ export default class ProjectService {
 
     this.projectPersistenceUseCases.openProject(user, projectId, openProjectInServerSuccessCallback, openProjectInServerErrorCallback);
   }
+
+  regenerateIds = () => {
+    this._project.productLines.forEach((productLine) => {
+      productLine.id = this.generateId();
+
+      productLine.scope.models.forEach((model) => {
+        model.id = this.generateId();
+      });
+
+      productLine.domainEngineering.models.forEach((model) => {
+        model.id = this.generateId();
+      });
+
+      productLine.applicationEngineering.models.forEach((model) => {
+        model.id = this.generateId();
+      });
+    });
+  };
 
   saveProjectInServer(projectInformation: ProjectInformation, successCallback: any, errorCallback: any): void {
     let me = this;
@@ -1943,5 +1969,35 @@ export default class ProjectService {
 
   }
 
+  createHistoryEvent(historyEvent: ProjectHistory): Promise<any> {
+    return this.projectPersistenceUseCases.createHistoryEvent(historyEvent);
+  }
 
+  getProjectHistory(projectId: string): Promise<any> {
+    return this.projectPersistenceUseCases.getProjectHistory(projectId);
+  }
+
+  createProjectAnnotation(annotation: ProjectAnnotation): Promise<any> {
+    return this.projectPersistenceUseCases.createProjectAnnotation(annotation);
+  }
+
+  getProjectAnnotations(modelId: string): Promise<any> {
+    return this.projectPersistenceUseCases.getProjectAnnotations(modelId);
+  }
+
+  updateProjectAnnotation(annotationId: string, annotation: ProjectAnnotation): Promise<any> {
+    return this.projectPersistenceUseCases.updateProjectAnnotation(annotationId, annotation);
+  }
+
+  deleteProjectAnnotation(annotationId: string): Promise<any> {
+    return this.projectPersistenceUseCases.deleteProjectAnnotation(annotationId);
+  }
+
+  resolveProjectAnnotation(annotationId: string): Promise<any> {
+    return this.projectPersistenceUseCases.resolveProjectAnnotation(annotationId);
+  }
+
+  unresolveProjectAnnotation(annotationId: string): Promise<any> {
+    return this.projectPersistenceUseCases.unresolveProjectAnnotation(annotationId);
+  }
 }

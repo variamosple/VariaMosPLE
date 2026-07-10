@@ -1,0 +1,42 @@
+{
+  "archivo": "logs_tasa_alucinacion_final.txt",
+  "tipo_prueba": "Tasa de Alucinación Estructural",
+  "version": "final",
+  "resumen": {
+    "total_pruebas": 50,
+    "exitos": 41,
+    "errores": 9,
+    "tasa_alucinacion": 18.0
+  },
+  "categorias": {
+    "basica": {
+      "rango": "1-10",
+      "exitos": 10,
+      "errores": 0
+    },
+    "media": {
+      "rango": "11-20",
+      "exitos": 9,
+      "errores": 1
+    },
+    "media-alta": {
+      "rango": "21-30",
+      "exitos": 7,
+      "errores": 3
+    },
+    "compleja": {
+      "rango": "31-40",
+      "exitos": 5,
+      "errores": 5
+    },
+    "ambigua": {
+      "rango": "41-50",
+      "exitos": 10,
+      "errores": 0
+    }
+  },
+  "estadisticas": {
+    "porcentaje_exito": 82.0,
+    "porcentaje_error": 18.0
+  }
+}
