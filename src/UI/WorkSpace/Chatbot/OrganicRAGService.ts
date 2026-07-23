@@ -13,7 +13,7 @@ async function fetchProjectFull(projectId: string): Promise<any> {
     if (responseAPISuccess.message?.includes("Error")) {
       throw new Error(JSON.stringify(response.data));
     }
-    return responseAPISuccess.data;
+    return responseAPISuccess.data?.project;
   } catch (error) {
     console.error("Error fetching project in RAG:", error);
     return null;
