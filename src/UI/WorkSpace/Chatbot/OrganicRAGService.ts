@@ -1,30 +1,33 @@
 import semanticDictionaryRaw from './semantic_dictionary.json';
+import { PROJECTS_CLIENT } from "../../../Infraestructure/AxiosConfig";
 
 const semanticDictionary = semanticDictionaryRaw as Record<string, string>;
 
 // Caché en memoria para no saturar la red cada vez que el usuario chatea
 const ragCache: Record<string, string> = {};
 
-async function fetchProjectFull(projectId: string, token: string): Promise<any> {
-  const url = `${process.env.REACT_APP_URLVMSPROJECTS}/getProject?project_id=${projectId}`;
+async function fetchProjectFull(projectId: string): Promise<any> {
   try {
-    const response = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.data;
+    const response = await PROJECTS_CLIENT.get(`/getProject`, { params: { project_id: projectId } });
+    let responseAPISuccess = response.data;
+    if (responseAPISuccess.message?.includes("Error")) {
+      throw new Error(JSON.stringify(response.data));
+    }
+    return responseAPISuccess.data;
   } catch (error) {
     console.error("Error fetching project in RAG:", error);
     return null;
   }
 }
 
-async function fetchTemplateProjectsMetadata(token: string): Promise<any[]> {
-  const url = `${process.env.REACT_APP_URLVMSPROJECTS}/getTemplateProjects`;
+async function fetchTemplateProjectsMetadata(): Promise<any[]> {
   try {
-    const response = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.data?.projects || [];
+    const response = await PROJECTS_CLIENT.get("/getTemplateProjects");
+    let responseAPISuccess = response.data;
+    if (responseAPISuccess.message?.includes("Error")) {
+      throw new Error(JSON.stringify(response.data));
+    }
+    return responseAPISuccess.data?.projects || [];
   } catch (error) {
     console.error("Error fetching templates in RAG:", error);
     return [];
@@ -59,14 +62,14 @@ export async function getOrganicRAG(languageName: string): Promise<string> {
   }
 
   // 3. Buscar Modelos Dinámicos en los Templates Públicos
-  const cacheMetadata = await fetchTemplateProjectsMetadata(token);
+  const cacheMetadata = await fetchTemplateProjectsMetadata();
   const matchingModels: any[] = [];
   const seenNodeTypes = new Set<string>();
 
   for (const pMeta of cacheMetadata) {
     if (matchingModels.length >= 2) break; // Límite de modelos por contexto
     
-    const fullProject = await fetchProjectFull(pMeta.id, token);
+    const fullProject = await fetchProjectFull(pMeta.id);
     const productLines = fullProject?.project?.productLines;
     
     if (productLines) {
