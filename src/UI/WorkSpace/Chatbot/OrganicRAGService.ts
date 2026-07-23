@@ -55,13 +55,7 @@ export async function getOrganicRAG(languageName: string): Promise<string> {
     return `${semanticRulesText}\n[ORGANIC RAG EXAMPLES]\n${ragCache[baseLanguageName]}`.trim();
   }
 
-  // 2. Extraer el token de sesión del navegador
-  const token = localStorage.getItem("authToken") || "";
-  if (!token) {
-    return `${semanticRulesText}\n[ORGANIC RAG EXAMPLES]\n(no authentication token found)`.trim();
-  }
-
-  // 3. Buscar Modelos Dinámicos en los Templates Públicos
+  // 2. Buscar Modelos Dinámicos en los Templates Públicos
   const cacheMetadata = await fetchTemplateProjectsMetadata();
   const matchingModels: any[] = [];
   const seenNodeTypes = new Set<string>();
