@@ -3,6 +3,14 @@ import Editor, { Monaco } from "@monaco-editor/react";
 import { ChevronDown, ChevronRight, Diagram3, Eye, FileEarmarkText, Gear } from "react-bootstrap-icons";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import { buildSplotSxfm } from "./splotExport";
+import { ensureUvlLanguageRegistered } from "./uvlLanguageDefinition";
+import {
+  getUvlStructuredSignature,
+  isUvlStructuredModel,
+  serializeChatbotModelToUvl,
+  syncUvlSourceToModel,
+} from "./uvlModelAdapter";
 
 interface UvlEditorProps {
   projectService: ProjectService;
@@ -79,14 +87,14 @@ const UVL_EXPORT_OPTIONS: Array<{ id: UvlExportFormat; label: string; extension:
   { id: "afm", label: "AFM", extension: "afm" },
   { id: "glencoe", label: "Glencoe", extension: "glencoe" },
   { id: "json", label: "JSON", extension: "json" },
-  { id: "splot", label: "SPLOT", extension: "splot" },
+  { id: "splot", label: "SPLOT (SXFM)", extension: "sxfm" },
   { id: "uvl", label: "UVL", extension: "uvl" },
 ];
 
-const UVL_TOP_LEVEL_KEYWORDS = ["namespace", "imports", "features", "constraints"];
+const UVL_TOP_LEVEL_KEYWORDS = ["namespace", "include", "imports", "features", "constraints"];
 const UVL_GROUP_KEYWORDS = ["mandatory", "optional", "or", "alternative"];
-const UVL_CONSTRAINT_KEYWORDS = ["true", "false", "and", "or", "not", "implies", "requires", "excludes"];
-const UVL_MODIFIER_KEYWORDS = ["abstract"];
+const UVL_CONSTRAINT_KEYWORDS = ["true", "false", "sum", "avg", "len", "floor", "ceil"];
+const UVL_MODIFIER_KEYWORDS: string[] = [];
 
 if (!Component) {
   throw new Error("React Component import unavailable");
@@ -108,6 +116,16 @@ function findClosestDeclaredFeature(token: string, declaredFeatures: Set<string>
     token.toLowerCase().startsWith(feature.toLowerCase())
   );
   return prefixMatch || null;
+}
+
+function extractUvlFeatureName(declaration: string): string {
+  const match = declaration.trim().match(/^(?:(?:Boolean|Integer|Real|String)\s+)?("[^"]+"|[A-Za-z][A-Za-z0-9_#§%?\\'äüöß;]*)/);
+  if (!match) return "";
+  return match[1].startsWith('"') ? match[1].slice(1, -1) : match[1];
+}
+
+function stripUvlBlockComments(code: string): string {
+  return code.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\r\n]/g, " "));
 }
 
 function isSameValidationProblem(left: UvlValidationError | null, right: UvlValidationError) {
@@ -178,6 +196,12 @@ function validateConstraintExpression(
       continue;
     }
 
+    if (["==", "!=", "<=", ">="].includes(twoChar)) {
+      tokens.push({ type: "binary", value: twoChar, colStart: cursor, colEnd: cursor + 2 });
+      cursor += 2;
+      continue;
+    }
+
     if (ch === "=") {
       addConstraintError(
         "unexpected '='. Use '=>' for implication or '<=>' for equivalence.",
@@ -189,7 +213,7 @@ function validateConstraintExpression(
       continue;
     }
 
-    if (ch === "&" || ch === "|") {
+    if (ch === "&" || ch === "|" || ch === "<" || ch === ">" || ch === "+" || ch === "-" || ch === "*" || ch === "/") {
       tokens.push({ type: "binary", value: ch, colStart: cursor, colEnd: cursor + 1 });
       cursor++;
       continue;
@@ -217,15 +241,45 @@ function validateConstraintExpression(
     if (identifierMatch) {
       const value = identifierMatch[0];
       const lowerValue = value.toLowerCase();
-      if (lowerValue === "and" || lowerValue === "or" || lowerValue === "implies" || lowerValue === "requires" || lowerValue === "excludes") {
-        tokens.push({ type: "binary", value, colStart: cursor, colEnd: cursor + value.length });
-      } else if (lowerValue === "not") {
-        tokens.push({ type: "unary", value, colStart: cursor, colEnd: cursor + value.length });
-      } else if (lowerValue === "true" || lowerValue === "false") {
+      if (lowerValue === "true" || lowerValue === "false") {
         tokens.push({ type: "constant", value, colStart: cursor, colEnd: cursor + value.length });
       } else {
         tokens.push({ type: "identifier", value, colStart: cursor, colEnd: cursor + value.length });
       }
+      cursor += value.length;
+      continue;
+    }
+
+    const quotedReferenceMatch = expression.slice(cursor).match(/^"[^".\r\n]+"/);
+    if (quotedReferenceMatch) {
+      const rawValue = quotedReferenceMatch[0];
+      tokens.push({ type: "identifier", value: rawValue.slice(1, -1), colStart: cursor, colEnd: cursor + rawValue.length });
+      cursor += rawValue.length;
+      continue;
+    }
+
+    if (ch === "-" && /\d/.test(expression[cursor + 1] ?? "")) {
+      const negativeNumber = expression.slice(cursor).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?/);
+      if (negativeNumber) {
+        const value = negativeNumber[0];
+        tokens.push({ type: "constant", value, colStart: cursor, colEnd: cursor + value.length });
+        cursor += value.length;
+        continue;
+      }
+    }
+
+    const numberMatch = expression.slice(cursor).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?/);
+    if (numberMatch) {
+      const value = numberMatch[0];
+      tokens.push({ type: "constant", value, colStart: cursor, colEnd: cursor + value.length });
+      cursor += value.length;
+      continue;
+    }
+
+    const stringMatch = expression.slice(cursor).match(/^'[^'\r\n]+'/);
+    if (stringMatch) {
+      const value = stringMatch[0];
+      tokens.push({ type: "constant", value, colStart: cursor, colEnd: cursor + value.length });
       cursor += value.length;
       continue;
     }
@@ -346,29 +400,28 @@ function validateConstraintExpression(
   });
 }
 
-function validateUVL(code: string): UvlValidationError[] {
+export function validateUVL(code: string): UvlValidationError[] {
   const errors: UvlValidationError[] = [];
-  const lines = code.split(/\r?\n/);
+  const lines = stripUvlBlockComments(code).split(/\r?\n/);
   const declaredFeatures = new Set<string>();
   const groupKeywords = new Set(UVL_GROUP_KEYWORDS);
   const topLevelSections = new Set(UVL_TOP_LEVEL_KEYWORDS);
   const ignoredConstraintTokens = new Set([
     "true",
     "false",
-    "and",
-    "or",
-    "not",
-    "implies",
-    "requires",
-    "excludes",
     "Boolean",
     "Integer",
     "Real",
     "String",
+    "sum",
+    "avg",
+    "len",
+    "floor",
+    "ceil",
   ]);
   const bracketPairs: Record<string, string> = { ")": "(", "}": "{", "]": "[" };
   const bracketStack: Array<{ ch: string; line: number; col: number }> = [];
-  let currentSection: "namespace" | "imports" | "features" | "constraints" | null = null;
+  let currentSection: "namespace" | "include" | "imports" | "features" | "constraints" | null = null;
 
   const addError = (message: string, line: number, colStart: number, colEnd: number, suggestion?: string) => {
     errors.push({
@@ -463,21 +516,29 @@ function validateUVL(code: string): UvlValidationError[] {
       addError(`The group modifier '${firstWord}' must be indented under a parent feature.`, lineNo, 1, trimmed.length + 1);
     }
 
-    if (currentSection === "features" && !isTopLevelSection && firstWord && !groupKeywords.has(firstWord)) {
-      const colStart = firstWordColStart;
-      if (declaredFeatures.has(firstWord)) {
-        addError(`Duplicate feature '${firstWord}'.`, lineNo, colStart, colStart + firstWord.length);
+    const declaredFeatureName = currentSection === "features" && !isTopLevelSection && !groupKeywords.has(firstWord)
+      ? extractUvlFeatureName(trimmed)
+      : "";
+    if (declaredFeatureName) {
+      const colStart = raw.indexOf(declaredFeatureName) + 1;
+      if (declaredFeatures.has(declaredFeatureName)) {
+        addError(`Duplicate feature '${declaredFeatureName}'.`, lineNo, colStart, colStart + declaredFeatureName.length);
       } else {
-        declaredFeatures.add(firstWord);
+        declaredFeatures.add(declaredFeatureName);
       }
     }
 
     if (currentSection === "constraints" && !isTopLevelSection) {
-      const tokens = raw.matchAll(/[A-Za-z_][\w.]*/g);
+      const referenceSource = raw.replace(/'[^'\r\n]+'/g, (literal) => " ".repeat(literal.length));
+      const tokens = referenceSource.matchAll(/"[^".\r\n]+"|[A-Za-z_][\w.]*/g);
       for (const match of tokens) {
-        const token = match[0];
+        const rawToken = match[0];
+        const token = rawToken.startsWith('"') ? rawToken.slice(1, -1) : rawToken;
         const colStart = (match.index ?? 0) + 1;
-        const incompleteConstraintKeyword = declaredFeatures.has(token)
+        const referenceRoot = token.split(".")[0];
+        const isDeclaredReference = declaredFeatures.has(token) || declaredFeatures.has(referenceRoot);
+        const aggregateAttributeReference = /(?:sum|avg)\s*\(\s*$/i.test(raw.slice(0, match.index ?? 0));
+        const incompleteConstraintKeyword = isDeclaredReference || aggregateAttributeReference
           ? null
           : findIncompleteKeyword(token, UVL_CONSTRAINT_KEYWORDS);
         if (incompleteConstraintKeyword) {
@@ -490,7 +551,7 @@ function validateUVL(code: string): UvlValidationError[] {
           );
           continue;
         }
-        if (!ignoredConstraintTokens.has(token) && !ignoredConstraintTokens.has(token.toLowerCase()) && !declaredFeatures.has(token)) {
+        if (!ignoredConstraintTokens.has(token) && !ignoredConstraintTokens.has(token.toLowerCase()) && !isDeclaredReference && !aggregateAttributeReference) {
           const closestFeature = findClosestDeclaredFeature(token, declaredFeatures);
           const suggestion = closestFeature ? ` Did you mean '${closestFeature}'?` : " Declare it under features or fix the spelling.";
           addError(
@@ -534,7 +595,7 @@ function parseUVLDiagram(code: string): UvlDiagramNode[] {
   const roots: UvlDiagramNode[] = [];
   const featureStack: Array<UvlDiagramNode | undefined> = [];
   const groupByLevel: Record<number, string> = {};
-  const lines = code.split(/\r?\n/);
+  const lines = stripUvlBlockComments(code).split(/\r?\n/);
   const groupKeywords = new Set(["mandatory", "optional", "or", "alternative"]);
   let inFeatures = false;
 
@@ -544,7 +605,7 @@ function parseUVLDiagram(code: string): UvlDiagramNode[] {
 
     if (!trimmed || trimmed.startsWith("//")) return;
 
-    const sectionMatch = trimmed.match(/^(namespace|imports|features|constraints)\b/);
+    const sectionMatch = trimmed.match(/^(namespace|include|imports|features|constraints)\b/);
     if (sectionMatch) {
       inFeatures = sectionMatch[1] === "features";
       return;
@@ -556,13 +617,21 @@ function parseUVLDiagram(code: string): UvlDiagramNode[] {
     const level = Math.max(0, Math.floor(indent.replace(/\t/g, "    ").length / 4));
     const firstWordMatch = trimmed.match(/^([A-Za-z_][\w.]*)/);
     const firstWord = firstWordMatch ? firstWordMatch[1] : "";
+    const cardinalityGroup = trimmed.match(/^\[[0-9]+\.\.(?:[0-9]+|\*)\]$/)?.[0];
 
-    if (!firstWord) return;
+    if (!firstWord && !cardinalityGroup) return;
 
     if (groupKeywords.has(firstWord)) {
       groupByLevel[level] = firstWord;
       return;
     }
+    if (cardinalityGroup) {
+      groupByLevel[level] = cardinalityGroup;
+      return;
+    }
+
+    const featureName = extractUvlFeatureName(trimmed);
+    if (!featureName) return;
 
     const modifiers = Array.from(trimmed.matchAll(/\{([^}]+)\}/g))
       .flatMap((match) => match[1].split(/[, ]+/))
@@ -572,8 +641,8 @@ function parseUVLDiagram(code: string): UvlDiagramNode[] {
     const parent = findNearestParent(featureStack, level);
     const relation = groupByLevel[level - 1] || (parent ? "child" : "root");
     const node: UvlDiagramNode = {
-      id: `${lineNo}-${firstWord}`,
-      name: firstWord,
+      id: `${lineNo}-${featureName}`,
+      name: featureName,
       line: lineNo,
       relation,
       modifiers,
@@ -608,21 +677,22 @@ function summarizeUVLModel(code: string): UvlModelSummary {
   const features: string[] = [];
   const constraints: UvlConstraint[] = [];
   const groupKeywords = new Set(["mandatory", "optional", "or", "alternative"]);
-  let currentSection: "namespace" | "imports" | "features" | "constraints" | null = null;
+  let currentSection: "namespace" | "include" | "imports" | "features" | "constraints" | null = null;
 
-  code.split(/\r?\n/).forEach((raw, index) => {
+  stripUvlBlockComments(code).split(/\r?\n/).forEach((raw, index) => {
     const trimmed = raw.trim();
     if (!trimmed || trimmed.startsWith("//")) return;
 
-    const sectionMatch = trimmed.match(/^(namespace|imports|features|constraints)\b/);
+    const sectionMatch = trimmed.match(/^(namespace|include|imports|features|constraints)\b/);
     if (sectionMatch) {
       currentSection = sectionMatch[1] as typeof currentSection;
       return;
     }
 
     const firstWord = trimmed.match(/^([A-Za-z_][\w.]*)/)?.[1] ?? "";
-    if (currentSection === "features" && firstWord && !groupKeywords.has(firstWord)) {
-      features.push(firstWord);
+    const featureName = extractUvlFeatureName(trimmed);
+    if (currentSection === "features" && featureName && !groupKeywords.has(firstWord)) {
+      features.push(featureName);
     }
 
     if (currentSection === "constraints") {
@@ -755,17 +825,24 @@ const uvlMonarchTokens: any = {
     "as",
     "include",
     "features",
+    "constraint",
     "constraints",
     "mandatory",
     "optional",
     "or",
     "alternative",
-    "abstract",
     "Boolean",
     "Integer",
     "Real",
     "String",
+    "Type",
+    "Arithmetic",
     "cardinality",
+    "sum",
+    "avg",
+    "len",
+    "floor",
+    "ceil",
     "true",
     "false",
   ],
@@ -792,6 +869,7 @@ const uvlMonarchTokens: any = {
 
   tokenizer: {
     root: [
+      [/\/\*/, "comment", "@comment"],
       [/[A-Za-z_][\w]*/, {
         cases: {
           "@keywords": "keyword",
@@ -822,6 +900,12 @@ const uvlMonarchTokens: any = {
     whitespace: [
       [/[ \t\r\n]+/, "white"],
       [/\/\/.*$/, "comment"],
+    ],
+
+    comment: [
+      [/[^/*]+/, "comment"],
+      [/\*\//, "comment", "@pop"],
+      [/[/*]/, "comment"],
     ],
   },
 };
@@ -1118,9 +1202,13 @@ const UvlDiagramNodeView: React.FC<UvlDiagramNodeViewProps> = ({
 const UvlEditor: React.FC<UvlEditorProps> = (props) => {
   const monacoRef = useRef<Monaco | null>(null);
   const editorRef = useRef<any>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const editorResizeObserverRef = useRef<ResizeObserver | null>(null);
+  const editorLayoutFrameRef = useRef<number | null>(null);
   const validationDecorationIdsRef = useRef<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<any>(null);
+  const lastStructuredSignatureRef = useRef<string>("");
   const [value, setValue] = useState<string>(
     (props.model && (props.model as any).uvl) ||
       "namespace Example\n\nfeatures\n    Root {abstract}\n        mandatory\n            FeatureA\n        optional\n            FeatureB\n\nconstraints\n    FeatureA => !FeatureB\n"
@@ -1136,12 +1224,26 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
   const [solverAnalysisResult, setSolverAnalysisResult] = useState<UvlSolverAnalysisResult | null>(null);
   const diagramNodes = useMemo(() => parseUVLDiagram(value), [value]);
   const diagramNodeIds = useMemo(() => collectDiagramNodeIds(diagramNodes), [diagramNodes]);
+  const structuredSignature = props.model ? getUvlStructuredSignature(props.model) : "";
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      editorResizeObserverRef.current?.disconnect();
+      if (editorLayoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(editorLayoutFrameRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    ensureUvlLanguageRegistered(props.projectService);
+    const registrationTimer = window.setInterval(
+      () => ensureUvlLanguageRegistered(props.projectService),
+      1000
+    );
+    return () => window.clearInterval(registrationTimer);
+  }, [props.projectService]);
 
   useEffect(() => {
     setExpandedDiagramNodeIds((current) => {
@@ -1206,11 +1308,54 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
     timerRef.current = setTimeout(() => runValidation(currentCode), delay);
   }, [runValidation]);
 
+  useEffect(() => {
+    if (!props.model) return;
+
+    if (!isUvlStructuredModel(props.model)) {
+      if (syncUvlSourceToModel(props.model, value)) {
+        lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+      }
+      return;
+    }
+
+    const currentSignature = getUvlStructuredSignature(props.model);
+    if (!lastStructuredSignatureRef.current) {
+      lastStructuredSignatureRef.current = currentSignature;
+      const hasPendingParentHints = (props.model.elements as any[]).some(
+        (element) => element?.parentId != null && String(element.parentId).trim()
+      );
+      if (!(props.model as any).uvl || hasPendingParentHints) {
+        const initialSource = serializeChatbotModelToUvl(
+          props.model,
+          (props.model as any).uvl || value
+        );
+        lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+        if (initialSource) {
+          (props.model as any).uvl = initialSource;
+          setValue(initialSource);
+          scheduleValidation(initialSource, 0);
+        }
+      }
+      return;
+    }
+    if (currentSignature === lastStructuredSignatureRef.current) return;
+
+    const synchronizedSource = serializeChatbotModelToUvl(props.model, value);
+    lastStructuredSignatureRef.current = currentSignature;
+    if (!synchronizedSource || synchronizedSource === value) return;
+    (props.model as any).uvl = synchronizedSource;
+    setValue(synchronizedSource);
+    scheduleValidation(synchronizedSource, 0);
+  }, [props.model, scheduleValidation, structuredSignature, value]);
+
   const handleChange = useCallback((nextValue: string | undefined) => {
     const nextCode = nextValue ?? "";
     setValue(nextCode);
     if (props.model) {
       (props.model as any).uvl = nextCode;
+      if (syncUvlSourceToModel(props.model, nextCode)) {
+        lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+      }
     }
     scheduleValidation(nextCode);
   }, [props.model, scheduleValidation]);
@@ -1218,6 +1363,26 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
   const handleEditorDidMount = useCallback((editor: any, monaco: Monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    editorResizeObserverRef.current?.disconnect();
+
+    const scheduleLayout = () => {
+      if (editorLayoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(editorLayoutFrameRef.current);
+      }
+      // Calling layout directly inside ResizeObserver's delivery cycle can
+      // trigger Chromium's "undelivered notifications" development error.
+      editorLayoutFrameRef.current = window.requestAnimationFrame(() => {
+        editorLayoutFrameRef.current = null;
+        if (editorRef.current === editor) editor.layout();
+      });
+    };
+
+    if (editorContainerRef.current && typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(scheduleLayout);
+      observer.observe(editorContainerRef.current);
+      editorResizeObserverRef.current = observer;
+    }
+    scheduleLayout();
     runValidation(value);
   }, [runValidation, value]);
 
@@ -1233,6 +1398,9 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
     setFileName(nextFileName);
     if (props.model) {
       (props.model as any).uvl = content;
+      if (syncUvlSourceToModel(props.model, content)) {
+        lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+      }
     }
     scheduleValidation(content, 0);
   }, [props.model, scheduleValidation]);
@@ -1264,22 +1432,38 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
     const exportOption = UVL_EXPORT_OPTIONS.find((option) => option.id === format);
     if (!exportOption) return;
 
-    const baseName = getExportBaseName(fileName, props.model);
-    const isJsonExport = format === "json";
-    const exportContent = isJsonExport
-      ? JSON.stringify({
-          format: "UVL",
-          fileName: fileName || null,
-          features: diagramNodes,
-          source: value,
-        }, null, 2)
-      : value;
+    try {
+      const baseName = getExportBaseName(fileName, props.model);
+      const isJsonExport = format === "json";
+      const isSplotExport = format === "splot";
+      const exportContent = isJsonExport
+        ? JSON.stringify({
+            format: "UVL",
+            fileName: fileName || null,
+            features: diagramNodes,
+            source: value,
+          }, null, 2)
+        : isSplotExport
+          ? buildSplotSxfm(
+              baseName,
+              diagramNodes,
+              summarizeUVLModel(value).constraints.map((constraint) => constraint.expression)
+            )
+          : value;
 
-    downloadTextFile(
-      `${baseName}.${exportOption.extension}`,
-      exportContent,
-      isJsonExport ? "application/json;charset=utf-8" : "text/plain;charset=utf-8"
-    );
+      downloadTextFile(
+        `${baseName}.${exportOption.extension}`,
+        exportContent,
+        isJsonExport
+          ? "application/json;charset=utf-8"
+          : isSplotExport
+            ? "application/xml;charset=utf-8"
+            : "text/plain;charset=utf-8"
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown SPLOT export error.";
+      window.alert(message);
+    }
   }, [diagramNodes, fileName, props.model, value]);
 
   const handleSolverAnalysis = useCallback((solver: UvlSolverType) => {
@@ -1642,7 +1826,7 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
       </div>
 
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div ref={editorContainerRef} style={{ flex: 1, minWidth: 0 }}>
           {viewMode === "uvl" ? (
             <Editor
               height="100%"
@@ -1656,7 +1840,7 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
               options={{
                 minimap: { enabled: false },
               fontSize: 14,
-              automaticLayout: true,
+              automaticLayout: false,
               wordWrap: "on",
               glyphMargin: true,
             }}
