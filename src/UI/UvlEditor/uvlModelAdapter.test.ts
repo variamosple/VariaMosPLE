@@ -1,5 +1,5 @@
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
-import { parseUvlForChatbot, serializeChatbotModelToUvl, syncUvlSourceToModel } from "./uvlModelAdapter";
+import { parseUvlForChatbot, serializeChatbotModelToUvl, syncUvlSourceToModel, validateUvlSourceStructure } from "./uvlModelAdapter";
 import { ensureUvlLanguageRegistered, UVL_LANGUAGE_NAME } from "./uvlLanguageDefinition";
 
 describe("UVL chatbot model adapter", () => {
@@ -37,6 +37,44 @@ constraints
     expect(serialized).toContain("optional\n            Search");
     expect(serialized).toContain("alternative\n            Card\n            Transfer");
     expect(serialized).toContain("Search => Catalog");
+  });
+
+  it("serializes typed AttributeValues when raw Attributes are not present", () => {
+    const model: any = new Model("model-attributes", "Product", "Feature model UVL", "uvl");
+    model.elements = [
+      {
+        id: "root",
+        name: "Product",
+        type: "RootFeature",
+        properties: [
+          { name: "FeatureType", value: "Untyped" },
+          { name: "Attributes", value: "" },
+          { name: "AttributeValues", value: { enabled: true, label: "demo" } },
+        ],
+      },
+    ];
+    model.relationships = [];
+
+    const serialized = serializeChatbotModelToUvl(model, "namespace attributes\n") || "";
+    expect(serialized).toContain("{enabled true, label 'demo'}");
+    expect(syncUvlSourceToModel(new Model("model-attributes-2", "Product", "Feature model UVL", "uvl"), serialized)).toBe(true);
+  });
+
+  it("preserves namespace, language levels and imports when serializing a graph without source text", () => {
+    const model: any = new Model("model-metadata", "Product", "Feature model UVL", "uvl");
+    model.elements = [{ id: "root", name: "Product", type: "RootFeature", properties: [] }];
+    model.relationships = [];
+    model.uvlMetadata = {
+      namespace: "catalog",
+      includes: ["Boolean.group-cardinality", "Type"],
+      imports: [{ namespace: "submodels.Sauces", alias: "Sauce" }],
+    };
+
+    const serialized = serializeChatbotModelToUvl(model) || "";
+    expect(serialized).toContain("namespace catalog");
+    expect(serialized).toContain("Boolean.group-cardinality");
+    expect(serialized).toContain("submodels.Sauces as Sauce");
+    expect(validateUvlSourceStructure(serialized, "model-metadata").valid).toBe(true);
   });
 
   it("turns chatbot parentId hints into UVL relationships", () => {

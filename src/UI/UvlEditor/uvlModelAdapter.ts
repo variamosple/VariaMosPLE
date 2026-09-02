@@ -1,4 +1,75 @@
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import {
+  parseAndValidateUvl,
+  uvlAttributesToJson,
+  type UvlFeature,
+  type UvlGroup,
+  type UvlImport,
+  type UvlParseResult,
+} from "./uvlParser";
+import {
+  composeUvlDocument,
+  uvlSubmodelSourcesToRecord,
+  type UvlCompositionDiagnostic,
+  type UvlSubmodelSources,
+} from "./uvlComposition";
+import {
+  UVL_ELEMENT_TYPES as STRUCTURAL_UVL_ELEMENT_TYPES,
+  getUvlProperty,
+  materializeUvlParentRelationships,
+  normalizeUvlStructuredModel,
+  normalizeUvlCardinality,
+  parseUvlCardinality,
+  validateUvlStructuredModel,
+  type UvlStructuralIssue,
+  type UvlStructuralValidation,
+} from "./uvlStructuralValidation";
+
+export {
+  getUvlProperty,
+  materializeUvlParentRelationships,
+  normalizeUvlStructuredModel,
+  normalizeUvlCardinality,
+  parseUvlCardinality,
+  validateUvlStructuredModel,
+};
+export type { UvlStructuralIssue, UvlStructuralValidation } from "./uvlStructuralValidation";
+export {
+  parseAndValidateUvl,
+  uvlAttributesToJson,
+} from "./uvlParser";
+export {
+  composeUvlDocument,
+  composeUvlSource,
+  composeUvlSources,
+  normalizeUvlSubmodelPath,
+  resolveUvlImportSource,
+  serializeUvlExpression,
+  uvlSubmodelSourcesToRecord,
+} from "./uvlComposition";
+export type {
+  UvlCompositionDiagnostic,
+  UvlCompositionResult,
+  UvlResolvedImport,
+  UvlSubmodelSource,
+  UvlSubmodelSources,
+} from "./uvlComposition";
+export type {
+  UvlAttribute,
+  UvlAttributeValue,
+  UvlCardinality,
+  UvlConstraintLine,
+  UvlDiagnostic,
+  UvlDocument,
+  UvlExpression,
+  UvlFeature,
+  UvlGroup,
+  UvlImport,
+  UvlLanguageLevel,
+  UvlParseResult,
+  UvlReference,
+  UvlSourceLocation,
+} from "./uvlParser";
 
 type StructuredElement = {
   id: string;
@@ -24,19 +95,14 @@ type StructuredRelationship = {
   properties: Array<{ id: string; name: string; value: any; type: string; display: boolean }>;
 };
 
-type ParsedFeature = {
-  element: StructuredElement;
-  indent: number;
+export type UvlSourceMetadata = {
+  namespace?: string;
+  includes: string[];
+  imports: Array<{ namespace: string; alias?: string }>;
+  resolvedImports?: Array<{ namespace: string; alias?: string; path?: string; missing: boolean }>;
 };
 
-type ParsedGroup = {
-  element?: StructuredElement;
-  indent: number;
-  kind: "mandatory" | "optional" | "or" | "alternative" | "cardinality";
-  parent: StructuredElement;
-};
-
-const UVL_ELEMENT_TYPES = new Set(["RootFeature", "Feature", "Group", "Constraint"]);
+const UVL_ELEMENT_TYPES = STRUCTURAL_UVL_ELEMENT_TYPES;
 const TYPE_KEYWORDS = new Set(["Boolean", "Integer", "Real", "String"]);
 
 function stableId(prefix: string, value: string): string {
@@ -54,28 +120,6 @@ function property(ownerId: string, name: string, value: any) {
 
 function indentation(raw: string): number {
   return (raw.match(/^[ \t]*/)?.[0] ?? "").replace(/\t/g, "    ").length;
-}
-
-function splitFeatureDeclaration(declaration: string) {
-  let rest = declaration.trim();
-  let featureType = "Untyped";
-  const typeMatch = rest.match(/^(Boolean|Integer|Real|String)\s+/);
-  if (typeMatch) {
-    featureType = typeMatch[1];
-    rest = rest.slice(typeMatch[0].length);
-  }
-
-  const nameMatch = rest.match(/^("[^"]+"|[A-Za-z][A-Za-z0-9_#§%?\\'äüöß;]*)/);
-  if (!nameMatch) return null;
-  const rawName = nameMatch[1];
-  const name = rawName.startsWith('"') ? rawName.slice(1, -1) : rawName;
-  rest = rest.slice(rawName.length).trim();
-
-  const cardinalityMatch = rest.match(/^cardinality\s+(\[[^\]]+\])/);
-  const cardinality = cardinalityMatch?.[1] ?? "";
-  if (cardinalityMatch) rest = rest.slice(cardinalityMatch[0].length).trim();
-  const attributes = rest.startsWith("{") && rest.endsWith("}") ? rest : "";
-  return { name, featureType, cardinality, attributes };
 }
 
 function makeElement(modelId: string, type: StructuredElement["type"], name: string, order: number, values: Record<string, any>) {
@@ -104,99 +148,191 @@ function makeRelationship(modelId: string, type: StructuredRelationship["type"],
     type,
     sourceId: source.id,
     targetId: target.id,
-    min: 0,
+    min: type === "Group_Feature" ? 1 : 0,
     max: 9999999,
     points: [],
     properties: relation ? [property(id, "Relation", relation)] : [],
   } as StructuredRelationship;
 }
 
-function isSectionLine(trimmed: string): boolean {
-  return /^(include|namespace|imports|features|constraints)\b/.test(trimmed);
+function cardinalityText(cardinality: { min: number; max: number | "*" } | undefined): string {
+  return cardinality ? `[${cardinality.min}..${cardinality.max}]` : "";
 }
 
-function stripBlockComments(source: string): string {
-  return source.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\r\n]/g, " "));
+function sourceMetadata(result: UvlParseResult, resolvedImports?: UvlSourceMetadata["resolvedImports"]): UvlSourceMetadata {
+  return {
+    namespace: result.document.namespace?.name,
+    includes: result.document.includes.map((level) => level.raw),
+    imports: result.document.imports.map((item: UvlImport) => ({
+      namespace: item.namespace.name,
+      alias: item.alias?.name,
+    })),
+    ...(resolvedImports ? { resolvedImports } : {}),
+  };
 }
 
-export function parseUvlForChatbot(source: string, modelId: string) {
+/**
+ * Converts the parser AST into the graph shape consumed by the chatbot.  The
+ * previous implementation reparsed lines and consequently lost typed
+ * attributes, qualified references and nested group structure.  Keeping this
+ * conversion on top of the AST makes text-to-model and validation share one
+ * grammar and one set of semantics.
+ */
+export function parseUvlForChatbot(source: string, modelId: string, submodelSources?: UvlSubmodelSources) {
+  const result = parseAndValidateUvl(source);
+  const composition = composeUvlDocument(result.document, submodelSources, source);
+  const diagnostics = [...result.diagnostics];
+  const diagnosticKeys = new Set(diagnostics.map((item) => `${item.code}|${item.location?.line || 0}|${item.location?.column || 0}|${item.message}`));
+  composition.diagnostics.forEach((item: UvlCompositionDiagnostic) => {
+    const key = `${item.code}|${item.location?.line || 0}|${item.location?.column || 0}|${item.message}`;
+    if (!diagnosticKeys.has(key)) {
+      diagnostics.push(item);
+      diagnosticKeys.add(key);
+    }
+  });
+  const document = composition.document;
   const elements: StructuredElement[] = [];
   const relationships: StructuredRelationship[] = [];
-  const featureStack: ParsedFeature[] = [];
-  const groupStack: ParsedGroup[] = [];
-  const lines = stripBlockComments(source).split(/\r?\n/);
-  let section = "";
   let order = 0;
-  let rootCount = 0;
 
-  lines.forEach((raw) => {
-    const trimmed = raw.trim();
-    if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith("/*")) return;
-    if (isSectionLine(trimmed) && indentation(raw) === 0) {
-      section = trimmed.split(/\s+/)[0];
-      return;
-    }
-
-    if (section === "constraints") {
-      const constraint = makeElement(modelId, "Constraint", `Constraint ${elements.filter((item) => item.type === "Constraint").length + 1}`, order++, {
-        Expression: trimmed,
-      });
-      elements.push(constraint);
-      return;
-    }
-    if (section !== "features") return;
-
-    const indent = indentation(raw);
-    const groupMatch = trimmed.match(/^(mandatory|optional|or|alternative)$/);
-    const cardinalityGroupMatch = trimmed.match(/^(\[[0-9]+\.\.(?:[0-9]+|\*)\])$/);
-    if (groupMatch || cardinalityGroupMatch) {
-      while (featureStack.length && featureStack[featureStack.length - 1].indent >= indent) featureStack.pop();
-      while (groupStack.length && groupStack[groupStack.length - 1].indent >= indent) groupStack.pop();
-      const parent = featureStack[featureStack.length - 1]?.element;
-      if (!parent) return;
-      const kind = groupMatch ? groupMatch[1] as ParsedGroup["kind"] : "cardinality";
-      if (kind === "mandatory" || kind === "optional") {
-        groupStack.push({ indent, kind, parent });
-      } else {
-        const groupName = `${parent.name} ${kind} group`;
-        const group = makeElement(modelId, "Group", groupName, order++, {
-          GroupType: kind === "or" ? "Or" : kind === "alternative" ? "Alternative" : "Cardinality",
-          Cardinality: cardinalityGroupMatch?.[1] ?? (kind === "or" ? "[1..*]" : "[1..1]"),
-        });
-        elements.push(group);
-        relationships.push(makeRelationship(modelId, parent.type === "RootFeature" ? "RootFeature_Child" : "Feature_Child", parent, group, order, "Optional"));
-        groupStack.push({ indent, kind, parent, element: group });
-      }
-      return;
-    }
-
-    const parsed = splitFeatureDeclaration(trimmed);
-    if (!parsed) return;
-    while (featureStack.length && featureStack[featureStack.length - 1].indent >= indent) featureStack.pop();
-    while (groupStack.length && groupStack[groupStack.length - 1].indent >= indent) groupStack.pop();
-    const activeGroup = groupStack[groupStack.length - 1];
-    const elementType: StructuredElement["type"] = rootCount === 0 ? "RootFeature" : "Feature";
-    const feature = makeElement(modelId, elementType, parsed.name, order++, {
-      FeatureType: parsed.featureType,
-      Cardinality: parsed.cardinality,
-      Attributes: parsed.attributes,
+  const appendFeature = (feature: UvlFeature, parent: StructuredElement | null, relation?: string, elementTypeOverride?: "RootFeature" | "Feature"): StructuredElement => {
+    const elementType: StructuredElement["type"] = elementTypeOverride || (parent ? "Feature" : "RootFeature");
+    const element = makeElement(modelId, elementType, feature.name, order++, {
+      FeatureType: feature.featureType || "Untyped",
+      Cardinality: cardinalityText(feature.cardinality),
+      Attributes: feature.attributeText,
+      AttributeValues: JSON.stringify(uvlAttributesToJson(feature.attributes)),
     });
-    elements.push(feature);
-    if (elementType === "RootFeature") {
-      rootCount++;
-    } else if (activeGroup?.element) {
-      relationships.push(makeRelationship(modelId, "Group_Feature", activeGroup.element, feature, order));
-    } else {
-      const parent = activeGroup?.parent ?? featureStack[featureStack.length - 1]?.element;
-      if (parent) {
-        const relation = activeGroup?.kind === "mandatory" ? "Mandatory" : "Optional";
-        relationships.push(makeRelationship(modelId, parent.type === "RootFeature" ? "RootFeature_Child" : "Feature_Child", parent, feature, order, relation));
-      }
+    elements.push(element);
+    if (parent) {
+      const relationshipType = parent.type === "RootFeature" ? "RootFeature_Child" : "Feature_Child";
+      relationships.push(makeRelationship(modelId, relationshipType, parent, element, order++, relation || "Optional"));
     }
-    featureStack.push({ indent, element: feature });
+    feature.groups.forEach((group) => appendGroup(group, element));
+    return element;
+  };
+
+  const appendGroup = (group: UvlGroup, parent: StructuredElement): StructuredElement | null => {
+    const isDirectRelationGroup = group.kind === "mandatory" || group.kind === "optional";
+    if (isDirectRelationGroup) {
+      group.features.forEach((feature) => appendFeature(feature, parent, group.kind === "mandatory" ? "Mandatory" : "Optional"));
+      return null;
+    }
+
+    const groupType = group.kind === "or" ? "Or" : group.kind === "alternative" ? "Alternative" : "Cardinality";
+    const groupElement = makeElement(modelId, "Group", `${parent.name} ${group.kind} group ${order + 1}`, order++, {
+      GroupType: groupType,
+      Cardinality: cardinalityText(group.cardinality || (group.kind === "alternative" ? { min: 1, max: 1 } : { min: 1, max: "*" })),
+    });
+    elements.push(groupElement);
+    const parentRelationType = parent.type === "RootFeature" ? "RootFeature_Child" : "Feature_Child";
+    relationships.push(makeRelationship(modelId, parentRelationType, parent, groupElement, order++, "Optional"));
+    group.features.forEach((feature) => {
+      const child = appendFeature(feature, null, undefined, "Feature");
+      relationships.push(makeRelationship(modelId, "Group_Feature", groupElement, child, order++));
+    });
+    return groupElement;
+  };
+
+  if (document.root) appendFeature(document.root, null);
+  document.constraints.forEach((constraint, index) => {
+    const element = makeElement(modelId, "Constraint", `Constraint ${index + 1}`, order++, {
+      Expression: constraint.raw,
+    });
+    elements.push(element);
   });
 
-  return { elements, relationships, valid: rootCount === 1 };
+  // Group members are created as Features and attached to their Group after
+  // their own descendants have been recursively projected.
+  return {
+    elements,
+    relationships,
+    valid: diagnostics.every((item) => item.severity !== "error"),
+    diagnostics,
+    document,
+    metadata: sourceMetadata(result, composition.resolvedImports.map((item) => ({
+      namespace: item.namespace,
+      alias: item.alias,
+      path: item.path,
+      missing: item.missing,
+    }))),
+    composition,
+  };
+}
+
+function locateStructuralIssue(source: string, structuralIssue: UvlStructuralIssue) {
+  const lines = source.split(/\r?\n/);
+  const elementName = structuralIssue.elementName ? String(structuralIssue.elementName) : "";
+  const candidateIndex = elementName
+    ? lines.findIndex((line) => line.toLowerCase().includes(elementName.toLowerCase()))
+    : lines.findIndex((line) => /^\s*features\b/i.test(line));
+  const lineIndex = candidateIndex >= 0 ? candidateIndex : 0;
+  const line = lines[lineIndex] ?? "";
+  const column = elementName
+    ? Math.max(0, line.toLowerCase().indexOf(elementName.toLowerCase()))
+    : Math.max(0, line.search(/\S/));
+  return {
+    line: lineIndex + 1,
+    colStart: column + 1,
+    colEnd: column + Math.max(2, elementName.length + 1) + 1,
+  };
+}
+
+/**
+ * Parse and validate the structural graph represented by a UVL source. The
+ * returned locations allow the editor to highlight graph errors alongside
+ * lexical errors from validateUVL().
+ */
+export function validateUvlSourceStructure(source: string, modelId = "validation", submodelSources?: UvlSubmodelSources): UvlStructuralValidation {
+  const parsed = parseUvlForChatbot(source, modelId, submodelSources);
+  const validation = validateUvlStructuredModel(parsed as any);
+  const parserIssues: UvlStructuralIssue[] = (parsed.diagnostics || []).map((item: any) => {
+    // Diagnostics originating in a selected submodel cannot be highlighted
+    // at their original line in the root editor.  Point to the corresponding
+    // import declaration while retaining the source path in the message.
+    const importedPath = item.sourcePath ? String(item.sourcePath).toLowerCase().replace(/\\/g, "/") : "";
+    const resolved = importedPath
+      ? parsed.composition?.resolvedImports?.find((entry: any) => String(entry.path || "").toLowerCase().replace(/\\/g, "/") === importedPath)
+      : undefined;
+    const importLocation = resolved
+      ? parsed.document.imports.find((entry: any) => entry.namespace.name === resolved.namespace)?.location
+      : undefined;
+    const location = importLocation || item.location;
+    return {
+      code: item.code,
+      message: item.message,
+      severity: item.severity,
+      line: location?.line,
+      colStart: location?.column,
+      colEnd: location?.endColumn,
+    };
+  });
+  const structuralIssues = validation.issues.map((structuralIssue) => ({
+    ...structuralIssue,
+    ...locateStructuralIssue(source, structuralIssue),
+  }));
+  // Keep the graph-facing diagnostic used by the editor for an additional
+  // root candidate.  The parser reports the precise ROOT_MULTIPLE error; the
+  // companion parent diagnostic makes it clear why the extra declaration
+  // cannot be materialized as a child in the chatbot graph.
+  if (parserIssues.some((item) => item.code === "ROOT_MULTIPLE") && !structuralIssues.some((item) => item.code === "RELATION_PARENT_MISSING")) {
+    const rootIssue = parserIssues.find((item) => item.code === "ROOT_MULTIPLE");
+    structuralIssues.push({
+      code: "RELATION_PARENT_MISSING",
+      message: "Additional root feature is not connected to a parent feature.",
+      severity: "error",
+      line: rootIssue?.line,
+      colStart: rootIssue?.colStart,
+      colEnd: rootIssue?.colEnd,
+    });
+  }
+  const issues = [...parserIssues, ...structuralIssues].filter((current, index, all) => {
+    const key = `${current.code}|${current.line || 0}|${current.colStart || 0}|${current.message}`;
+    return all.findIndex((candidate) => `${candidate.code}|${candidate.line || 0}|${candidate.colStart || 0}|${candidate.message}` === key) === index;
+  });
+  const errors = issues.filter((current) => current.severity === "error");
+  const warnings = issues.filter((current) => current.severity === "warning");
+  return { valid: errors.length === 0, issues, errors, warnings };
 }
 
 function getProperty(element: any, name: string, fallback: any = "") {
@@ -204,77 +340,92 @@ function getProperty(element: any, name: string, fallback: any = "") {
 }
 
 function quoteReference(name: string): string {
-  return /^[A-Za-z][A-Za-z0-9_#§%?\\'äüöß;]*$/.test(name) ? name : `"${String(name).replace(/"/g, "")}"`;
+  return String(name).split(".").map((part) => /^[A-Za-z][A-Za-z0-9_#§%?\\'äüöß;]*$/.test(part) ? part : `"${part.replace(/"/g, "")}"`).join(".");
 }
 
-function preservedPreamble(source: string): string[] {
+function quoteAttributeString(value: string): string {
+  return `'${String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
+}
+
+function jsonAttributeValueToUvl(value: unknown): string {
+  if (typeof value === "boolean") return String(value);
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") return value.startsWith("constraint ") || value.startsWith("constraints ") ? value : quoteAttributeString(value);
+  if (Array.isArray(value)) return `[${value.map((item) => jsonAttributeValueToUvl(item)).join(", ")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value as Record<string, unknown>).map(([key, item]) => jsonAttributeEntryToUvl(key, item)).join(", ")}}`;
+  }
+  return "true";
+}
+
+function jsonAttributeEntryToUvl(key: string, value: unknown): string {
+  const lowerKey = key.toLowerCase();
+  if ((lowerKey === "constraint" || lowerKey === "constraints") && typeof value === "string" && value.toLowerCase().startsWith(`${lowerKey} `)) return value;
+  return `${quoteReference(key)} ${jsonAttributeValueToUvl(value)}`;
+}
+
+function attributesFromElement(element: any): string {
+  const raw = String(getProperty(element, "Attributes", "")).trim();
+  if (raw) return raw.startsWith("{") ? raw : `{${raw}}`;
+  const rawAttributeValues = getProperty(element, "AttributeValues", "");
+  const serialized = typeof rawAttributeValues === "string" ? rawAttributeValues.trim() : "";
+  if (!serialized && (!rawAttributeValues || typeof rawAttributeValues !== "object")) return "";
+  try {
+    const values = typeof rawAttributeValues === "string" ? JSON.parse(serialized) : rawAttributeValues;
+    if (!values || typeof values !== "object" || Array.isArray(values)) return "";
+    const entries = Object.entries(values as Record<string, unknown>);
+    return entries.length
+      ? `{${entries.map(([key, value]) => jsonAttributeEntryToUvl(key, value)).join(", ")}}`
+      : "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+function metadataPreamble(metadata: UvlSourceMetadata | undefined): string[] {
+  if (!metadata) return [];
+  const lines: string[] = [];
+  if (metadata.namespace) lines.push(`namespace ${quoteReference(metadata.namespace)}`);
+  if (metadata.includes.length) {
+    if (lines.length) lines.push("");
+    lines.push("include", ...metadata.includes.map((level) => `    ${level}`));
+  }
+  if (metadata.imports.length) {
+    if (lines.length) lines.push("");
+    lines.push("imports");
+    metadata.imports.forEach((item) => lines.push(`    ${quoteReference(item.namespace)}${item.alias ? ` as ${quoteReference(item.alias)}` : ""}`));
+  }
+  return lines;
+}
+
+function preservedPreamble(source: string, metadata?: UvlSourceMetadata): string[] {
   const lines = source.split(/\r?\n/);
   const featureIndex = lines.findIndex((line) => /^features\b/.test(line.trim()) && indentation(line) === 0);
   const preamble = (featureIndex >= 0 ? lines.slice(0, featureIndex) : lines.filter((line) => /^(namespace|include|imports)\b/.test(line.trim())))
     .filter((line, index, all) => line.trim() || (index > 0 && all[index - 1].trim()));
-  return preamble.length ? preamble : ["namespace generated"];
+  return preamble.length ? preamble : (metadataPreamble(metadata).length ? metadataPreamble(metadata) : ["namespace generated"]);
 }
 
-function materializeParentRelationships(model: Model, elements: any[]): void {
-  const relationships = model.relationships as any[];
-  const byId = new Map(elements.map((element) => [String(element.id), element]));
-  const incomingTargets = new Set(
-    relationships
-      .filter((relationship) => byId.has(String(relationship.sourceId)) && byId.has(String(relationship.targetId)))
-      .map((relationship) => String(relationship.targetId))
-  );
-
-  elements.forEach((child, index) => {
-    const parentId = child?.parentId == null ? "" : String(child.parentId);
-    if (!parentId) return;
-
-    // parentId is an auxiliary hint emitted by some chatbot PATCHes. Once a
-    // real relationship exists it must be cleared, otherwise deleting that
-    // relationship later would recreate it on the next serialization.
-    if (incomingTargets.has(String(child.id))) {
-      child.parentId = null;
-      return;
-    }
-
-    const parent = byId.get(parentId);
-    if (!parent || parent === child) return;
-
-    let relationshipType: StructuredRelationship["type"] | null = null;
-    let relation: string | undefined;
-    if (parent.type === "Group" && child.type === "Feature") {
-      relationshipType = "Group_Feature";
-    } else if (
-      (parent.type === "RootFeature" || parent.type === "Feature") &&
-      (child.type === "Feature" || child.type === "Group")
-    ) {
-      relationshipType = parent.type === "RootFeature" ? "RootFeature_Child" : "Feature_Child";
-      relation = "Optional";
-    }
-    if (!relationshipType) return;
-
-    relationships.push(
-      makeRelationship(
-        String(model.id),
-        relationshipType,
-        parent as StructuredElement,
-        child as StructuredElement,
-        index,
-        relation
-      )
-    );
-    incomingTargets.add(String(child.id));
-    child.parentId = null;
+function isImportedFeatureReference(name: string, metadata: UvlSourceMetadata | undefined): boolean {
+  if (!metadata?.imports?.length) return false;
+  const lowerName = String(name || "").toLowerCase();
+  return metadata.imports.some((item) => {
+    const prefixes = [item.alias, item.namespace, item.namespace?.split(".").pop()].filter(Boolean).map((value) => String(value).toLowerCase());
+    return prefixes.some((prefix) => lowerName === prefix || lowerName.startsWith(`${prefix}.`));
   });
 }
 
 export function serializeChatbotModelToUvl(model: Model, previousSource = ""): string | null {
-  const elements = (model.elements as any[]).filter((element) => UVL_ELEMENT_TYPES.has(element?.type));
+  normalizeUvlStructuredModel(model as any);
+  materializeUvlParentRelationships(model as any);
+  const elements = (Array.isArray(model.elements) ? model.elements : []).filter((element) => UVL_ELEMENT_TYPES.has(element?.type));
   const root = elements.find((element) => element.type === "RootFeature");
   if (!root) return null;
-  materializeParentRelationships(model, elements);
+  const validation = validateUvlStructuredModel(model as any);
+  if (!validation.valid) return null;
   const byId = new Map(elements.map((element) => [String(element.id), element]));
   const outgoing = new Map<string, any[]>();
-  (model.relationships as any[]).forEach((relationship) => {
+  (Array.isArray(model.relationships) ? model.relationships : []).forEach((relationship) => {
     if (!byId.has(String(relationship.sourceId)) || !byId.has(String(relationship.targetId))) return;
     const list = outgoing.get(String(relationship.sourceId)) ?? [];
     list.push(relationship);
@@ -286,15 +437,21 @@ export function serializeChatbotModelToUvl(model: Model, previousSource = ""): s
   const declaration = (element: any) => {
     const featureType = String(getProperty(element, "FeatureType", "Untyped"));
     const cardinality = String(getProperty(element, "Cardinality", ""));
-    const attributes = String(getProperty(element, "Attributes", ""));
+    const attributes = attributesFromElement(element);
     return [TYPE_KEYWORDS.has(featureType) ? featureType : "", quoteReference(element.name), cardinality ? `cardinality ${cardinality}` : "", attributes]
       .filter(Boolean).join(" ");
   };
+
+  const sourceMetadataValue = (model as any).uvlMetadata as UvlSourceMetadata | undefined;
 
   const renderFeature = (element: any, depth: number, ancestry: Set<string>): string[] => {
     if (ancestry.has(String(element.id))) return [];
     const nextAncestry = new Set(ancestry).add(String(element.id));
     const lines = [`${"    ".repeat(depth)}${declaration(element)}`];
+    // Imported roots are references owned by another file.  Their composed
+    // children remain available to the graph, but serializing those children
+    // into the root file would silently duplicate the submodel definition.
+    if (isImportedFeatureReference(element.name, sourceMetadataValue)) return lines;
     const children = outgoing.get(String(element.id)) ?? [];
     const directMandatory = children.filter((relationship) => byId.get(String(relationship.targetId))?.type === "Feature" && String(getProperty(relationship, "Relation", "Optional")).toLowerCase() === "mandatory");
     const directOptional = children.filter((relationship) => byId.get(String(relationship.targetId))?.type === "Feature" && !directMandatory.includes(relationship));
@@ -308,7 +465,12 @@ export function serializeChatbotModelToUvl(model: Model, previousSource = ""): s
     children.filter((relationship) => byId.get(String(relationship.targetId))?.type === "Group").forEach((relationship) => {
       const group = byId.get(String(relationship.targetId));
       const groupType = String(getProperty(group, "GroupType", "Or"));
-      const groupLabel = groupType === "Alternative" ? "alternative" : groupType === "Cardinality" ? String(getProperty(group, "Cardinality", "[1..*]")) : "or";
+      const groupCardinality = normalizeUvlCardinality(getProperty(group, "Cardinality", "[1..*]"), groupType === "Alternative" ? "[1..1]" : "[1..*]");
+      const groupLabel = groupType === "Alternative"
+        ? "alternative"
+        : groupType === "Cardinality" || groupCardinality !== "[1..*]"
+          ? groupCardinality
+          : "or";
       lines.push(`${"    ".repeat(depth + 1)}${groupLabel}`);
       (outgoing.get(String(group.id)) ?? []).forEach((memberRelationship) => {
         const member = byId.get(String(memberRelationship.targetId));
@@ -323,22 +485,39 @@ export function serializeChatbotModelToUvl(model: Model, previousSource = ""): s
     .sort((a, b) => Number(getProperty(a, "UVLOrder", 999999)) - Number(getProperty(b, "UVLOrder", 999999)))
     .map((element) => String(getProperty(element, "Expression", "")).trim())
     .filter(Boolean);
-  return [
-    ...preservedPreamble(previousSource),
+  const serialized = [
+    ...preservedPreamble(previousSource, sourceMetadataValue),
     "",
     "features",
     ...renderFeature(root, 1, new Set()),
     ...(constraints.length ? ["", "constraints", ...constraints.map((constraint) => `    ${constraint}`)] : []),
     "",
   ].join("\n");
+
+  const sourceValidation = validateUvlSourceStructure(serialized, String(model.id));
+  return sourceValidation.valid ? serialized : null;
 }
 
-export function syncUvlSourceToModel(model: Model, source: string): boolean {
-  const parsed = parseUvlForChatbot(source, String(model.id));
-  if (!parsed.valid) return false;
+export function syncUvlSourceToModel(model: Model, source: string, submodelSources?: UvlSubmodelSources): boolean {
+  const parsed = parseUvlForChatbot(source, String(model.id), submodelSources);
+  const validation = validateUvlStructuredModel(parsed as any);
+  if (!parsed.valid || !validation.valid) return false;
   model.elements = parsed.elements as any;
   model.relationships = parsed.relationships as any;
+  normalizeUvlStructuredModel(model as any);
   (model as any).uvl = source;
+  (model as any).uvlMetadata = parsed.metadata;
+  (model as any).uvlDiagnostics = parsed.diagnostics;
+  (model as any).uvlResolvedImports = (parsed.composition?.resolvedImports || []).map((item: any) => ({
+    namespace: item.namespace,
+    alias: item.alias,
+    path: item.path,
+    parentPath: item.parentPath,
+    missing: item.missing,
+  }));
+  if (submodelSources !== undefined) {
+    (model as any).uvlSubmodels = uvlSubmodelSourcesToRecord(submodelSources);
+  }
   (model as any).__uvlStructured = true;
   return true;
 }

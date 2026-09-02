@@ -2,6 +2,11 @@ export type SplotExportNode = {
   name: string;
   relation: string;
   children: SplotExportNode[];
+  groupId?: string;
+  groupCardinality?: {
+    min: number;
+    max: number | "*";
+  };
 };
 
 type Literal = { name: string; negated: boolean };
@@ -10,7 +15,52 @@ type Expression =
   | { kind: "and" | "or" | "implies" | "equivalent" | "excludes"; left: Expression; right: Expression }
   | { kind: "not"; expression: Expression };
 
-const GROUP_RELATIONS = new Set(["or", "alternative"]);
+const GROUP_RELATIONS = new Set(["or", "alternative", "cardinality"]);
+
+type FeatureIds = {
+  byNode: Map<SplotExportNode, string>;
+  byName: Map<string, string>;
+};
+
+function stripBlockComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\r\n]/g, " "));
+}
+
+export function getSplotCompatibilityWarnings(source: string): string[] {
+  const warnings: string[] = [];
+  let section = "";
+
+  stripBlockComments(source).split(/\r?\n/).forEach((raw, index) => {
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.startsWith("//")) return;
+
+    const sectionMatch = trimmed.match(/^(namespace|include|imports|features|constraints)\b/);
+    if (sectionMatch && raw.search(/\S/) === 0) {
+      section = sectionMatch[1];
+      if (section === "imports") {
+        warnings.push(`Line ${index + 1}: imported UVL models are not embedded in a single SXFM file.`);
+      }
+      return;
+    }
+    if (section !== "features") return;
+
+    const typeMatch = trimmed.match(/^(Integer|Real|String)\s+/);
+    if (typeMatch) {
+      warnings.push(
+        `Line ${index + 1}: ${typeMatch[1]} feature '${trimmed}' will be exported as a Boolean SPLOT feature.`
+      );
+    }
+    if (/\bcardinality\s+\[[^\]]+\]/.test(trimmed)) {
+      warnings.push(`Line ${index + 1}: feature cardinality is not representable in SPLOT SXFM.`);
+    }
+    const attributes = trimmed.match(/\{([^}]*)\}/)?.[1].trim();
+    if (attributes) {
+      warnings.push(`Line ${index + 1}: UVL attributes/modifiers are not representable in SPLOT SXFM.`);
+    }
+  });
+
+  return Array.from(new Set(warnings));
+}
 
 function escapeXml(value: string): string {
   return value
@@ -21,40 +71,67 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function createFeatureIds(nodes: SplotExportNode[]): Map<string, string> {
-  const ids = new Map<string, string>();
+function createFeatureIds(nodes: SplotExportNode[]): FeatureIds {
+  const byNode = new Map<SplotExportNode, string>();
+  const byName = new Map<string, string>();
   const usedIds = new Set<string>();
 
   const visit = (node: SplotExportNode) => {
+    if (byName.has(node.name)) {
+      throw new Error(`SPLOT SXFM requires unique feature names; '${node.name}' is duplicated.`);
+    }
     let baseId = node.name.replace(/[^A-Za-z0-9_]/g, "_");
     if (!baseId || !/^[A-Za-z_]/.test(baseId)) baseId = `f_${baseId}`;
     let id = baseId;
     let suffix = 2;
     while (usedIds.has(id)) id = `${baseId}_${suffix++}`;
     usedIds.add(id);
-    if (!ids.has(node.name)) ids.set(node.name, id);
+    byNode.set(node, id);
+    byName.set(node.name, id);
     node.children.forEach(visit);
   };
 
   nodes.forEach(visit);
-  return ids;
+  return { byNode, byName };
 }
 
-function renderFeatureTree(nodes: SplotExportNode[], ids: Map<string, string>): string[] {
+function resolveGroupCardinality(node: SplotExportNode, childCount: number) {
+  const declared = node.groupCardinality;
+  const min = declared?.min ?? 1;
+  const rawMax = declared?.max ?? (node.relation === "alternative" ? 1 : childCount);
+  const max = rawMax === "*" ? childCount : rawMax;
+
+  if (!Number.isInteger(min) || !Number.isInteger(max) || min < 0 || max < min) {
+    throw new Error(`SPLOT export found an invalid group cardinality [${min},${rawMax}].`);
+  }
+  if (min > childCount || max > childCount) {
+    throw new Error(
+      `SPLOT group [${min},${rawMax}] has only ${childCount} member(s); its bounds cannot exceed the group size.`
+    );
+  }
+  return { min, max };
+}
+
+function renderFeatureTree(nodes: SplotExportNode[], ids: FeatureIds): string[] {
   const lines: string[] = [];
 
   const renderNode = (node: SplotExportNode, depth: number, marker: string) => {
-    lines.push(`${"\t".repeat(depth)}${marker} ${escapeXml(node.name)} (${ids.get(node.name)})`);
+    lines.push(`${"\t".repeat(depth)}${marker} ${escapeXml(node.name)} (${ids.byNode.get(node)})`);
 
     for (let index = 0; index < node.children.length;) {
       const child = node.children[index];
       if (GROUP_RELATIONS.has(child.relation)) {
-        const relation = child.relation;
+        const groupId = child.groupId;
         const groupedChildren: SplotExportNode[] = [];
-        while (index < node.children.length && node.children[index].relation === relation) {
+        while (
+          index < node.children.length &&
+          node.children[index].relation === child.relation &&
+          node.children[index].groupId === groupId
+        ) {
           groupedChildren.push(node.children[index++]);
         }
-        lines.push(`${"\t".repeat(depth + 1)}:g ${relation === "alternative" ? "[1,1]" : "[1,*]"}`);
+        const cardinality = resolveGroupCardinality(child, groupedChildren.length);
+        lines.push(`${"\t".repeat(depth + 1)}:g [${cardinality.min},${cardinality.max}]`);
         groupedChildren.forEach((groupChild) => renderNode(groupChild, depth + 2, ":"));
       } else {
         renderNode(child, depth + 1, child.relation === "mandatory" ? ":m" : ":o");
@@ -68,7 +145,7 @@ function renderFeatureTree(nodes: SplotExportNode[], ids: Map<string, string>): 
 }
 
 function tokenize(expression: string): string[] {
-  const tokens = expression.match(/<=>|=>|&&|\|\||[()!&|]|[A-Za-z_][\w.]*/g) ?? [];
+  const tokens = expression.match(/<=>|=>|&&|\|\||[()!&|]|"[^"\r\n]+"|[A-Za-z_][\w.#§%?\\'äüöß;]*/g) ?? [];
   const compactInput = expression.replace(/\s+/g, "");
   const compactTokens = tokens.join("").replace(/\s+/g, "");
   if (compactInput !== compactTokens) {
@@ -92,8 +169,12 @@ function parseExpression(source: string): Expression {
     if (token === "!" || token.toLowerCase() === "not") {
       return { kind: "not", expression: parsePrimary() };
     }
-    if (!/^[A-Za-z_][\w.]*$/.test(token)) throw new Error(`SPLOT export found unexpected token '${token}'.`);
-    return { kind: "literal", literal: { name: token, negated: false } };
+    const isQuotedIdentifier = /^"[^"\r\n]+"$/.test(token);
+    if (!isQuotedIdentifier && !/^[A-Za-z_][\w.#§%?\\'äüöß;]*$/.test(token)) {
+      throw new Error(`SPLOT export found unexpected token '${token}'.`);
+    }
+    const name = isQuotedIdentifier ? token.slice(1, -1) : token;
+    return { kind: "literal", literal: { name, negated: false } };
   };
 
   const parseAnd = (): Expression => {
@@ -185,18 +266,18 @@ function toCnf(expression: Expression): Literal[][] {
   return distributed;
 }
 
-function renderConstraints(constraints: string[], ids: Map<string, string>): string[] {
+function renderConstraints(constraints: string[], ids: FeatureIds): string[] {
   let constraintNumber = 1;
   const rendered: string[] = [];
   constraints.forEach((source) => {
     const expression = toNegationNormalForm(eliminateOperators(parseExpression(source)));
     toCnf(expression).forEach((clause) => {
       const literals = clause.map((literal) => {
-        const id = ids.get(literal.name);
+        const id = ids.byName.get(literal.name);
         if (!id) throw new Error(`SPLOT export cannot find feature '${literal.name}' used in a constraint.`);
         return `${literal.negated ? "~" : ""}${id}`;
       });
-      rendered.push(`c${constraintNumber++}: ${literals.join(" or ")}`);
+      rendered.push(`\tC${constraintNumber++}: ${literals.join(" or ")}`);
     });
   });
   return rendered;
@@ -213,7 +294,7 @@ export function buildSplotSxfm(
   const renderedConstraints = renderConstraints(constraints, ids);
 
   return [
-    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<?xml version="1.0" encoding="UTF-8" standalone="no"?>',
     `<feature_model name="${escapeXml(modelName)}">`,
     "<meta>",
     '<data name="description">Exported from VariaMos PLE UVL Editor</data>',

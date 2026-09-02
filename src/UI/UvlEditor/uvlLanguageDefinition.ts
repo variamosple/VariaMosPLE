@@ -1,5 +1,12 @@
 export const UVL_LANGUAGE_NAME = "Feature model UVL";
 
+/** Language-level extensions implemented by the shared UVL parser. */
+export const UVL_SUPPORTED_LANGUAGE_LEVELS = {
+  Boolean: ["group-cardinality"],
+  Arithmetic: ["aggregate-function", "feature-cardinality"],
+  Type: ["numeric-constraints", "string-constraints"],
+} as const;
+
 type LanguageRegistry = {
   languages?: any[];
   raiseEventLanguagesDetail?: (languages: any[]) => void;
@@ -20,6 +27,7 @@ export const UVL_ABSTRACT_SYNTAX = {
         stringProperty("FeatureType", "Untyped,Boolean,Integer,Real,String", "Untyped"),
         stringProperty("Cardinality"),
         stringProperty("Attributes"),
+        stringProperty("AttributeValues"),
       ],
     },
     Feature: {
@@ -27,6 +35,7 @@ export const UVL_ABSTRACT_SYNTAX = {
         stringProperty("FeatureType", "Untyped,Boolean,Integer,Real,String", "Untyped"),
         stringProperty("Cardinality"),
         stringProperty("Attributes"),
+        stringProperty("AttributeValues"),
       ],
     },
     Group: {
