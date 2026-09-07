@@ -618,7 +618,7 @@ export class VariamosAIService {
   async chat(req: AIChatRequest): Promise<AIChatResult> {
     try {
       const res = await PROJECTS_CLIENT.post("/api/ai/chat", req, {
-        timeout: 60000,
+        timeout: 180000,
         // importante si hay cookies/sesión cross-origin
         withCredentials: true,
         headers: { "Content-Type": "application/json" }
@@ -645,7 +645,6 @@ export class VariamosAIService {
       const data = error?.response?.data;
       const cfg = error?.config;
 
-      // 👇 súper útil para encontrar /api/api, baseURL incorrecto, etc.
       console.error("[AI chat] request:", {
         baseURL: cfg?.baseURL,
         url: cfg?.url,
