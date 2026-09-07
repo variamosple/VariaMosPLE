@@ -618,7 +618,7 @@ export class VariamosAIService {
   async chat(req: AIChatRequest): Promise<AIChatResult> {
     try {
       const res = await PROJECTS_CLIENT.post("/api/ai/chat", req, {
-        timeout: 180000,
+        timeout: 300000,
         // importante si hay cookies/sesión cross-origin
         withCredentials: true,
         headers: { "Content-Type": "application/json" }
