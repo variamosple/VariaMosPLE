@@ -66,7 +66,7 @@ type PlanRelationship = { type: string; source: string; target: string; props?: 
 
 type PlanLLM = { name: string; elements: PlanElement[]; relationships: PlanRelationship[] };
 
-type ModelOption = { id: string; label: string; free?: boolean };
+type ModelOption = { id: string; label: string; free?: boolean; provider?: string };
 
 const getLanguageKey = (l: Language) => String(l.id ?? l.name);
 
@@ -87,24 +87,23 @@ type ValueProp = { name: string; value: string };
 
 
 const MODEL_OPTIONS: ModelOption[] = [
-  { id: "z-ai/glm-4.5-air:free", label: "Z.ai: GLM 4.5 Air", free: true },
-  { id: "nvidia/nemotron-3-nano-30b-a3b:free", label: "NVIDIA: Nemotron 3 Nano 30B A3B", free: true },
-  { id: "nvidia/nemotron-nano-12b-v2-vl:free", label: "NVIDIA: Nemotron Nano 12B 2 VL", free: true },
-  { id: "tngtech/deepseek-r1t-chimera:free", label: "TNG: DeepSeek R1T Chimera", free: true },
-  { id: "qwen/qwen3-coder:free", label: "Qwen: Qwen3 Coder 480B", free: true },
-  { id: "openrouter/aurora-alpha", label: "Aurora Alpha", free: true },
-  { id: "stepfun/step-3.5-flash:free", label: "StepFun: Step 3.5 Flash", free: true },
-  { id: "arcee-ai/trinity-large-preview:free", label: "Arcee AI: Trinity Large", free: true },
-  { id: "upstage/solar-pro-3:free", label: "Upstage: Solar Pro 3", free: true },
-  { id: "liquid/lfm-2.5-1.2b-thinking:free", label: "LiquidAI: LFM2.5-1.2B-Thinking", free: true },
-  { id: "google/gemma-3-27b-it:free", label: "Google: Gemma 3 27B", free: true },
-  { id: "deepseek/deepseek-r1-0528:free", label: "DeepSeek R1", free: true },
-  { id: "meta-llama/llama-3.2-3b-instruct:free", label: "Meta: Llama 3.2 3B Instruct", free: true },
-  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Meta: Llama 3.3 70B Instruct", free: true },
-  { id: "mistralai/mistral-small-3.1-24b-instruct:free", label: "Mistral: Mistral Small 3.1", free: true },
-  { id: "openai/gpt-oss-120b:free", label: "OpenAI: gpt-oss-120b", free: true },
-  { id: "deepseek/deepseek-v4-pro", label: "DeepSeek V4 Pro", free: false },
-  { id: "openai/gpt-oss-20b:free", label: "OpenAI: gpt-oss-20b", free: true }
+  // === FREE MODELS FROM OPENROUTER ===
+  { id: "meta-llama/llama-3.1-8b-instruct:free", label: "Meta: Llama 3.1 8B Instruct", free: true, provider: "Meta" },
+  { id: "meta-llama/llama-3.1-70b-instruct:free", label: "Meta: Llama 3.1 70B Instruct", free: true, provider: "Meta" },
+  { id: "google/gemma-2-9b-it:free", label: "Google: Gemma 2 9B IT", free: true, provider: "Google" },
+  { id: "google/gemma-2-27b-it:free", label: "Google: Gemma 2 27B IT", free: true, provider: "Google" },
+  { id: "mistralai/mistral-7b-instruct:free", label: "Mistral: Mistral 7B Instruct", free: true, provider: "Mistral" },
+  { id: "mistralai/mixtral-8x7b-instruct:free", label: "Mistral: Mixtral 8x7B Instruct", free: true, provider: "Mistral" },
+  { id: "qwen/qwen-2.5-7b-instruct:free", label: "Qwen: Qwen 2.5 7B Instruct", free: true, provider: "Qwen" },
+  { id: "qwen/qwen-2.5-72b-instruct:free", label: "Qwen: Qwen 2.5 72B Instruct", free: true, provider: "Qwen" },
+  { id: "microsoft/phi-3-mini-128k-instruct:free", label: "Microsoft: Phi-3 Mini 128K", free: true, provider: "Microsoft" },
+  { id: "microsoft/phi-3-medium-128k-instruct:free", label: "Microsoft: Phi-3 Medium 128K", free: true, provider: "Microsoft" },
+  { id: "huggingfaceh4/zephyr-7b-beta:free", label: "HuggingFace: Zephyr 7B Beta", free: true, provider: "HuggingFace" },
+  { id: "openrouter/auto", label: "OpenRouter: Auto (best free)", free: true, provider: "OpenRouter" },
+
+  // === DEEPSEEK MODELS (free on OpenRouter) ===
+  { id: "deepseek/deepseek-chat-v3-0324:free", label: "DeepSeek: DeepSeek V3 Chat", free: true, provider: "DeepSeek" },
+  { id: "deepseek/deepseek-r1:free", label: "DeepSeek: DeepSeek R1", free: true, provider: "DeepSeek" },
 ];
 
 // Helper: label amigable para mostrar al usuario
