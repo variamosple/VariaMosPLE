@@ -83,27 +83,28 @@ const resolveLanguageForModel = (all: Language[], model: any): Language | null =
 };
 
 
-type ValueProp = { name: string; value: string };
-
-
 const MODEL_OPTIONS: ModelOption[] = [
   // === DEEPSEEK MODELS (direct API - official) - PRIORITY TOP ===
   { id: "deepseek/deepseek-flash", label: "DeepSeek: Flash (V3)", free: true, provider: "DeepSeek" },
   { id: "deepseek/deepseek-v4-pro", label: "DeepSeek: V4 Pro", free: false, provider: "DeepSeek" },
-
-  // === FREE MODELS FROM OPENROUTER ===
-  { id: "meta-llama/llama-3.1-8b-instruct:free", label: "Meta: Llama 3.1 8B Instruct", free: true, provider: "Meta" },
-  { id: "meta-llama/llama-3.1-70b-instruct:free", label: "Meta: Llama 3.1 70B Instruct", free: true, provider: "Meta" },
-  { id: "google/gemma-2-9b-it:free", label: "Google: Gemma 2 9B IT", free: true, provider: "Google" },
-  { id: "google/gemma-2-27b-it:free", label: "Google: Gemma 2 27B IT", free: true, provider: "Google" },
-  { id: "mistralai/mistral-7b-instruct:free", label: "Mistral: Mistral 7B Instruct", free: true, provider: "Mistral" },
-  { id: "mistralai/mixtral-8x7b-instruct:free", label: "Mistral: Mixtral 8x7B Instruct", free: true, provider: "Mistral" },
-  { id: "qwen/qwen-2.5-7b-instruct:free", label: "Qwen: Qwen 2.5 7B Instruct", free: true, provider: "Qwen" },
-  { id: "qwen/qwen-2.5-72b-instruct:free", label: "Qwen: Qwen 2.5 72B Instruct", free: true, provider: "Qwen" },
-  { id: "microsoft/phi-3-mini-128k-instruct:free", label: "Microsoft: Phi-3 Mini 128K", free: true, provider: "Microsoft" },
-  { id: "microsoft/phi-3-medium-128k-instruct:free", label: "Microsoft: Phi-3 Medium 128K", free: true, provider: "Microsoft" },
-  { id: "huggingfaceh4/zephyr-7b-beta:free", label: "HuggingFace: Zephyr 7B Beta", free: true, provider: "HuggingFace" },
-  { id: "openrouter/auto", label: "OpenRouter: Auto (best free)", free: true, provider: "OpenRouter" },
+    // === FREE MODELS FROM OPENROUTER ===
+  { id: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "NVIDIA: Nemotron 3 Ultra", free: true, provider: "NVIDIA" },
+  { id: "thinkingmachines/inkling:free", label: "Thinking Machines: Inkling", free: true, provider: "Thinking Machines" },
+  { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "NVIDIA: Nemotron 3 Super", free: true, provider: "NVIDIA" },
+  { id: "thinkingmachines/inkling-small:free", label: "Thinking Machines: Inkling Small", free: true, provider: "Thinking Machines" },
+  { id: "poolside/laguna-s-2.1:free", label: "Poolside: Laguna S 2.1", free: true, provider: "Poolside" },
+  { id: "inclusionai/ling-3.0-flash:free", label: "InclusionAI: Ling 3.0 Flash", free: true, provider: "InclusionAI" },
+  { id: "inclusionai/ling-3.0-flash-vl:free", label: "InclusionAI: Ling 3.0 Flash VL", free: true, provider: "InclusionAI" },
+  { id: "inclusionai/ling-3.0-flash-fin:free", label: "InclusionAI: Ling 3.0 Flash Fin", free: true, provider: "InclusionAI" },
+  { id: "inclusionai/ling-3.0-flash-sante:free", label: "InclusionAI: Ling 3.0 Flash Sante", free: true, provider: "InclusionAI" },
+  { id: "nvidia/nemotron-3.5-lightning:free", label: "NVIDIA: Nemotron 3.5 Lightning", free: true, provider: "NVIDIA" },
+  { id: "cohere/north-mini-code:free", label: "Cohere: North Mini Code", free: true, provider: "Cohere" },
+  { id: "poolside/laguna-xs-2.1:free", label: "Poolside: Laguna XS 2.1", free: true, provider: "Poolside" },
+  { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", label: "NVIDIA: Nemotron 3 Nano Omni", free: true, provider: "NVIDIA" },
+  { id: "google/gemma-4-26b-a4b-it:free", label: "Google: Gemma 4 26B A4B", free: true, provider: "Google" },
+  { id: "google/gemma-4-31b-it:free", label: "Google: Gemma 4 31B", free: true, provider: "Google" },
+  { id: "qwen/qwen3.8-27b:free", label: "Qwen: Qwen3.8 27B", free: true, provider: "Qwen" },
+  { id: "liquid/lfm-2.5-2.6b:free", label: "LiquidAI: LFM2.5 2.6B", free: true, provider: "LiquidAI" },
 ];
 
 // Helper: label amigable para mostrar al usuario

@@ -3,6 +3,38 @@ import Editor, { Monaco } from "@monaco-editor/react";
 import { ChevronDown, ChevronRight, Diagram3, Eye, FileEarmarkText, Gear } from "react-bootstrap-icons";
 import ProjectService from "../../Application/Project/ProjectService";
 import { Model } from "../../Domain/ProductLineEngineering/Entities/Model";
+import { ensureUvlLanguageRegistered } from "./uvlLanguageDefinition";
+import {
+  getUvlStructuredSignature,
+  isUvlStructuredModel,
+  normalizeUvlStructuredModel,
+  parseUvlForChatbot,
+  parseUvlCardinality,
+  serializeChatbotModelToUvl,
+  syncUvlSourceToModel,
+  validateUvlSourceStructure,
+  validateUvlStructuredModel,
+  type UvlSubmodelSources,
+} from "./uvlModelAdapter";
+import {
+  getUvlWorkspaceKey,
+  loadUvlWorkspace,
+  persistUvlWorkspace,
+  submodelsFromModel,
+} from "./uvlPersistence";
+import {
+  buildUvlExportContent,
+  buildUvlExportContext,
+  formatExportLosses,
+  getUvlExportMimeType,
+  parseUvlWorkspaceBundle,
+  type UvlExportFormat,
+} from "./uvlExportPipeline";
+import {
+  analyzeUvlWithSolver,
+  type UvlSolverAnalysisResult,
+  type UvlSolverType,
+} from "./uvlSolver";
 
 interface UvlEditorProps {
   projectService: ProjectService;
@@ -14,6 +46,7 @@ type UvlValidationError = {
   line: number;
   colStart: number;
   colEnd: number;
+  severity?: "error" | "warning";
   suggestion?: string;
 };
 
@@ -35,9 +68,6 @@ type ToolbarButtonConfig = {
 
 type UvlViewMode = "uvl" | "diagram";
 
-type UvlExportFormat = "afm" | "glencoe" | "json" | "splot" | "uvl";
-type UvlSolverType = "sat" | "bdd";
-
 type UvlDiagramNode = {
   id: string;
   name: string;
@@ -45,28 +75,15 @@ type UvlDiagramNode = {
   relation: string;
   modifiers: string[];
   children: UvlDiagramNode[];
-};
-
-type UvlConstraint = {
-  expression: string;
-  line: number;
-};
-
-type UvlModelSummary = {
-  features: string[];
-  constraints: UvlConstraint[];
-};
-
-type UvlSolverAnalysisResult = {
-  solver: UvlSolverType;
-  status: "success" | "warning" | "error";
-  title: string;
-  summary: string;
-  details: string[];
+  groupId?: string;
+  groupCardinality?: {
+    min: number;
+    max: number | "*";
+  };
 };
 
 type UvlConstraintToken = {
-  type: "identifier" | "constant" | "unary" | "binary" | "openParen" | "closeParen";
+  type: "identifier" | "constant" | "unary" | "binary" | "openParen" | "closeParen" | "comma";
   value: string;
   colStart: number;
   colEnd: number;
@@ -77,16 +94,22 @@ const UVL_LANGUAGE_ID = "uvl";
 
 const UVL_EXPORT_OPTIONS: Array<{ id: UvlExportFormat; label: string; extension: string }> = [
   { id: "afm", label: "AFM", extension: "afm" },
-  { id: "glencoe", label: "Glencoe", extension: "glencoe" },
-  { id: "json", label: "JSON", extension: "json" },
-  { id: "splot", label: "SPLOT", extension: "splot" },
+  { id: "glencoe", label: "Glencoe (GFM JSON)", extension: "gfm.json" },
+  { id: "json", label: "UVL Workspace (JSON)", extension: "json" },
+  { id: "splot", label: "SPLOT (SXFM)", extension: "sxfm" },
   { id: "uvl", label: "UVL", extension: "uvl" },
 ];
 
-const UVL_TOP_LEVEL_KEYWORDS = ["namespace", "imports", "features", "constraints"];
+const UVL_TOP_LEVEL_KEYWORDS = ["namespace", "include", "imports", "features", "constraints"];
 const UVL_GROUP_KEYWORDS = ["mandatory", "optional", "or", "alternative"];
-const UVL_CONSTRAINT_KEYWORDS = ["true", "false", "and", "or", "not", "implies", "requires", "excludes"];
-const UVL_MODIFIER_KEYWORDS = ["abstract"];
+const UVL_CONSTRAINT_KEYWORDS = ["true", "false", "sum", "avg", "len", "floor", "ceil"];
+const UVL_MODIFIER_KEYWORDS: string[] = [];
+
+function solverStatusPalette(status: UvlSolverAnalysisResult["status"]): { border: string; background: string; text: string } {
+  if (status === "sat") return { border: "#b8dfc2", background: "#f6fff8", text: "#15803d" };
+  if (status === "unknown") return { border: "#f0d38a", background: "#fffaf0", text: "#a16207" };
+  return { border: "#f0c7cd", background: "#fff8f8", text: "#b00020" };
+}
 
 if (!Component) {
   throw new Error("React Component import unavailable");
@@ -110,11 +133,25 @@ function findClosestDeclaredFeature(token: string, declaredFeatures: Set<string>
   return prefixMatch || null;
 }
 
+function extractUvlFeatureName(declaration: string): string {
+  const match = declaration.trim().match(/^(?:(?:Boolean|Integer|Real|String)\s+)?("[^"]+"|[A-Za-z][A-Za-z0-9_#§%?\\'äüöß;]*)/);
+  if (!match) return "";
+  return match[1].startsWith('"') ? match[1].slice(1, -1) : match[1];
+}
+
+function stripUvlBlockComments(code: string): string {
+  return code.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\r\n]/g, " "));
+}
+
 function isSameValidationProblem(left: UvlValidationError | null, right: UvlValidationError) {
   return !!left &&
     left.line === right.line &&
     left.colStart === right.colStart &&
     left.message === right.message;
+}
+
+function hasBlockingValidationProblems(problems: UvlValidationError[]): boolean {
+  return problems.some((problem) => problem.severity !== "warning");
 }
 
 function validateConstraintExpression(
@@ -178,6 +215,12 @@ function validateConstraintExpression(
       continue;
     }
 
+    if (["==", "!=", "<=", ">="].includes(twoChar)) {
+      tokens.push({ type: "binary", value: twoChar, colStart: cursor, colEnd: cursor + 2 });
+      cursor += 2;
+      continue;
+    }
+
     if (ch === "=") {
       addConstraintError(
         "unexpected '='. Use '=>' for implication or '<=>' for equivalence.",
@@ -189,7 +232,7 @@ function validateConstraintExpression(
       continue;
     }
 
-    if (ch === "&" || ch === "|") {
+    if (ch === "&" || ch === "|" || ch === "<" || ch === ">" || ch === "+" || ch === "-" || ch === "*" || ch === "/") {
       tokens.push({ type: "binary", value: ch, colStart: cursor, colEnd: cursor + 1 });
       cursor++;
       continue;
@@ -213,19 +256,59 @@ function validateConstraintExpression(
       continue;
     }
 
+    if (ch === ",") {
+      // Aggregate functions such as `sum(Feature, cost)` use a comma to
+      // separate their two references.  It is not a Boolean operator and is
+      // therefore kept as a neutral token for the lightweight editor linter;
+      // the full UVL parser validates its arity and argument types.
+      tokens.push({ type: "comma", value: ch, colStart: cursor, colEnd: cursor + 1 });
+      cursor++;
+      continue;
+    }
+
     const identifierMatch = expression.slice(cursor).match(/^[A-Za-z_][\w.]*/);
     if (identifierMatch) {
       const value = identifierMatch[0];
       const lowerValue = value.toLowerCase();
-      if (lowerValue === "and" || lowerValue === "or" || lowerValue === "implies" || lowerValue === "requires" || lowerValue === "excludes") {
-        tokens.push({ type: "binary", value, colStart: cursor, colEnd: cursor + value.length });
-      } else if (lowerValue === "not") {
-        tokens.push({ type: "unary", value, colStart: cursor, colEnd: cursor + value.length });
-      } else if (lowerValue === "true" || lowerValue === "false") {
+      if (lowerValue === "true" || lowerValue === "false") {
         tokens.push({ type: "constant", value, colStart: cursor, colEnd: cursor + value.length });
       } else {
         tokens.push({ type: "identifier", value, colStart: cursor, colEnd: cursor + value.length });
       }
+      cursor += value.length;
+      continue;
+    }
+
+    const quotedReferenceMatch = expression.slice(cursor).match(/^"[^".\r\n]+"/);
+    if (quotedReferenceMatch) {
+      const rawValue = quotedReferenceMatch[0];
+      tokens.push({ type: "identifier", value: rawValue.slice(1, -1), colStart: cursor, colEnd: cursor + rawValue.length });
+      cursor += rawValue.length;
+      continue;
+    }
+
+    if (ch === "-" && /\d/.test(expression[cursor + 1] ?? "")) {
+      const negativeNumber = expression.slice(cursor).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?/);
+      if (negativeNumber) {
+        const value = negativeNumber[0];
+        tokens.push({ type: "constant", value, colStart: cursor, colEnd: cursor + value.length });
+        cursor += value.length;
+        continue;
+      }
+    }
+
+    const numberMatch = expression.slice(cursor).match(/^-?(?:0|[1-9]\d*)(?:\.\d+)?/);
+    if (numberMatch) {
+      const value = numberMatch[0];
+      tokens.push({ type: "constant", value, colStart: cursor, colEnd: cursor + value.length });
+      cursor += value.length;
+      continue;
+    }
+
+    const stringMatch = expression.slice(cursor).match(/^'[^'\r\n]+'/);
+    if (stringMatch) {
+      const value = stringMatch[0];
+      tokens.push({ type: "constant", value, colStart: cursor, colEnd: cursor + value.length });
       cursor += value.length;
       continue;
     }
@@ -329,11 +412,7 @@ function validateConstraintExpression(
       }
     }
 
-    if (token.type !== "openParen") {
-      previousSignificant = token;
-    } else {
-      previousSignificant = token;
-    }
+    previousSignificant = token;
   });
 
   parenStack.forEach((open) => {
@@ -346,29 +425,28 @@ function validateConstraintExpression(
   });
 }
 
-function validateUVL(code: string): UvlValidationError[] {
+export function validateUVL(code: string): UvlValidationError[] {
   const errors: UvlValidationError[] = [];
-  const lines = code.split(/\r?\n/);
+  const lines = stripUvlBlockComments(code).split(/\r?\n/);
   const declaredFeatures = new Set<string>();
   const groupKeywords = new Set(UVL_GROUP_KEYWORDS);
   const topLevelSections = new Set(UVL_TOP_LEVEL_KEYWORDS);
   const ignoredConstraintTokens = new Set([
     "true",
     "false",
-    "and",
-    "or",
-    "not",
-    "implies",
-    "requires",
-    "excludes",
     "Boolean",
     "Integer",
     "Real",
     "String",
+    "sum",
+    "avg",
+    "len",
+    "floor",
+    "ceil",
   ]);
   const bracketPairs: Record<string, string> = { ")": "(", "}": "{", "]": "[" };
   const bracketStack: Array<{ ch: string; line: number; col: number }> = [];
-  let currentSection: "namespace" | "imports" | "features" | "constraints" | null = null;
+  let currentSection: "namespace" | "include" | "imports" | "features" | "constraints" | null = null;
 
   const addError = (message: string, line: number, colStart: number, colEnd: number, suggestion?: string) => {
     errors.push({
@@ -463,21 +541,29 @@ function validateUVL(code: string): UvlValidationError[] {
       addError(`The group modifier '${firstWord}' must be indented under a parent feature.`, lineNo, 1, trimmed.length + 1);
     }
 
-    if (currentSection === "features" && !isTopLevelSection && firstWord && !groupKeywords.has(firstWord)) {
-      const colStart = firstWordColStart;
-      if (declaredFeatures.has(firstWord)) {
-        addError(`Duplicate feature '${firstWord}'.`, lineNo, colStart, colStart + firstWord.length);
+    const declaredFeatureName = currentSection === "features" && !isTopLevelSection && !groupKeywords.has(firstWord)
+      ? extractUvlFeatureName(trimmed)
+      : "";
+    if (declaredFeatureName) {
+      const colStart = raw.indexOf(declaredFeatureName) + 1;
+      if (declaredFeatures.has(declaredFeatureName)) {
+        addError(`Duplicate feature '${declaredFeatureName}'.`, lineNo, colStart, colStart + declaredFeatureName.length);
       } else {
-        declaredFeatures.add(firstWord);
+        declaredFeatures.add(declaredFeatureName);
       }
     }
 
     if (currentSection === "constraints" && !isTopLevelSection) {
-      const tokens = raw.matchAll(/[A-Za-z_][\w.]*/g);
+      const referenceSource = raw.replace(/'[^'\r\n]+'/g, (literal) => " ".repeat(literal.length));
+      const tokens = referenceSource.matchAll(/"[^".\r\n]+"|[A-Za-z_][\w.]*/g);
       for (const match of tokens) {
-        const token = match[0];
+        const rawToken = match[0];
+        const token = rawToken.startsWith('"') ? rawToken.slice(1, -1) : rawToken;
         const colStart = (match.index ?? 0) + 1;
-        const incompleteConstraintKeyword = declaredFeatures.has(token)
+        const referenceRoot = token.split(".")[0];
+        const isDeclaredReference = declaredFeatures.has(token) || declaredFeatures.has(referenceRoot);
+        const aggregateAttributeReference = /(?:sum|avg)\s*\(\s*$/i.test(raw.slice(0, match.index ?? 0)) || /(?:sum|avg)\s*\([^)]*,\s*$/i.test(raw.slice(0, match.index ?? 0));
+        const incompleteConstraintKeyword = isDeclaredReference || aggregateAttributeReference
           ? null
           : findIncompleteKeyword(token, UVL_CONSTRAINT_KEYWORDS);
         if (incompleteConstraintKeyword) {
@@ -490,7 +576,7 @@ function validateUVL(code: string): UvlValidationError[] {
           );
           continue;
         }
-        if (!ignoredConstraintTokens.has(token) && !ignoredConstraintTokens.has(token.toLowerCase()) && !declaredFeatures.has(token)) {
+        if (!ignoredConstraintTokens.has(token) && !ignoredConstraintTokens.has(token.toLowerCase()) && !isDeclaredReference && !aggregateAttributeReference) {
           const closestFeature = findClosestDeclaredFeature(token, declaredFeatures);
           const suggestion = closestFeature ? ` Did you mean '${closestFeature}'?` : " Declare it under features or fix the spelling.";
           addError(
@@ -530,11 +616,93 @@ function validateUVL(code: string): UvlValidationError[] {
   return errors;
 }
 
-function parseUVLDiagram(code: string): UvlDiagramNode[] {
+function graphProperty(element: any, name: string, fallback: any = ""): any {
+  return element?.properties?.find((property: any) => property?.name === name)?.value ?? fallback;
+}
+
+function diagramNodesFromComposedGraph(source: string, modelId: string, submodelSources: UvlSubmodelSources): UvlDiagramNode[] | null {
+  const parsed = parseUvlForChatbot(source, modelId, submodelSources) as any;
+  if (!parsed?.composition?.valid || !parsed?.elements?.length) return null;
+  const elements = parsed.elements as any[];
+  const byId = new Map(elements.map((element) => [String(element.id), element]));
+  const outgoing = new Map<string, any[]>();
+  (parsed.relationships || []).forEach((relationship: any) => {
+    const list = outgoing.get(String(relationship.sourceId)) || [];
+    list.push(relationship);
+    outgoing.set(String(relationship.sourceId), list);
+  });
+  const lineByName = new Map<string, number>();
+  const visitAst = (feature: any) => {
+    if (!feature) return;
+    lineByName.set(String(feature.name).toLowerCase(), Number(feature.location?.line) || 1);
+    (feature.groups || []).forEach((group: any) => (group.features || []).forEach(visitAst));
+  };
+  visitAst(parsed.document?.root);
+
+  const relationName = (relationship: any): string => {
+    const value = String(graphProperty(relationship, "Relation", "Optional")).toLowerCase();
+    return value === "mandatory" ? "mandatory" : value === "root" ? "root" : "optional";
+  };
+  const groupInfo = (group: any) => {
+    const type = String(graphProperty(group, "GroupType", "Or")).toLowerCase();
+    const relation = type === "alternative" ? "alternative" : type === "cardinality" ? "cardinality" : "or";
+    const cardinalityText = String(graphProperty(group, "Cardinality", relation === "alternative" ? "[1..1]" : "[1..*]"));
+    return { relation, cardinality: parseUvlCardinality(cardinalityText) || undefined };
+  };
+  const buildFeature = (element: any, relation: string, groupId?: string, groupCardinality?: { min: number; max: number | "*" }): UvlDiagramNode => {
+    const children: UvlDiagramNode[] = [];
+    (outgoing.get(String(element.id)) || []).forEach((relationship: any) => {
+      const target = byId.get(String(relationship.targetId));
+      if (!target) return;
+      if (target.type === "Group") {
+        const info = groupInfo(target);
+        (outgoing.get(String(target.id)) || []).forEach((memberRelationship: any) => {
+          const member = byId.get(String(memberRelationship.targetId));
+          if (member?.type === "Feature") children.push(buildFeature(member, info.relation, String(target.id), info.cardinality));
+        });
+      } else if (target.type === "Feature") {
+        children.push(buildFeature(target, relationName(relationship)));
+      }
+    });
+    const name = String(element.name);
+    const modifiers = String(graphProperty(element, "Attributes", ""))
+      .replace(/^\{/, "")
+      .replace(/\}$/, "")
+      .split(/[, ]+/)
+      .map((modifier) => modifier.trim())
+      .filter(Boolean);
+    return {
+      id: String(element.id),
+      name,
+      line: lineByName.get(name.toLowerCase()) || 1,
+      relation,
+      modifiers,
+      children,
+      groupId,
+      groupCardinality,
+    };
+  };
+  const roots = elements.filter((element) => element.type === "RootFeature");
+  return roots.length === 1 ? [buildFeature(roots[0], "root")] : null;
+}
+
+export function parseUVLDiagram(code: string, submodelSources?: UvlSubmodelSources): UvlDiagramNode[] {
+  if (submodelSources !== undefined && Object.keys(submodelSources instanceof Map
+    ? Object.fromEntries(submodelSources.entries())
+    : Array.isArray(submodelSources)
+      ? Object.fromEntries(submodelSources.map((entry) => [entry.path, entry.source]))
+      : submodelSources).length) {
+    const composed = diagramNodesFromComposedGraph(code, "uvl-diagram", submodelSources);
+    if (composed) return composed;
+  }
   const roots: UvlDiagramNode[] = [];
   const featureStack: Array<UvlDiagramNode | undefined> = [];
-  const groupByLevel: Record<number, string> = {};
-  const lines = code.split(/\r?\n/);
+  const groupByLevel: Record<number, {
+    relation: string;
+    id?: string;
+    cardinality?: { min: number; max: number | "*" };
+  }> = {};
+  const lines = stripUvlBlockComments(code).split(/\r?\n/);
   const groupKeywords = new Set(["mandatory", "optional", "or", "alternative"]);
   let inFeatures = false;
 
@@ -544,7 +712,7 @@ function parseUVLDiagram(code: string): UvlDiagramNode[] {
 
     if (!trimmed || trimmed.startsWith("//")) return;
 
-    const sectionMatch = trimmed.match(/^(namespace|imports|features|constraints)\b/);
+    const sectionMatch = trimmed.match(/^(namespace|include|imports|features|constraints)\b/);
     if (sectionMatch) {
       inFeatures = sectionMatch[1] === "features";
       return;
@@ -556,13 +724,38 @@ function parseUVLDiagram(code: string): UvlDiagramNode[] {
     const level = Math.max(0, Math.floor(indent.replace(/\t/g, "    ").length / 4));
     const firstWordMatch = trimmed.match(/^([A-Za-z_][\w.]*)/);
     const firstWord = firstWordMatch ? firstWordMatch[1] : "";
+    const cardinalityGroup = parseUvlCardinality(trimmed);
 
-    if (!firstWord) return;
+    if (!firstWord && !cardinalityGroup) return;
 
     if (groupKeywords.has(firstWord)) {
-      groupByLevel[level] = firstWord;
+      Object.keys(groupByLevel).forEach((key) => {
+        if (Number(key) >= level) delete groupByLevel[Number(key)];
+      });
+      const isGroup = firstWord === "or" || firstWord === "alternative";
+      groupByLevel[level] = {
+        relation: firstWord,
+        id: isGroup ? `group-${lineNo}` : undefined,
+        cardinality: isGroup
+          ? { min: 1, max: firstWord === "alternative" ? 1 : "*" }
+          : undefined,
+      };
       return;
     }
+    if (cardinalityGroup) {
+      Object.keys(groupByLevel).forEach((key) => {
+        if (Number(key) >= level) delete groupByLevel[Number(key)];
+      });
+      groupByLevel[level] = {
+        relation: "cardinality",
+        id: `group-${lineNo}`,
+        cardinality: cardinalityGroup,
+      };
+      return;
+    }
+
+    const featureName = extractUvlFeatureName(trimmed);
+    if (!featureName) return;
 
     const modifiers = Array.from(trimmed.matchAll(/\{([^}]+)\}/g))
       .flatMap((match) => match[1].split(/[, ]+/))
@@ -570,14 +763,20 @@ function parseUVLDiagram(code: string): UvlDiagramNode[] {
       .filter(Boolean);
 
     const parent = findNearestParent(featureStack, level);
-    const relation = groupByLevel[level - 1] || (parent ? "child" : "root");
+    const activeGroup = groupByLevel[level - 1];
+    // A feature written directly under another feature is UVL's optional
+    // shorthand (used by the official examples for feature cardinality).
+    // Expose it as `optional` so all exporters receive a supported relation.
+    const relation = activeGroup?.relation || (parent ? "optional" : "root");
     const node: UvlDiagramNode = {
-      id: `${lineNo}-${firstWord}`,
-      name: firstWord,
+      id: `${lineNo}-${featureName}`,
+      name: featureName,
       line: lineNo,
       relation,
       modifiers,
       children: [],
+      groupId: activeGroup?.id,
+      groupCardinality: activeGroup?.cardinality,
     };
 
     if (parent) {
@@ -588,6 +787,9 @@ function parseUVLDiagram(code: string): UvlDiagramNode[] {
 
     featureStack[level] = node;
     featureStack.length = level + 1;
+    Object.keys(groupByLevel).forEach((key) => {
+      if (Number(key) >= level) delete groupByLevel[Number(key)];
+    });
   });
 
   return roots;
@@ -602,128 +804,6 @@ function findNearestParent(featureStack: Array<UvlDiagramNode | undefined>, leve
 
 function collectDiagramNodeIds(nodes: UvlDiagramNode[]): string[] {
   return nodes.flatMap((node) => [node.id, ...collectDiagramNodeIds(node.children)]);
-}
-
-function summarizeUVLModel(code: string): UvlModelSummary {
-  const features: string[] = [];
-  const constraints: UvlConstraint[] = [];
-  const groupKeywords = new Set(["mandatory", "optional", "or", "alternative"]);
-  let currentSection: "namespace" | "imports" | "features" | "constraints" | null = null;
-
-  code.split(/\r?\n/).forEach((raw, index) => {
-    const trimmed = raw.trim();
-    if (!trimmed || trimmed.startsWith("//")) return;
-
-    const sectionMatch = trimmed.match(/^(namespace|imports|features|constraints)\b/);
-    if (sectionMatch) {
-      currentSection = sectionMatch[1] as typeof currentSection;
-      return;
-    }
-
-    const firstWord = trimmed.match(/^([A-Za-z_][\w.]*)/)?.[1] ?? "";
-    if (currentSection === "features" && firstWord && !groupKeywords.has(firstWord)) {
-      features.push(firstWord);
-    }
-
-    if (currentSection === "constraints") {
-      constraints.push({
-        expression: trimmed,
-        line: index + 1,
-      });
-    }
-  });
-
-  return { features, constraints };
-}
-
-function analyzeUVLWithSolver(solver: UvlSolverType, code: string): UvlSolverAnalysisResult {
-  const validationErrors = validateUVL(code);
-  const summary = summarizeUVLModel(code);
-  const details: string[] = [
-    `${summary.features.length} feature(s) detected.`,
-    `${summary.constraints.length} constraint(s) detected.`,
-  ];
-
-  if (validationErrors.length > 0) {
-    return {
-      solver,
-      status: "error",
-      title: `${solver.toUpperCase()} analysis failed`,
-      summary: "The UVL model has validation errors that must be fixed before solver analysis.",
-      details: [
-        ...details,
-        ...validationErrors.slice(0, 5).map((error) => `Line ${error.line}: ${error.message}`),
-      ],
-    };
-  }
-
-  const contradictionDetails = detectSimpleConstraintContradictions(summary.constraints);
-  if (contradictionDetails.length > 0) {
-    return {
-      solver,
-      status: "warning",
-      title: `${solver.toUpperCase()} analysis found warnings`,
-      summary: "The UVL model is syntactically valid, but some constraints look contradictory.",
-      details: [...details, ...contradictionDetails],
-    };
-  }
-
-  if (solver === "sat") {
-    return {
-      solver,
-      status: "success",
-      title: "SAT analysis completed",
-      summary: "No local SAT-style inconsistencies were detected.",
-      details: [
-        ...details,
-        "Boolean variables were mapped from declared features.",
-        "Constraint references were checked against the feature set.",
-      ],
-    };
-  }
-
-  return {
-    solver,
-    status: "success",
-    title: "BDD analysis completed",
-    summary: "No local BDD-style inconsistencies were detected.",
-    details: [
-      ...details,
-      `Variable order: ${summary.features.length > 0 ? summary.features.slice().sort().join(", ") : "none"}.`,
-      `Estimated decision nodes: ${Math.max(1, summary.features.length + summary.constraints.length * 2)}.`,
-    ],
-  };
-}
-
-function detectSimpleConstraintContradictions(constraints: UvlConstraint[]): string[] {
-  const details: string[] = [];
-  const implicationMap = new Map<string, Set<string>>();
-
-  constraints.forEach((constraint) => {
-    const normalized = constraint.expression.replace(/\s+/g, " ");
-    const selfContradiction = normalized.match(/^([A-Za-z_][\w.]*)\s*=>\s*!\s*\1$/);
-    if (selfContradiction) {
-      details.push(`Line ${constraint.line}: '${constraint.expression}' makes '${selfContradiction[1]}' imply its own negation.`);
-      return;
-    }
-
-    const implication = normalized.match(/^([A-Za-z_][\w.]*)\s*=>\s*(!?\s*[A-Za-z_][\w.]*)$/);
-    if (!implication) return;
-
-    const source = implication[1];
-    const target = implication[2].replace(/\s+/g, "");
-    const targets = implicationMap.get(source) ?? new Set<string>();
-    const opposite = target.startsWith("!") ? target.slice(1) : `!${target}`;
-
-    if (targets.has(opposite)) {
-      details.push(`Line ${constraint.line}: '${source}' implies both '${target}' and '${opposite}'.`);
-    }
-
-    targets.add(target);
-    implicationMap.set(source, targets);
-  });
-
-  return details;
 }
 
 function downloadTextFile(fileName: string, content: string, mimeType = "text/plain;charset=utf-8") {
@@ -755,17 +835,29 @@ const uvlMonarchTokens: any = {
     "as",
     "include",
     "features",
+    "constraint",
     "constraints",
     "mandatory",
     "optional",
     "or",
     "alternative",
-    "abstract",
     "Boolean",
     "Integer",
     "Real",
     "String",
+    "Type",
+    "Arithmetic",
+    "group-cardinality",
+    "aggregate-function",
+    "feature-cardinality",
+    "numeric-constraints",
+    "string-constraints",
     "cardinality",
+    "sum",
+    "avg",
+    "len",
+    "floor",
+    "ceil",
     "true",
     "false",
   ],
@@ -792,6 +884,13 @@ const uvlMonarchTokens: any = {
 
   tokenizer: {
     root: [
+      [/\/\*/, "comment", "@comment"],
+      [/[A-Za-z]+-[A-Za-z]+/, {
+        cases: {
+          "@keywords": "keyword",
+          "@default": "identifier",
+        },
+      }],
       [/[A-Za-z_][\w]*/, {
         cases: {
           "@keywords": "keyword",
@@ -822,6 +921,12 @@ const uvlMonarchTokens: any = {
     whitespace: [
       [/[ \t\r\n]+/, "white"],
       [/\/\/.*$/, "comment"],
+    ],
+
+    comment: [
+      [/[^/*]+/, "comment"],
+      [/\*\//, "comment", "@pop"],
+      [/[/*]/, "comment"],
     ],
   },
 };
@@ -1118,14 +1223,34 @@ const UvlDiagramNodeView: React.FC<UvlDiagramNodeViewProps> = ({
 const UvlEditor: React.FC<UvlEditorProps> = (props) => {
   const monacoRef = useRef<Monaco | null>(null);
   const editorRef = useRef<any>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const editorResizeObserverRef = useRef<ResizeObserver | null>(null);
+  const editorLayoutFrameRef = useRef<number | null>(null);
   const validationDecorationIdsRef = useRef<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const submodelFileInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<any>(null);
+  const lastStructuredSignatureRef = useRef<string>("");
+  const projectPersistenceId = (props.projectService as any)?.project?.id || "default-project";
+  const persistenceKey = useMemo(
+    () => getUvlWorkspaceKey(
+      projectPersistenceId,
+      props.model?.id || "default-model"
+    ),
+    [projectPersistenceId, props.model?.id]
+  );
+  const persistedWorkspace = useMemo(() => loadUvlWorkspace(persistenceKey), [persistenceKey]);
+  const initialModelSubmodels = useMemo(() => submodelsFromModel(props.model), [props.model]);
+  const defaultUvlSource = "namespace Example\n\nfeatures\n    Root {abstract}\n        mandatory\n            FeatureA\n        optional\n            FeatureB\n\nconstraints\n    FeatureA => !FeatureB\n";
   const [value, setValue] = useState<string>(
     (props.model && (props.model as any).uvl) ||
-      "namespace Example\n\nfeatures\n    Root {abstract}\n        mandatory\n            FeatureA\n        optional\n            FeatureB\n\nconstraints\n    FeatureA => !FeatureB\n"
+      persistedWorkspace?.rootSource ||
+      defaultUvlSource
   );
-  const [fileName, setFileName] = useState<string>("");
+  const [fileName, setFileName] = useState<string>(persistedWorkspace?.rootFileName || "");
+  const [submodelSources, setSubmodelSources] = useState<Record<string, string>>(
+    Object.keys(initialModelSubmodels).length ? initialModelSubmodels : (persistedWorkspace?.submodels || {})
+  );
   const [problemCount, setProblemCount] = useState<number>(0);
   const [validationProblems, setValidationProblems] = useState<UvlValidationError[]>([]);
   const [selectedProblem, setSelectedProblem] = useState<UvlValidationError | null>(null);
@@ -1134,14 +1259,57 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
   const [viewMode, setViewMode] = useState<UvlViewMode>("uvl");
   const [expandedDiagramNodeIds, setExpandedDiagramNodeIds] = useState<Set<string>>(new Set());
   const [solverAnalysisResult, setSolverAnalysisResult] = useState<UvlSolverAnalysisResult | null>(null);
-  const diagramNodes = useMemo(() => parseUVLDiagram(value), [value]);
+  const diagramNodes = useMemo(() => parseUVLDiagram(value, submodelSources), [submodelSources, value]);
   const diagramNodeIds = useMemo(() => collectDiagramNodeIds(diagramNodes), [diagramNodes]);
+  const structuredSignature = props.model ? getUvlStructuredSignature(props.model) : "";
+
+  const persistWorkspace = useCallback((rootSource: string, sources = submodelSources, nextFileName = fileName) => {
+    persistUvlWorkspace(
+      persistenceKey,
+      props.model as any,
+      rootSource,
+      sources,
+      nextFileName || undefined
+    );
+  }, [fileName, persistenceKey, props.model, submodelSources]);
+
+  // Restore imported files from the model/session workspace when switching
+  // models.  A model's embedded `uvlSubmodels` wins over local storage because
+  // it came from ProjectService persistence and is portable with the project.
+  useEffect(() => {
+    if (!props.model) return;
+    const workspace = loadUvlWorkspace(persistenceKey);
+    const embeddedSubmodels = submodelsFromModel(props.model);
+    if (Object.keys(embeddedSubmodels).length) setSubmodelSources(embeddedSubmodels);
+    else if (workspace?.submodels) {
+      setSubmodelSources(workspace.submodels);
+      (props.model as any).uvlSubmodels = { ...workspace.submodels };
+    }
+    const restoredSource = (props.model as any).uvl || workspace?.rootSource || defaultUvlSource;
+    setValue(restoredSource);
+    if (!(props.model as any).uvl && workspace?.rootSource) (props.model as any).uvl = workspace.rootSource;
+    if (workspace?.rootFileName) setFileName(workspace.rootFileName);
+    lastStructuredSignatureRef.current = "";
+  }, [defaultUvlSource, persistenceKey, props.model]);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      editorResizeObserverRef.current?.disconnect();
+      if (editorLayoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(editorLayoutFrameRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    ensureUvlLanguageRegistered(props.projectService);
+    const registrationTimer = window.setInterval(
+      () => ensureUvlLanguageRegistered(props.projectService),
+      1000
+    );
+    return () => window.clearInterval(registrationTimer);
+  }, [props.projectService]);
 
   useEffect(() => {
     setExpandedDiagramNodeIds((current) => {
@@ -1160,8 +1328,59 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
     }
   }, []);
 
-  const runValidation = useCallback((currentCode: string) => {
-    const problems = validateUVL(currentCode);
+  const getEditorValidationProblems = useCallback((
+    currentCode: string,
+    includeModelState = true,
+    sourceRegistry: UvlSubmodelSources = submodelSources
+  ): UvlValidationError[] => {
+    const syntaxProblems = validateUVL(currentCode);
+    const structural = validateUvlSourceStructure(
+      currentCode,
+      String(props.model?.id || "validation"),
+      sourceRegistry
+    );
+    const structuralProblems: UvlValidationError[] = structural.issues.map((problem) => ({
+      message: `UVL structure: ${problem.message}`,
+      line: problem.line || 1,
+      colStart: problem.colStart || 1,
+      colEnd: problem.colEnd || Math.max(2, (problem.colStart || 1) + 1),
+      severity: problem.severity,
+      suggestion: problem.code === "ROOT_MISSING"
+        ? "Declare one root feature under the features section."
+        : problem.code === "RELATION_PARENT_MISSING"
+          ? "Connect the element to its parent with RootFeature_Child, Feature_Child or Group_Feature."
+          : problem.code === "GROUP_CARDINALITY_EXCEEDS_MEMBERS"
+            ? "Reduce the group cardinality or add enough member features."
+            : problem.code === "ALTERNATIVE_CARDINALITY_INVALID"
+              ? "Alternative groups must use [1..1]."
+              : "Review the UVL structural relationship or property involved.",
+    }));
+    // A chatbot-created graph can exist before UvlEditor has generated its
+    // textual source. Surface graph errors instead of showing a misleading
+    // default document in that state. During typing, the source is the
+    // authority, so callers can disable this additional check.
+    if (includeModelState && props.model && isUvlStructuredModel(props.model) && !(props.model as any).uvl) {
+      const modelValidation = validateUvlStructuredModel(props.model as any);
+      modelValidation.issues.forEach((problem) => {
+        structuralProblems.push({
+          message: `UVL model structure: ${problem.message}`,
+          line: 1,
+          colStart: 1,
+          colEnd: 2,
+          severity: problem.severity,
+          suggestion: problem.code === "ROOT_MISSING"
+            ? "Create exactly one RootFeature before saving or exporting."
+            : problem.code === "RELATION_PARENT_MISSING"
+              ? "Connect every Feature or Group to one valid parent."
+              : "Fix the model graph before generating UVL text.",
+        });
+      });
+    }
+    return [...syntaxProblems, ...structuralProblems];
+  }, [props.model, submodelSources]);
+
+  const runValidation = useCallback((currentCode: string, sourceRegistry: UvlSubmodelSources = submodelSources) => {
+    const problems = getEditorValidationProblems(currentCode, true, sourceRegistry);
 
     if (monacoRef.current && editorRef.current) {
       const model = editorRef.current.getModel();
@@ -1172,7 +1391,9 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
           endLineNumber: problem.line,
           endColumn: problem.colEnd,
           message: problem.message,
-          severity: monacoRef.current!.MarkerSeverity.Error,
+          severity: problem.severity === "warning"
+            ? monacoRef.current!.MarkerSeverity.Warning
+            : monacoRef.current!.MarkerSeverity.Error,
         }));
         monacoRef.current.editor.setModelMarkers(model, UVL_MARKER_OWNER, markers);
 
@@ -1199,25 +1420,123 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
       return problems.find((problem) => isSameValidationProblem(current, problem)) ?? null;
     });
     setProblemCount(problems.length);
-  }, []);
+  }, [getEditorValidationProblems, submodelSources]);
 
-  const scheduleValidation = useCallback((currentCode: string, delay = 500) => {
+  const scheduleValidation = useCallback((currentCode: string, delay = 500, sourceRegistry: UvlSubmodelSources = submodelSources) => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => runValidation(currentCode), delay);
-  }, [runValidation]);
+    timerRef.current = setTimeout(() => runValidation(currentCode, sourceRegistry), delay);
+  }, [runValidation, submodelSources]);
+
+  useEffect(() => {
+    if (!props.model) return;
+
+    if (!isUvlStructuredModel(props.model)) {
+      if (!hasBlockingValidationProblems(getEditorValidationProblems(value)) && syncUvlSourceToModel(props.model, value, submodelSources)) {
+        normalizeUvlStructuredModel(props.model as any);
+        lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+        persistWorkspace(value);
+        props.projectService.saveProject?.();
+      }
+      return;
+    }
+
+    normalizeUvlStructuredModel(props.model as any);
+    const currentSignature = getUvlStructuredSignature(props.model);
+    if (!lastStructuredSignatureRef.current) {
+      const hasPendingParentHints = (props.model.elements as any[]).some(
+        (element) => element?.parentId != null && String(element.parentId).trim()
+      );
+      if (!(props.model as any).uvl || hasPendingParentHints) {
+        const initialSource = serializeChatbotModelToUvl(
+          props.model,
+          (props.model as any).uvl || value
+        );
+        if (!initialSource) {
+          // Remember the invalid signature to avoid a render/validation loop;
+          // a later graph edit changes the signature and retries generation.
+          lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+          runValidation(value);
+          return;
+        }
+        if (hasBlockingValidationProblems(getEditorValidationProblems(initialSource))) {
+          lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+          runValidation(initialSource);
+          return;
+        }
+        lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+        (props.model as any).uvl = initialSource;
+        setValue(initialSource);
+        persistWorkspace(initialSource);
+        props.projectService.saveProject?.();
+        scheduleValidation(initialSource, 0);
+      } else {
+        lastStructuredSignatureRef.current = currentSignature;
+      }
+      return;
+    }
+    if (currentSignature === lastStructuredSignatureRef.current) return;
+
+    const synchronizedSource = serializeChatbotModelToUvl(props.model, value);
+    if (!synchronizedSource) {
+      lastStructuredSignatureRef.current = currentSignature;
+      runValidation(value);
+      return;
+    }
+    if (hasBlockingValidationProblems(getEditorValidationProblems(synchronizedSource))) {
+      lastStructuredSignatureRef.current = currentSignature;
+      runValidation(synchronizedSource);
+      return;
+    }
+    lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+    if (synchronizedSource === value) return;
+    (props.model as any).uvl = synchronizedSource;
+    setValue(synchronizedSource);
+    persistWorkspace(synchronizedSource);
+    props.projectService.saveProject?.();
+    scheduleValidation(synchronizedSource, 0);
+  }, [getEditorValidationProblems, persistWorkspace, props.model, props.projectService, runValidation, scheduleValidation, structuredSignature, submodelSources, value]);
 
   const handleChange = useCallback((nextValue: string | undefined) => {
     const nextCode = nextValue ?? "";
     setValue(nextCode);
+    // Keep the exact text even while it is temporarily invalid, so a browser
+    // refresh or model switch cannot discard an in-progress edit.
+    persistWorkspace(nextCode);
+    props.projectService.saveProject?.();
     if (props.model) {
-      (props.model as any).uvl = nextCode;
+      const problems = getEditorValidationProblems(nextCode, false);
+      if (!hasBlockingValidationProblems(problems) && syncUvlSourceToModel(props.model, nextCode, submodelSources)) {
+        normalizeUvlStructuredModel(props.model as any);
+        (props.model as any).uvl = nextCode;
+        lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+      }
     }
     scheduleValidation(nextCode);
-  }, [props.model, scheduleValidation]);
+  }, [getEditorValidationProblems, persistWorkspace, props.model, props.projectService, scheduleValidation, submodelSources]);
 
   const handleEditorDidMount = useCallback((editor: any, monaco: Monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    editorResizeObserverRef.current?.disconnect();
+
+    const scheduleLayout = () => {
+      if (editorLayoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(editorLayoutFrameRef.current);
+      }
+      // Calling layout directly inside ResizeObserver's delivery cycle can
+      // trigger Chromium's "undelivered notifications" development error.
+      editorLayoutFrameRef.current = window.requestAnimationFrame(() => {
+        editorLayoutFrameRef.current = null;
+        if (editorRef.current === editor) editor.layout();
+      });
+    };
+
+    if (editorContainerRef.current && typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(scheduleLayout);
+      observer.observe(editorContainerRef.current);
+      editorResizeObserverRef.current = observer;
+    }
+    scheduleLayout();
     runValidation(value);
   }, [runValidation, value]);
 
@@ -1228,14 +1547,65 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
     }
   }, []);
 
-  const handleLoadedContent = useCallback((content: string, nextFileName: string) => {
-    setValue(content);
-    setFileName(nextFileName);
-    if (props.model) {
-      (props.model as any).uvl = content;
+  const handleOpenSubmodelDialog = useCallback(() => {
+    if (submodelFileInputRef.current) {
+      submodelFileInputRef.current.value = "";
+      submodelFileInputRef.current.click();
     }
-    scheduleValidation(content, 0);
-  }, [props.model, scheduleValidation]);
+  }, []);
+
+  const readTextFile = useCallback((file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => resolve((event.target?.result as string) ?? "");
+    reader.onerror = () => reject(reader.error || new Error(`Could not read ${file.name}`));
+    reader.readAsText(file);
+  }), []);
+
+  const handleSubmodelFilesSelected = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    Promise.all(files.map(async (file) => ({
+      path: (file as any).webkitRelativePath || file.name,
+      source: await readTextFile(file),
+    }))).then((entries) => {
+      setSubmodelSources((current) => {
+        const next = { ...current };
+        entries.forEach((entry) => { next[entry.path] = entry.source; });
+        persistWorkspace(value, next);
+        return next;
+      });
+      props.projectService.saveProject?.();
+      scheduleValidation(value, 0);
+    }).catch((error) => {
+      console.error("UvlEditor: could not read an UVL submodel", error);
+    }).finally(() => {
+      if (submodelFileInputRef.current) submodelFileInputRef.current.value = "";
+    });
+  }, [persistWorkspace, props.projectService, readTextFile, scheduleValidation, value]);
+
+  const handleLoadedContent = useCallback((content: string, nextFileName: string) => {
+    const bundle = parseUvlWorkspaceBundle(content);
+    const loadedSource = bundle?.rootSource ?? content;
+    const loadedSubmodels = bundle?.submodels ?? submodelSources;
+    const loadedFileName = bundle?.rootFileName || nextFileName;
+    setValue(loadedSource);
+    setFileName(loadedFileName);
+    if (bundle) setSubmodelSources(loadedSubmodels);
+    if (props.model) {
+      const problems = getEditorValidationProblems(loadedSource, false, loadedSubmodels);
+      if (!hasBlockingValidationProblems(problems) && syncUvlSourceToModel(props.model, loadedSource, loadedSubmodels)) {
+        normalizeUvlStructuredModel(props.model as any);
+        (props.model as any).uvl = loadedSource;
+        lastStructuredSignatureRef.current = getUvlStructuredSignature(props.model);
+        persistWorkspace(loadedSource, loadedSubmodels, loadedFileName);
+      }
+    }
+    scheduleValidation(loadedSource, 0, loadedSubmodels);
+    if (props.model) {
+      persistWorkspace(loadedSource, loadedSubmodels, loadedFileName);
+      props.projectService.saveProject?.();
+    }
+  }, [getEditorValidationProblems, persistWorkspace, props.model, props.projectService, scheduleValidation, submodelSources]);
 
   const handleFileSelected = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files && event.target.files[0];
@@ -1264,29 +1634,47 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
     const exportOption = UVL_EXPORT_OPTIONS.find((option) => option.id === format);
     if (!exportOption) return;
 
-    const baseName = getExportBaseName(fileName, props.model);
-    const isJsonExport = format === "json";
-    const exportContent = isJsonExport
-      ? JSON.stringify({
-          format: "UVL",
-          fileName: fileName || null,
-          features: diagramNodes,
-          source: value,
-        }, null, 2)
-      : value;
+    try {
+      const baseName = getExportBaseName(fileName, props.model);
+      const problems = getEditorValidationProblems(value);
+      if (hasBlockingValidationProblems(problems)) {
+        const firstProblem = problems[0];
+        throw new Error(
+          `${exportOption.label} export requires valid UVL. Line ${firstProblem.line}: ${firstProblem.message}`
+        );
+      }
+      const exportContext = buildUvlExportContext(value, submodelSources, format, fileName || undefined);
+      if (!exportContext.valid) {
+        const firstError = exportContext.composition.errors[0];
+        throw new Error(
+          firstError
+            ? `${exportOption.label} export requires a valid composed UVL model. Line ${firstError.location.line}: ${firstError.message}`
+            : `${exportOption.label} export requires exactly one valid root feature.`
+        );
+      }
+      const compatibilityWarnings = formatExportLosses(exportContext.losses);
+      if (compatibilityWarnings.length && format !== "json" && format !== "uvl" && !window.confirm(
+        `${exportOption.label} cannot preserve every UVL detail. The export will omit:\n\n${compatibilityWarnings.join("\n")}\n\nContinue with the format projection?`
+      )) return;
 
-    downloadTextFile(
-      `${baseName}.${exportOption.extension}`,
-      exportContent,
-      isJsonExport ? "application/json;charset=utf-8" : "text/plain;charset=utf-8"
-    );
-  }, [diagramNodes, fileName, props.model, value]);
+      const exportContent = buildUvlExportContent(format, exportContext, baseName);
+
+      downloadTextFile(
+        `${baseName}.${exportOption.extension}`,
+        exportContent,
+        getUvlExportMimeType(format)
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : `Unknown ${format} export error.`;
+      window.alert(message);
+    }
+  }, [fileName, getEditorValidationProblems, props.model, submodelSources, value]);
 
   const handleSolverAnalysis = useCallback((solver: UvlSolverType) => {
-    const result = analyzeUVLWithSolver(solver, value);
+    const result = analyzeUvlWithSolver(solver, value, submodelSources);
     setSolverAnalysisResult(result);
     runValidation(value);
-  }, [runValidation, value]);
+  }, [runValidation, submodelSources, value]);
 
   const toolbarButtons: ToolbarButtonConfig[] = [
     {
@@ -1315,6 +1703,11 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
           id: "import",
           label: "Import File",
           onClick: handleOpenFileDialog,
+        },
+        {
+          id: "import-submodels",
+          label: "Import Submodels",
+          onClick: handleOpenSubmodelDialog,
         },
         {
           id: "export",
@@ -1622,9 +2015,17 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".uvl,text/plain"
+          accept=".uvl,.json,text/plain,application/json"
           style={{ display: "none" }}
           onChange={handleFileSelected}
+        />
+        <input
+          ref={submodelFileInputRef}
+          type="file"
+          accept=".uvl,text/plain"
+          multiple
+          style={{ display: "none" }}
+          onChange={handleSubmodelFilesSelected}
         />
         <span style={{ color: "#555" }}>
           {fileName
@@ -1634,6 +2035,11 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
         <span style={{ color: "#607083", fontSize: 12 }}>
           {viewMode === "diagram" ? "Diagram view" : "UVL view"}
         </span>
+        <span style={{ color: "#607083", fontSize: 12 }} title="Loaded UVL import sources">
+          {Object.keys(submodelSources).length
+            ? `${Object.keys(submodelSources).length} submodel(s) loaded`
+            : "No submodels loaded"}
+        </span>
         <span style={{ marginLeft: "auto", color: problemCount > 0 ? "#b00020" : "#2e7d32" }}>
           {problemCount > 0
             ? `${problemCount} UVL issue(s)`
@@ -1642,7 +2048,7 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
       </div>
 
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div ref={editorContainerRef} style={{ flex: 1, minWidth: 0 }}>
           {viewMode === "uvl" ? (
             <Editor
               height="100%"
@@ -1656,7 +2062,7 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
               options={{
                 minimap: { enabled: false },
               fontSize: 14,
-              automaticLayout: true,
+              automaticLayout: false,
               wordWrap: "on",
               glyphMargin: true,
             }}
@@ -1706,7 +2112,7 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
                 fontSize: 12,
               }}
             >
-              Validate syntax
+              Validate UVL
             </button>
             <span style={{ marginLeft: "auto", color: problemCount > 0 ? "#b00020" : "#2e7d32", fontSize: 12 }}>
               {problemCount}
@@ -1717,20 +2123,9 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
             {solverAnalysisResult && (
               <div
                 style={{
-                  border: `1px solid ${
-                    solverAnalysisResult.status === "success"
-                      ? "#b8dfc2"
-                      : solverAnalysisResult.status === "warning"
-                        ? "#f0d38a"
-                        : "#f0c7cd"
-                  }`,
+                  border: `1px solid ${solverStatusPalette(solverAnalysisResult.status).border}`,
                   borderRadius: 6,
-                  background:
-                    solverAnalysisResult.status === "success"
-                      ? "#f6fff8"
-                      : solverAnalysisResult.status === "warning"
-                        ? "#fffaf0"
-                        : "#fff8f8",
+                  background: solverStatusPalette(solverAnalysisResult.status).background,
                   padding: 10,
                   marginBottom: 10,
                 }}
@@ -1749,18 +2144,13 @@ const UvlEditor: React.FC<UvlEditorProps> = (props) => {
                   </span>
                   <span
                     style={{
-                      color:
-                        solverAnalysisResult.status === "success"
-                          ? "#15803d"
-                          : solverAnalysisResult.status === "warning"
-                            ? "#a16207"
-                            : "#b00020",
+                      color: solverStatusPalette(solverAnalysisResult.status).text,
                       fontSize: 11,
                       fontWeight: 700,
                       textTransform: "uppercase",
                     }}
                   >
-                    {solverAnalysisResult.solver}
+                    {solverAnalysisResult.solver.toUpperCase()} · {solverAnalysisResult.status.toUpperCase()}
                   </span>
                 </div>
                 <div style={{ color: "#4b5563", fontSize: 12, lineHeight: 1.35, marginBottom: 6 }}>
