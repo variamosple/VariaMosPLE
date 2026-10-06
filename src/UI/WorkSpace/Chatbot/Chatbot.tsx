@@ -65,7 +65,7 @@ type PlanRelationship = { type: string; source: string; target: string; props?: 
 
 type PlanLLM = { name: string; elements: PlanElement[]; relationships: PlanRelationship[] };
 
-type ModelOption = { id: string; label: string; free?: boolean };
+type ModelOption = { id: string; label: string; free?: boolean; provider?: string };
 
 const getLanguageKey = (l: Language) => String(l.id ?? l.name);
 
@@ -82,27 +82,24 @@ const resolveLanguageForModel = (all: Language[], model: any): Language | null =
 };
 
 
-type ValueProp = { name: string; value: string };
-
-
 const MODEL_OPTIONS: ModelOption[] = [
-  { id: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "NVIDIA: Nemotron 3 Ultra", free: true },
-  { id: "thinkingmachines/inkling:free", label: "Thinking Machines: Inkling", free: true },
-  { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "NVIDIA: Nemotron 3 Super", free: true },
-  { id: "thinkingmachines/inkling-small:free", label: "Thinking Machines: Inkling Small", free: true },
-  { id: "poolside/laguna-s-2.1:free", label: "Poolside: Laguna S 2.1", free: true },
-  { id: "inclusionai/ling-3.0-flash:free", label: "InclusionAI: Ling 3.0 Flash", free: true },
-  { id: "inclusionai/ling-3.0-flash-vl:free", label: "InclusionAI: Ling 3.0 Flash VL", free: true },
-  { id: "inclusionai/ling-3.0-flash-fin:free", label: "InclusionAI: Ling 3.0 Flash Fin", free: true },
-  { id: "inclusionai/ling-3.0-flash-sante:free", label: "InclusionAI: Ling 3.0 Flash Sante", free: true },
-  { id: "nvidia/nemotron-3.5-lightning:free", label: "NVIDIA: Nemotron 3.5 Lightning", free: true },
-  { id: "cohere/north-mini-code:free", label: "Cohere: North Mini Code", free: true },
-  { id: "poolside/laguna-xs-2.1:free", label: "Poolside: Laguna XS 2.1", free: true },
-  { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", label: "NVIDIA: Nemotron 3 Nano Omni", free: true },
-  { id: "google/gemma-4-26b-a4b-it:free", label: "Google: Gemma 4 26B A4B", free: true },
-  { id: "google/gemma-4-31b-it:free", label: "Google: Gemma 4 31B", free: true },
-  { id: "qwen/qwen3.8-27b:free", label: "Qwen: Qwen3.8 27B", free: true },
-  { id: "liquid/lfm-2.5-2.6b:free", label: "LiquidAI: LFM2.5 2.6B", free: true }
+  { id: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "NVIDIA: Nemotron 3 Ultra", free: true, provider: "NVIDIA" },
+  { id: "thinkingmachines/inkling:free", label: "Thinking Machines: Inkling", free: true, provider: "Thinking Machines" },
+  { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "NVIDIA: Nemotron 3 Super", free: true, provider: "NVIDIA" },
+  { id: "thinkingmachines/inkling-small:free", label: "Thinking Machines: Inkling Small", free: true, provider: "Thinking Machines" },
+  { id: "poolside/laguna-s-2.1:free", label: "Poolside: Laguna S 2.1", free: true, provider: "Poolside" },
+  { id: "inclusionai/ling-3.0-flash:free", label: "InclusionAI: Ling 3.0 Flash", free: true, provider: "InclusionAI" },
+  { id: "inclusionai/ling-3.0-flash-vl:free", label: "InclusionAI: Ling 3.0 Flash VL", free: true, provider: "InclusionAI" },
+  { id: "inclusionai/ling-3.0-flash-fin:free", label: "InclusionAI: Ling 3.0 Flash Fin", free: true, provider: "InclusionAI" },
+  { id: "inclusionai/ling-3.0-flash-sante:free", label: "InclusionAI: Ling 3.0 Flash Sante", free: true, provider: "InclusionAI" },
+  { id: "nvidia/nemotron-3.5-lightning:free", label: "NVIDIA: Nemotron 3.5 Lightning", free: true, provider: "NVIDIA" },
+  { id: "cohere/north-mini-code:free", label: "Cohere: North Mini Code", free: true, provider: "Cohere" },
+  { id: "poolside/laguna-xs-2.1:free", label: "Poolside: Laguna XS 2.1", free: true, provider: "Poolside" },
+  { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", label: "NVIDIA: Nemotron 3 Nano Omni", free: true, provider: "NVIDIA" },
+  { id: "google/gemma-4-26b-a4b-it:free", label: "Google: Gemma 4 26B A4B", free: true, provider: "Google" },
+  { id: "google/gemma-4-31b-it:free", label: "Google: Gemma 4 31B", free: true, provider: "Google" },
+  { id: "qwen/qwen3.8-27b:free", label: "Qwen: Qwen3.8 27B", free: true, provider: "Qwen" },
+  { id: "liquid/lfm-2.5-2.6b:free", label: "LiquidAI: LFM2.5 2.6B", free: true, provider: "LiquidAI" },
 ];
 
 // Helper: label amigable para mostrar al usuario
