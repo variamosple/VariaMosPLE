@@ -86,23 +86,23 @@ type ValueProp = { name: string; value: string };
 
 
 const MODEL_OPTIONS: ModelOption[] = [
-  { id: "z-ai/glm-4.5-air:free", label: "Z.ai: GLM 4.5 Air", free: true },
-  { id: "nvidia/nemotron-3-nano-30b-a3b:free", label: "NVIDIA: Nemotron 3 Nano 30B A3B", free: true },
-  { id: "nvidia/nemotron-nano-12b-v2-vl:free", label: "NVIDIA: Nemotron Nano 12B 2 VL", free: true },
-  { id: "tngtech/deepseek-r1t-chimera:free", label: "TNG: DeepSeek R1T Chimera", free: true },
-  { id: "qwen/qwen3-coder:free", label: "Qwen: Qwen3 Coder 480B", free: true },
-  { id: "openrouter/aurora-alpha", label: "Aurora Alpha", free: true },
-  { id: "stepfun/step-3.5-flash:free", label: "StepFun: Step 3.5 Flash", free: true },
-  { id: "arcee-ai/trinity-large-preview:free", label: "Arcee AI: Trinity Large", free: true },
-  { id: "upstage/solar-pro-3:free", label: "Upstage: Solar Pro 3", free: true },
-  { id: "liquid/lfm-2.5-1.2b-thinking:free", label: "LiquidAI: LFM2.5-1.2B-Thinking", free: true },
-  { id: "google/gemma-3-27b-it:free", label: "Google: Gemma 3 27B", free: true },
-  { id: "deepseek/deepseek-r1-0528:free", label: "DeepSeek R1", free: true },
-  { id: "meta-llama/llama-3.2-3b-instruct:free", label: "Meta: Llama 3.2 3B Instruct", free: true },
-  { id: "meta-llama/llama-3.3-70b-instruct:free", label: "Meta: Llama 3.3 70B Instruct", free: true },
-  { id: "mistralai/mistral-small-3.1-24b-instruct:free", label: "Mistral: Mistral Small 3.1", free: true },
-  { id: "openai/gpt-oss-120b:free", label: "OpenAI: gpt-oss-120b", free: true },
-  { id: "openai/gpt-oss-20b:free", label: "OpenAI: gpt-oss-20b", free: true }
+  { id: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "NVIDIA: Nemotron 3 Ultra", free: true },
+  { id: "thinkingmachines/inkling:free", label: "Thinking Machines: Inkling", free: true },
+  { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "NVIDIA: Nemotron 3 Super", free: true },
+  { id: "thinkingmachines/inkling-small:free", label: "Thinking Machines: Inkling Small", free: true },
+  { id: "poolside/laguna-s-2.1:free", label: "Poolside: Laguna S 2.1", free: true },
+  { id: "inclusionai/ling-3.0-flash:free", label: "InclusionAI: Ling 3.0 Flash", free: true },
+  { id: "inclusionai/ling-3.0-flash-vl:free", label: "InclusionAI: Ling 3.0 Flash VL", free: true },
+  { id: "inclusionai/ling-3.0-flash-fin:free", label: "InclusionAI: Ling 3.0 Flash Fin", free: true },
+  { id: "inclusionai/ling-3.0-flash-sante:free", label: "InclusionAI: Ling 3.0 Flash Sante", free: true },
+  { id: "nvidia/nemotron-3.5-lightning:free", label: "NVIDIA: Nemotron 3.5 Lightning", free: true },
+  { id: "cohere/north-mini-code:free", label: "Cohere: North Mini Code", free: true },
+  { id: "poolside/laguna-xs-2.1:free", label: "Poolside: Laguna XS 2.1", free: true },
+  { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", label: "NVIDIA: Nemotron 3 Nano Omni", free: true },
+  { id: "google/gemma-4-26b-a4b-it:free", label: "Google: Gemma 4 26B A4B", free: true },
+  { id: "google/gemma-4-31b-it:free", label: "Google: Gemma 4 31B", free: true },
+  { id: "qwen/qwen3.8-27b:free", label: "Qwen: Qwen3.8 27B", free: true },
+  { id: "liquid/lfm-2.5-2.6b:free", label: "LiquidAI: LFM2.5 2.6B", free: true }
 ];
 
 // Helper: label amigable para mostrar al usuario
