@@ -102,8 +102,8 @@ const MODEL_OPTIONS: ModelOption[] = [
   { id: "openrouter/auto", label: "OpenRouter: Auto (best free)", free: true, provider: "OpenRouter" },
 
   // === DEEPSEEK MODELS (direct API) ===
-  { id: "deepseek-chat", label: "DeepSeek: Flash (V3)", free: true, provider: "DeepSeek" },
-  { id: "deepseek-reasoner", label: "DeepSeek: Reasoner (R1)", free: false, provider: "DeepSeek" },
+  { id: "deepseek/deepseek-chat", label: "DeepSeek: Flash (V3)", free: true, provider: "DeepSeek" },
+  { id: "deepseek/deepseek-reasoner", label: "DeepSeek: Reasoner (R1)", free: false, provider: "DeepSeek" },
 ];
 
 // Helper: label amigable para mostrar al usuario
