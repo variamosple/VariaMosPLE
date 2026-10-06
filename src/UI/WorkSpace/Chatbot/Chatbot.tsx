@@ -82,6 +82,7 @@ const resolveLanguageForModel = (all: Language[], model: any): Language | null =
   );
 };
 
+type ValueProp = { name: string; value: string };
 
 const MODEL_OPTIONS: ModelOption[] = [
   // === DEEPSEEK MODELS (direct API - official) - PRIORITY TOP ===
