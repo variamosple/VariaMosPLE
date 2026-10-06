@@ -84,6 +84,9 @@ const resolveLanguageForModel = (all: Language[], model: any): Language | null =
 
 
 const MODEL_OPTIONS: ModelOption[] = [
+  // === DEEPSEEK MODELS (direct API - official) - PRIORITY TOP ===
+  { id: "deepseek/deepseek-flash", label: "DeepSeek: Flash (V3)", free: true, provider: "DeepSeek" },
+  { id: "deepseek/deepseek-v4-pro", label: "DeepSeek: V4 Pro", free: false, provider: "DeepSeek" },
     // === FREE MODELS FROM OPENROUTER ===
   { id: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "NVIDIA: Nemotron 3 Ultra", free: true, provider: "NVIDIA" },
   { id: "thinkingmachines/inkling:free", label: "Thinking Machines: Inkling", free: true, provider: "Thinking Machines" },
@@ -102,9 +105,6 @@ const MODEL_OPTIONS: ModelOption[] = [
   { id: "google/gemma-4-31b-it:free", label: "Google: Gemma 4 31B", free: true, provider: "Google" },
   { id: "qwen/qwen3.8-27b:free", label: "Qwen: Qwen3.8 27B", free: true, provider: "Qwen" },
   { id: "liquid/lfm-2.5-2.6b:free", label: "LiquidAI: LFM2.5 2.6B", free: true, provider: "LiquidAI" },
-  // === DEEPSEEK MODELS (direct API) ===
-  { id: "deepseek/deepseek-chat", label: "DeepSeek: Flash (V3)", free: true, provider: "DeepSeek" },
-  { id: "deepseek/deepseek-reasoner", label: "DeepSeek: Reasoner (R1)", free: false, provider: "DeepSeek" },
 ];
 
 // Helper: label amigable para mostrar al usuario
