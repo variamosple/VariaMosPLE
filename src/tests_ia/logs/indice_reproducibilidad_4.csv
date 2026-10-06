@@ -1,0 +1,51 @@
+id_prueba,categoria,resultado,elementos_faltantes
+meta_01_paraphrase,paraphrase,EXITOSA,
+meta_02_paraphrase,paraphrase,EXITOSA,
+meta_03_paraphrase,paraphrase,FALLA,"RootFeature_Feature"
+meta_04_paraphrase,paraphrase,EXITOSA,
+meta_05_paraphrase,paraphrase,EXITOSA,
+meta_06_paraphrase,paraphrase,EXITOSA,
+meta_07_paraphrase,paraphrase,FALLA,"RootFeature_Feature"
+meta_08_paraphrase,paraphrase,EXITOSA,
+meta_09_paraphrase,paraphrase,EXITOSA,
+meta_10_paraphrase,paraphrase,EXITOSA,
+meta_11_format_change,format_change,FALLA,"RootFeature_Feature"
+meta_12_format_change,format_change,EXITOSA,
+meta_13_format_change,format_change,EXITOSA,
+meta_14_format_change,format_change,EXITOSA,
+meta_15_format_change,format_change,EXITOSA,
+meta_16_format_change,format_change,FALLA,"RootFeature_Feature"
+meta_17_format_change,format_change,FALLA,"RootFeature_Feature"
+meta_18_format_change,format_change,EXITOSA,
+meta_19_format_change,format_change,EXITOSA,
+meta_20_format_change,format_change,EXITOSA,
+meta_21_noise_injection,noise_injection,EXITOSA,
+meta_22_noise_injection,noise_injection,FALLA,"RootFeature_Feature"
+meta_23_noise_injection,noise_injection,FALLA,"Annotation"
+meta_24_noise_injection,noise_injection,EXITOSA,
+meta_25_noise_injection,noise_injection,FALLA,"RootFeature_Feature; Annotation"
+meta_26_noise_injection,noise_injection,EXITOSA,
+meta_27_noise_injection,noise_injection,EXITOSA,
+meta_28_noise_injection,noise_injection,FALLA,"RootFeature_Feature"
+meta_29_noise_injection,noise_injection,FALLA,"RootFeature_Feature"
+meta_30_noise_injection,noise_injection,FALLA,"Annotation"
+meta_31_logical_inversion,logical_inversion,FALLA,"Bundle; Módulo de Reembolsos Rápidos; RootFeature_Feature; Bundle_Feature"
+meta_32_logical_inversion,logical_inversion,EXITOSA,
+meta_33_logical_inversion,logical_inversion,FALLA,"Borrado de Logs; RootFeature_Feature"
+meta_34_logical_inversion,logical_inversion,FALLA,"Bundle; RootFeature_Feature; Bundle_Feature"
+meta_35_logical_inversion,logical_inversion,EXITOSA,
+meta_36_logical_inversion,logical_inversion,FALLA,"RootFeature_Feature"
+meta_37_logical_inversion,logical_inversion,FALLA,"Modo Ayuno Intermitente; RootFeature_Feature"
+meta_38_logical_inversion,logical_inversion,FALLA,"RootFeature_Feature"
+meta_39_logical_inversion,logical_inversion,FALLA,"App de Entregas; Asignación a Repartidor Humano; RootFeature_Feature"
+meta_40_logical_inversion,logical_inversion,FALLA,"RootFeature_Feature"
+meta_41_language_interference,language_interference,EXITOSA,
+meta_42_language_interference,language_interference,EXITOSA,
+meta_43_language_interference,language_interference,EXITOSA,
+meta_44_language_interference,language_interference,EXITOSA,
+meta_45_language_interference,language_interference,FALLA,"Nube Computacional"
+meta_46_language_interference,language_interference,EXITOSA,
+meta_47_language_interference,language_interference,EXITOSA,
+meta_48_language_interference,language_interference,EXITOSA,
+meta_49_language_interference,language_interference,EXITOSA,
+meta_50_language_interference,language_interference,FALLA,"Sistema de Agricultura"

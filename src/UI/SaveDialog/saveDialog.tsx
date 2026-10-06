@@ -198,6 +198,8 @@ export default function SaveDialog({
     if (!projectInformation.name) {
       return;
     }
+    console.log("Project:", projectService.getProject());
+    projectService.regenerateIds();
     projectService.saveProjectInServer(projectInformation, null, null);
     handleCloseCallback();
   };

@@ -172,6 +172,12 @@ class navBar extends Component<Props, State> {
     );
   }
 
+  canRevertHistory() {
+    const projectInfo = this.props.projectService.getProjectInformation();
+    const role = projectInfo?.role;
+    return role === RoleEnum.OWNER || role === RoleEnum.EDITOR;
+  }
+
   findProductLineById(productLineId: string) {
     return this.props.projectService.project.productLines.find(
       (pl: any) => pl.id === productLineId
@@ -551,7 +557,9 @@ class navBar extends Component<Props, State> {
             projectService={this.props.projectService}
             historyRecords={this.state.historyRecords}
             onRefresh={this.loadGlobalHistory.bind(this)}
-            onRevertHistoryItem={this.revertGlobalHistoryItem}
+            onRevertHistoryItem={
+              this.canRevertHistory() ? this.revertGlobalHistoryItem : undefined
+            }
           />
         )}
       </div>

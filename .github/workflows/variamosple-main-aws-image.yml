@@ -57,5 +57,6 @@ jobs:
         key: ${{ secrets.VARIAMOS_AWS_PEM }}
         script: |
           echo "Executing command on remote server..."
-          sudo docker compose --env-file .env.aws.develop -f docker-compose-aws-develop-nginx.yml pull
-          sudo docker compose --env-file .env.aws.develop -f docker-compose-aws-develop-nginx.yml up -d
+          sudo docker compose --env-file .env.aws.develop -f docker-compose-aws-develop-nginx.yml pull variamospleaws
+          sudo docker compose --env-file .env.aws.develop -f docker-compose-aws-develop-nginx.yml up -d --force-recreate variamospleaws
+          sudo docker image prune -f

@@ -15,6 +15,9 @@ class MockYMap {
     this.data.delete(key);
     this.emitChange({ keys: new Map([[key, true]]), target: this });
   }
+  values() {
+    return this.data.values();
+  }
   toJSON() {
     const obj: Record<string, any> = {};
     this.data.forEach((v, k) => (obj[k] = v));
@@ -90,7 +93,7 @@ class MockProvider {
     const ev = this.handlers.get("connection-close") || [];
     ev.forEach(cb => cb());
   }
-  
+
   emit(event: string, ...args: any[]) {
     (this.handlers.get(event) || []).forEach(cb => cb(...args));
   }

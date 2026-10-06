@@ -1,0 +1,18 @@
+{
+  "Adaptive ML": "- Define machine learning components and data flows.\n- Ensure each ML model is linked to its training data source and target metric.",
+  "Class diagram": "- Use 'Class' nodes for entities, and connect them with 'Association', 'Inheritance', or 'Aggregation' relationships.\n- Define attributes and methods within the Class properties.",
+  "Component diagram": "- Represent independent, encapsulated software components.\n- Use 'ProvidedInterface' and 'RequiredInterface' nodes to model component dependencies.",
+  "ConceptualMap": "- Use 'Concept' nodes to represent ideas or domain entities.\n- Connect them using 'Link' relationships that describe the semantic relationship (e.g., 'is a', 'contains').",
+  "Domain Requirement-AC": "- Document domain-level requirements.\n- Connect functional and non-functional requirements to the domain components they affect.",
+  "Feature model UVL": "- Represents a Universal Variability Language (UVL) feature model.\n- Use 'Feature' nodes and strictly enforce 'mandatory', 'optional', 'or', and 'alternative' group relations.",
+  "Feature model with attributes": "- Hierarchical features are connected using 'RootFeature_Feature' or 'ConcreteFeature_Feature'.\n- To group features logically (e.g., OR, XOR groups), use a 'Bundle' node. Connect it to the parent feature, and connect its children using 'Bundle_Feature'.\n- To represent cross-tree constraints like 'requires' or 'excludes', you MUST create an 'Annotation' node.",
+  "Feature model without attributes": "- Standard feature model variability without attribute values.\n- Use 'Feature' nodes connected via 'Feature_Feature' relationships. Grouping is done via 'Bundle' nodes for OR/XOR variability.",
+  "GUI": "- Model graphical user interface screens or windows.\n- Connect screens using navigation flows to represent user journeys.",
+  "GUI components": "- Model individual UI widgets (buttons, text fields, containers).\n- Establish containment relationships to define layout structures.",
+  "Catalog of potential products": "- List the specific products derived from the product line.\n- Connect products to the features they instantiate from the Domain model.",
+  "Context diagram": "- Model the system boundary and external actors.\n- The central node represents the System, surrounded by Actor nodes connected via data flow relationships.",
+  "KAOS": "- Model goal-oriented requirements engineering.\n- Decompose 'Goal' nodes into 'SubGoals' and eventually 'Requirements' assigned to 'Agent' nodes.",
+  "Use cases and Misuse cases": "- Use 'UseCase' nodes for intended system behavior and 'Actor' nodes for users.\n- Use 'MisuseCase' nodes to model security threats, connected via 'threatens' or 'mitigates' relationships.",
+  "Application feature tree": "- Represents the specific feature selection for a single application derived from the Domain.\n- Only contains bound/selected features with resolved variability.",
+  "Sawyer et al": "- Requirement modeling based on the Sawyer et al. framework.\n- Connect requirements to their verification and validation artifacts."
+}

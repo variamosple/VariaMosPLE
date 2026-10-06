@@ -1,0 +1,42 @@
+{
+  "archivo_log": "logs indice reproducibilidad 4.txt",
+  "archivo_banco": "banco_pruebas_metamorficas.json",
+  "resumen": {
+    "total_pruebas": 50,
+    "exitos": 29,
+    "fallas": 21,
+    "indice_reproducibilidad": 58.0
+  },
+  "estadisticas_por_categoria": {
+    "paraphrase": {
+      "total": 10,
+      "exitos": 8,
+      "fallas": 2,
+      "reproducibilidad": 80.0
+    },
+    "format_change": {
+      "total": 10,
+      "exitos": 7,
+      "fallas": 3,
+      "reproducibilidad": 70.0
+    },
+    "noise_injection": {
+      "total": 10,
+      "exitos": 4,
+      "fallas": 6,
+      "reproducibilidad": 40.0
+    },
+    "logical_inversion": {
+      "total": 10,
+      "exitos": 2,
+      "fallas": 8,
+      "reproducibilidad": 20.0
+    },
+    "language_interference": {
+      "total": 10,
+      "exitos": 8,
+      "fallas": 2,
+      "reproducibilidad": 80.0
+    }
+  }
+}

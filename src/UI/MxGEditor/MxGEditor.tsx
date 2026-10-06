@@ -1006,13 +1006,20 @@ export default class MxGEditor extends Component<Props, State> {
               );
 
               if (element) {
+                const relatedRelationships = (me.currentModel.relationships || []).filter(
+                  (r: any) => r.sourceId === uid || r.targetId === uid
+                );
+
                 me.registerHistoryEvent({
                   modelId: me.currentModel?.id,
                   actionType: HistoryActionType.ITEM_DELETED,
                   entityType: HistoryEntityType.ELEMENT,
                   entityId: element.id,
                   entityName: element.name,
-                  oldValue: JSON.parse(JSON.stringify(element)),
+                  oldValue: {
+                    ...JSON.parse(JSON.stringify(element)),
+                    relatedRelationships: JSON.parse(JSON.stringify(relatedRelationships)),
+                  },
                   newValue: null,
                   description: `Deleted element "${element.name}"`
                 });
@@ -1218,9 +1225,22 @@ export default class MxGEditor extends Component<Props, State> {
         );
 
         if (!exists) {
-          this.currentModel.elements.push(
-            JSON.parse(JSON.stringify(item.oldValue))
-          );
+          const { relatedRelationships, ...elementData } = item.oldValue;
+
+          this.currentModel.elements.push(JSON.parse(JSON.stringify(elementData)));
+
+          if (Array.isArray(relatedRelationships)) {
+            relatedRelationships.forEach((rel: any) => {
+              const relExists = this.props.projectService.findModelRelationshipById(
+                this.currentModel,
+                rel.id
+              );
+
+              if (!relExists) {
+                this.currentModel.relationships.push(JSON.parse(JSON.stringify(rel)));
+              }
+            });
+          }
         }
       }
 
@@ -4850,7 +4870,11 @@ export default class MxGEditor extends Component<Props, State> {
             historyRecords={this.state.historyRecords}
             selectedModelId={this.currentModel?.id}
             onRefresh={this.loadProjectHistory}
-            onRevertHistoryItem={this.revertHistoryItem.bind(this)}
+            onRevertHistoryItem={
+              this.state.userRole !== RoleEnum.VIEWER
+                ? this.revertHistoryItem.bind(this)
+                : undefined
+            }
             onPreviewHistoryItem={this.previewHistoryItem}
             onClearHistoryPreview={this.clearHistoryPreview}
           />

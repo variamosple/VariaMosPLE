@@ -4,6 +4,7 @@ import ProjectService from "../../../Application/Project/ProjectService";
 import { Language as DomainLanguage } from "../../../Domain/ProductLineEngineering/Entities/Language";
 import { AIChatRequest, AIChatResult } from "../../../DataProvider/Services/projectPersistenceService";
 import { VariamosAIService } from "../../../DataProvider/Services/projectPersistenceService";
+import { getOrganicRAG } from "./OrganicRAGService";
 
 import {
   buildSnapshot,
@@ -83,6 +84,7 @@ const resolveLanguageForModel = (all: Language[], model: any): Language | null =
 
 
 const MODEL_OPTIONS: ModelOption[] = [
+    // === FREE MODELS FROM OPENROUTER ===
   { id: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "NVIDIA: Nemotron 3 Ultra", free: true, provider: "NVIDIA" },
   { id: "thinkingmachines/inkling:free", label: "Thinking Machines: Inkling", free: true, provider: "Thinking Machines" },
   { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "NVIDIA: Nemotron 3 Super", free: true, provider: "NVIDIA" },
@@ -100,6 +102,9 @@ const MODEL_OPTIONS: ModelOption[] = [
   { id: "google/gemma-4-31b-it:free", label: "Google: Gemma 4 31B", free: true, provider: "Google" },
   { id: "qwen/qwen3.8-27b:free", label: "Qwen: Qwen3.8 27B", free: true, provider: "Qwen" },
   { id: "liquid/lfm-2.5-2.6b:free", label: "LiquidAI: LFM2.5 2.6B", free: true, provider: "LiquidAI" },
+  // === DEEPSEEK MODELS (direct API) ===
+  { id: "deepseek/deepseek-chat", label: "DeepSeek: Flash (V3)", free: true, provider: "DeepSeek" },
+  { id: "deepseek/deepseek-reasoner", label: "DeepSeek: Reasoner (R1)", free: false, provider: "DeepSeek" },
 ];
 
 // Helper: label amigable para mostrar al usuario
@@ -2901,8 +2906,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
       stageStep("Calling API… (create)");
 
       const langName = opLanguage?.name || ps.getSelectedLanguage?.() || "Language";
+      const dynamicRAG = await getOrganicRAG(langName);
+
       const memoryHint = plk ? [
-        `[Contexto del proyecto]`,
+        `[Contexto del proyecto local]`,
         `Raíces comunes (mismo lenguaje): {${(plk.sameLang.rootNames || []).join(", ")}}`,
         `Conceptos frecuentes (mismo lenguaje): ${plk.sameLang.knownElementNames.slice(0, 15).join(", ")}`,
         `Conceptos frecuentes (global PL): ${plk.knownElementNames.slice(0, 20).join(", ")}`,
@@ -2911,9 +2918,22 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
         `- Si la meta define relaciones para trazabilidad, úsalas hacia NOMBRES existentes.`,
       ].join("\n") : "";
 
+      const fullGoalWithRAG = `
+${memoryHint}
+
+[PROJECT MEMORY (traceability-aware and templates)]
+${dynamicRAG}
+
+[TRACEABILITY DIRECTIVES (STRICT)]
+- Reuse EXACT element NAMES from the lists above when the user asks for a new model in a different language.
+
+[USER REQUEST]
+${cleanUserText}
+      `.trim();
+
       const userPromptCreate = buildCreatePrompt({
         languageName: langName,
-        userGoal: `${memoryHint}\n\n${cleanUserText}`,
+        userGoal: fullGoalWithRAG,
         patchSchema: PATCH_SCHEMA_TEXT
       });
 
