@@ -101,10 +101,9 @@ const MODEL_OPTIONS: ModelOption[] = [
   { id: "huggingfaceh4/zephyr-7b-beta:free", label: "HuggingFace: Zephyr 7B Beta", free: true, provider: "HuggingFace" },
   { id: "openrouter/auto", label: "OpenRouter: Auto (best free)", free: true, provider: "OpenRouter" },
 
-  // === DEEPSEEK MODELS (direct API) ===
-  { id: "deepseek/deepseek-chat", label: "DeepSeek: Chat (V3)", free: true, provider: "DeepSeek" },
-  { id: "deepseek/deepseek-reasoner", label: "DeepSeek: Reasoner (R1)", free: true, provider: "DeepSeek" },
-  { id: "deepseek/deepseek-coder", label: "DeepSeek: Coder", free: true, provider: "DeepSeek" },
+  // === DEEPSEEK MODELS (direct API - official) ===
+  { id: "deepseek/deepseek-flash", label: "DeepSeek: Flash (V3)", free: true, provider: "DeepSeek" },
+  { id: "deepseek/deepseek-v4-pro", label: "DeepSeek: V4 Pro", free: false, provider: "DeepSeek" },
 ];
 
 // Helper: label amigable para mostrar al usuario
