@@ -87,6 +87,10 @@ type ValueProp = { name: string; value: string };
 
 
 const MODEL_OPTIONS: ModelOption[] = [
+  // === DEEPSEEK MODELS (direct API - official) - PRIORITY TOP ===
+  { id: "deepseek/deepseek-flash", label: "DeepSeek: Flash (V3)", free: true, provider: "DeepSeek" },
+  { id: "deepseek/deepseek-v4-pro", label: "DeepSeek: V4 Pro", free: false, provider: "DeepSeek" },
+
   // === FREE MODELS FROM OPENROUTER ===
   { id: "meta-llama/llama-3.1-8b-instruct:free", label: "Meta: Llama 3.1 8B Instruct", free: true, provider: "Meta" },
   { id: "meta-llama/llama-3.1-70b-instruct:free", label: "Meta: Llama 3.1 70B Instruct", free: true, provider: "Meta" },
@@ -100,10 +104,6 @@ const MODEL_OPTIONS: ModelOption[] = [
   { id: "microsoft/phi-3-medium-128k-instruct:free", label: "Microsoft: Phi-3 Medium 128K", free: true, provider: "Microsoft" },
   { id: "huggingfaceh4/zephyr-7b-beta:free", label: "HuggingFace: Zephyr 7B Beta", free: true, provider: "HuggingFace" },
   { id: "openrouter/auto", label: "OpenRouter: Auto (best free)", free: true, provider: "OpenRouter" },
-
-  // === DEEPSEEK MODELS (direct API - official) ===
-  { id: "deepseek/deepseek-flash", label: "DeepSeek: Flash (V3)", free: true, provider: "DeepSeek" },
-  { id: "deepseek/deepseek-v4-pro", label: "DeepSeek: V4 Pro", free: false, provider: "DeepSeek" },
 ];
 
 // Helper: label amigable para mostrar al usuario
