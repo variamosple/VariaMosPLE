@@ -11,10 +11,10 @@ jest.mock("../../../DataProvider/Services/collab/treeCollaborationService", () =
 
 const post = PROJECTS_CLIENT.post as jest.Mock;
 
-function setup() {
+function setup(relationships: Record<string, unknown> = {}) {
   const language = {
     id: 7, name: "Test language", type: "DOMAIN",
-    abstractSyntax: { elements: { Node: {} }, relationships: {} }
+    abstractSyntax: { elements: { Node: {} }, relationships }
   };
   const domain = {
     id: "domain", type: language.name, languageId: "7", name: "Domain",
@@ -61,11 +61,15 @@ function setup() {
   return { domain, domainModels, saveProject: service.saveProject };
 }
 
-function sendJson(value: object) {
+function sendText(value: string) {
   const input = screen.getByRole("textbox") as HTMLInputElement;
-  fireEvent.change(input, { target: { value: JSON.stringify(value) } });
+  fireEvent.change(input, { target: { value } });
   fireEvent.click(screen.getByRole("button", { name: "Send" }));
   return input;
+}
+
+function sendJson(value: object) {
+  return sendText(JSON.stringify(value));
 }
 
 beforeEach(() => post.mockReset());
@@ -123,4 +127,55 @@ test("an unavailable validation service leaves the applied patch and saving inta
   expect(input.disabled).toBe(false);
   expect(post).toHaveBeenCalledTimes(1);
   expect(JSON.parse(post.mock.calls[0][1]).project.productLines[0].domainEngineering.models[0].elements).toEqual([]);
+});
+
+test("natural-language creation handles an incomplete relationship and reaches the validation log", async () => {
+  const relationships = {
+    Connects: { source: "Node", target: ["Node"], min: 0, max: 1 },
+    Incomplete: { source: "Node", min: 0, max: 1 }
+  };
+  const originalRelationships = JSON.stringify(relationships);
+  post.mockImplementation(async (url, body) => {
+    const request = typeof body === "string" ? JSON.parse(body) : body;
+    if (url === "/api/ai/chat") {
+      const verifier = request.messages[0].content.includes("strict patch verifier");
+      return {
+        data: {
+          usedModelId: request.primaryModelId,
+          content: JSON.stringify(verifier ? { ops: [] } : {
+            name: "Commerce",
+            elements: ["Catalogo", "CarritoCompras", "Pagos"].map(name => ({ name, type: "Node" })),
+            relationships: [{ type: "Connects", source: "Catalogo", target: "CarritoCompras" }]
+          })
+        }
+      };
+    }
+    return {
+      data: {
+        schemaVersion: 1, snapshotId: request.snapshotId,
+        coverage: { effectiveScope: "complete", models: [{}, {}, {}] },
+        rules: [{ ruleId: "RG04", status: "cumple" }],
+        findings: []
+      }
+    };
+  });
+  const { domainModels, saveProject } = setup(relationships);
+  const input = sendText("/create Crea una tienda online con Catalogo, CarritoCompras y Pagos.");
+
+  await waitFor(() => expect(domainModels).toHaveLength(2));
+  await waitFor(() => expect(screen.getByText("Log").parentElement.textContent).toContain(
+    "[Validación · intento 1] Captura completa"
+  ));
+  expect(domainModels[1].elements).toHaveLength(3);
+  expect(domainModels[1].relationships).toHaveLength(1);
+  expect(domainModels[1].relationships[0].type).toBe("Connects");
+  expect(saveProject).toHaveBeenCalled();
+  expect(input.disabled).toBe(false);
+  expect(JSON.stringify(relationships)).toBe(originalRelationships);
+  const chatCalls = post.mock.calls.filter(([url]) => url === "/api/ai/chat");
+  expect(chatCalls).toHaveLength(2);
+  expect(chatCalls[0][1].messages[0].content).toContain("Connects: Node→[Node]");
+  expect(chatCalls[0][1].messages[0].content).not.toContain("Incomplete:");
+  const validationCall = post.mock.calls.find(([url]) => url === "/api/ai/validate-snapshot");
+  expect(JSON.parse(validationCall[1]).metamodels["7"].relationships.Incomplete).toEqual(relationships.Incomplete);
 });

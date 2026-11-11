@@ -1242,9 +1242,20 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
         return { elements: {}, relationships: {}, restrictions: {} };
       }
 
+      const relationships: Record<string, MetaRelDef> = {};
+      for (const [name, definition] of Object.entries<MetaRelDef>(abs.relationships)) {
+        if (!definition || typeof definition.source !== "string" || !definition.source.trim() ||
+            !Array.isArray(definition.target) ||
+            !definition.target.every(target => typeof target === "string" && target.trim())) {
+          addLog(`[abstractSyntax] Relación "${name}" omitida del asistente por definición incompleta de source/target.`);
+          continue;
+        }
+        relationships[name] = definition;
+      }
+
       const out: AbstractSyntax = {
         elements: abs.elements || {},
-        relationships: abs.relationships || {},
+        relationships,
         restrictions: abs.restrictions || {}
       };
       addLog(`[abstractSyntax] ok (elements=${Object.keys(out.elements).length}, relationships=${Object.keys(out.relationships).length})`);
