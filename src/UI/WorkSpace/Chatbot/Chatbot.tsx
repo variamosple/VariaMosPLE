@@ -5,6 +5,7 @@ import { Language as DomainLanguage } from "../../../Domain/ProductLineEngineeri
 import { AIChatRequest, AIChatResult } from "../../../DataProvider/Services/projectPersistenceService";
 import { VariamosAIService } from "../../../DataProvider/Services/projectPersistenceService";
 import { getOrganicRAG } from "./OrganicRAGService";
+import { formatValidationLog, validateModelSnapshot } from "./ModelValidationService";
 
 import {
   buildSnapshot,
@@ -549,6 +550,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   const [log, setLog] = useState<string[]>([]);
   const addLog = (s: string) => setLog(prev => [...prev, s]);
   const lastModelIdRef = useRef<string | null>(null);
+  const validationAttemptRef = useRef(0);
 
   // Vinculación por props (si llega)
   useEffect(() => {
@@ -2473,6 +2475,24 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   const send = async (userText: string) => {
     if (busy) return;
     setBusy(true);
+    const attempt = ++validationAttemptRef.current;
+    let changeApplied = false;
+    const reportValidation = async () => {
+      const prefix = `[Validación · intento ${attempt}]`;
+      addLog(`${prefix} Evaluando la captura después del cambio…`);
+      try {
+        const report = await validateModelSnapshot(ps.project, ps.languages ?? allLanguages, `chat-${attempt}`);
+        addLog(formatValidationLog(prefix, report));
+      } catch (error: any) {
+        const status = error?.response?.status;
+        const reason = status === 401 || status === 403
+          ? "Inicia sesión con acceso a la validación."
+          : status === 413
+            ? "La captura supera el límite de validación."
+            : "El servicio de validación no devolvió un informe.";
+        addLog(`${prefix} No evaluado · ${reason}`);
+      }
+    };
 
     // ===== helpers locales (solo para esta función) =====
     const stageStep = (s: string) => { setStage(s); addLog(`[stage] ${s}`); };
@@ -2682,6 +2702,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
 
           stageStep("Done ✅");
           setAssistantText("PATCH aplicado ✅");
+          changeApplied = Boolean(createsSan.ops.length || othersSan.ops.length || connectsSan.ops.length);
           return;
         }
 
@@ -2705,7 +2726,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
           stageStep("Injecting model…");
           await withNoAlert(() => {
             const created = injectIntoProject(planLite, currentLanguage as Language, phase, abs);
-            if (created?.id) lastModelIdRef.current = created.id;
+            if (created?.id) {
+              lastModelIdRef.current = created.id;
+              changeApplied = true;
+            }
           });
 
           stageStep("Listo ✅");
@@ -2900,6 +2924,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
         }
 
         stageStep("Done ✅");
+        changeApplied = Boolean(createsSan.ops.length || othersSan.ops.length || connectsSan.ops.length);
         return;
       }
 
@@ -3054,7 +3079,10 @@ ${cleanUserText}
       stageStep("Injecting model…");
       await withNoAlert(() => {
         const created = injectIntoProject(planLiteFinal, opLanguage as Language, phase, abs);
-        if (created?.id) lastModelIdRef.current = created.id;
+        if (created?.id) {
+          lastModelIdRef.current = created.id;
+          changeApplied = true;
+        }
       });
 
       stageStep("Listo ✅");
@@ -3079,6 +3107,7 @@ ${cleanUserText}
     } finally {
       setBusy(false);
       setTimeout(() => setStage(""), 800);
+      if (changeApplied) void reportValidation();
     }
   };
 
