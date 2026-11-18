@@ -63,6 +63,13 @@ export function semanticsForModel(
   return language.semantics;
 }
 
+// The translator explains a mistake in the model (for instance constraints
+// it cannot read) in data.error, with an HTTP 400.
+export function queryErrorMessage(error: any): string {
+  const message = error?.response?.data?.data?.error;
+  return typeof message === "string" && message ? message : "something went wrong ...";
+}
+
 export function runQuery(
   projectService: ProjectService,
   translatorEndpoint: string,
@@ -94,7 +101,7 @@ export function runQuery(
       return response.data.data.content;
     })
     .catch((error) => {
-      alertify.error("something went wrong ...");
+      alertify.error(queryErrorMessage(error));
       console.error(error);
       return null;
     });
@@ -131,7 +138,7 @@ export function runQueryFromModel(
       return response.data.data.content;
     })
     .catch((error) => {
-      alertify.error("something went wrong ...");
+      alertify.error(queryErrorMessage(error));
       console.error(error);
       return null;
     });
