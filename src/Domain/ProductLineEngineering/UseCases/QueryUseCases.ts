@@ -30,6 +30,39 @@ export function syncConcreteSemantics(
   );
 }
 
+// Rules of the language of the model that the query targets. The current
+// language is only set when a model is clicked in the tree
+// (ProjectService.loadExternalFunctions): before that click, or when it
+// belongs to another model, the language is found from the model itself.
+// Without rules, the query is not sent and the user is told why, instead of
+// failing with a TypeError that shows nothing.
+export function semanticsForModel(
+  projectService: ProjectService,
+  modelId: string
+): string | null {
+  const model = projectService.findModelById(projectService.project, modelId);
+  if (!model) {
+    alertify.error("Select a model in the project tree first.");
+    return null;
+  }
+  const current = projectService.currentLanguage;
+  if (current?.semantics && current.name === model.type) {
+    return current.semantics;
+  }
+  const language = (projectService.languages || []).find(
+    (candidate) =>
+      (model.languageId && String(candidate.id) === String(model.languageId)) ||
+      candidate.name === model.type
+  );
+  if (!language?.semantics) {
+    alertify.error(
+      `The language "${model.type}" of this model is not loaded or has no semantics.`
+    );
+    return null;
+  }
+  return language.semantics;
+}
+
 export function runQuery(
   projectService: ProjectService,
   translatorEndpoint: string,
@@ -39,12 +72,16 @@ export function runQuery(
   // information.
 
   // First, get the project information.
-  // get currently selected language
-  const semantics = projectService.currentLanguage.semantics;
+  // get the language of the selected model
+  const modelSelectedId = projectService.getTreeIdItemSelected();
+  const semantics = semanticsForModel(projectService, modelSelectedId);
+  if (!semantics) {
+    return Promise.resolve(null);
+  }
   const data = {
     rules: semantics,
     query: query,
-    modelSelectedId: projectService.getTreeIdItemSelected(),
+    modelSelectedId: modelSelectedId,
     transactionId: projectService.generateId(),
     project: projectService.project,
     input: "vmos"
@@ -73,8 +110,11 @@ export function runQueryFromModel(
   // information.
 
   // First, get the project information.
-  // get currently selected language
-  const semantics = projectService.currentLanguage.semantics;
+  // get the language of the model
+  const semantics = semanticsForModel(projectService, modelSelectedId);
+  if (!semantics) {
+    return Promise.resolve(null);
+  }
   const data = {
     rules: semantics,
     query: query,
