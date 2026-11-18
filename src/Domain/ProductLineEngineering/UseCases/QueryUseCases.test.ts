@@ -72,4 +72,22 @@ describe("runQuery", () => {
     expect(axios.post).not.toHaveBeenCalled();
     expect(alertify.error).toHaveBeenCalledTimes(1);
   });
+
+  test("shows the message the translator gives for a mistake in the model", async () => {
+    const message = "The constraints written in this model are not valid (line 1, column 1).";
+    axios.post.mockRejectedValueOnce({ response: { status: 400, data: { data: { error: message } } } });
+
+    const result = await runQuery(projectService({ selected: "model-1" }), "/query", getCode());
+
+    expect(result).toBeNull();
+    expect(alertify.error).toHaveBeenCalledWith(message);
+  });
+
+  test("keeps the general message when the translator gives none", async () => {
+    axios.post.mockRejectedValueOnce(new Error("Network Error"));
+
+    await runQuery(projectService({ selected: "model-1" }), "/query", getCode());
+
+    expect(alertify.error).toHaveBeenCalledWith("something went wrong ...");
+  });
 });
