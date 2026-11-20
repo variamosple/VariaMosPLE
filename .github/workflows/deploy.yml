@@ -1,0 +1,29 @@
+# Builds, checks and deploys the frontend with the shared workflow of the
+# organization: https://github.com/variamosple/.github
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: variamosple/.github/.github/workflows/deploy.yml@v1
+    with:
+      image: variamosple
+      service: variamospleaws
+      page-url: https://app.variamos.com/
+      build-env: |
+        REACT_APP_NODE_ENV=${{ vars.REACT_APP_NODE_ENV }}
+        REACT_APP_HOST=${{ vars.REACT_APP_HOST }}
+        REACT_APP_URLBACKENDLANGUAGE=${{ vars.REACT_APP_URLBACKENDLANGUAGE }}
+        REACT_APP_URLBACKENDRESTRICTION=${{ vars.REACT_APP_URLBACKENDRESTRICTION }}
+        REACT_APP_URLVARIAMOSLANGUAGES=${{ vars.REACT_APP_URLVARIAMOSLANGUAGES }}
+        REACT_APP_URLVARIAMOSDOCUMENTATION=${{ vars.REACT_APP_URLVARIAMOSDOCUMENTATION }}
+        REACT_APP_URLVARIAMOSLANGDOCUMENTATION=${{ vars.REACT_APP_URLVARIAMOSLANGDOCUMENTATION }}
+        REACT_APP_URLVMSPROJECTS=${{ vars.REACT_APP_URLVMSPROJECTS }}
+        REACT_APP_VARIAMOS_ADMIN_API_URL=${{ vars.REACT_APP_ADMIN_API_URL }}
+        REACT_APP_VARIAMOS_LOGIN_URL="${{ vars.REACT_APP_LOGIN_URL }}"
+        REACT_APP_WEBSOCKET_URL=${{ vars.REACT_APP_WEBSOCKET_URL }}
+    secrets: inherit
