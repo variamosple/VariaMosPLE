@@ -5,7 +5,15 @@ import { Language as DomainLanguage } from "../../../Domain/ProductLineEngineeri
 import { AIChatRequest, AIChatResult } from "../../../DataProvider/Services/projectPersistenceService";
 import { VariamosAIService } from "../../../DataProvider/Services/projectPersistenceService";
 import { getOrganicRAG } from "./OrganicRAGService";
-import { formatValidationLog, validateModelSnapshot } from "./ModelValidationService";
+import {
+  captureModelTransition, parseConstraintProfile, parseCorrespondenceProfile, parseTraceContext, parseVersionContext,
+  summarizeConstraintValidation, summarizeCorrespondenceValidation, summarizeSnapshotValidation,
+  summarizeTraceValidation, summarizeTransitionValidation, summarizeVersionValidation,
+  unavailableValidationSection, validateModelSnapshot, validateModelTransition, validationGroupOrder
+} from "./ModelValidationService";
+import type { ValidationSection } from "./ModelValidationService";
+import ValidationCard from "./ValidationCard";
+import type { AttemptValidation } from "./ValidationCard";
 
 import {
   buildSnapshot,
@@ -27,7 +35,7 @@ type ModePref = "AUTO" | "EDIT" | "CREATE";
 
 type Phase = "SCOPE" | "DOMAIN" | "APPLICATION";
 type Role = "system" | "user" | "assistant";
-interface Message { role: Role; content: string; }
+interface Message { role: Role; content: string; attempt?: number; }
 
 type Language = DomainLanguage;
 
@@ -547,10 +555,110 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [thread, setThread] = useState<Message[]>([]);
+  const [validationReports, setValidationReports] = useState<Record<number, AttemptValidation>>({});
   const [log, setLog] = useState<string[]>([]);
   const addLog = (s: string) => setLog(prev => [...prev, s]);
   const lastModelIdRef = useRef<string | null>(null);
   const validationAttemptRef = useRef(0);
+  const [correspondenceCriteria, setCorrespondenceCriteria] = useState<{
+    projectId: string; profile: ReturnType<typeof parseCorrespondenceProfile>;
+  } | null>(null);
+  const activeCriteria = correspondenceCriteria?.projectId === ps?.project?.id ? correspondenceCriteria : null;
+  const loadCorrespondenceCriteria = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    const projectId = ps?.project?.id;
+    event.currentTarget.value = "";
+    if (!file || !projectId) return;
+    try {
+      if (file.size > 128 * 1024) throw new Error("El archivo de criterios supera 128 KiB.");
+      const text = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("No se pudo leer el archivo de criterios."));
+        reader.readAsText(file);
+      });
+      const profile = parseCorrespondenceProfile(text);
+      setCorrespondenceCriteria({ projectId, profile });
+      addLog(`[Criterios] Cargados para este proyecto · ${profile.id}. Se aplicarán a la siguiente solicitud y se mantendrán solo en esta sesión del chatbot.`);
+    } catch (error: any) {
+      addLog(`[Criterios] No se pudieron cargar. ${error?.message || "Formato no válido."}`);
+    }
+  };
+
+  const [constraintCriteria, setConstraintCriteria] = useState<{
+    projectId: string; profile: ReturnType<typeof parseConstraintProfile>;
+  } | null>(null);
+  const activeConstraintCriteria = constraintCriteria?.projectId === ps?.project?.id ? constraintCriteria : null;
+  const loadConstraintCriteria = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    const projectId = ps?.project?.id;
+    event.currentTarget.value = "";
+    if (!file || !projectId) return;
+    try {
+      if (file.size > 128 * 1024) throw new Error("El archivo de criterios supera 128 KiB.");
+      const text = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("No se pudo leer el archivo de criterios."));
+        reader.readAsText(file);
+      });
+      const profile = parseConstraintProfile(text);
+      setConstraintCriteria({ projectId, profile });
+      addLog(`[Restricciones · criterios] Cargados para este proyecto · ${profile.id}. Se aplicarán a la siguiente solicitud y se mantendrán solo en esta sesión del chatbot.`);
+    } catch (error: any) {
+      addLog(`[Restricciones · criterios] No se pudieron cargar. ${error?.message || "Formato no válido."}`);
+    }
+  };
+
+  const [versionEvidence, setVersionEvidence] = useState<{
+    projectId: string; context: ReturnType<typeof parseVersionContext>;
+  } | null>(null);
+  const activeVersionEvidence = versionEvidence?.projectId === ps?.project?.id ? versionEvidence : null;
+  const loadVersionEvidence = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    const projectId = ps?.project?.id;
+    event.currentTarget.value = "";
+    if (!file || !projectId) return;
+    try {
+      if (file.size > 128 * 1024) throw new Error("El archivo de contexto supera 128 KiB.");
+      const text = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("No se pudo leer el contexto histórico."));
+        reader.readAsText(file);
+      });
+      const context = parseVersionContext(text, projectId);
+      setVersionEvidence({ projectId, context });
+      addLog(`[Versiones · contexto] Cargado para este proyecto · ${context.id}. Solo en memoria; se comprobará en la siguiente solicitud.`);
+    } catch (error: any) {
+      addLog(`[Versiones · contexto] No se pudo cargar. ${error?.message || "Formato no válido."}`);
+    }
+  };
+
+  const [traceEvidence, setTraceEvidence] = useState<{
+    projectId: string; context: ReturnType<typeof parseTraceContext>;
+  } | null>(null);
+  const activeTraceEvidence = traceEvidence?.projectId === ps?.project?.id ? traceEvidence : null;
+  const loadTraceEvidence = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    const projectId = ps?.project?.id;
+    event.currentTarget.value = "";
+    if (!file || !projectId) return;
+    try {
+      if (file.size > 128 * 1024) throw new Error("El archivo de contexto supera 128 KiB.");
+      const text = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("No se pudo leer el contexto de trazabilidad."));
+        reader.readAsText(file);
+      });
+      const context = parseTraceContext(text, projectId);
+      setTraceEvidence({ projectId, context });
+      addLog(`[Trazabilidad · contexto] Cargado para este proyecto · ${context.id}. Solo en memoria; se comprobará en la siguiente solicitud.`);
+    } catch (error: any) {
+      addLog(`[Trazabilidad · contexto] No se pudo cargar. ${error?.message || "Formato no válido."}`);
+    }
+  };
 
   // Vinculación por props (si llega)
   useEffect(() => {
@@ -2487,22 +2595,77 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
     if (busy) return;
     setBusy(true);
     const attempt = ++validationAttemptRef.current;
+    const traceAttemptId = uuid();
+    const validationProjectId = ps?.project?.id;
+    let validationModelName: string | undefined;
     let changeApplied = false;
+    let beforeCapture: ReturnType<typeof captureModelTransition> | undefined;
     const reportValidation = async () => {
-      const prefix = `[Validación · intento ${attempt}]`;
-      addLog(`${prefix} Evaluando la captura después del cambio…`);
-      try {
-        const report = await validateModelSnapshot(ps.project, ps.languages ?? allLanguages, `chat-${attempt}`);
-        addLog(formatValidationLog(prefix, report));
-      } catch (error: any) {
+      if (ps.project?.id !== validationProjectId) return;
+      setValidationReports(previous => ({
+        ...previous, [attempt]: { projectId: validationProjectId, modelName: validationModelName, sections: {} }
+      }));
+      const updateSections = (...sections: ValidationSection[]) => {
+        const updates = Object.fromEntries(sections.map(section => [section.group, section]));
+        setValidationReports(previous => {
+          const current = previous[attempt];
+          return {
+            ...previous,
+            [attempt]: { ...current, sections: { ...current.sections, ...updates } }
+          };
+        });
+      };
+      const failureReason = (error: any) => {
         const status = error?.response?.status;
-        const reason = status === 401 || status === 403
+        return status === 401 || status === 403
           ? "Inicia sesión con acceso a la validación."
           : status === 413
             ? "La captura supera el límite de validación."
             : "El servicio de validación no devolvió un informe.";
-        addLog(`${prefix} No evaluado · ${reason}`);
-      }
+      };
+      const unavailableTransition = (reason: string) => {
+        updateSections(...validationGroupOrder.filter(group => group !== "snapshot")
+          .map(group => unavailableValidationSection(group, reason)));
+      };
+      const snapshot = (async () => {
+        try {
+          const report = await validateModelSnapshot(ps.project, ps.languages ?? allLanguages, `chat-${attempt}`);
+          updateSections(summarizeSnapshotValidation(report));
+        } catch (error) {
+          updateSections(unavailableValidationSection("snapshot", failureReason(error)));
+        }
+      })();
+      const transition = (async () => {
+        if (!beforeCapture) {
+          unavailableTransition("No se pudo obtener la captura anterior.");
+          return;
+        }
+        try {
+          const afterCapture = captureModelTransition(ps.project, `chat-${attempt}-after`, ps.languages ?? allLanguages);
+          const profile = activeCriteria?.projectId === afterCapture.projectId ? activeCriteria.profile : undefined;
+          const constraintProfile = activeConstraintCriteria?.projectId === afterCapture.projectId ? activeConstraintCriteria.profile : undefined;
+          const versionContext = activeVersionEvidence?.projectId === afterCapture.projectId ? activeVersionEvidence.context : undefined;
+          const traceContext = activeTraceEvidence?.projectId === afterCapture.projectId ? activeTraceEvidence.context : undefined;
+          const attemptContext = { schemaVersion: 1, id: traceAttemptId, projectId: afterCapture.projectId,
+            beforeSnapshotId: beforeCapture.snapshotId, afterSnapshotId: afterCapture.snapshotId,
+            origin: { id: traceAttemptId, kind: "interaction", source: "chatbot" } };
+          const report = await validateModelTransition(beforeCapture, afterCapture, profile, constraintProfile, versionContext,
+            { attemptContext, traceContext });
+          updateSections(
+            summarizeTransitionValidation(report),
+            summarizeCorrespondenceValidation(report.correspondenceValidation, { ...afterCapture, profileId: profile ? String(profile.id) : null }),
+            summarizeConstraintValidation(report.constraintValidation, { ...afterCapture, profileId: constraintProfile ? String(constraintProfile.id) : null }),
+            summarizeVersionValidation(report.versionValidation, { ...afterCapture, contextId: versionContext ? String(versionContext.id) : null }),
+            summarizeTraceValidation(report.traceabilityValidation, {
+              ...afterCapture, beforeSnapshotId: beforeCapture.snapshotId, attemptId: traceAttemptId,
+              contextId: traceContext ? String(traceContext.id) : null, changes: report.changes
+            })
+          );
+        } catch (error) {
+          unavailableTransition(failureReason(error));
+        }
+      })();
+      await Promise.allSettled([snapshot, transition]);
     };
 
     // ===== helpers locales (solo para esta función) =====
@@ -2570,8 +2733,12 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
       return out;
     };
 
-    // suprime alert durante applyPatch (para que no interrumpa el flujo)
-    const withNoAlert = async <T,>(fn: () => T | Promise<T>): Promise<T> => {
+    // Capture once before the first mutation, including attempts that fail partway.
+    const applyChange = async <T,>(fn: () => T | Promise<T>): Promise<T> => {
+      if (!changeApplied) {
+        try { beforeCapture = captureModelTransition(ps.project, `chat-${attempt}-before`, ps.languages ?? allLanguages); } catch { }
+      }
+      changeApplied = true;
       const prev = window.alert;
       window.alert = (...args: any[]) => {
         try {
@@ -2612,28 +2779,17 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
     }
 
     // ===== UI: agrega mensaje del usuario + placeholder del bot (para fast-path y LLM) =====
-    let placeholderIdx = -1;
-    setThread(prev => {
-      const next: Message[] = [
-        ...prev,
-        { role: "user", content: String(userText) },
-        { role: "assistant", content: "__typing__" }
-      ];
-      placeholderIdx = next.length - 1;
-      return next;
-    });
+    setThread(prev => [...prev,
+      { role: "user", content: String(userText) },
+      { role: "assistant", content: "__typing__", attempt }
+    ]);
 
     const setAssistantText = (text: string) => {
       setThread(prev => {
-        const copy = [...prev];
-        if (placeholderIdx >= 0 && copy[placeholderIdx]?.content === "__typing__") {
-          copy[placeholderIdx] = { role: "assistant", content: text };
-        } else {
-          const idx = copy.findIndex(m => m.content === "__typing__");
-          if (idx >= 0) copy[idx] = { role: "assistant", content: text };
-          else copy.push({ role: "assistant", content: text });
-        }
-        return copy;
+        const message: Message = { role: "assistant", content: text, attempt };
+        const placeholderIndex = prev.findIndex(entry => entry.attempt === attempt && entry.content === "__typing__");
+        if (placeholderIndex < 0) return [...prev, message];
+        return prev.map((entry, index) => index === placeholderIndex ? message : entry);
       });
     };
 
@@ -2647,6 +2803,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
         if (looksLikePatch(userObj)) {
           let targetModel = getSelectedModel();
           if (!targetModel) throw new Error("No hay modelo seleccionado para aplicar el PATCH.");
+          validationModelName = targetModel.name;
 
           const langForModel = getLanguageForSelectedModel(targetModel) || currentLanguage;
           const abs = getAbstract(langForModel);
@@ -2670,7 +2827,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
           createsSan = assignPositionsToCreates(createsSan, targetModel);
           if (createsSan.ops.length) {
             stageStep(`Creating elements (${createsSan.ops.length})…`);
-            await withNoAlert(() => applyPatch(ps, targetModel!, createsSan));
+            await applyChange(() => applyPatch(ps, targetModel!, createsSan));
             targetModel = ps.findModelById(ps.project, targetModel!.id) || targetModel;
             forceRefresh(targetModel);
             ps.saveProject?.();
@@ -2683,7 +2840,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
             othersSan = bindNameRefsToIds(othersSan, targetModel);
             othersSan = scopeRelationshipDeletesToDeletedElements(othersSan, targetModel);
 
-            await withNoAlert(() => applyPatch(ps, targetModel!, othersSan));
+            await applyChange(() => applyPatch(ps, targetModel!, othersSan));
 
             // por si applyPatch no aplica updateElement{type} correctamente
             if (ensureTypeChangeApplied(othersSan, targetModel, abs)) {
@@ -2704,7 +2861,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
 
           if (connectsSan.ops.length) {
             stageStep(`Applying relationships (${connectsSan.ops.length})…`);
-            await withNoAlert(() => applyPatch(ps, targetModel!, connectsSan));
+            await applyChange(() => applyPatch(ps, targetModel!, connectsSan));
             forceRefresh(targetModel);
             ps.saveProject?.();
           } else {
@@ -2735,10 +2892,11 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
           const planLite = patchToPlanLiteLocal(patch);
 
           stageStep("Injecting model…");
-          await withNoAlert(() => {
+          await applyChange(() => {
             const created = injectIntoProject(planLite, currentLanguage as Language, phase, abs);
             if (created?.id) {
               lastModelIdRef.current = created.id;
+              validationModelName = created.name;
               changeApplied = true;
             }
           });
@@ -2852,6 +3010,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
       if (effectiveMode === "EDIT") {
         if (!targetModel) throw new Error("No hay modelo seleccionado para editar. Selecciona uno en el árbol o usa /create.");
 
+        validationModelName = targetModel.name;
         const snapshot = buildSnapshot(targetModel);
         const prompt = buildEditPrompt({ snapshot, userGoal: cleanUserText, patchSchema: PATCH_SCHEMA_TEXT });
 
@@ -2893,7 +3052,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
         createsSan = assignPositionsToCreates(createsSan, targetModel);
         if (createsSan.ops.length) {
           stageStep(`Creating elements (${createsSan.ops.length})…`);
-          await withNoAlert(() => applyPatch(ps, targetModel!, createsSan));
+          await applyChange(() => applyPatch(ps, targetModel!, createsSan));
           targetModel = ps.findModelById(ps.project, targetModel!.id) || targetModel;
           forceRefresh(targetModel);
           ps.saveProject?.();
@@ -2906,7 +3065,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
           othersSan = bindNameRefsToIds(othersSan, targetModel);
           othersSan = scopeRelationshipDeletesToDeletedElements(othersSan, targetModel);
 
-          await withNoAlert(() => applyPatch(ps, targetModel!, othersSan));
+          await applyChange(() => applyPatch(ps, targetModel!, othersSan));
 
           if (ensureTypeChangeApplied(othersSan, targetModel, abs)) {
             forceRefresh(targetModel);
@@ -2926,7 +3085,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
 
         if (connectsSan.ops.length) {
           stageStep(`Applying relationships (${connectsSan.ops.length})…`);
-          await withNoAlert(() => applyPatch(ps, targetModel!, connectsSan));
+          await applyChange(() => applyPatch(ps, targetModel!, connectsSan));
           lastModelIdRef.current = targetModel!.id;
           forceRefresh(targetModel);
           ps.saveProject?.();
@@ -3088,10 +3247,11 @@ ${cleanUserText}
       const planLiteFinal = patchToPlanLiteLocal(patch);
 
       stageStep("Injecting model…");
-      await withNoAlert(() => {
+      await applyChange(() => {
         const created = injectIntoProject(planLiteFinal, opLanguage as Language, phase, abs);
         if (created?.id) {
           lastModelIdRef.current = created.id;
+          validationModelName = created.name;
           changeApplied = true;
         }
       });
@@ -3177,14 +3337,20 @@ ${cleanUserText}
 
       {/* Conversación */}
       <div className="chat-body" id="chat-scroll">
-        {thread.map((m, i) => (
-          <div key={i} className={`msg ${m.role === "user" ? "user" : "bot"}`}>
-            <div className="bubble">
-              {m.content === "__typing__" ? <Typing /> : m.content}
+        {thread.map((m, i) => {
+          const validation = m.attempt !== undefined && thread[i + 1]?.attempt !== m.attempt
+            ? validationReports[m.attempt]
+            : undefined;
+          return (
+            <div key={i} className={`msg ${m.role === "user" ? "user" : "bot"}`}>
+              <div className="bubble">
+                {m.content === "__typing__" ? <Typing /> : m.content}
+              </div>
+              {validation && validation.projectId === ps?.project?.id && <ValidationCard attempt={m.attempt} validation={validation} />}
+              <div className="meta">{m.role === "user" ? "You" : m.role === "assistant" ? "bot" : "Sys"}</div>
             </div>
-            <div className="meta">{m.role === "user" ? "You" : m.role === "assistant" ? "bot" : "Sys"}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Barra de estado */}
@@ -3212,6 +3378,54 @@ ${cleanUserText}
       {/* Log plegable */}
       <details className="logbox">
         <summary>Log</summary>
+        <div className="validation-criteria">
+          <span>{activeCriteria ? `Criterios RG06–RG08: ${activeCriteria.profile.id}` : "RG06–RG08: sin criterios cargados"}</span>
+          <label>
+            Cargar criterios RG06–RG08
+            <input type="file" accept=".json,application/json" onChange={loadCorrespondenceCriteria} disabled={busy || !ps?.project?.id} />
+          </label>
+          {activeCriteria && <button type="button" disabled={busy} onClick={() => {
+            setCorrespondenceCriteria(null);
+            addLog("[Criterios] Retirados. RG06–RG08 requieren criterios explícitos para evaluarse.");
+          }}>Quitar criterios</button>}
+          <small>Opcional. Solo en memoria para este proyecto; no cambia los modelos ni el guardado.</small>
+        </div>
+        <div className="validation-criteria">
+          <span>{activeConstraintCriteria ? `Criterios RG09–RG12: ${activeConstraintCriteria.profile.id}` : "RG09–RG12: sin criterios cargados"}</span>
+          <label>
+            Cargar criterios RG09–RG12
+            <input type="file" accept=".json,application/json" onChange={loadConstraintCriteria} disabled={busy || !ps?.project?.id} />
+          </label>
+          {activeConstraintCriteria && <button type="button" disabled={busy} onClick={() => {
+            setConstraintCriteria(null);
+            addLog("[Restricciones · criterios] Retirados. RG09–RG12 requieren criterios explícitos para evaluarse.");
+          }}>Quitar criterios RG09–RG12</button>}
+          <small>Opcional. Solo en memoria para este proyecto; no cambia los modelos ni el guardado.</small>
+        </div>
+        <div className="validation-criteria">
+          <span>{activeVersionEvidence ? `Contexto RG17–RG19: ${activeVersionEvidence.context.id}` : "RG17–RG19: sin contexto histórico cargado"}</span>
+          <label>
+            Cargar contexto RG17–RG19
+            <input type="file" accept=".json,application/json" onChange={loadVersionEvidence} disabled={busy || !ps?.project?.id} />
+          </label>
+          {activeVersionEvidence && <button type="button" disabled={busy} onClick={() => {
+            setVersionEvidence(null);
+            addLog("[Versiones · contexto] Retirado. RG17–RG19 necesitan revisiones y asociaciones históricas explícitas.");
+          }}>Quitar contexto RG17–RG19</button>}
+          <small>Opcional. Solo en memoria para este proyecto; no crea versiones ni cambia el historial o el guardado.</small>
+        </div>
+        <div className="validation-criteria">
+          <span>{activeTraceEvidence ? `Contexto RG20–RG22: ${activeTraceEvidence.context.id}` : "RG20–RG22: sin contexto de enlaces cargado"}</span>
+          <label>
+            Cargar contexto RG20–RG22
+            <input type="file" accept=".json,application/json" onChange={loadTraceEvidence} disabled={busy || !ps?.project?.id} />
+          </label>
+          {activeTraceEvidence && <button type="button" disabled={busy} onClick={() => {
+            setTraceEvidence(null);
+            addLog("[Trazabilidad · contexto] Retirado. La asociación temporal del intento se conserva; no se guarda historial nuevo.");
+          }}>Quitar contexto RG20–RG22</button>}
+          <small>Opcional. Solo en memoria para este proyecto; no crea registros ni enlaces persistidos.</small>
+        </div>
         <pre>{log.join("\n")}</pre>
       </details>
     </div>

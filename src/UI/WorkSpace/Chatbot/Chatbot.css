@@ -183,6 +183,108 @@
   user-select:none;
 }
 
+.validation-card{
+  align-self:flex-start;
+  width:min(100%, 38rem);
+  min-width:0;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--bg);
+  box-shadow:var(--shadow-sm);
+  overflow-wrap:anywhere;
+}
+.validation-card > summary{
+  padding:9px 12px;
+  cursor:pointer;
+}
+.validation-card-title{
+  font-weight:600;
+}
+.validation-card-summary{
+  display:inline-flex;
+  flex-wrap:wrap;
+  gap:4px 8px;
+  align-items:center;
+  margin-inline-start:8px;
+  color:#4b5563;
+  font-size:12px;
+  vertical-align:middle;
+}
+.validation-card-toggle{
+  display:block;
+  margin-top:3px;
+  color:var(--primary-700);
+  font-size:12px;
+}
+.validation-card-body{
+  border-top:1px solid var(--border);
+  padding:0 12px 10px;
+}
+.validation-scope{
+  margin:8px 0 0;
+  color:#4b5563;
+  font-size:12px;
+}
+.validation-rule-list{
+  list-style:none;
+  margin:0;
+  padding:0;
+}
+.validation-rule{
+  padding:8px 0;
+  border-bottom:1px solid #e5e7eb;
+}
+.validation-rule-heading{
+  display:flex;
+  align-items:baseline;
+  gap:4px 8px;
+  flex-wrap:wrap;
+}
+.validation-rule-heading code{
+  color:var(--primary-700);
+}
+.validation-status{
+  display:inline-block;
+  padding:1px 7px;
+  border-radius:99px;
+  font-size:12px;
+  font-weight:600;
+  color:#374151;
+  background:#f3f4f6;
+}
+.validation-status.incumple{
+  color:#991b1b;
+  background:#fef2f2;
+}
+.validation-status.no_evaluable{
+  color:#854d0e;
+  background:#fefce8;
+}
+.validation-status.cumple{
+  color:#166534;
+  background:#f0fdf4;
+}
+.validation-findings,
+.validation-notes{
+  margin:5px 0 0;
+  padding-inline-start:18px;
+}
+.validation-findings small{
+  display:block;
+  color:#4b5563;
+}
+.validation-context{
+  margin-top:8px;
+  color:#4b5563;
+  font-size:12px;
+}
+.validation-context summary{
+  cursor:pointer;
+}
+.validation-context-group{
+  margin-top:8px;
+}
+
 /* ===== Barra de estado ===== */
 .statusbar{
   border-top:1px solid var(--border);
@@ -263,6 +365,24 @@
   border-top:1px solid var(--border);
   font-size:12px;
   line-height:1.45;
+}
+
+.validation-criteria{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  font-size:12px;
+}
+.validation-criteria label,
+.validation-criteria small{
+  flex-basis:100%;
+}
+.validation-criteria input[type="file"]{
+  display:block;
+  max-width:100%;
+  margin-top:4px;
 }
 
 
