@@ -159,11 +159,8 @@ export function captureModelTransition(project: Project, snapshotId: string, lan
   return JSON.parse(JSON.stringify(capture));
 }
 
-export async function validateModelTransition(before: TransitionCapture, after: TransitionCapture, correspondenceProfile?: RecordData,
-                                               constraintProfile?: RecordData, versionContext?: RecordData,
-                                               traceOptions?: { attemptContext?: RecordData; traceContext?: RecordData }) {
-  const capture = JSON.stringify({ schemaVersion: 1, before, after, correspondenceProfile, constraintProfile, versionContext,
-    attemptContext: traceOptions?.attemptContext, traceContext: traceOptions?.traceContext });
+export async function validateModelTransition(before: TransitionCapture, after: TransitionCapture, attemptContext: RecordData) {
+  const capture = JSON.stringify({ schemaVersion: 1, before, after, attemptContext });
   const { data } = await PROJECTS_CLIENT.post<TransitionReport>("/api/ai/validate-transition", capture, {
     timeout: 10000,
     headers: { "Content-Type": "application/json" }
@@ -173,53 +170,6 @@ export async function validateModelTransition(before: TransitionCapture, after: 
     throw new Error("Respuesta de validación de cambios inesperada.");
   }
   return data;
-}
-
-export function parseCorrespondenceProfile(text: string): RecordData {
-  const profile: unknown = JSON.parse(text);
-  const fields = ["schemaVersion", "id", "correspondences", "dependencies", "requiredCorrespondences"];
-  if (!isRecord(profile) || profile.schemaVersion !== 1 || typeof profile.id !== "string" ||
-      !profile.id.trim() || profile.id !== profile.id.trim() || Object.keys(profile).some(key => !fields.includes(key)) ||
-      !fields.slice(2).every(key => Array.isArray(profile[key]))) {
-    throw new Error("El archivo debe definir los criterios RG06–RG08 en formato versión 1.");
-  }
-  return profile;
-}
-
-export function parseConstraintProfile(text: string): RecordData {
-  const profile: unknown = JSON.parse(text);
-  const fields = ["schemaVersion", "id", "variables", "constraints", "dependencies", "conditions"];
-  if (!isRecord(profile) || profile.schemaVersion !== 1 || typeof profile.id !== "string" ||
-      !profile.id.trim() || profile.id !== profile.id.trim() || Object.keys(profile).some(key => !fields.includes(key)) ||
-      !fields.slice(2).every(key => Array.isArray(profile[key]))) {
-    throw new Error("El archivo debe definir los criterios RG09–RG12 en formato versión 1.");
-  }
-  return profile;
-}
-
-export function parseVersionContext(text: string, projectId: string): RecordData {
-  const context: unknown = JSON.parse(text);
-  const lists = ["revisions", "compatibility", "correspondences", "changes", "historicalReferences"];
-  const fields = ["schemaVersion", "id", "projectId", "scope", "historyScope", ...lists];
-  if (!isRecord(context) || context.schemaVersion !== 1 || typeof context.id !== "string" ||
-      !context.id.trim() || context.id !== context.id.trim() || context.projectId !== projectId ||
-      !["complete", "partial"].includes(String(context.scope)) || !["complete", "partial"].includes(String(context.historyScope)) ||
-      Object.keys(context).some(key => !fields.includes(key)) || !lists.every(key => Array.isArray(context[key]))) {
-    throw new Error("El archivo debe contener un contexto RG17–RG19 versión 1 para este proyecto, con ámbitos y listas explícitos.");
-  }
-  return context;
-}
-
-export function parseTraceContext(text: string, projectId: string): RecordData {
-  const context: unknown = JSON.parse(text);
-  const lists = ["origins", "requirements", "history", "links"];
-  const fields = ["schemaVersion", "id", "projectId", "scope", ...lists];
-  if (!isRecord(context) || context.schemaVersion !== 1 || typeof context.id !== "string" || !context.id.trim() ||
-      context.id.length > 256 || context.id !== context.id.trim() || context.projectId !== projectId || !["complete", "partial"].includes(String(context.scope)) ||
-      Object.keys(context).some(key => !fields.includes(key)) || !lists.every(key => Array.isArray(context[key]))) {
-    throw new Error("El archivo debe contener un contexto RG20–RG22 versión 1 para este proyecto, con ámbito y listas explícitos.");
-  }
-  return context;
 }
 
 const validationGroups = {

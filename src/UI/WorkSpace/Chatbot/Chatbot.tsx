@@ -6,8 +6,7 @@ import { AIChatRequest, AIChatResult } from "../../../DataProvider/Services/proj
 import { VariamosAIService } from "../../../DataProvider/Services/projectPersistenceService";
 import { getOrganicRAG } from "./OrganicRAGService";
 import {
-  captureModelTransition, parseConstraintProfile, parseCorrespondenceProfile, parseTraceContext, parseVersionContext,
-  summarizeConstraintValidation, summarizeCorrespondenceValidation, summarizeSnapshotValidation,
+  captureModelTransition, summarizeConstraintValidation, summarizeCorrespondenceValidation, summarizeSnapshotValidation,
   summarizeTraceValidation, summarizeTransitionValidation, summarizeVersionValidation,
   unavailableValidationSection, validateModelSnapshot, validateModelTransition, validationGroupOrder
 } from "./ModelValidationService";
@@ -536,23 +535,6 @@ async function callBackendCascade(
 
 
 
-async function readValidationFile(input: HTMLInputElement, projectId: string, description: string) {
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file || !projectId) return;
-  if (file.size > 128 * 1024) {
-    const fileType = description === "criterios" ? description : "contexto";
-    throw new Error(`El archivo de ${fileType} supera 128 KiB.`);
-  }
-
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error(`No se pudo leer el archivo de ${description}.`));
-    reader.readAsText(file);
-  });
-}
-
 type ChatbotProps = {
   projectService?: ProjectService;
 };
@@ -577,73 +559,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   const addLog = (s: string) => setLog(prev => [...prev, s]);
   const lastModelIdRef = useRef<string | null>(null);
   const validationAttemptRef = useRef(0);
-  const [correspondenceCriteria, setCorrespondenceCriteria] = useState<{
-    projectId: string; profile: ReturnType<typeof parseCorrespondenceProfile>;
-  } | null>(null);
-  const activeCriteria = correspondenceCriteria?.projectId === ps?.project?.id ? correspondenceCriteria : null;
-  const loadCorrespondenceCriteria = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const projectId = ps?.project?.id;
-    try {
-      const text = await readValidationFile(event.currentTarget, projectId, "criterios");
-      if (text === undefined) return;
-      const profile = parseCorrespondenceProfile(text);
-      setCorrespondenceCriteria({ projectId, profile });
-      addLog(`[Criterios] Cargados para este proyecto · ${profile.id}. Se aplicarán a la siguiente solicitud y se mantendrán solo en esta sesión del chatbot.`);
-    } catch (error: any) {
-      addLog(`[Criterios] No se pudieron cargar. ${error?.message || "Formato no válido."}`);
-    }
-  };
-
-  const [constraintCriteria, setConstraintCriteria] = useState<{
-    projectId: string; profile: ReturnType<typeof parseConstraintProfile>;
-  } | null>(null);
-  const activeConstraintCriteria = constraintCriteria?.projectId === ps?.project?.id ? constraintCriteria : null;
-  const loadConstraintCriteria = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const projectId = ps?.project?.id;
-    try {
-      const text = await readValidationFile(event.currentTarget, projectId, "criterios");
-      if (text === undefined) return;
-      const profile = parseConstraintProfile(text);
-      setConstraintCriteria({ projectId, profile });
-      addLog(`[Restricciones · criterios] Cargados para este proyecto · ${profile.id}. Se aplicarán a la siguiente solicitud y se mantendrán solo en esta sesión del chatbot.`);
-    } catch (error: any) {
-      addLog(`[Restricciones · criterios] No se pudieron cargar. ${error?.message || "Formato no válido."}`);
-    }
-  };
-
-  const [versionEvidence, setVersionEvidence] = useState<{
-    projectId: string; context: ReturnType<typeof parseVersionContext>;
-  } | null>(null);
-  const activeVersionEvidence = versionEvidence?.projectId === ps?.project?.id ? versionEvidence : null;
-  const loadVersionEvidence = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const projectId = ps?.project?.id;
-    try {
-      const text = await readValidationFile(event.currentTarget, projectId, "contexto histórico");
-      if (text === undefined) return;
-      const context = parseVersionContext(text, projectId);
-      setVersionEvidence({ projectId, context });
-      addLog(`[Versiones · contexto] Cargado para este proyecto · ${context.id}. Solo en memoria; se comprobará en la siguiente solicitud.`);
-    } catch (error: any) {
-      addLog(`[Versiones · contexto] No se pudo cargar. ${error?.message || "Formato no válido."}`);
-    }
-  };
-
-  const [traceEvidence, setTraceEvidence] = useState<{
-    projectId: string; context: ReturnType<typeof parseTraceContext>;
-  } | null>(null);
-  const activeTraceEvidence = traceEvidence?.projectId === ps?.project?.id ? traceEvidence : null;
-  const loadTraceEvidence = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const projectId = ps?.project?.id;
-    try {
-      const text = await readValidationFile(event.currentTarget, projectId, "contexto de trazabilidad");
-      if (text === undefined) return;
-      const context = parseTraceContext(text, projectId);
-      setTraceEvidence({ projectId, context });
-      addLog(`[Trazabilidad · contexto] Cargado para este proyecto · ${context.id}. Solo en memoria; se comprobará en la siguiente solicitud.`);
-    } catch (error: any) {
-      addLog(`[Trazabilidad · contexto] No se pudo cargar. ${error?.message || "Formato no válido."}`);
-    }
-  };
 
   // Vinculación por props (si llega)
   useEffect(() => {
@@ -2627,23 +2542,18 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
         }
         try {
           const afterCapture = captureModelTransition(ps.project, `chat-${attempt}-after`, ps.languages ?? allLanguages);
-          const profile = activeCriteria?.projectId === afterCapture.projectId ? activeCriteria.profile : undefined;
-          const constraintProfile = activeConstraintCriteria?.projectId === afterCapture.projectId ? activeConstraintCriteria.profile : undefined;
-          const versionContext = activeVersionEvidence?.projectId === afterCapture.projectId ? activeVersionEvidence.context : undefined;
-          const traceContext = activeTraceEvidence?.projectId === afterCapture.projectId ? activeTraceEvidence.context : undefined;
           const attemptContext = { schemaVersion: 1, id: traceAttemptId, projectId: afterCapture.projectId,
             beforeSnapshotId: beforeCapture.snapshotId, afterSnapshotId: afterCapture.snapshotId,
             origin: { id: traceAttemptId, kind: "interaction", source: "chatbot" } };
-          const report = await validateModelTransition(beforeCapture, afterCapture, profile, constraintProfile, versionContext,
-            { attemptContext, traceContext });
+          const report = await validateModelTransition(beforeCapture, afterCapture, attemptContext);
           updateSections(
             summarizeTransitionValidation(report),
-            summarizeCorrespondenceValidation(report.correspondenceValidation, { ...afterCapture, profileId: profile ? String(profile.id) : null }),
-            summarizeConstraintValidation(report.constraintValidation, { ...afterCapture, profileId: constraintProfile ? String(constraintProfile.id) : null }),
-            summarizeVersionValidation(report.versionValidation, { ...afterCapture, contextId: versionContext ? String(versionContext.id) : null }),
+            summarizeCorrespondenceValidation(report.correspondenceValidation, { ...afterCapture, profileId: null }),
+            summarizeConstraintValidation(report.constraintValidation, { ...afterCapture, profileId: null }),
+            summarizeVersionValidation(report.versionValidation, { ...afterCapture, contextId: null }),
             summarizeTraceValidation(report.traceabilityValidation, {
               ...afterCapture, beforeSnapshotId: beforeCapture.snapshotId, attemptId: traceAttemptId,
-              contextId: traceContext ? String(traceContext.id) : null, changes: report.changes
+              contextId: null, changes: report.changes
             })
           );
         } catch (error) {
@@ -3363,54 +3273,6 @@ ${cleanUserText}
       {/* Log plegable */}
       <details className="logbox">
         <summary>Log</summary>
-        <div className="validation-criteria">
-          <span>{activeCriteria ? `Criterios RG06–RG08: ${activeCriteria.profile.id}` : "RG06–RG08: sin criterios cargados"}</span>
-          <label>
-            Cargar criterios RG06–RG08
-            <input type="file" accept=".json,application/json" onChange={loadCorrespondenceCriteria} disabled={busy || !ps?.project?.id} />
-          </label>
-          {activeCriteria && <button type="button" disabled={busy} onClick={() => {
-            setCorrespondenceCriteria(null);
-            addLog("[Criterios] Retirados. RG06–RG08 requieren criterios explícitos para evaluarse.");
-          }}>Quitar criterios</button>}
-          <small>Opcional. Solo en memoria para este proyecto; no cambia los modelos ni el guardado.</small>
-        </div>
-        <div className="validation-criteria">
-          <span>{activeConstraintCriteria ? `Criterios RG09–RG12: ${activeConstraintCriteria.profile.id}` : "RG09–RG12: sin criterios cargados"}</span>
-          <label>
-            Cargar criterios RG09–RG12
-            <input type="file" accept=".json,application/json" onChange={loadConstraintCriteria} disabled={busy || !ps?.project?.id} />
-          </label>
-          {activeConstraintCriteria && <button type="button" disabled={busy} onClick={() => {
-            setConstraintCriteria(null);
-            addLog("[Restricciones · criterios] Retirados. RG09–RG12 requieren criterios explícitos para evaluarse.");
-          }}>Quitar criterios RG09–RG12</button>}
-          <small>Opcional. Solo en memoria para este proyecto; no cambia los modelos ni el guardado.</small>
-        </div>
-        <div className="validation-criteria">
-          <span>{activeVersionEvidence ? `Contexto RG17–RG19: ${activeVersionEvidence.context.id}` : "RG17–RG19: sin contexto histórico cargado"}</span>
-          <label>
-            Cargar contexto RG17–RG19
-            <input type="file" accept=".json,application/json" onChange={loadVersionEvidence} disabled={busy || !ps?.project?.id} />
-          </label>
-          {activeVersionEvidence && <button type="button" disabled={busy} onClick={() => {
-            setVersionEvidence(null);
-            addLog("[Versiones · contexto] Retirado. RG17–RG19 necesitan revisiones y asociaciones históricas explícitas.");
-          }}>Quitar contexto RG17–RG19</button>}
-          <small>Opcional. Solo en memoria para este proyecto; no crea versiones ni cambia el historial o el guardado.</small>
-        </div>
-        <div className="validation-criteria">
-          <span>{activeTraceEvidence ? `Contexto RG20–RG22: ${activeTraceEvidence.context.id}` : "RG20–RG22: sin contexto de enlaces cargado"}</span>
-          <label>
-            Cargar contexto RG20–RG22
-            <input type="file" accept=".json,application/json" onChange={loadTraceEvidence} disabled={busy || !ps?.project?.id} />
-          </label>
-          {activeTraceEvidence && <button type="button" disabled={busy} onClick={() => {
-            setTraceEvidence(null);
-            addLog("[Trazabilidad · contexto] Retirado. La asociación temporal del intento se conserva; no se guarda historial nuevo.");
-          }}>Quitar contexto RG20–RG22</button>}
-          <small>Opcional. Solo en memoria para este proyecto; no crea registros ni enlaces persistidos.</small>
-        </div>
         <pre>{log.join("\n")}</pre>
       </details>
     </div>

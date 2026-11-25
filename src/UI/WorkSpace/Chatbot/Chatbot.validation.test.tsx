@@ -27,24 +27,14 @@ function expectRuleStatuses(expected: Record<string, string>, attempt = 1) {
   }
 }
 
-const criteria = {
-  schemaVersion: 1, id: "ui-explicit-criteria",
-  correspondences: [{ id: "matching-types", source: { modelId: "adapted" }, target: { modelId: "domain" },
-    checks: [{ source: { path: ["type"] }, target: { path: ["type"] }, operator: "equals" }] }],
-  dependencies: [{ id: "variant-origin", source: { modelId: "adapted", elementId: "variant" },
-    target: { modelId: "domain", elementId: "original" }, conditions: [], requireOriginLink: true }],
-  requiredCorrespondences: [{ id: "variant-requires-node", source: { modelId: "adapted", elementType: "Node" },
-    target: { modelId: "domain", elementType: "Node" }, minimum: 1, maximum: 1 }]
-};
-
 function correspondenceReport(body: string, overrides: Record<string, unknown> = {}) {
   const request = JSON.parse(body);
   return {
     schemaVersion: 1, kind: "correspondences", projectId: request.after.projectId, snapshotId: request.after.snapshotId,
-    profileId: request.correspondenceProfile?.id ?? null,
+    profileId: null,
     coverage: { effectiveScope: "complete", models: [{}, {}] },
-    rules: ["RG06", "RG07", "RG08"].map(ruleId => ({ ruleId, status: request.correspondenceProfile ? "cumple" : "no_evaluable" })),
-    findings: request.correspondenceProfile ? [] : [{
+    rules: ["RG06", "RG07", "RG08"].map(ruleId => ({ ruleId, status: "no_evaluable" })),
+    findings: [{
       ruleIds: ["RG06", "RG07", "RG08"], status: "no_evaluable", description: "Faltan criterios explícitos para evaluar RG06 a RG08.",
       location: { path: "/project", modelId: null, elementId: null, referenceId: null }, evidence: {}
     }],
@@ -52,83 +42,38 @@ function correspondenceReport(body: string, overrides: Record<string, unknown> =
   };
 }
 
-const restrictionCriteria = {
-  schemaVersion: 1, id: "ui-boolean-criteria",
-  variables: [{ id: "enabled", bindings: [
-    { modelId: "domain", elementId: "original", attribute: { path: ["enabled"] } },
-    { modelId: "adapted", elementId: "variant", attribute: { path: ["enabled"] } }
-  ] }],
-  constraints: [
-    { id: "base-enabled", modelId: "domain", expression: { var: "enabled" } },
-    { id: "variant-enabled", modelId: "adapted", expression: { var: "enabled" } }
-  ],
-  dependencies: [], conditions: []
-};
-
 function constraintReport(body: string, overrides: Record<string, unknown> = {}) {
   const request = JSON.parse(body);
   return {
     schemaVersion: 1, kind: "constraints", projectId: request.after.projectId, snapshotId: request.after.snapshotId,
-    profileId: request.constraintProfile?.id ?? null,
+    profileId: null,
     coverage: { effectiveScope: "complete", models: [{}, {}] },
-    rules: ["RG09", "RG10", "RG11", "RG12"].map(ruleId => ({ ruleId, status: request.constraintProfile ? "cumple" : "no_evaluable" })),
+    rules: ["RG09", "RG10", "RG11", "RG12"].map(ruleId => ({ ruleId, status: "no_evaluable" })),
     findings: [], ...overrides
   };
 }
-
-async function loadRestrictionCriteria(value: object = restrictionCriteria) {
-  const file = new File([JSON.stringify(value)], "restricciones.json", { type: "application/json" });
-  fireEvent.change(screen.getByLabelText("Cargar criterios RG09–RG12"), { target: { files: [file] } });
-  await screen.findByText(`Criterios RG09–RG12: ${(value as typeof restrictionCriteria).id}`);
-}
-
-const historyContext = {
-  schemaVersion: 1, id: "ui-version-context", projectId: "project", scope: "complete", historyScope: "complete",
-  revisions: [], compatibility: [], correspondences: [], changes: [], historicalReferences: []
-};
 
 function versionReport(body: string, overrides: Record<string, unknown> = {}) {
   const request = JSON.parse(body);
   return {
     schemaVersion: 1, kind: "versions", projectId: request.after.projectId, snapshotId: request.after.snapshotId,
-    contextId: request.versionContext?.id ?? null, coverage: { effectiveScope: "complete", models: [{}, {}] },
-    versionCoverage: { catalogScope: request.versionContext?.scope ?? null, historyScope: request.versionContext?.historyScope ?? null, revisionCount: 0 },
-    rules: ["RG17", "RG18", "RG19"].map(ruleId => ({ ruleId, status: request.versionContext ? "no_aplica" : "no_evaluable" })),
+    contextId: null, coverage: { effectiveScope: "complete", models: [{}, {}] },
+    versionCoverage: { catalogScope: null, historyScope: null, revisionCount: 0 },
+    rules: ["RG17", "RG18", "RG19"].map(ruleId => ({ ruleId, status: "no_evaluable" })),
     findings: [], ...overrides
   };
 }
 
-async function loadHistoryContext(value: object = historyContext) {
-  const file = new File([JSON.stringify(value)], "versiones.json", { type: "application/json" });
-  fireEvent.change(screen.getByLabelText("Cargar contexto RG17–RG19"), { target: { files: [file] } });
-  await screen.findByText(`Contexto RG17–RG19: ${(value as typeof historyContext).id}`);
-}
-
-const traceContext = { schemaVersion: 1, id: "ui-trace-context", projectId: "project", scope: "complete",
-  origins: [], requirements: [], history: [], links: [] };
-
 function traceReport(body: string, changes: any[], overrides: Record<string, unknown> = {}) {
   const request = JSON.parse(body);
   return { schemaVersion: 1, kind: "traceability", projectId: request.after.projectId, snapshotId: request.after.snapshotId,
-    beforeSnapshotId: request.before.snapshotId, attemptId: request.attemptContext?.id ?? null, contextId: request.traceContext?.id ?? null,
+    beforeSnapshotId: request.before.snapshotId, attemptId: request.attemptContext?.id ?? null, contextId: null,
     coverage: { effectiveScope: "complete", models: [{}, {}] },
-    traceCoverage: { contextAccepted: !!request.traceContext, contextScope: request.traceContext?.scope ?? null, observedChangeCount: changes.length },
-    rules: [{ ruleId: "RG20", status: "cumple" }, { ruleId: "RG21", status: request.traceContext ? "incumple" : "no_evaluable" },
-      { ruleId: "RG22", status: request.traceContext ? "no_aplica" : "no_evaluable" }], findings: [],
+    traceCoverage: { contextAccepted: false, contextScope: null, observedChangeCount: changes.length },
+    rules: [{ ruleId: "RG20", status: "cumple" }, { ruleId: "RG21", status: "no_evaluable" },
+      { ruleId: "RG22", status: "no_evaluable" }], findings: [],
     traces: changes.map((change, index) => ({ id: `trace-${index}`, changeIndex: index, entity: change.entity, operation: change.operation,
       originRefs: [{ kind: "origin", catalog: "attempt", id: request.attemptContext?.origin?.id ?? "unknown" }], historyIds: [] })), ...overrides };
-}
-
-async function loadTraceContext(value: object = traceContext) {
-  const file = new File([JSON.stringify(value)], "trazas.json", { type: "application/json" });
-  fireEvent.change(screen.getByLabelText("Cargar contexto RG20–RG22"), { target: { files: [file] } });
-  await screen.findByText(`Contexto RG20–RG22: ${(value as typeof traceContext).id}`);
-}
-
-async function loadCriteria(value: object = criteria) {
-  const file = new File([JSON.stringify(value)], "criterios.json", { type: "application/json" });
-  fireEvent.change(screen.getByLabelText("Cargar criterios RG06–RG08"), { target: { files: [file] } });
-  await screen.findByText(`Criterios RG06–RG08: ${(value as typeof criteria).id}`);
 }
 
 function transitionResponse(body: string, overrides: Record<string, unknown> = {}) {
@@ -592,101 +537,30 @@ test("partial nested data is presented as a possible change", async () => {
   expect(domain.elements[0].name).toBe("KeepOperation");
 });
 
-test("new rules explain missing criteria without changing either earlier report", async () => {
+test("the chatbot shows validation cards in the conversation and keeps the technical log free of file inputs", async () => {
   post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { domain } = setup();
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "ThirdIncrement" }] });
-  await waitFor(() => expectRuleStatuses({ RG06: "No evaluable", RG07: "No evaluable", RG08: "No evaluable" }));
-  expectRuleStatuses({ RG16: "Cumple" });
-  expectRuleStatuses({ RG05: "Cumple" });
-  expect(domain.elements[0].name).toBe("ThirdIncrement");
-  expect(post).toHaveBeenCalledTimes(2);
-});
-
-test("loading criteria is memory-only and does not save or evaluate a project", async () => {
-  const { project, saveProject } = setup();
-  const original = JSON.stringify(project);
-  await loadCriteria();
-  expect(JSON.stringify(project)).toBe(original);
-  expect(saveProject).not.toHaveBeenCalled();
-  expect(post).not.toHaveBeenCalled();
-  expect(screen.getByRole("button", { name: "Quitar criterios" })).toBeTruthy();
-});
-
-test("explicit criteria travel once in the existing request and all three results reach the validation card", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { domain, project, saveProject } = setup();
-  await loadCriteria();
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "WithCriteria" }] });
-  await waitFor(() => expectRuleStatuses({ RG06: "Cumple", RG07: "Cumple", RG08: "Cumple" }));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.correspondenceProfile).toEqual(criteria);
-  expect(body.before.correspondenceProfile).toBeUndefined();
-  expect(body.after.correspondenceProfile).toBeUndefined();
-  expect((project as any).correspondenceProfile).toBeUndefined();
-  expect(domain.elements[0].name).toBe("WithCriteria");
-  expect(saveProject).toHaveBeenCalled();
-  expect(post).toHaveBeenCalledTimes(2);
-});
-
-test("dependency and orphan failures are visible while deletion and saving remain applied", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? transitionResponse(body, {
-    correspondenceValidation: correspondenceReport(body, {
-      rules: [{ ruleId: "RG06", status: "no_evaluable" }, { ruleId: "RG07", status: "incumple" }, { ruleId: "RG08", status: "incumple" }],
-      findings: [{ ruleIds: ["RG08"], status: "incumple", description: "No se alcanza la cobertura de correspondencias requerida.",
-        location: { path: "/project/variant", modelId: "adapted", elementId: "variant", referenceId: null }, evidence: {} }]
-    })
-  }) : snapshotResponse(body));
   const { domain, saveProject } = setup();
-  await loadCriteria();
-  const input = sendJson({ ops: [{ op: "deleteElement", selector: { id: "original" } }] });
-  await waitFor(() => expectRuleStatuses({ RG06: "No evaluable", RG07: "Incumple", RG08: "Incumple" }));
-  expect(domain.elements).toEqual([]);
+  const logSummary = screen.getByText("Log");
+  const logPanel = logSummary.parentElement;
+  fireEvent.click(logSummary);
+  expect(Array.from(logPanel.children, child => child.tagName)).toEqual(["SUMMARY", "PRE"]);
+  expect(logPanel.closest(".chatbot").querySelector('input[type="file"]')).toBeNull();
+
+  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "NoExternalFiles" }] });
+  await waitFor(() => expectRuleStatuses({
+    RG05: "Cumple", RG06: "No evaluable", RG07: "No evaluable", RG08: "No evaluable",
+    RG09: "No evaluable", RG10: "No evaluable", RG11: "No evaluable", RG12: "No evaluable",
+    RG16: "Cumple", RG17: "No evaluable", RG18: "No evaluable", RG19: "No evaluable",
+    RG20: "Cumple", RG21: "No evaluable", RG22: "No evaluable"
+  }));
+  expect(attemptCard().closest(".chat-body")).toBeTruthy();
+  expect(logPanel.textContent).not.toContain("No evaluable");
+  expect(domain.elements[0].name).toBe("NoExternalFiles");
   expect(saveProject).toHaveBeenCalled();
-  expect(input.disabled).toBe(false);
-});
-
-test("invalid criteria files preserve the previously loaded criteria", async () => {
-  const { saveProject } = setup();
-  await loadCriteria();
-  const file = new File(['{"schemaVersion":99}'], "invalid.json", { type: "application/json" });
-  fireEvent.change(screen.getByLabelText("Cargar criterios RG06–RG08"), { target: { files: [file] } });
-  await waitFor(() => expect(screen.getByText("Log").parentElement.textContent).toContain("[Criterios] No se pudieron cargar."));
-  expect(screen.getByText("Criterios RG06–RG08: ui-explicit-criteria")).toBeTruthy();
-  expect(post).not.toHaveBeenCalled();
-  expect(saveProject).not.toHaveBeenCalled();
-});
-
-test("oversized criteria are rejected before any request", async () => {
-  setup();
-  const file = new File([" ".repeat(128 * 1024 + 1)], "large.json", { type: "application/json" });
-  fireEvent.change(screen.getByLabelText("Cargar criterios RG06–RG08"), { target: { files: [file] } });
-  await waitFor(() => expect(screen.getByText("Log").parentElement.textContent).toContain("El archivo de criterios supera 128 KiB."));
-  expect(post).not.toHaveBeenCalled();
-});
-
-test("removing criteria restores explicit non-evaluation without saving a configuration", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { saveProject } = setup();
-  await loadCriteria();
-  fireEvent.click(screen.getByRole("button", { name: "Quitar criterios" }));
-  expect(saveProject).not.toHaveBeenCalled();
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "Cleared" }] });
-  await waitFor(() => expectRuleStatuses({ RG06: "No evaluable", RG07: "No evaluable", RG08: "No evaluable" }));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.correspondenceProfile).toBeUndefined();
-});
-
-test("criteria from a different project are never applied implicitly", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { project } = setup();
-  await loadCriteria();
-  project.id = "another-project";
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "SeparateScope" }] });
-  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.after.projectId).toBe("another-project");
-  expect(body.correspondenceProfile).toBeUndefined();
+  expect(post).toHaveBeenCalledTimes(2);
+  const transition = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
+  expect(Object.keys(transition).sort()).toEqual(["after", "attemptContext", "before", "schemaVersion"]);
+  expect(transition.attemptContext.origin.source).toBe("chatbot");
 });
 
 test.each(["absent", "wrong-snapshot"])("an %s third report cannot hide earlier reports or create false passes", async kind => {
@@ -706,49 +580,7 @@ test.each(["absent", "wrong-snapshot"])("an %s third report cannot hide earlier 
   expect(domain.elements[0].name).toBe("CompatibleReports");
 });
 
-test("fourth criteria are memory-only and independent from correspondence criteria", async () => {
-  const { project, saveProject } = setup();
-  const original = JSON.stringify(project);
-  await loadCriteria();
-  await loadRestrictionCriteria();
-  expect(JSON.stringify(project)).toBe(original);
-  expect(saveProject).not.toHaveBeenCalled();
-  expect(post).not.toHaveBeenCalled();
-  expect(screen.getByText("Criterios RG06–RG08: ui-explicit-criteria")).toBeTruthy();
-  expect(screen.getByText("Criterios RG09–RG12: ui-boolean-criteria")).toBeTruthy();
-});
-
-test("both profiles travel once in the same request and fourth failures remain advisory", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? transitionResponse(body, {
-    constraintValidation: constraintReport(body, {
-      rules: [{ ruleId: "RG09", status: "incumple" }, { ruleId: "RG10", status: "no_evaluable" },
-        { ruleId: "RG11", status: "cumple" }, { ruleId: "RG12", status: "incumple" }],
-      findings: [{ ruleIds: ["RG12"], status: "incumple", description: "Afirmaciones opuestas en modelos vinculados.",
-        location: { path: "/constraintProfile", modelId: "domain", elementId: null, referenceId: null }, evidence: {} }]
-    })
-  }) : snapshotResponse(body));
-  const { domain, project, saveProject } = setup();
-  await loadCriteria();
-  await loadRestrictionCriteria();
-  const input = sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "FourthIncrement" }] });
-  await waitFor(() => expectRuleStatuses({ RG09: "Incumple", RG10: "No evaluable", RG11: "Cumple", RG12: "Incumple" }));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.constraintProfile).toEqual(restrictionCriteria);
-  expect(body.correspondenceProfile).toEqual(criteria);
-  expect(body.before.constraintProfile).toBeUndefined();
-  expect(body.after.constraintProfile).toBeUndefined();
-  expect((project as any).constraintProfile).toBeUndefined();
-  expect(domain.elements[0].name).toBe("FourthIncrement");
-  expect(saveProject).toHaveBeenCalled();
-  expect(input.disabled).toBe(false);
-  expect(post).toHaveBeenCalledTimes(2);
-  expect(attemptCard().textContent).toContain("Afirmaciones opuestas");
-  expectRuleStatuses({ RG05: "Cumple" });
-  expectRuleStatuses({ RG06: "Cumple" });
-  expectRuleStatuses({ RG16: "Cumple" });
-});
-
-test("creation and saving finish before the fourth report arrives", async () => {
+test("creation and saving finish before transition validation arrives", async () => {
   let respond: (response: unknown) => void;
   let transitionBody: string;
   post.mockImplementation((url, body) => {
@@ -757,56 +589,13 @@ test("creation and saving finish before the fourth report arrives", async () => 
     return new Promise(resolve => { respond = resolve; });
   });
   const { saveProject } = setup();
-  await loadRestrictionCriteria();
   const input = sendJson({ name: "InformativeFourth", elements: [{ type: "Node", name: "A" }], relationships: [] });
   await screen.findByText("Modelo creado ✅");
   await waitFor(() => expect(saveProject).toHaveBeenCalled());
   await waitFor(() => expect(input.disabled).toBe(false));
   await waitFor(() => expect(typeof respond).toBe("function"));
   await act(async () => { respond(transitionResponse(transitionBody)); });
-  await waitFor(() => expectRuleStatuses({ RG09: "Cumple", RG10: "Cumple", RG11: "Cumple", RG12: "Cumple" }));
-});
-
-test.each(["invalid", "oversized"])("%s fourth criteria leave the previous profile and project intact", async kind => {
-  const { project, saveProject } = setup();
-  await loadRestrictionCriteria();
-  const original = JSON.stringify(project);
-  const text = kind === "invalid" ? '{"schemaVersion":99}' : " ".repeat(128 * 1024 + 1);
-  fireEvent.change(screen.getByLabelText("Cargar criterios RG09–RG12"), {
-    target: { files: [new File([text], "bad.json", { type: "application/json" })] }
-  });
-  await waitFor(() => expect(screen.getByText("Log").parentElement.textContent).toContain("[Restricciones · criterios] No se pudieron cargar."));
-  expect(screen.getByText("Criterios RG09–RG12: ui-boolean-criteria")).toBeTruthy();
-  expect(JSON.stringify(project)).toBe(original);
-  expect(saveProject).not.toHaveBeenCalled();
-  expect(post).not.toHaveBeenCalled();
-});
-
-test("removing fourth criteria preserves the third profile without persisting either", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { saveProject } = setup();
-  await loadCriteria();
-  await loadRestrictionCriteria();
-  fireEvent.click(screen.getByRole("button", { name: "Quitar criterios RG09–RG12" }));
-  expect(saveProject).not.toHaveBeenCalled();
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "WithoutFourth" }] });
-  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.constraintProfile).toBeUndefined();
-  expect(body.correspondenceProfile).toEqual(criteria);
-  await waitFor(() => expectRuleStatuses({ RG09: "No evaluable", RG10: "No evaluable", RG11: "No evaluable", RG12: "No evaluable" }));
-});
-
-test("fourth criteria never transfer implicitly to another project", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { project } = setup();
-  await loadRestrictionCriteria();
-  project.id = "different-project";
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "SeparatedFourth" }] });
-  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.constraintProfile).toBeUndefined();
-  await waitFor(() => expectRuleStatuses({ RG09: "No evaluable", RG10: "No evaluable", RG11: "No evaluable", RG12: "No evaluable" }));
+  await waitFor(() => expectRuleStatuses({ RG09: "No evaluable", RG10: "No evaluable", RG11: "No evaluable", RG12: "No evaluable", RG20: "Cumple" }));
 });
 
 test.each(["absent", "snapshot", "project", "profile", "kind", "invalid-status", "duplicate-rule"])("a fourth report with %s cannot create a false pass", async kind => {
@@ -816,14 +605,16 @@ test.each(["absent", "snapshot", "project", "profile", "kind", "invalid-status",
     if (kind === "absent") report = undefined;
     else if (kind === "snapshot") report.snapshotId = "another-attempt";
     else if (kind === "project") report.projectId = "another-project";
-    else if (kind === "profile") report.profileId = "another-profile";
+    else if (kind === "profile") {
+      report.profileId = "another-profile";
+      report.rules[0].status = "cumple";
+    }
     else if (kind === "kind") report.kind = "correspondences";
     else if (kind === "invalid-status") report.rules[0].status = "unknown";
     else report.rules.push(report.rules[0]);
     return transitionResponse(body, { constraintValidation: report });
   });
   const { domain, saveProject } = setup();
-  await loadRestrictionCriteria();
   sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "FourthCompatibility" }] });
   await waitFor(() => expect(attemptCard().textContent).toContain("No se recibió un informe de restricciones válido"));
   expect(ruleStatus("RG09")).not.toBe("Cumple");
@@ -837,81 +628,9 @@ test("a missing fourth rule is explicitly unevaluable without suppressing other 
     constraintValidation: constraintReport(body, { rules: [{ ruleId: "RG09", status: "cumple" }] })
   }) : snapshotResponse(body));
   setup();
-  await loadRestrictionCriteria();
   sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "MissingRules" }] });
   await waitFor(() => expectRuleStatuses({ RG09: "Cumple", RG10: "No evaluable", RG11: "No evaluable", RG12: "No evaluable" }));
   expect(attemptCard().textContent).toContain("El backend no incluyó estas reglas: RG10, RG11, RG12.");
-});
-
-test("loading history evidence is memory-only and independent from earlier profiles", async () => {
-  const { project, saveProject } = setup();
-  const original = JSON.stringify(project);
-  await loadCriteria();
-  await loadRestrictionCriteria();
-  await loadHistoryContext();
-  expect(JSON.stringify(project)).toBe(original);
-  expect(saveProject).not.toHaveBeenCalled();
-  expect(post).not.toHaveBeenCalled();
-  expect(screen.getByText("Criterios RG09–RG12: ui-boolean-criteria")).toBeTruthy();
-});
-
-test("fifth failures are advisory and all evidence travels once in the existing transition", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? transitionResponse(body, {
-    versionValidation: versionReport(body, {
-      rules: [{ ruleId: "RG17", status: "incumple" }, { ruleId: "RG18", status: "no_evaluable" }, { ruleId: "RG19", status: "incumple" }],
-      findings: [{ ruleIds: ["RG17"], status: "incumple", description: "Las revisiones son incompatibles.",
-        location: { path: "/versionContext", modelId: null, elementId: null, referenceId: null }, evidence: { linkIds: ["link-a"], versionIds: ["v1", "v2"] } }]
-    })
-  }) : snapshotResponse(body));
-  const { domain, project, saveProject } = setup();
-  await loadCriteria();await loadRestrictionCriteria();await loadHistoryContext();
-  const input = sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "FifthIncrement" }] });
-  await waitFor(() => expectRuleStatuses({ RG17: "Incumple", RG18: "No evaluable", RG19: "Incumple" }));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.versionContext).toEqual(historyContext);
-  expect(body.before.versionContext).toBeUndefined();expect(body.after.versionContext).toBeUndefined();
-  expect((project as any).versionContext).toBeUndefined();
-  expect(body.correspondenceProfile).toEqual(criteria);expect(body.constraintProfile).toEqual(restrictionCriteria);
-  expect(post).toHaveBeenCalledTimes(2);
-  expect(saveProject).toHaveBeenCalled();expect(input.disabled).toBe(false);
-  expect(domain.elements[0].name).toBe("FifthIncrement");
-  expect(attemptCard().textContent).toContain("link-a, v1, v2");
-  expectRuleStatuses({ RG09: "Cumple" });
-  expect(attemptCard().textContent).toContain("RG16");
-});
-
-test.each(["invalid", "foreign-project", "oversized"])("%s historical context preserves previous evidence and project", async kind => {
-  const { project, saveProject } = setup();
-  await loadHistoryContext();
-  const original = JSON.stringify(project);
-  const content = kind === "oversized" ? " ".repeat(128 * 1024 + 1) : JSON.stringify({ ...historyContext,
-    schemaVersion: kind === "invalid" ? 2 : 1, projectId: kind === "foreign-project" ? "other-project" : "project" });
-  fireEvent.change(screen.getByLabelText("Cargar contexto RG17–RG19"), { target: { files: [new File([content], "bad.json")] } });
-  await waitFor(() => expect(screen.getByText("Log").parentElement.textContent).toContain("[Versiones · contexto] No se pudo cargar."));
-  expect(screen.getByText("Contexto RG17–RG19: ui-version-context")).toBeTruthy();
-  expect(JSON.stringify(project)).toBe(original);expect(saveProject).not.toHaveBeenCalled();expect(post).not.toHaveBeenCalled();
-});
-
-test("removing history context keeps both earlier profiles and does not save anything", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { saveProject } = setup();
-  await loadCriteria();await loadRestrictionCriteria();await loadHistoryContext();
-  fireEvent.click(screen.getByRole("button", { name: "Quitar contexto RG17–RG19" }));
-  expect(saveProject).not.toHaveBeenCalled();
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "WithoutVersions" }] });
-  await waitFor(() => expectRuleStatuses({ RG17: "No evaluable", RG18: "No evaluable", RG19: "No evaluable" }));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.versionContext).toBeUndefined();expect(body.correspondenceProfile).toEqual(criteria);expect(body.constraintProfile).toEqual(restrictionCriteria);
-});
-
-test("historical evidence does not transfer to a different project", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { project } = setup();await loadHistoryContext();
-  project.id = "different-project";
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "ScopedVersions" }] });
-  await waitFor(() => expectRuleStatuses({ RG17: "No evaluable", RG18: "No evaluable", RG19: "No evaluable" }));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.versionContext).toBeUndefined();
 });
 
 test.each(["absent", "snapshot", "project", "context", "kind", "status", "duplicate", "coverage"])("a fifth report with %s cannot produce false passes", async kind => {
@@ -921,14 +640,20 @@ test.each(["absent", "snapshot", "project", "context", "kind", "status", "duplic
     if (kind === "absent") report = undefined;
     else if (kind === "snapshot") report.snapshotId = "old-snapshot";
     else if (kind === "project") report.projectId = "other-project";
-    else if (kind === "context") report.contextId = "other-context";
+    else if (kind === "context") {
+      report.contextId = "other-context";
+      report.rules[0].status = "no_aplica";
+    }
     else if (kind === "kind") report.kind = "transition";
     else if (kind === "status") report.rules[0].status = "unknown";
     else if (kind === "duplicate") report.rules.push(report.rules[0]);
-    else report.versionCoverage.revisionCount = -1;
+    else {
+      report.contextId = "invalid-coverage";
+      report.versionCoverage.revisionCount = -1;
+    }
     return transitionResponse(body, { versionValidation: report });
   });
-  const { domain, saveProject } = setup();await loadHistoryContext();
+  const { domain, saveProject } = setup();
   sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "HistoricalCompatibility" }] });
   await waitFor(() => expect(attemptCard().textContent).toContain("No se recibió un informe de versiones válido"));
   expect(ruleStatus("RG17")).not.toBe("No aplica");
@@ -940,25 +665,9 @@ test("a missing fifth rule is explicitly unevaluable", async () => {
   post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? transitionResponse(body, {
     versionValidation: versionReport(body, { rules: [{ ruleId: "RG17", status: "cumple" }] })
   }) : snapshotResponse(body));
-  setup();await loadHistoryContext();
+  setup();
   sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "MissingVersionRules" }] });
   await waitFor(() => expectRuleStatuses({ RG17: "Cumple", RG18: "No evaluable", RG19: "No evaluable" }));
-});
-
-test("creation and saving do not wait for historical validation", async () => {
-  let respond: (response: unknown) => void;
-  let transitionBody: string;
-  post.mockImplementation((url, body) => {
-    if (url === "/api/ai/validate-snapshot") return Promise.resolve(snapshotResponse(body));
-    transitionBody = body;return new Promise(resolve => { respond = resolve; });
-  });
-  const { saveProject } = setup();await loadHistoryContext();
-  const input = sendJson({ name: "HistoricalAdvisory", elements: [{ type: "Node", name: "A" }], relationships: [] });
-  await screen.findByText("Modelo creado ✅");
-  await waitFor(() => expect(input.disabled).toBe(false));expect(saveProject).toHaveBeenCalled();
-  await waitFor(() => expect(typeof respond).toBe("function"));
-  await act(async () => { respond(transitionResponse(transitionBody)); });
-  await waitFor(() => expectRuleStatuses({ RG17: "No aplica", RG18: "No aplica", RG19: "No aplica" }));
 });
 
 test("automatic trace metadata identifies each attempt without copying its request text or saving history", async () => {
@@ -983,65 +692,6 @@ test("automatic trace metadata identifies each attempt without copying its reque
   expect(post).toHaveBeenCalledTimes(4);
 });
 
-test("loading trace context is memory-only and independent from the three earlier contexts", async () => {
-  const { project, saveProject } = setup();const original = JSON.stringify(project);
-  await loadCriteria();await loadRestrictionCriteria();await loadHistoryContext();await loadTraceContext();
-  expect(JSON.stringify(project)).toBe(original);expect(saveProject).not.toHaveBeenCalled();expect(post).not.toHaveBeenCalled();
-  expect(screen.getByText("Contexto RG17–RG19: ui-version-context")).toBeTruthy();
-});
-
-test("trace violations preserve the applied edit and use the same two validation requests", async () => {
-  post.mockImplementation(async (url, body) => {
-    if (url !== "/api/ai/validate-transition") return snapshotResponse(body);
-    const response = renameResponse(body);
-    response.data.traceabilityValidation = traceReport(body, response.data.changes as any[], {
-      rules: [{ ruleId: "RG20", status: "cumple" }, { ruleId: "RG21", status: "incumple" }, { ruleId: "RG22", status: "incumple" }],
-      findings: [{ ruleIds: ["RG22"], status: "incumple", description: "El enlace apunta a otro artefacto.",
-        location: { path: "/traceContext", modelId: "domain", elementId: null, referenceId: null }, evidence: { linkIds: ["bad-link"] } }]
-    });return response;
-  });
-  const { domain, project, saveProject } = setup();
-  await loadCriteria();await loadRestrictionCriteria();await loadHistoryContext();await loadTraceContext();
-  const input = sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "AdvisoryTrace" }] });
-  await waitFor(() => expectRuleStatuses({ RG20: "Cumple", RG21: "Incumple", RG22: "Incumple" }));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.traceContext).toEqual(traceContext);expect(body.correspondenceProfile).toEqual(criteria);
-  expect(body.constraintProfile).toEqual(restrictionCriteria);expect(body.versionContext).toEqual(historyContext);
-  expect((project as any).traceContext).toBeUndefined();expect(body.before.traceContext).toBeUndefined();expect(body.after.traceContext).toBeUndefined();
-  expect(domain.elements[0].name).toBe("AdvisoryTrace");expect(input.disabled).toBe(false);expect(saveProject).toHaveBeenCalled();
-  expect(post).toHaveBeenCalledTimes(2);expect(attemptCard().textContent).toContain("bad-link");
-  expectRuleStatuses({ RG17: "No aplica" });
-});
-
-test.each(["invalid", "project", "oversized", "long-id"])("%s trace context preserves previous context and does not save", async kind => {
-  const { project, saveProject } = setup();await loadTraceContext();const original = JSON.stringify(project);
-  const text = kind === "oversized" ? " ".repeat(128 * 1024 + 1) : JSON.stringify({ ...traceContext,
-    schemaVersion: kind === "invalid" ? 0 : 1, projectId: kind === "project" ? "foreign" : "project", id: kind === "long-id" ? "x".repeat(257) : traceContext.id });
-  fireEvent.change(screen.getByLabelText("Cargar contexto RG20–RG22"), { target: { files: [new File([text], "bad.json")] } });
-  await waitFor(() => expect(screen.getByText("Log").parentElement.textContent).toContain("[Trazabilidad · contexto] No se pudo cargar."));
-  expect(screen.getByText("Contexto RG20–RG22: ui-trace-context")).toBeTruthy();expect(JSON.stringify(project)).toBe(original);
-  expect(saveProject).not.toHaveBeenCalled();expect(post).not.toHaveBeenCalled();
-});
-
-test("removing trace evidence preserves automatic origin metadata and earlier contexts", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { saveProject } = setup();await loadHistoryContext();await loadTraceContext();
-  fireEvent.click(screen.getByRole("button", { name: "Quitar contexto RG20–RG22" }));expect(saveProject).not.toHaveBeenCalled();
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "AutomaticOriginOnly" }] });
-  await waitFor(() => expectRuleStatuses({ RG20: "Cumple", RG21: "No evaluable", RG22: "No evaluable" }));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.traceContext).toBeUndefined();expect(body.attemptContext).toBeTruthy();expect(body.versionContext).toEqual(historyContext);
-});
-
-test("trace context cannot transfer to another project", async () => {
-  post.mockImplementation(async (url, body) => url === "/api/ai/validate-transition" ? renameResponse(body) : snapshotResponse(body));
-  const { project } = setup();await loadTraceContext();project.id = "other-project";
-  sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "IsolatedTrace" }] });
-  await waitFor(() => expectRuleStatuses({ RG20: "Cumple", RG21: "No evaluable", RG22: "No evaluable" }));
-  const body = JSON.parse(post.mock.calls.find(([url]) => url === "/api/ai/validate-transition")[1]);
-  expect(body.traceContext).toBeUndefined();expect(body.attemptContext.projectId).toBe("other-project");
-});
-
 test.each(["absent", "snapshot", "before", "project", "attempt", "context", "kind", "status", "duplicate-rule", "trace-entity", "change-count"])("a sixth report with %s cannot create false passes", async kind => {
   post.mockImplementation(async (url, body) => {
     if (url !== "/api/ai/validate-transition") return snapshotResponse(body);
@@ -1059,7 +709,7 @@ test.each(["absent", "snapshot", "before", "project", "attempt", "context", "kin
     else report.traceCoverage.observedChangeCount = 99;
     response.data.traceabilityValidation = report;return response;
   });
-  const { domain, saveProject } = setup();await loadTraceContext();
+  const { domain, saveProject } = setup();
   sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "TraceCompatibility" }] });
   await waitFor(() => expect(attemptCard().textContent).toContain("No se recibió un informe de trazabilidad válido"));
   expect(ruleStatus("RG20")).not.toBe("Cumple");
@@ -1075,17 +725,4 @@ test("a missing trace rule remains explicitly unevaluable", async () => {
   setup();sendJson({ ops: [{ op: "renameElement", selector: { id: "original" }, newName: "PartialTraceRules" }] });
   await waitFor(() => expectRuleStatuses({ RG20: "Cumple", RG21: "No evaluable", RG22: "No evaluable" }));
   expect(attemptCard().textContent).toContain("El backend no incluyó estas reglas: RG21, RG22.");
-});
-
-test("creation and saving finish while sixth validation is still pending", async () => {
-  let respond: (response: unknown) => void;let transitionBody: string;
-  post.mockImplementation((url, body) => {
-    if (url === "/api/ai/validate-snapshot") return Promise.resolve(snapshotResponse(body));
-    transitionBody = body;return new Promise(resolve => { respond = resolve; });
-  });
-  const { saveProject } = setup();await loadTraceContext();
-  const input = sendJson({ name: "TraceAdvisory", elements: [{ name: "A", type: "Node" }], relationships: [] });
-  await screen.findByText("Modelo creado ✅");await waitFor(() => expect(input.disabled).toBe(false));expect(saveProject).toHaveBeenCalled();
-  await waitFor(() => expect(typeof respond).toBe("function"));await act(async () => { respond(transitionResponse(transitionBody)); });
-  await waitFor(() => expectRuleStatuses({ RG20: "Cumple", RG21: "Incumple", RG22: "No aplica" }));
 });
