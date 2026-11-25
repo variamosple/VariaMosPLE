@@ -536,6 +536,23 @@ async function callBackendCascade(
 
 
 
+async function readValidationFile(input: HTMLInputElement, projectId: string, description: string) {
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file || !projectId) return;
+  if (file.size > 128 * 1024) {
+    const fileType = description === "criterios" ? description : "contexto";
+    throw new Error(`El archivo de ${fileType} supera 128 KiB.`);
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error(`No se pudo leer el archivo de ${description}.`));
+    reader.readAsText(file);
+  });
+}
+
 type ChatbotProps = {
   projectService?: ProjectService;
 };
@@ -565,18 +582,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   } | null>(null);
   const activeCriteria = correspondenceCriteria?.projectId === ps?.project?.id ? correspondenceCriteria : null;
   const loadCorrespondenceCriteria = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
     const projectId = ps?.project?.id;
-    event.currentTarget.value = "";
-    if (!file || !projectId) return;
     try {
-      if (file.size > 128 * 1024) throw new Error("El archivo de criterios supera 128 KiB.");
-      const text = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error("No se pudo leer el archivo de criterios."));
-        reader.readAsText(file);
-      });
+      const text = await readValidationFile(event.currentTarget, projectId, "criterios");
+      if (text === undefined) return;
       const profile = parseCorrespondenceProfile(text);
       setCorrespondenceCriteria({ projectId, profile });
       addLog(`[Criterios] Cargados para este proyecto · ${profile.id}. Se aplicarán a la siguiente solicitud y se mantendrán solo en esta sesión del chatbot.`);
@@ -590,18 +599,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   } | null>(null);
   const activeConstraintCriteria = constraintCriteria?.projectId === ps?.project?.id ? constraintCriteria : null;
   const loadConstraintCriteria = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
     const projectId = ps?.project?.id;
-    event.currentTarget.value = "";
-    if (!file || !projectId) return;
     try {
-      if (file.size > 128 * 1024) throw new Error("El archivo de criterios supera 128 KiB.");
-      const text = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error("No se pudo leer el archivo de criterios."));
-        reader.readAsText(file);
-      });
+      const text = await readValidationFile(event.currentTarget, projectId, "criterios");
+      if (text === undefined) return;
       const profile = parseConstraintProfile(text);
       setConstraintCriteria({ projectId, profile });
       addLog(`[Restricciones · criterios] Cargados para este proyecto · ${profile.id}. Se aplicarán a la siguiente solicitud y se mantendrán solo en esta sesión del chatbot.`);
@@ -615,18 +616,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   } | null>(null);
   const activeVersionEvidence = versionEvidence?.projectId === ps?.project?.id ? versionEvidence : null;
   const loadVersionEvidence = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
     const projectId = ps?.project?.id;
-    event.currentTarget.value = "";
-    if (!file || !projectId) return;
     try {
-      if (file.size > 128 * 1024) throw new Error("El archivo de contexto supera 128 KiB.");
-      const text = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error("No se pudo leer el contexto histórico."));
-        reader.readAsText(file);
-      });
+      const text = await readValidationFile(event.currentTarget, projectId, "contexto histórico");
+      if (text === undefined) return;
       const context = parseVersionContext(text, projectId);
       setVersionEvidence({ projectId, context });
       addLog(`[Versiones · contexto] Cargado para este proyecto · ${context.id}. Solo en memoria; se comprobará en la siguiente solicitud.`);
@@ -640,18 +633,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ projectService }) => {
   } | null>(null);
   const activeTraceEvidence = traceEvidence?.projectId === ps?.project?.id ? traceEvidence : null;
   const loadTraceEvidence = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
     const projectId = ps?.project?.id;
-    event.currentTarget.value = "";
-    if (!file || !projectId) return;
     try {
-      if (file.size > 128 * 1024) throw new Error("El archivo de contexto supera 128 KiB.");
-      const text = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error("No se pudo leer el contexto de trazabilidad."));
-        reader.readAsText(file);
-      });
+      const text = await readValidationFile(event.currentTarget, projectId, "contexto de trazabilidad");
+      if (text === undefined) return;
       const context = parseTraceContext(text, projectId);
       setTraceEvidence({ projectId, context });
       addLog(`[Trazabilidad · contexto] Cargado para este proyecto · ${context.id}. Solo en memoria; se comprobará en la siguiente solicitud.`);
